@@ -1,9 +1,9 @@
 package de.fatox.meta.input;
 
 import de.fatox.meta.Meta;
+import de.fatox.meta.injection.Inject;
 import de.fatox.meta.task.MetaTask;
 
-import javax.inject.Inject;
 
 public class MetaShortcut {
     @Inject

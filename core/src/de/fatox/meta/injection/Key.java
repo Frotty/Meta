@@ -1,6 +1,5 @@
 package de.fatox.meta.injection;
 
-import javax.inject.Named;
 import java.lang.annotation.Annotation;
 
 public class Key<T> {
