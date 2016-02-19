@@ -6,11 +6,6 @@ android:
 jdk:
   - oraclejdk7
 
-# Cache gradle dependencies (should be faster to download them from cache)
-cache:
-  directories:
-  - $HOME/.gradle/wrapper
-  - $HOME/.gradle/caches/modules-2/files-2.1
-  
+
 before_install:
  - chmod +x gradlew
