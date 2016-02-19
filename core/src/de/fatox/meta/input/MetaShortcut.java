@@ -9,12 +9,10 @@ public class MetaShortcut {
     @Inject
     private MetaInput metaInput;
 
-    private final MetaTask callback;
     private int missingKeys;
 
     public MetaShortcut(final MetaTask callback, int... keycodes) {
         Meta.inject(this);
-        this.callback = callback;
         missingKeys = keycodes.length;
         for(int code : keycodes) {
             metaInput.registerKeyListener(code, new KeyListener() {

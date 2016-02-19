@@ -1,8 +1,10 @@
 package de.fatox.meta.injection;
 
+import javax.inject.Inject;
+import javax.inject.Qualifier;
+import javax.inject.Singleton;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
-import javax.inject.*;
 import java.util.*;
 
 public class Feather {

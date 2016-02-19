@@ -4,9 +4,9 @@ import javax.inject.Named;
 import java.lang.annotation.Annotation;
 
 public class Key<T> {
-    final Class<T> type;
-    final Class<? extends Annotation> qualifier;
-    final String name;
+    public final Class<T> type;
+    public final Class<? extends Annotation> qualifier;
+    public final String name;
 
     private Key(Class<T> type, Class<? extends Annotation> qualifier, String name) {
         this.type = type;
@@ -35,7 +35,7 @@ public class Key<T> {
         return new Key<>(type, Named.class, name);
     }
 
-    static <T> Key<T> of(Class<T> type, Annotation qualifier) {
+    public static <T> Key<T> of(Class<T> type, Annotation qualifier) {
         if(qualifier == null) {
             return Key.of(type);
         } else {

@@ -7,7 +7,6 @@ import de.fatox.meta.injection.Feather;
 
 public class Meta extends ApplicationAdapter {
 	private static Feather featherInstance;
-	private MetaModule metaModule;
 
 	public static final void inject(Object object) {
 		if(featherInstance == null) {
@@ -18,6 +17,7 @@ public class Meta extends ApplicationAdapter {
 
 	@Override
 	public void create () {
+		//TODO
 	}
 
 	@Override
