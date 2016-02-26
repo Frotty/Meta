@@ -1,5 +1,9 @@
 package de.fatox.meta.injection;
 
+import de.fatox.meta.input.Hotkey;
+import de.fatox.meta.input.MetaShortcut;
+import de.fatox.meta.task.MetaTask;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
@@ -198,7 +202,39 @@ public class Feather {
             try {
                 field.set(target, (boolean) f[1] ? provider(key) : instance(key));
             } catch (Exception e) {
+                System.out.println(e);
                 throw new FeatherException(String.format("Can't inject field %s in %s", field.getName(), target.getClass().getName()));
+            }
+        }
+    }
+
+    public void registerHotkeys(final Object target) {
+        for (final Method method : target.getClass().getMethods()) {
+            Annotation[] annotations = method.getAnnotations();
+            for (int i = 0; i < annotations.length; i++) {
+                if (annotations[i] instanceof Hotkey) {
+                    final Hotkey hotkey = (Hotkey) annotations[i];
+                    new MetaShortcut(new MetaTask() {
+                        @Override
+                        public String getName() {
+                            return Arrays.toString(hotkey.keycodes());
+                        }
+
+                        @Override
+                        public void execute() {
+                            try {
+                                method.invoke(instance(target.getClass()));
+                            } catch (IllegalAccessException | InvocationTargetException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        @Override
+                        public void reverse() {
+
+                        }
+                    }, hotkey.keycodes());
+                }
             }
         }
     }

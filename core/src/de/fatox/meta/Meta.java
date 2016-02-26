@@ -1,11 +1,9 @@
 package de.fatox.meta;
 
-import com.badlogic.gdx.ApplicationAdapter;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.Game;
 import de.fatox.meta.injection.Feather;
 
-public class Meta extends ApplicationAdapter {
+public class Meta extends Game {
 	private static Feather featherInstance;
 
 	public static final void inject(Object object) {
@@ -17,12 +15,7 @@ public class Meta extends ApplicationAdapter {
 
 	@Override
 	public void create () {
-		//TODO
-	}
-
-	@Override
-	public void render () {
-		Gdx.gl.glClearColor(1, 0, 0, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		inject(this);
+		System.out.println("done");
 	}
 }
