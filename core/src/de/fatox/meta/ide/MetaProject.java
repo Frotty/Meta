@@ -4,7 +4,7 @@ import com.badlogic.gdx.ScreenAdapter;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.ide.persist.PersistentValue;
 import de.fatox.meta.api.graphics.Renderer;
-import de.fatox.meta.ide.persist.Persist;
+import de.fatox.meta.api.ide.persist.Persist;
 
 public class MetaProject extends ScreenAdapter {
 
@@ -19,5 +19,6 @@ public class MetaProject extends ScreenAdapter {
         Meta.inject(this);
     }
 
-
+    public MetaProject() {
+    }
 }

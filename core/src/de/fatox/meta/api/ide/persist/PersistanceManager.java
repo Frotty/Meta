@@ -1,10 +1,10 @@
 package de.fatox.meta.api.ide.persist;
 
-import java.lang.reflect.Field;
+import com.badlogic.gdx.files.FileHandle;
 
 public interface PersistanceManager {
 
-    void injectField(Field field);
+    FileHandle injectObject(Object object, int id);
 
-    void deleteField(Field field);
+    void deleteObject(Object object);
 }

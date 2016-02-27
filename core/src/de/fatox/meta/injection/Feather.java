@@ -242,6 +242,14 @@ public class Feather {
     @SuppressWarnings("unchecked")
     private <T> Provider<T> provider(final Key<T> key, Set<Key> chain) {
         if (!providers.containsKey(key)) {
+            if(key.name == null || key.name.length() <= 0) {
+                key.qualifier = Named.class;
+                key.name = "default";
+                if (providers.containsKey(key)) {
+                    return (Provider<T>) providers.get(key);
+                }
+                key.name = "";
+            }
             final Constructor constructor = constructor(key);
             final Provider<?>[] paramProviders = paramProviders(key, constructor.getParameterTypes(), constructor
                     .getGenericParameterTypes(), constructor.getParameterAnnotations(), chain);

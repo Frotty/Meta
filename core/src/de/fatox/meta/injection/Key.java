@@ -4,8 +4,8 @@ import java.lang.annotation.Annotation;
 
 public class Key<T> {
     public final Class<T> type;
-    public final Class<? extends Annotation> qualifier;
-    public final String name;
+    public Class<? extends Annotation> qualifier;
+    public String name;
 
     private Key(Class<T> type, Class<? extends Annotation> qualifier, String name) {
         this.type = type;

@@ -1,7 +1,9 @@
 package de.fatox.meta;
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Screen;
 import de.fatox.meta.injection.Feather;
+import de.fatox.meta.injection.Inject;
 
 public class Meta extends Game {
 	private static Feather featherInstance;
@@ -13,9 +15,12 @@ public class Meta extends Game {
 		featherInstance.injectFields(object);
 	}
 
+	@Inject
+	private Screen firstScreen;
+
 	@Override
 	public void create () {
 		inject(this);
-		System.out.println("done");
+		setScreen(firstScreen);
 	}
 }
