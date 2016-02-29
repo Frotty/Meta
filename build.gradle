@@ -91,6 +91,13 @@ project(":editor") {
 
     dependencies {
         compile project(":runtime")
+        compile fileTree(dir: 'libs', include: '*.jar')
+
+        testCompile 'org.mockito:mockito-core:2.0.43-beta'
+        testCompile "junit:junit:4.11"
+        testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
+        testCompile "com.badlogicgames.gdx:gdx:$gdxVersion"
+        testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
     }
 }
 

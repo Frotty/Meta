@@ -1,5 +1,6 @@
 package de.fatox.meta;
 
+import com.badlogic.gdx.assets.AssetLoaderParameters;
 import com.badlogic.gdx.assets.AssetManager;
 import de.fatox.meta.api.AssetProvider;
 
@@ -11,6 +12,16 @@ public class MetaAssetProvider implements AssetProvider {
 
     @Override
     public <T> T get(String fileName, Class<T> type) {
-        return null;
+        return assetManager.get(fileName, type);
+    }
+
+    @Override
+    public <T> void load(String fileName, Class<T> type) {
+        assetManager.load(fileName, type);
+    }
+
+    @Override
+    public <T> void load(String fileName, Class<T> type, AssetLoaderParameters<T> parameter) {
+        assetManager.load(fileName, type, parameter);
     }
 }

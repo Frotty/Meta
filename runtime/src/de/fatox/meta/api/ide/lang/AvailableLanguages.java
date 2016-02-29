@@ -1,4 +1,4 @@
-package de.fatox.meta.lang;
+package de.fatox.meta.api.ide.lang;
 
 public enum AvailableLanguages {
 	EN, DE, HU, PL
