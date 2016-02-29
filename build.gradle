@@ -20,6 +20,7 @@ allprojects {
         box2DLightsVersion = '1.4'
         ashleyVersion = '1.7.0'
         aiVersion = '1.8.0'
+        visuiVersion = '1.0.1'
     }
 
     repositories {
@@ -34,7 +35,7 @@ project(":desktop") {
 
 
     dependencies {
-        compile project(":core")
+        compile project(":runtime")
         compile "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
         compile "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
@@ -49,7 +50,7 @@ project(":android") {
     configurations { natives }
 
     dependencies {
-        compile project(":core")
+        compile project(":runtime")
         compile "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi"
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
@@ -62,7 +63,7 @@ project(":android") {
     }
 }
 
-project(":core") {
+project(":runtime") {
     apply plugin: "java"
 
     sourceSets.test.java.srcDirs = ["test/"]
@@ -71,13 +72,25 @@ project(":core") {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-ai:$aiVersion"
+        compile "com.kotcrab.vis:vis-ui:$visuiVersion"
         compile 'org.yaml:snakeyaml:1.17'
+        compile 'com.google.code.gson:gson:2.6.2'
         compile fileTree(dir: 'libs', include: '*.jar')
 
         testCompile "junit:junit:4.11"
         testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
         testCompile "com.badlogicgames.gdx:gdx:$gdxVersion"
         testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+    }
+}
+
+project(":editor") {
+    apply plugin: "java"
+
+    sourceSets.test.java.srcDirs = ["test/"]
+
+    dependencies {
+        compile project(":runtime")
     }
 }
 

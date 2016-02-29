@@ -1,4 +1,4 @@
-package de.fatox.meta.ide.persist;
+package de.fatox.meta.persist;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
@@ -6,6 +6,9 @@ import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.reflect.*;
 import de.fatox.meta.api.ide.persist.Persist;
 import de.fatox.meta.api.ide.persist.PersistanceManager;
+import de.fatox.meta.MetaProject;
+import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Provider;
 import org.yaml.snakeyaml.Yaml;
 
 import java.util.HashMap;
@@ -13,11 +16,16 @@ import java.util.Map;
 
 public class YamlPersistanceManager implements PersistanceManager {
 
+    @Inject
+    private Provider<MetaProject> currentProjectProvider;
+
     @Override
     public FileHandle injectObject(Object object, int id) {
         Persist annotation = object.getClass().getAnnotation(Persist.class);
         if (annotation != null) {
-            FileHandle fileHandle = Gdx.files.local(annotation.key() + object.getClass().getSimpleName() + "-" + id + ".yml");
+            String path = "projects/" + currentProjectProvider.get().projectName + "/";
+            path += annotation.key() + object.getClass().getSimpleName() + "-" + id + ".yml";
+            FileHandle fileHandle = Gdx.files.local(path);
             if (!fileHandle.exists()) {
                 try {
                     saveToFile(object, id, fileHandle);

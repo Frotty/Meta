@@ -1,4 +1,4 @@
-package de.fatox.meta.ide.persist;
+package de.fatox.meta.persist;
 
 import com.badlogic.gdx.files.FileHandle;
 import de.fatox.meta.api.ide.persist.PersistentValue;
