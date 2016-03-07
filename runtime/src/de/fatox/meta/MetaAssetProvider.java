@@ -2,12 +2,22 @@ package de.fatox.meta;
 
 import com.badlogic.gdx.assets.AssetLoaderParameters;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.BitmapFontLoader;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import de.fatox.meta.api.AssetProvider;
 
 public class MetaAssetProvider implements AssetProvider {
     private AssetManager assetManager = new AssetManager();
 
     public MetaAssetProvider() {
+        BitmapFontLoader.BitmapFontParameter parameter = new BitmapFontLoader.BitmapFontParameter();
+        parameter.genMipMaps = true;
+        parameter.magFilter = Texture.TextureFilter.Linear;
+        parameter.minFilter = Texture.TextureFilter.MipMapLinearLinear;
+
+        load("fonts/meta.fnt", BitmapFont.class);
+        assetManager.finishLoading();
     }
 
     @Override

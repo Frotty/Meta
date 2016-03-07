@@ -2,7 +2,6 @@ package de.fatox.meta.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
@@ -15,7 +14,7 @@ import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.input.MetaInput;
 
-public class MetaUIRenderer implements UIRenderer{
+public class MetaUIRenderer implements UIRenderer {
     private Stage stage;
 
     @Inject
@@ -25,6 +24,7 @@ public class MetaUIRenderer implements UIRenderer{
     @Inject
     private MetaInput metaInput;
 
+    @Inject
     public MetaUIRenderer() {
         Meta.inject(this);
         VisUI.load();
@@ -48,7 +48,7 @@ public class MetaUIRenderer implements UIRenderer{
         visTable.row();
         visTable.add().expand().fill();
         visTable.pack();
-//        visTable.debugAll();
+        visTable.debugAll();
         stage.addActor(visTable);
     }
 
@@ -59,8 +59,6 @@ public class MetaUIRenderer implements UIRenderer{
 
     @Override
     public void draw() {
-        Gdx.gl.glClear(GL30.GL_COLOR_BUFFER_BIT);
-        Gdx.gl.glClearColor(0.16862746f,0.16862746f, 0.16862746f, 1);
         stage.draw();
     }
 

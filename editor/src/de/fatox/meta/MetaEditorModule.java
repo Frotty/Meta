@@ -23,15 +23,15 @@ public class MetaEditorModule {
     @Provides
     @Singleton
     @Named("default")
-    public Screen firstScreen(MetaEditorScreen editorScreen) {
-        return editorScreen;
+    public UIRenderer uiRenderer(MetaUIRenderer uiRenderer) {
+        return uiRenderer;
     }
 
     @Provides
     @Singleton
     @Named("default")
-    public UIRenderer uiRenderer(MetaUIRenderer uiRenderer) {
-        return uiRenderer;
+    public Screen firstScreen(MetaEditorScreen editorScreen) {
+        return editorScreen;
     }
 
     @Provides
@@ -40,4 +40,5 @@ public class MetaEditorModule {
     public LanguageBundle languageBundle(MetaLanguageBundle metaLanguageBundle) {
         return metaLanguageBundle;
     }
+
 }

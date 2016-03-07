@@ -1,12 +1,12 @@
 package de.fatox.meta.graphics.renderer;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.graphics.Renderer;
+import de.fatox.meta.api.graphics.ShaderInfo;
 import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.graphics.buffer.MultiBuffer;
 import de.fatox.meta.injection.Inject;
@@ -14,6 +14,9 @@ import de.fatox.meta.injection.Inject;
 public class BufferRenderer implements Renderer {
     @Inject
     private ShaderLibrary shaderLibrary;
+    @Inject
+    private FontProvider fontProvider;
+
     // For regular model rendering
     private ModelBatch modelBatch = new ModelBatch();
     // For the Depthmap
@@ -26,6 +29,7 @@ public class BufferRenderer implements Renderer {
     private MultiBuffer multiBuffer = new MultiBuffer(0);
     private PerspectiveCamera cam;
 
+    @Inject
     public BufferRenderer(PerspectiveCamera cam) {
         Meta.inject(this);
         this.cam = cam;
@@ -36,15 +40,15 @@ public class BufferRenderer implements Renderer {
         // Populate Buffers
         multiBuffer.renderAll(modelBatch, cam);
         // Render to Screen
-        Gdx.gl30.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        Gdx.gl30.glClearDepthf(1.0f);
-        Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT);
-        FullscreenShader outputShader = (FullscreenShader) shaderLibrary.getOutputShader().getShader();
-        if (outputShader != null) {
-            outputShader.getProgram().begin();
-            fsquad.render(outputShader.getProgram());
-            outputShader.end();
+        ShaderInfo outputShader = shaderLibrary.getOutputShader();
+        if (outputShader != null && outputShader.getShader() instanceof FullscreenShader) {
+            FullscreenShader shader = (FullscreenShader) outputShader.getShader();
+            shader.getProgram().begin();
+            fsquad.render(shader.getProgram());
+            shader.end();
             multiBuffer.debugAll();
+        } else {
+            fontProvider.write(300, 300, "Meta", 14);
         }
     }
 
