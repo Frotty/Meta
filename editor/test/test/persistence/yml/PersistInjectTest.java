@@ -5,9 +5,11 @@ import de.fatox.meta.api.ide.persist.Persist;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.persist.YamlPersistanceManager;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import test.MetaTest;
 
+@Ignore
 public class PersistInjectTest extends MetaTest {
 
     @Persist(key = "test/")

@@ -6,6 +6,11 @@ android:
 jdk:
   - oraclejdk7
 
+cache:
+  directories:
+    - $HOME/.gradle/wrapper
+    - $HOME/.gradle/caches/modules-2/files-2.1
+
 
 before_install:
- - chmod +x gradlew
+  - chmod +x gradlew
