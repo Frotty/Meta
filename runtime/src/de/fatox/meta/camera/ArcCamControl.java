@@ -48,7 +48,7 @@ public class ArcCamControl implements InputProcessor {
 		this.camera = camera;
 		update();
 	}
-	
+
 	/**
 	 * Peq's work
 	 */
@@ -176,15 +176,15 @@ public class ArcCamControl implements InputProcessor {
 	}
 
 	/** Polar Projection from Wurst */
-	static float ppX( float x, float dist, float ang, float aoa ){
+	private static float ppX( float x, float dist, float ang, float aoa ){
 		return (float) (x + dist * Math.cos(ang*DEGTORAD) * Math.cos(aoa*DEGTORAD));
 	}
 
-	static float ppY( float y, float dist, float ang, float aoa  ) {
+	private static float ppY( float y, float dist, float ang, float aoa  ) {
 		return (float) (y + dist * Math.sin(ang*DEGTORAD) * Math.cos(aoa*DEGTORAD));
 	}
 
-	static float ppZ( float z, float dist, float ang ) {
+	private static float ppZ( float z, float dist, float ang ) {
 		return (float) (z + dist * Math.sin(ang*DEGTORAD));
 	}
 	public static final float DEGTORAD  	=  0.017453293f;

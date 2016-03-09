@@ -12,8 +12,8 @@ import java.nio.IntBuffer;
 
 public abstract class Buffer {
 	public IntBuffer ibuffer;
-	Array<BufferTexture> texs;
-	boolean first = true;
+	private Array<BufferTexture> texs;
+	private boolean first = true;
 
 	public Buffer(int size, int offset) {
 		ibuffer = BufferUtils.newIntBuffer(size);

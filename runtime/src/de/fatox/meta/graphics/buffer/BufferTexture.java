@@ -14,15 +14,15 @@ import com.badlogic.gdx.graphics.Texture.TextureWrap;
  */
 public class BufferTexture extends GLTexture {
 	/** The OpenGL internal color format, e.g. GL30.GL_RGB16F */
-	int format;
+	private int format;
 	/** Type of the data. Usually GL30.GL_FLOAT */
-	int type;
+	private int type;
 	/** Attachment Address */
 	private int bufferAddress;
 	/**
 	 * The Target attachment of the Framebuffer. This value is added to GL30.GL_COLOR_ATTACHMENT0 when attaching the texture
 	 */
-	boolean depth = false;
+	private boolean depth = false;
 
 	public BufferTexture(int bufferAddress) {
 		this(GL30.GL_RGB16F, GL30.GL_FLOAT, bufferAddress);

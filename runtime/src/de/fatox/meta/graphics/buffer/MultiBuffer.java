@@ -27,11 +27,9 @@ public class MultiBuffer {
     @Inject
     private EntityManager<Meta3DEntity> entityManager;
 
-    // Window width & height
     private int width, height;
     // The opengl-handle of the FrameBufferObject
     public int deferredFBO;
-    // Buffers
     public Array<Buffer> buffers = new Array<>(1);
     // Addresscounter for adding buffers
     private int bufferAddress = 0;
@@ -40,7 +38,6 @@ public class MultiBuffer {
     public MultiBuffer(int addressStart) {
         Meta.inject(this);
         bufferAddress = addressStart;
-
     }
 
     /**
@@ -122,6 +119,8 @@ public class MultiBuffer {
             case (GL30.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT):
                 System.out.println("incomplete_missing attachment");
                 break;
+            default:
+                System.out.println("unknown error");
         }
         return false;
     }
