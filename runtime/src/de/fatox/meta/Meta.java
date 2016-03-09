@@ -3,12 +3,12 @@ package de.fatox.meta;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.utils.Array;
-import de.fatox.meta.injection.Feather;
+import de.fatox.meta.injection.Metastasis;
 import de.fatox.meta.injection.Inject;
 
 public class Meta extends Game {
     private static Meta metaInstance;
-    private Feather feather;
+    private Metastasis metastasis;
     private Array<Object> modules = new Array<>();
 
     @Inject
@@ -28,12 +28,16 @@ public class Meta extends Game {
         getMetaInstance().setupFeather();
     }
 
+    public static void registerMetaAnnotation(Class annotationClass) {
+
+    }
+
     private final void setupFeather() {
-        feather = Feather.with(modules);
+        metastasis = Metastasis.with(modules);
     }
 
     public static final void inject(Object object) {
-        getMetaInstance().feather.injectFields(object);
+        getMetaInstance().metastasis.injectFields(object);
     }
 
     @Override

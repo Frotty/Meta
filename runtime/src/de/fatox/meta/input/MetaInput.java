@@ -7,6 +7,10 @@ import com.badlogic.gdx.utils.IntMap;
 public class MetaInput extends InputAdapter {
     private final IntMap<Array<KeyListener>> keyListenerMap = new IntMap<>();
 
+    public IntMap<Array<KeyListener>> getKeyListenerMap() {
+        return keyListenerMap;
+    }
+
     public void registerKeyListener(int keycode, KeyListener keyListener) {
         if (!keyListenerMap.containsKey(keycode)) {
             keyListenerMap.put(keycode, new Array<KeyListener>());

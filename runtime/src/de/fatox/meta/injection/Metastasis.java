@@ -8,13 +8,13 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
 
-public class Feather {
+public class Metastasis {
     private final Map<Key, Provider<?>> providers = new HashMap<>();
     private final Map<Key, Object> singletons = new HashMap<>();
     private final Map<Class, Object[][]> injectFields = new HashMap<>(0);
 
-    private Feather(Iterable<?> modules) {
-        providers.put(Key.of(Feather.class), new Provider() {
+    private Metastasis(Iterable<?> modules) {
+        providers.put(Key.of(Metastasis.class), new Provider() {
                     @Override
                     public Object get() {
                         return this;
@@ -23,7 +23,7 @@ public class Feather {
         );
         for (final Object module : modules) {
             if (module instanceof Class) {
-                throw new FeatherException(String.format("%s provided as class instead of an instance.", ((Class) module).getName()));
+                throw new MetastasisException(String.format("%s provided as class instead of an instance.", ((Class) module).getName()));
             }
             for (Method providerMethod : providers(module.getClass())) {
                 providerMethod(module, providerMethod);
@@ -32,17 +32,17 @@ public class Feather {
     }
 
     /**
-     * Constructs Feather with configuration modules
+     * Constructs Metastasis with configuration modules
      */
-    public static Feather with(Object... modules) {
-        return new Feather(Arrays.asList(modules));
+    public static Metastasis with(Object... modules) {
+        return new Metastasis(Arrays.asList(modules));
     }
 
     /**
-     * Constructs Feather with configuration modules
+     * Constructs Metastasis with configuration modules
      */
-    public static Feather with(Iterable<?> modules) {
-        return new Feather(modules);
+    public static Metastasis with(Iterable<?> modules) {
+        return new Metastasis(modules);
     }
 
     private static Object[] params(Provider<?>[] paramProviders) {
@@ -111,7 +111,7 @@ public class Feather {
                 if (inject == null) {
                     inject = c;
                 } else {
-                    throw new FeatherException(String.format("%s has multiple @Inject constructors", key.type));
+                    throw new MetastasisException(String.format("%s has multiple @Inject constructors", key.type));
                 }
             } else if (c.getParameterTypes().length == 0) {
                 noarg = c;
@@ -122,7 +122,7 @@ public class Feather {
             constructor.setAccessible(true);
             return constructor;
         } else {
-            throw new FeatherException(String.format("%s doesn't have an @Inject or no-arg constructor, or a module provider", key.type
+            throw new MetastasisException(String.format("%s doesn't have an @Inject or no-arg constructor, or a module provider", key.type
                     .getName()));
         }
     }
@@ -203,7 +203,7 @@ public class Feather {
                 field.set(target, (boolean) f[1] ? provider(key) : instance(key));
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new FeatherException(String.format("Can't inject field %s in %s", field.getName(), target.getClass().getName()));
+                throw new MetastasisException(String.format("Can't inject field %s in %s", field.getName(), target.getClass().getName()));
             }
         }
     }
@@ -259,7 +259,7 @@ public class Feather {
                             try {
                                 return constructor.newInstance(params(paramProviders));
                             } catch (Exception e) {
-                                throw new FeatherException(String.format("Can't instantiate %s", key.toString()), e);
+                                throw new MetastasisException(String.format("Can't instantiate %s", key.toString()), e);
                             }
                         }
                     })
@@ -271,7 +271,7 @@ public class Feather {
     private void providerMethod(final Object module, final Method m) {
         final Key key = Key.of(m.getReturnType(), qualifier(m.getAnnotations()));
         if (providers.containsKey(key)) {
-            throw new FeatherException(String.format("%s has multiple providers, module %s", key.toString(), module.getClass()));
+            throw new MetastasisException(String.format("%s has multiple providers, module %s", key.toString(), module.getClass()));
         }
         Singleton singleton = m.getAnnotation(Singleton.class) != null ? m.getAnnotation(Singleton.class) : m.getReturnType()
                 .getAnnotation(Singleton.class);
@@ -288,7 +288,7 @@ public class Feather {
                         try {
                             return m.invoke(module, params(paramProviders));
                         } catch (Exception e) {
-                            throw new FeatherException(String.format("Can't instantiate %s with provider", key.toString()), e);
+                            throw new MetastasisException(String.format("Can't instantiate %s with provider", key.toString()), e);
                         }
                     }
                 }
@@ -331,7 +331,7 @@ public class Feather {
                 final Key newKey = Key.of(parameterClass, qualifier);
                 final Set<Key> newChain = append(chain, key);
                 if (newChain.contains(newKey)) {
-                    throw new FeatherException(String.format("Circular dependency: %s", chain(newChain, newKey)));
+                    throw new MetastasisException(String.format("Circular dependency: %s", chain(newChain, newKey)));
                 }
                 providers[i] = new Provider() {
                     @Override

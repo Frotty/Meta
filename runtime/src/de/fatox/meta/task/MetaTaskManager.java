@@ -2,7 +2,7 @@ package de.fatox.meta.task;
 
 import com.badlogic.gdx.utils.Array;
 
-public class MetaTaskHistory {
+public class MetaTaskManager {
 
     private Array<MetaTask> taskHistoryStack = new Array<>();
 
