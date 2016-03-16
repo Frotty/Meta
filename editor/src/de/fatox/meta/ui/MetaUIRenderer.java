@@ -9,7 +9,7 @@ import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.ide.ui.UIRenderer;
+import de.fatox.meta.ide.ui.UIRenderer;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.input.MetaInput;

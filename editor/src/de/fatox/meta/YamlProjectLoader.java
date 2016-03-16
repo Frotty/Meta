@@ -1,7 +1,7 @@
 package de.fatox.meta;
 
 import com.badlogic.gdx.files.FileHandle;
-import de.fatox.meta.api.ide.ProjectLoader;
+import de.fatox.meta.ide.ProjectLoader;
 import org.yaml.snakeyaml.Yaml;
 
 import java.util.Map;

@@ -5,9 +5,9 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.I18NBundle;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.ide.lang.AvailableLanguages;
-import de.fatox.meta.api.ide.lang.LanguageBundle;
-import de.fatox.meta.api.ide.persist.Persist;
+import de.fatox.meta.api.lang.AvailableLanguages;
+import de.fatox.meta.api.lang.LanguageBundle;
+import de.fatox.meta.ide.persist.Persist;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 

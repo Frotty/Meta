@@ -6,7 +6,7 @@ import com.kotcrab.vis.ui.widget.MenuItem;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.ide.lang.LanguageBundle;
+import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 

@@ -1,9 +1,9 @@
 package de.fatox.meta;
 
 import com.badlogic.gdx.Screen;
-import de.fatox.meta.api.ide.lang.LanguageBundle;
-import de.fatox.meta.api.ide.persist.PersistanceManager;
-import de.fatox.meta.api.ide.ui.UIRenderer;
+import de.fatox.meta.api.lang.LanguageBundle;
+import de.fatox.meta.ide.persist.PersistanceManager;
+import de.fatox.meta.ide.ui.UIRenderer;
 import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;

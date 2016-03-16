@@ -1,4 +1,4 @@
-package de.fatox.meta.api.ide;
+package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
 

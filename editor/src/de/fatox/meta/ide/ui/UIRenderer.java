@@ -1,4 +1,4 @@
-package de.fatox.meta.api.ide.ui;
+package de.fatox.meta.ide.ui;
 
 import com.badlogic.gdx.InputProcessor;
 

@@ -1,4 +1,4 @@
-package de.fatox.meta.api.ide.persist;
+package de.fatox.meta.ide.persist;
 
 import java.lang.annotation.Retention;
 

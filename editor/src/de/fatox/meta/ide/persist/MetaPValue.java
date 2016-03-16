@@ -1,7 +1,6 @@
-package de.fatox.meta.persist;
+package de.fatox.meta.ide.persist;
 
 import com.badlogic.gdx.files.FileHandle;
-import de.fatox.meta.api.ide.persist.PersistentValue;
 
 public class MetaPValue<VALUETYPE> implements PersistentValue<VALUETYPE> {
     private VALUETYPE value;

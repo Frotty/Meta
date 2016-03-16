@@ -1,4 +1,4 @@
-package de.fatox.meta.api.ide.lang;
+package de.fatox.meta.api.lang;
 
 
 public interface LanguageBundle {

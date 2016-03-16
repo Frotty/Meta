@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.graphics.Renderer;
-import de.fatox.meta.api.ide.ui.UIRenderer;
+import de.fatox.meta.ide.ui.UIRenderer;
 import de.fatox.meta.injection.Inject;
 
 public class MetaEditorScreen extends ScreenAdapter {

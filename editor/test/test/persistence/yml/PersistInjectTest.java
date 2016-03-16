@@ -1,7 +1,7 @@
 package test.persistence.yml;
 
 import com.badlogic.gdx.files.FileHandle;
-import de.fatox.meta.api.ide.persist.Persist;
+import de.fatox.meta.ide.persist.Persist;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.persist.YamlPersistanceManager;
 import org.junit.Assert;
