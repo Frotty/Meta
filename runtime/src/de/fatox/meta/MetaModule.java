@@ -50,7 +50,7 @@ public class MetaModule {
         PerspectiveCamera cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         cam.position.set(2f, 2f, 2f);
         cam.lookAt(0,0,0);
-        cam.near = 1f;
+        cam.near = .1f;
         cam.far = 300f;
         cam.update();
         return cam;

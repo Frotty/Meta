@@ -23,22 +23,24 @@ public class BufferTexture extends GLTexture {
 	 * The Target attachment of the Framebuffer. This value is added to GL30.GL_COLOR_ATTACHMENT0 when attaching the texture
 	 */
 	private boolean depth = false;
+	public final String name;
 
-	public BufferTexture(int bufferAddress) {
-		this(GL30.GL_RGB16F, GL30.GL_FLOAT, bufferAddress);
+	public BufferTexture(int bufferAddress, String name) {
+		this(GL30.GL_RGB16F, GL30.GL_FLOAT, bufferAddress, name);
 	}
 
-	public BufferTexture(int format, int bufferAddress) {
-		this(format, GL30.GL_FLOAT, bufferAddress, false);
+	public BufferTexture(int format, int bufferAddress, String name) {
+		this(format, GL30.GL_FLOAT, bufferAddress, false, name);
 	}
 
-	public BufferTexture(int format, int type, int bufferAddress) {
-		this(format, type, bufferAddress, false);
+	public BufferTexture(int format, int type, int bufferAddress, String name) {
+		this(format, type, bufferAddress, false, name);
 	}
 
-	public BufferTexture(int format, int type, int bufferAddress, boolean depth) {
+	public BufferTexture(int format, int type, int bufferAddress, boolean depth, String name) {
 		// Super call generates the textureHandle (glHandle)
 		super(GL30.GL_TEXTURE_2D);
+		this.name = name;
 		minFilter = TextureFilter.Nearest;
 		magFilter = TextureFilter.Nearest;
 		uWrap = TextureWrap.ClampToEdge;

@@ -1,9 +1,7 @@
 package de.fatox.meta.graphics.buffer;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.GL30;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.utils.Array;
@@ -52,7 +50,7 @@ public class MultiBuffer {
         height = Gdx.graphics.getHeight();
         int address = bufferAddress;
         for (final ShaderInfo shaderInfo : shaderLibrary.getActiveShaders()) {
-            Buffer buf = new Buffer(shaderInfo.getRenderTargets(), address) {
+            Buffer buf = new Buffer(address, shaderInfo.getRenderTargets()) {
 
                 @Override
                 public void draw(ModelBatch mbatch, PerspectiveCamera cam) {
@@ -64,7 +62,7 @@ public class MultiBuffer {
                     mbatch.end();
                 }
             };
-            address += shaderInfo.getRenderTargets();
+            address += shaderInfo.getRenderTargets().length;
             buffers.add(buf);
         }
 
@@ -81,8 +79,10 @@ public class MultiBuffer {
         deferredFBO = Gdx.gl.glGenFramebuffer();
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, deferredFBO);
 
-        buffers.get(0).setupTextures(bufferAddress);
-        bufferAddress += 3;
+        for(Buffer buffer : buffers) {
+            buffer.setupTextures(bufferAddress);
+            bufferAddress += buffer.getSize();
+        }
         FrameBuffer.unbind();
         Gdx.gl.glActiveTexture(GL30.GL_TEXTURE0);
         Gdx.gl.glBindTexture(GL30.GL_TEXTURE_2D, 0);
@@ -125,14 +125,14 @@ public class MultiBuffer {
         return false;
     }
 
-    public void renderAll(ModelBatch modelBatch, PerspectiveCamera cam) {
-        if (buffers.size > 0) {
-            Gdx.gl.glBindFramebuffer(GL30.GL_FRAMEBUFFER, deferredFBO);
-            buffers.get(0).bind();
-            buffers.get(0).draw(modelBatch, cam);
-            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
-            FrameBuffer.unbind();
+    public void renderAll(ModelBatch modelBatch, ModelBatch depthBatch, PerspectiveCamera cam) {
+        Gdx.gl.glBindFramebuffer(GL30.GL_FRAMEBUFFER, deferredFBO);
+        for(Buffer buffer : buffers) {
+            buffer.bind();
+            buffer.draw(modelBatch, cam);
         }
+        Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
+        FrameBuffer.unbind();
     }
 
     public void debugAll() {

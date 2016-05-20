@@ -3,6 +3,7 @@ package de.fatox.meta.graphics.renderer;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
+import com.badlogic.gdx.graphics.g3d.utils.DepthShaderProvider;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.graphics.Renderer;
@@ -22,7 +23,7 @@ public class BufferRenderer implements Renderer {
     // For regular model rendering
     private ModelBatch modelBatch = new ModelBatch();
     // For the Depthmap
-    private ModelBatch depthBatch;
+    private ModelBatch depthBatch = new ModelBatch(new DepthShaderProvider());
 
     // Fullscreen Quad for final composition
     private FullscreenQuad fsquad = new FullscreenQuad();
@@ -37,7 +38,7 @@ public class BufferRenderer implements Renderer {
 
     public void render() {
         // Populate Buffers
-        multiBuffer.renderAll(modelBatch, cam);
+        multiBuffer.renderAll(modelBatch, depthBatch, cam);
         // Render to Screen
         ShaderInfo outputShader = shaderLibrary.getOutputShader();
         if (outputShader != null && outputShader.getShader() instanceof FullscreenShader) {

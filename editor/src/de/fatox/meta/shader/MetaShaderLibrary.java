@@ -19,18 +19,20 @@ public class MetaShaderLibrary implements ShaderLibrary {
     private Array<ShaderInfo> activeShaders = new Array<>();
 
     public MetaShaderLibrary() {
-        Shader shader = new GBufferShader();
-        shader.init();
+        Shader gbufSHader = new GBufferShader();
+        gbufSHader.init();
+//        Shader gbufSHader = new GBufferShader();
+//        gbufSHader.init();
         ShaderInfo testShader = new ShaderInfo() {
 
             @Override
-            public int getRenderTargets() {
-                return 4;
+            public RenderTarget[] getRenderTargets() {
+                return new RenderTarget[]{new RenderTarget("albedo"), new RenderTarget("normalsDepth"), new RenderTarget("aux"), new RenderTarget("pos")};
             }
 
             @Override
             public Shader getShader() {
-                return shader;
+                return gbufSHader;
             }
 
             @Override
@@ -63,8 +65,8 @@ public class MetaShaderLibrary implements ShaderLibrary {
                 private Shader shader;
 
                 @Override
-                public int getRenderTargets() {
-                    return 1;
+                public RenderTarget[] getRenderTargets() {
+                    return new RenderTarget[]{new RenderTarget("gl_FragColor")};
                 }
 
                 @Override
