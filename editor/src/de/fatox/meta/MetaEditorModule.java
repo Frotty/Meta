@@ -1,6 +1,7 @@
 package de.fatox.meta;
 
 import com.badlogic.gdx.Screen;
+import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.ide.persist.PersistanceManager;
 import de.fatox.meta.ide.ui.UIRenderer;
@@ -10,6 +11,7 @@ import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.lang.MetaLanguageBundle;
 import de.fatox.meta.persist.YamlPersistanceManager;
 import de.fatox.meta.screens.MetaEditorScreen;
+import de.fatox.meta.shader.MetaShaderLibrary;
 import de.fatox.meta.ui.MetaUIRenderer;
 
 public class MetaEditorModule {
@@ -41,4 +43,10 @@ public class MetaEditorModule {
         return metaLanguageBundle;
     }
 
+    @Provides
+    @Singleton
+    @Named("default")
+    public ShaderLibrary shaderLibrary(MetaShaderLibrary metaShaderLibrary) {
+        return metaShaderLibrary;
+    }
 }

@@ -17,11 +17,15 @@ public abstract class Buffer {
 
 	public Buffer(int size, int offset) {
 		ibuffer = BufferUtils.newIntBuffer(size);
-		for (int i = 0; i < size - 1; i++) {
+		for (int i = 0; i < size; i++) {
 			ibuffer.put(GL30.GL_COLOR_ATTACHMENT0 + offset + i);
 			System.out.println("Put into Buffer" + (GL30.GL_COLOR_ATTACHMENT0 + offset + i));
 		}
 		ibuffer.position(0);
+	}
+
+	public int getSize() {
+		return texs.size;
 	}
 
 	public void bind() {

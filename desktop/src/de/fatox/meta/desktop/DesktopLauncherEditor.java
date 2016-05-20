@@ -9,6 +9,7 @@ public class DesktopLauncherEditor {
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
         config.setResizable(true);
         config.setTitle("Meta");
+        config.setWindowedMode(1500,800);
         config.useOpenGL3(true, 3, 2);
         new Lwjgl3Application(new EditorMeta(), config);
     }

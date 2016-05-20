@@ -55,4 +55,9 @@ public class MetaLanguageBundle implements LanguageBundle {
     public String get(String key) {
         return currentBundle.get(key);
     }
+
+    @Override
+    public String format(String key, Object... args) {
+        return currentBundle.format(key, args);
+    }
 }

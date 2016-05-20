@@ -16,23 +16,22 @@ public class BufferRenderer implements Renderer {
     private ShaderLibrary shaderLibrary;
     @Inject
     private FontProvider fontProvider;
+    @Inject
+    private PerspectiveCamera cam;
 
     // For regular model rendering
     private ModelBatch modelBatch = new ModelBatch();
     // For the Depthmap
     private ModelBatch depthBatch;
+
     // Fullscreen Quad for final composition
     private FullscreenQuad fsquad = new FullscreenQuad();
 
     private DefaultTextureBinder textureBinder = new DefaultTextureBinder(1, 10);
-
     private MultiBuffer multiBuffer = new MultiBuffer(0);
-    private PerspectiveCamera cam;
 
-    @Inject
-    public BufferRenderer(PerspectiveCamera cam) {
+    public BufferRenderer() {
         Meta.inject(this);
-        this.cam = cam;
 //		depthBatch = new ModelBatch(new DepthShaderProvider());
     }
 
@@ -43,13 +42,13 @@ public class BufferRenderer implements Renderer {
         ShaderInfo outputShader = shaderLibrary.getOutputShader();
         if (outputShader != null && outputShader.getShader() instanceof FullscreenShader) {
             FullscreenShader shader = (FullscreenShader) outputShader.getShader();
-            shader.getProgram().begin();
+            shader.begin(null, null);
             fsquad.render(shader.getProgram());
             shader.end();
-            multiBuffer.debugAll();
         } else {
-            fontProvider.write(300, 300, "Meta", 14);
+//            fontProvider.write(300, 300, "Meta", 14);
         }
+        multiBuffer.debugAll();
     }
 
     public MultiBuffer getMultiBuffer() {

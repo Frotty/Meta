@@ -1,17 +1,19 @@
 package de.fatox.meta.entity;
 
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.RenderableProvider;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
-import com.badlogic.gdx.utils.Array;
+import de.fatox.meta.Meta;
+import de.fatox.meta.MetaAssetProvider;
 import de.fatox.meta.api.entity.Entity;
+import de.fatox.meta.injection.Inject;
 
 public abstract class Meta3DEntity implements Entity<Vector3> {
-    public static Array<Entity> entities = new Array<Entity>();
-
     public final Vector3 center = new Vector3();
     public final Vector3 dimensions = new Vector3();
     public float radius;
@@ -21,10 +23,15 @@ public abstract class Meta3DEntity implements Entity<Vector3> {
     private final static BoundingBox bounds = new BoundingBox();
     private static Vector3 tempPos = new Vector3();
 
+    @Inject
+    private MetaAssetProvider assetProvider;
+
     public Meta3DEntity(Vector3 pos, Model modelBase) {
+        Meta.inject(this);
         this.actorModel = new ModelInstance(modelBase, pos);
         calculateBounds();
-        entities.add(this);
+//        actorModel.materials.get(0).set(TextureAttribute.createDiffuse(assetProvider.get("models/mat_ship.bmp", Texture.class)));
+        actorModel.materials.get(0).set(TextureAttribute.createNormal(assetProvider.get("models/CryoFanNM.jpg", Texture.class)));
     }
 
     private void calculateBounds() {

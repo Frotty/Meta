@@ -3,20 +3,30 @@ package de.fatox.meta;
 import com.badlogic.gdx.assets.AssetLoaderParameters;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.BitmapFontLoader;
+import com.badlogic.gdx.assets.loaders.TextureLoader;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g3d.Model;
 import de.fatox.meta.api.AssetProvider;
 
 public class MetaAssetProvider implements AssetProvider {
     private AssetManager assetManager = new AssetManager();
 
     public MetaAssetProvider() {
-        BitmapFontLoader.BitmapFontParameter parameter = new BitmapFontLoader.BitmapFontParameter();
-        parameter.genMipMaps = true;
-        parameter.magFilter = Texture.TextureFilter.Linear;
-        parameter.minFilter = Texture.TextureFilter.MipMapLinearLinear;
+        BitmapFontLoader.BitmapFontParameter fontParam = new BitmapFontLoader.BitmapFontParameter();
+        fontParam.genMipMaps = true;
+        fontParam.magFilter = Texture.TextureFilter.Linear;
+        fontParam.minFilter = Texture.TextureFilter.MipMapLinearLinear;
+
+        TextureLoader.TextureParameter textParam = new TextureLoader.TextureParameter();
+        textParam.magFilter = Texture.TextureFilter.Linear;
+        textParam.minFilter = Texture.TextureFilter.MipMapLinearLinear;
 
         load("fonts/meta.fnt", BitmapFont.class);
+        load("models/white.png", Texture.class);
+        load("models/sphere.g3db", Model.class);
+        load("models/cryofan.g3db", Model.class);
+        load("models/CryoFanNM.jpg", Texture.class);
         assetManager.finishLoading();
     }
 

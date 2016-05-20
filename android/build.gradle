@@ -18,7 +18,7 @@ android {
         abortOnError false
     }
     defaultConfig {
-        applicationId "de.fatox.meta"
+        applicationId "de.fatox.de.fatox.meta"
         minSdkVersion 8
         targetSdkVersion 20
     }
@@ -71,7 +71,7 @@ task run(type: Exec) {
     }
 
     def adb = path + "/platform-tools/adb"
-    commandLine "$adb", 'shell', 'am', 'start', '-n', 'de.fatox.meta/de.fatox.meta.AndroidLauncher'
+    commandLine "$adb", 'shell', 'am', 'start', '-n', 'de.fatox.de.fatox.meta/de.fatox.de.fatox.meta.AndroidLauncher'
 }
 
 // sets up the Android Eclipse project, using the old Ant based build.

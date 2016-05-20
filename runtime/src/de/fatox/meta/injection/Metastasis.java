@@ -67,14 +67,12 @@ public class Metastasis {
         Set<Field> fields = fields(target);
         Object[][] fs = new Object[fields.size()][];
         int i = 0;
-        for (Field f : fields) {
-            Class<?> providerType = f.getType().equals(Provider.class) ?
-                    (Class<?>) ((ParameterizedType) f.getGenericType()).getActualTypeArguments()[0] :
+        for (Field field : fields) {
+            Class<?> providerType = field.getType().equals(Provider.class) ?
+                    (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0] :
                     null;
-            fs[i++] = new Object[]{
-                    f,
-                    providerType != null,
-                    Key.of(providerType != null ? providerType : f.getType(), qualifier(f.getAnnotations()))
+            Class<?> aClass = (providerType != null) ? providerType : field.getType();
+            fs[i++] = new Object[]{field, providerType != null, Key.of(aClass, qualifier(field.getAnnotations()))
             };
         }
         return fs;
@@ -211,9 +209,9 @@ public class Metastasis {
     public void registerHotkeys(final Object target) {
         for (final Method method : target.getClass().getMethods()) {
             Annotation[] annotations = method.getAnnotations();
-            for (int i = 0; i < annotations.length; i++) {
-                if (annotations[i] instanceof Hotkey) {
-                    final Hotkey hotkey = (Hotkey) annotations[i];
+            for (Annotation annotation : annotations) {
+                if (annotation instanceof Hotkey) {
+                    final Hotkey hotkey = (Hotkey) annotation;
                     new MetaShortcut(new MetaTask() {
                         @Override
                         public String getName() {
@@ -242,7 +240,7 @@ public class Metastasis {
     @SuppressWarnings("unchecked")
     private <T> Provider<T> provider(final Key<T> key, Set<Key> chain) {
         if (!providers.containsKey(key)) {
-            if(key.name == null || key.name.length() <= 0) {
+            if (key.name == null || key.name.length() <= 0) {
                 key.qualifier = Named.class;
                 key.name = "default";
                 if (providers.containsKey(key)) {
@@ -253,14 +251,11 @@ public class Metastasis {
             final Constructor constructor = constructor(key);
             final Provider<?>[] paramProviders = paramProviders(key, constructor.getParameterTypes(), constructor
                     .getGenericParameterTypes(), constructor.getParameterAnnotations(), chain);
-            providers.put(key, singletonProvider(key, key.type.getAnnotation(Singleton.class), new Provider() {
-                        @Override
-                        public Object get() {
-                            try {
-                                return constructor.newInstance(params(paramProviders));
-                            } catch (Exception e) {
-                                throw new MetastasisException(String.format("Can't instantiate %s", key.toString()), e);
-                            }
+            providers.put(key, singletonProvider(key, key.type.getAnnotation(Singleton.class), (Provider) () -> {
+                        try {
+                            return constructor.newInstance(params(paramProviders));
+                        } catch (Exception e) {
+                            throw new MetastasisException(String.format("Can't instantiate %s", key.toString()), e);
                         }
                     })
             );
@@ -282,14 +277,11 @@ public class Metastasis {
                 m.getParameterAnnotations(),
                 Collections.singleton(key)
         );
-        providers.put(key, singletonProvider(key, singleton, new Provider() {
-                    @Override
-                    public Object get() {
-                        try {
-                            return m.invoke(module, params(paramProviders));
-                        } catch (Exception e) {
-                            throw new MetastasisException(String.format("Can't instantiate %s with provider", key.toString()), e);
-                        }
+        providers.put(key, singletonProvider(key, singleton, (Provider) () -> {
+                    try {
+                        return m.invoke(module, params(paramProviders));
+                    } catch (Exception e) {
+                        throw new MetastasisException(String.format("Can't instantiate %s with provider", key.toString()), e);
                     }
                 }
                 )
@@ -298,18 +290,15 @@ public class Metastasis {
 
     @SuppressWarnings("unchecked")
     private <T> Provider<T> singletonProvider(final Key key, Singleton singleton, final Provider<T> provider) {
-        return singleton != null ? new Provider<T>() {
-            @Override
-            public T get() {
-                if (!singletons.containsKey(key)) {
-                    synchronized (singletons) {
-                        if (!singletons.containsKey(key)) {
-                            singletons.put(key, provider.get());
-                        }
+        return singleton != null ? () -> {
+            if (!singletons.containsKey(key)) {
+                synchronized (singletons) {
+                    if (!singletons.containsKey(key)) {
+                        singletons.put(key, provider.get());
                     }
                 }
-                return (T) singletons.get(key);
             }
+            return (T) singletons.get(key);
         } : provider;
     }
 
@@ -333,20 +322,10 @@ public class Metastasis {
                 if (newChain.contains(newKey)) {
                     throw new MetastasisException(String.format("Circular dependency: %s", chain(newChain, newKey)));
                 }
-                providers[i] = new Provider() {
-                    @Override
-                    public Object get() {
-                        return provider(newKey, newChain).get();
-                    }
-                };
+                providers[i] = () -> provider(newKey, newChain).get();
             } else {
                 final Key newKey = Key.of(providerType, qualifier);
-                providers[i] = new Provider() {
-                    @Override
-                    public Object get() {
-                        return provider(newKey, null);
-                    }
-                };
+                providers[i] = () -> provider(newKey, null);
             }
         }
         return providers;

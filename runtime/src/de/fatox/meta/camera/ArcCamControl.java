@@ -3,8 +3,10 @@ package de.fatox.meta.camera;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.math.Vector3;
+import de.fatox.meta.Meta;
+import de.fatox.meta.injection.Inject;
 
 /**
  * Better camera control because I dislike LibGDX's ones
@@ -16,13 +18,14 @@ public class ArcCamControl implements InputProcessor {
 	/** The button for moving the target. */
 	public int moveCameraButton = Buttons.RIGHT;
 	/** The units to translate the camera when moved the full width or height of the screen. */
-	public float translateUnits = 5f; // FIXME auto calculate this based on the target
+	public float translateUnits = 2f; // FIXME auto calculate this based on the target
 	/** The key which must be pressed to enter rotation mode. */
 	public int rotateMode = Keys.CONTROL_LEFT;
 	protected boolean rotateModeOn = false;
 	protected boolean fastZoomMode = false;
 	/** The camera. */
-	public Camera camera;
+	@Inject
+	public PerspectiveCamera camera;
 	/** Are we in moveMode? */
 	private boolean moveModeOn = false;
 	/** The target of the arcball */
@@ -32,7 +35,7 @@ public class ArcCamControl implements InputProcessor {
 	/** The angle in which the camera looks onto the target */
 	private float angleOfAttack = 56;
 	/** Distance from target */
-	private float distance = 250;
+	private float distance = 50;
 
 	public float getDistance() {
 		return distance;
@@ -44,8 +47,8 @@ public class ArcCamControl implements InputProcessor {
 	}
 	private int startX, startY;
 
-	public ArcCamControl(final Camera camera) {
-		this.camera = camera;
+	public ArcCamControl() {
+		Meta.inject(this);
 		update();
 	}
 
@@ -132,7 +135,7 @@ public class ArcCamControl implements InputProcessor {
 	@Override
 	public boolean scrolled (int amount) {
 		if(fastZoomMode) {
-			return zoom(amount * translateUnits * 10);
+			return zoom(amount * translateUnits);
 		} else {
 			return zoom(amount * translateUnits);
 		}

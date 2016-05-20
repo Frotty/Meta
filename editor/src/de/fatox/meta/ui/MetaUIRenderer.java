@@ -41,14 +41,13 @@ public class MetaUIRenderer implements UIRenderer {
         metaToolbar.menuBar.getTable().pack();
         visTable.row().height(19);
         visTable.add(metaToolbar.menuBar.getTable()).left();
-        visTable.setFillParent(true);
         visTable.top().left();
         visTable.row().height(2);
         visTable.add(new Separator()).expandX().fillX().height(2).padTop(-6).padBottom(-6);
         visTable.row();
-        visTable.add().expand().fill();
+//        visTable.add().expand().fill();
         visTable.pack();
-        visTable.debugAll();
+        visTable.setPosition(0, Gdx.graphics.getHeight()-visTable.getHeight());
         stage.addActor(visTable);
     }
 

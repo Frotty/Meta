@@ -20,6 +20,7 @@ import de.fatox.meta.injection.Log;
  * Stores all rendertargets from all buffers
  */
 public class MultiBuffer {
+    @Inject
     @Log
     private Logger log;
     @Inject
@@ -38,6 +39,7 @@ public class MultiBuffer {
     public MultiBuffer(int addressStart) {
         Meta.inject(this);
         bufferAddress = addressStart;
+        rebuild();
     }
 
     /**
@@ -54,12 +56,10 @@ public class MultiBuffer {
 
                 @Override
                 public void draw(ModelBatch mbatch, PerspectiveCamera cam) {
-                    log.debug("GBufferTest", "Drawing");
                     mbatch.begin(cam);
                     for (Meta3DEntity e : entityManager.getEntities()) {
                         // TODO culling
                         mbatch.render(e.getActor(), shaderInfo.getShader());
-                        log.debug("GBufferTest", "Renderer");
                     }
                     mbatch.end();
                 }
@@ -84,7 +84,7 @@ public class MultiBuffer {
         buffers.get(0).setupTextures(bufferAddress);
         bufferAddress += 3;
         FrameBuffer.unbind();
-        Gdx.gl30.glActiveTexture(GL30.GL_TEXTURE0);
+        Gdx.gl.glActiveTexture(GL30.GL_TEXTURE0);
         Gdx.gl.glBindTexture(GL30.GL_TEXTURE_2D, 0);
 
         if (!checkStatus()) {
@@ -125,22 +125,9 @@ public class MultiBuffer {
         return false;
     }
 
-//	public int addBuffer(Buffer buffer) {
-//		for (int i = 0; i < buffer.texs.size; i++) {
-//			buffer.ibuffer.put(GL30.GL_COLOR_ATTACHMENT0 + bufferAddress);
-//			System.out.println("Bound: " + bufferAddress);
-//			buffer.texs.get(i).bind(bufferAddress);
-//			bufferAddress++;
-//		}
-//		checkStatus();
-//		buffer.ibuffer.position(0);
-//		buffers.add(buffer);
-//		return buffers.size;
-//	}
-
     public void renderAll(ModelBatch modelBatch, PerspectiveCamera cam) {
         if (buffers.size > 0) {
-            Gdx.gl30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, deferredFBO);
+            Gdx.gl.glBindFramebuffer(GL30.GL_FRAMEBUFFER, deferredFBO);
             buffers.get(0).bind();
             buffers.get(0).draw(modelBatch, cam);
             Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
@@ -149,15 +136,18 @@ public class MultiBuffer {
     }
 
     public void debugAll() {
-        Gdx.gl30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, deferredFBO);
-        int quarterW = width / 4;
-        int quarterH = height / 4;
-        Gdx.gl30.glReadBuffer(GL30.GL_COLOR_ATTACHMENT0);
-        Gdx.gl30.glBlitFramebuffer(0, 0, width, height, 0, 0, quarterW, quarterH, GL30.GL_COLOR_BUFFER_BIT, GL30.GL_LINEAR);
-        Gdx.gl30.glReadBuffer(GL30.GL_COLOR_ATTACHMENT1);
-        Gdx.gl30.glBlitFramebuffer(0, 0, width, height, quarterW, 0, 2 * quarterW, quarterH, GL30.GL_COLOR_BUFFER_BIT, GL30.GL_LINEAR);
-        Gdx.gl30.glReadBuffer(GL30.GL_COLOR_ATTACHMENT2);
-        Gdx.gl30.glBlitFramebuffer(0, 0, width, height, 2 * quarterW, 0, 3 * quarterW, quarterH, GL30.GL_COLOR_BUFFER_BIT, GL30.GL_LINEAR);
-        Gdx.gl30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, 0);
+        Gdx.gl.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, deferredFBO);
+        int buffs = 0;
+        for (Buffer buffer : buffers) {
+            buffs += buffer.getSize();
+        }
+        int quarterW = width / Math.max(4, buffs);
+        int quarterH = height / Math.max(4, buffs);
+
+        for (int i = 0; i < buffs; i++) {
+            Gdx.gl30.glReadBuffer(GL30.GL_COLOR_ATTACHMENT0+i);
+            Gdx.gl30.glBlitFramebuffer(0, 0, width, height, quarterW*i, 0, quarterW*(i+1), quarterH, GL30.GL_COLOR_BUFFER_BIT, GL30.GL_LINEAR);
+        }
+        FrameBuffer.unbind();
     }
 }
