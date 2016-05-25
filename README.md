@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/Frotty/Meta.svg?branch=master)](https://travis-ci.org/Frotty/Meta)
 # Meta
 Conceptual 3D Rendering engine build ontop of libGDX
 ## Runtime
