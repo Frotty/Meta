@@ -50,14 +50,19 @@ public class MultiBuffer {
         height = Gdx.graphics.getHeight();
         int address = bufferAddress;
         for (final ShaderInfo shaderInfo : shaderLibrary.getActiveShaders()) {
-            Buffer buf = new Buffer(address, shaderInfo.getRenderTargets()) {
 
+            Buffer buf = new Buffer(address, shaderInfo) {
                 @Override
                 public void draw(ModelBatch mbatch, PerspectiveCamera cam) {
                     mbatch.begin(cam);
                     for (Meta3DEntity e : entityManager.getEntities()) {
                         // TODO culling
-                        mbatch.render(e.getActor(), shaderInfo.getShader());
+                        if(shaderInfo.getShader() != null) {
+
+                            mbatch.render(e.getActor(), shaderInfo.getShader());
+                        } else {
+                            mbatch.render(e.getActor());
+                        }
                     }
                     mbatch.end();
                 }
@@ -79,10 +84,12 @@ public class MultiBuffer {
         deferredFBO = Gdx.gl.glGenFramebuffer();
         Gdx.gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, deferredFBO);
 
-        for(Buffer buffer : buffers) {
+        for (Buffer buffer : buffers) {
             buffer.setupTextures(bufferAddress);
             bufferAddress += buffer.getSize();
         }
+        BufferTexture tex = new BufferTexture(GL30.GL_DEPTH_COMPONENT32F, GL30.GL_FLOAT, bufferAddress, true, "depth");
+        tex.bind(bufferAddress);
         FrameBuffer.unbind();
         Gdx.gl.glActiveTexture(GL30.GL_TEXTURE0);
         Gdx.gl.glBindTexture(GL30.GL_TEXTURE_2D, 0);
@@ -127,9 +134,9 @@ public class MultiBuffer {
 
     public void renderAll(ModelBatch modelBatch, ModelBatch depthBatch, PerspectiveCamera cam) {
         Gdx.gl.glBindFramebuffer(GL30.GL_FRAMEBUFFER, deferredFBO);
-        for(Buffer buffer : buffers) {
+        for (Buffer buffer : buffers) {
             buffer.bind();
-            buffer.draw(modelBatch, cam);
+            buffer.draw(buffer.shaderInfo.isDepth() ? depthBatch : depthBatch, cam);
         }
         Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
         FrameBuffer.unbind();
@@ -145,8 +152,8 @@ public class MultiBuffer {
         int quarterH = height / Math.max(4, buffs);
 
         for (int i = 0; i < buffs; i++) {
-            Gdx.gl30.glReadBuffer(GL30.GL_COLOR_ATTACHMENT0+i);
-            Gdx.gl30.glBlitFramebuffer(0, 0, width, height, quarterW*i, 0, quarterW*(i+1), quarterH, GL30.GL_COLOR_BUFFER_BIT, GL30.GL_LINEAR);
+            Gdx.gl30.glReadBuffer(GL30.GL_COLOR_ATTACHMENT0 + i);
+            Gdx.gl30.glBlitFramebuffer(0, 0, width, height, quarterW * i, 0, quarterW * (i + 1), quarterH, GL30.GL_COLOR_BUFFER_BIT, GL30.GL_LINEAR);
         }
         FrameBuffer.unbind();
     }

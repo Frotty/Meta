@@ -1,10 +1,11 @@
 package de.fatox.meta;
 
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
 import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.ide.persist.PersistanceManager;
-import de.fatox.meta.ide.ui.UIRenderer;
+import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
@@ -49,4 +50,12 @@ public class MetaEditorModule {
     public ShaderLibrary shaderLibrary(MetaShaderLibrary metaShaderLibrary) {
         return metaShaderLibrary;
     }
+
+    @Provides
+    @Singleton
+    @Named("default")
+    public DefaultTextureBinder textureBinder() {
+        return new DefaultTextureBinder(DefaultTextureBinder.ROUNDROBIN, 10);
+    }
+
 }

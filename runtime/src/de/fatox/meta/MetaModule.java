@@ -8,6 +8,7 @@ import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.entity.EntityManager;
 import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.graphics.Renderer;
+import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.entity.MetaEntityManager;
 import de.fatox.meta.graphics.MetaFontProvider;
@@ -17,7 +18,7 @@ import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.input.MetaInput;
-import de.fatox.meta.ui.MetaUI;
+import de.fatox.meta.ui.MetaUiManager;
 
 
 public class MetaModule {
@@ -25,8 +26,8 @@ public class MetaModule {
     @Provides
     @Singleton
     @Named("default")
-    public MetaUI metaUI() {
-        return new MetaUI();
+    public UIManager uiManager(MetaUiManager metaUiManager) {
+        return metaUiManager;
     }
 
     @Provides
@@ -49,7 +50,7 @@ public class MetaModule {
     public PerspectiveCamera perspectiveCamera() {
         PerspectiveCamera cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         cam.position.set(2f, 2f, 2f);
-        cam.lookAt(0,0,0);
+        cam.lookAt(0, 0, 0);
         cam.near = .1f;
         cam.far = 300f;
         cam.update();

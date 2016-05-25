@@ -13,7 +13,7 @@ import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.windows.ProjectWizard;
 
-public class MetaToolbar {
+public class MetaEditorMenuBar {
     @Inject
     @Log
     private Logger log;
@@ -24,14 +24,14 @@ public class MetaToolbar {
 
     public final MenuBar menuBar;
 
-    public MetaToolbar() {
+    public MetaEditorMenuBar() {
         Meta.inject(this);
         this.menuBar = new MenuBar();
-        log.info("MetaToolbar", "Created MenuBar");
+        log.info("MetaEditorMenuBar", "Created MenuBar");
         Menu fileMenu = createFileMenu();
         menuBar.addMenu(fileMenu);
         menuBar.addMenu(createEditMenu());
-        log.info("MetaToolbar", "Added File Menu");
+        log.info("MetaEditorMenuBar", "Added File Menu");
     }
 
     private Menu createFileMenu() {

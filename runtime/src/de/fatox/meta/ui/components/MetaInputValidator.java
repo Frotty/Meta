@@ -1,4 +1,4 @@
-package de.fatox.meta.ui;
+package de.fatox.meta.ui.components;
 
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisLabel;

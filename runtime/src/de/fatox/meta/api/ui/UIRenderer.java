@@ -1,8 +1,10 @@
-package de.fatox.meta.ide.ui;
+package de.fatox.meta.api.ui;
 
-import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 
 public interface UIRenderer {
+
+    void addActor(Actor actor);
 
     void update();
 
@@ -10,5 +12,4 @@ public interface UIRenderer {
 
     void resize(int width, int height);
 
-    InputProcessor getInputProcessor();
 }

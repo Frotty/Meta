@@ -2,7 +2,6 @@ package de.fatox.meta.graphics.renderer;
 
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
-import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
 import com.badlogic.gdx.graphics.g3d.utils.DepthShaderProvider;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.graphics.FontProvider;
@@ -28,12 +27,10 @@ public class BufferRenderer implements Renderer {
     // Fullscreen Quad for final composition
     private FullscreenQuad fsquad = new FullscreenQuad();
 
-    private DefaultTextureBinder textureBinder = new DefaultTextureBinder(1, 10);
     private MultiBuffer multiBuffer = new MultiBuffer(0);
 
     public BufferRenderer() {
         Meta.inject(this);
-//		depthBatch = new ModelBatch(new DepthShaderProvider());
     }
 
     public void render() {
@@ -50,6 +47,11 @@ public class BufferRenderer implements Renderer {
 //            fontProvider.write(300, 300, "Meta", 14);
         }
         multiBuffer.debugAll();
+    }
+
+    @Override
+    public void rebuild() {
+        multiBuffer = new MultiBuffer(0);
     }
 
     public MultiBuffer getMultiBuffer() {

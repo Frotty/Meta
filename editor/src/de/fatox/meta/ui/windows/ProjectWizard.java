@@ -10,8 +10,8 @@ import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrors;
 import de.fatox.meta.injection.Inject;
-import de.fatox.meta.ui.MetaInputValidator;
-import de.fatox.meta.ui.MetaValidTextField;
+import de.fatox.meta.ui.components.MetaInputValidator;
+import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.util.StringUtil;
 
 public class ProjectWizard extends VisDialog {
