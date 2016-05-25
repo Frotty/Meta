@@ -1,6 +1,7 @@
 package de.fatox.meta.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -8,6 +9,7 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.graphics.Renderer;
 import de.fatox.meta.api.ui.UIManager;
+import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.camera.ArcCamControl;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
@@ -21,7 +23,8 @@ public class MetaEditorScreen extends ScreenAdapter {
     private Logger log;
     @Inject
     private UIManager uiManager;
-
+    @Inject
+    private UIRenderer uiRenderer;
     @Inject
     private Renderer renderer;
 
@@ -32,8 +35,8 @@ public class MetaEditorScreen extends ScreenAdapter {
     @Override
     public void show() {
         Meta.inject(this);
-        Gdx.input.setInputProcessor(new ArcCamControl());
         setupEdiotrUi();
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiRenderer.getStage(), new ArcCamControl()));
     }
 
     private void update() {

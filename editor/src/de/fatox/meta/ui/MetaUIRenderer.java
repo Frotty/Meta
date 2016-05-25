@@ -52,4 +52,9 @@ public class MetaUIRenderer implements UIRenderer {
     public void resize(int width, int height) {
 
     }
+
+    @Override
+    public Stage getStage() {
+        return stage;
+    }
 }
