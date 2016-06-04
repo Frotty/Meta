@@ -61,9 +61,13 @@ public abstract class Buffer {
     public void setupTextures(int offset) {
         texs = new Array<>(ibuffer.capacity() + 1);
         for (int i = 0; i < ibuffer.capacity(); i++) {
-            BufferTexture tex = new BufferTexture(offset + i, shaderInfo.getRenderTargets()[i].name);
+            BufferTexture tex;
+            if(shaderInfo.isDepth()) {
+                tex = new BufferTexture(GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE, offset + i, shaderInfo.getRenderTargets()[i].name);
+            } else {
+                tex = new BufferTexture(offset + i, shaderInfo.getRenderTargets()[i].name);
+            }
             tex.bind(offset + i);
-            System.out.println("bound to " + (offset + i));
             texs.add(tex);
         }
         Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);

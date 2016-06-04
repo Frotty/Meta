@@ -3,7 +3,10 @@ package de.fatox.meta.entity;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.VertexAttributes;
+import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -26,28 +29,12 @@ public class MetaEntityManager implements EntityManager<Meta3DEntity> {
         Texture whiteTex = new Texture(pxmp);
         ModelBuilder modelBuilder = new ModelBuilder();
         Model model = assetProvider.get("models/cryofan.g3db", Model.class);
-//        model.materials.get(0).set(ColorAttribute.createDiffuse(Color.CORAL));
-        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), model) {
-            @Override
-            public int getId() {
-                return 0;
-            }
-
-            @Override
-            public Vector3 getCenter() {
-                return new Vector3(0, 0, 0);
-            }
-
-            @Override
-            public void update() {
-
-            }
-
-            @Override
-            public void draw() {
-
-            }
-        });
+        final Material material = new Material(ColorAttribute.createDiffuse(Color.CORAL));
+        final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates;
+        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), model));
+        addEntity(new Meta3DEntity(new Vector3(10, 0, 0), model));
+        addEntity(new Meta3DEntity(new Vector3(0, 0, 10), model));
+        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), modelBuilder.createBox(-200, 2, 200, material, attributes)));
     }
 
     @Override

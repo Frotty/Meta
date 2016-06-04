@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.MenuBar;
+import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
@@ -40,6 +41,11 @@ public class MetaUiManager implements UIManager {
     }
 
     @Override
+    public void addTable(Table table) {
+        uiRenderer.getStage().addActor(table);
+    }
+
+    @Override
     public void addWindow(Window window) {
         windowCache.add(window);
         uiRenderer.addActor(window);
@@ -47,6 +53,17 @@ public class MetaUiManager implements UIManager {
 
     @Override
     public void addMenuBar(MenuBar menuBar) {
+        RTable rTable = new RTable();
+        rTable.setFillParent(true);
+        rTable.top().row();
+        rTable.add(menuBar.getTable()).fillX().expandX();
+        rTable.row().height(0.5f);
+        rTable.add();
+        menuBars.add(menuBar);
+        uiRenderer.addActor(rTable);
+    }
 
+    @Override
+    public void addToast(ToastTable toast) {
     }
 }

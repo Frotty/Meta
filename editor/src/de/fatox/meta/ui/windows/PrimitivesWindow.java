@@ -12,8 +12,8 @@ public class PrimitivesWindow extends MetaWindow {
     private final VisTextButton boxButton;
 
     public PrimitivesWindow() {
-        super("Primitives", true);
-
+        super("Primitives", true, true);
+        addCloseButton();
         this.boxButton = new VisTextButton("Box");
         boxButton.addListener(new MetaClickListener() {
             @Override

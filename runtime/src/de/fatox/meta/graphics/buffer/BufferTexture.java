@@ -73,7 +73,7 @@ public class BufferTexture extends GLTexture {
         Gdx.gl.glTexParameteri(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_MAX_LEVEL, 0);
 
         if (depth) {
-            Gdx.gl.glTexImage2D(glTarget, 0, format, getWidth(), getHeight(), 0, GL30.GL_DEPTH_COMPONENT, type, null);
+            Gdx.gl.glTexImage2D(glTarget, 0, format, getWidth(), getHeight(), 0, GL30.GL_DEPTH_COMPONENT32F, type, null);
             Gdx.gl.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, glTarget, glHandle, 0);
         } else {
             // Create the texture (previously we generated the TextureHandle,
@@ -82,8 +82,7 @@ public class BufferTexture extends GLTexture {
             // Attach the created Texture to the Framebuffer
             // The GL_COLOR_ATTACHMENT target defines which output from the
             // shader gets written into which buffer texture
-            System.out.println("GL30.GL_COLOR_ATTACHMENT0: " + GL30.GL_COLOR_ATTACHMENT0);
-            System.out.println("Attached to: " + (GL30.GL_COLOR_ATTACHMENT0 + bufferAddress));
+            System.out.println("Attached to: " + (bufferAddress));
             Gdx.gl.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + bufferAddress, glTarget, glHandle, 0);
         }
     }

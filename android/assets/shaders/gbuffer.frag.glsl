@@ -21,7 +21,6 @@ in vec2 v_texCoord0;
 layout(location = 0) out vec4 o_albedo;
 layout(location = 1) out vec4 o_normalsDepth;
 layout(location = 2) out vec4 o_aux;
-layout(location = 3) out vec4 o_pos;
 
 mat3 cotangent_frame( vec3 N, vec3 p, vec2 uv )
 {
@@ -63,5 +62,4 @@ void main() {
 	o_normalsDepth = vec4(perturb_normal(v_normal, viewVec, v_texCoord0),1);
 	// Material Properties	
 	o_aux = vec4(u_mat, 1.0);
-	o_pos = v_pos;
 }

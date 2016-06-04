@@ -14,8 +14,6 @@ public class MetaShaderLibrary implements ShaderLibrary {
     public MetaShaderLibrary() {
         Shader gbufSHader = new GBufferShader();
         gbufSHader.init();
-//        Shader gbufSHader = new GBufferShader();
-//        gbufSHader.init();
         ShaderInfo testShader = new ShaderInfo() {
             RenderTarget[] tgts = new RenderTarget[]{new RenderTarget("albedo"), new RenderTarget("normalsDepth"), new RenderTarget("aux"), new RenderTarget("pos")};
 
@@ -39,31 +37,7 @@ public class MetaShaderLibrary implements ShaderLibrary {
                 return "Test";
             }
         };
-        ShaderInfo depthShader = new ShaderInfo() {
-            RenderTarget[] tgts = new RenderTarget[]{new RenderTarget("depth")};
-
-            @Override
-            public boolean isDepth() {
-                return true;
-            }
-
-            @Override
-            public RenderTarget[] getRenderTargets() {
-                return tgts;
-            }
-
-            @Override
-            public Shader getShader() {
-                return null;
-            }
-
-            @Override
-            public String getName() {
-                return "DepthS";
-            }
-        };
         activeShaders.add(testShader);
-        activeShaders.add(depthShader);
     }
 
     @Override
@@ -77,7 +51,7 @@ public class MetaShaderLibrary implements ShaderLibrary {
     }
 
     @Override
-    public Iterable<ShaderInfo> getActiveShaders() {
+    public Array<ShaderInfo> getActiveShaders() {
         return activeShaders;
     }
 

@@ -73,4 +73,10 @@ public class StringUtil {
         return true;
     }
 
+    public static String truncate(String s, int chars) {
+        if(s.length() > chars) {
+            return s.substring(0, chars-1) + "..";
+        }
+        return s;
+    }
 }

@@ -15,6 +15,9 @@ import de.fatox.meta.graphics.renderer.FullscreenShader;
 public class CompositeShader extends FullscreenShader {
     private ShaderProgram program;
     private int s_albedoTex;
+    private int s_depthTex;
+    private int u_nearDistance;
+    private int u_farDistance;
 
     @Override
     public ShaderProgram getProgram() {
@@ -31,6 +34,9 @@ public class CompositeShader extends FullscreenShader {
             throw new GdxRuntimeException(program.getLog());
 
         s_albedoTex = program.getUniformLocation("s_albedoTex");
+        s_depthTex = program.getUniformLocation("s_depthTex");
+        u_nearDistance = program.getUniformLocation("u_nearDistance");
+        u_farDistance = program.getUniformLocation("u_farDistance");
     }
 
     @Override
@@ -46,7 +52,10 @@ public class CompositeShader extends FullscreenShader {
     @Override
     public void begin(Camera camera, RenderContext context) {
         program.begin();
-        program.setUniformi(s_albedoTex, 11);
+//        program.setUniformi(s_albedoTex, 11);
+        program.setUniformi(s_depthTex, 10);
+        program.setUniformf(u_nearDistance, camera.near);
+        program.setUniformf(u_farDistance, camera.far);
     }
 
 

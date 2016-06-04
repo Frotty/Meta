@@ -1,11 +1,12 @@
 package de.fatox.meta;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetLoaderParameters;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.BitmapFontLoader;
 import com.badlogic.gdx.assets.loaders.TextureLoader;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g3d.Model;
 import de.fatox.meta.api.AssetProvider;
 
@@ -22,11 +23,11 @@ public class MetaAssetProvider implements AssetProvider {
         textParam.magFilter = Texture.TextureFilter.Linear;
         textParam.minFilter = Texture.TextureFilter.MipMapLinearLinear;
 
-        load("fonts/meta.fnt", BitmapFont.class);
         load("models/white.png", Texture.class);
         load("models/sphere.g3db", Model.class);
         load("models/cryofan.g3db", Model.class);
         load("models/CryoFanNM.jpg", Texture.class);
+        load("ui/appbar.new.png", Texture.class);
         assetManager.finishLoading();
     }
 
@@ -43,5 +44,10 @@ public class MetaAssetProvider implements AssetProvider {
     @Override
     public <T> void load(String fileName, Class<T> type, AssetLoaderParameters<T> parameter) {
         assetManager.load(fileName, type, parameter);
+    }
+
+    @Override
+    public FileHandle get(String s) {
+        return Gdx.files.internal(s);
     }
 }

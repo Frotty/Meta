@@ -13,7 +13,7 @@ import de.fatox.meta.MetaAssetProvider;
 import de.fatox.meta.api.entity.Entity;
 import de.fatox.meta.injection.Inject;
 
-public abstract class Meta3DEntity implements Entity<Vector3> {
+public class Meta3DEntity implements Entity<Vector3> {
     public final Vector3 center = new Vector3();
     public final Vector3 dimensions = new Vector3();
     public float radius;
@@ -51,4 +51,25 @@ public abstract class Meta3DEntity implements Entity<Vector3> {
     public RenderableProvider getActor() {
         return actorModel;
     }
+
+    @Override
+    public Vector3 getCenter() {
+        return new Vector3(0, 0, 0);
+    }
+
+    @Override
+    public int getId() {
+        return 0;
+    }
+
+    @Override
+    public void update() {
+
+    }
+
+    @Override
+    public void draw() {
+
+    }
+
 }

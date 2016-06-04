@@ -58,7 +58,6 @@ public class MultiBuffer {
                     for (Meta3DEntity e : entityManager.getEntities()) {
                         // TODO culling
                         if(shaderInfo.getShader() != null) {
-
                             mbatch.render(e.getActor(), shaderInfo.getShader());
                         } else {
                             mbatch.render(e.getActor());
@@ -88,7 +87,7 @@ public class MultiBuffer {
             buffer.setupTextures(bufferAddress);
             bufferAddress += buffer.getSize();
         }
-        BufferTexture tex = new BufferTexture(GL30.GL_DEPTH_COMPONENT32F, GL30.GL_FLOAT, bufferAddress, true, "depth");
+        BufferTexture tex = new BufferTexture(GL30.GL_DEPTH_COMPONENT, GL30.GL_UNSIGNED_BYTE, bufferAddress, true, "depth");
         tex.bind(bufferAddress);
         FrameBuffer.unbind();
         Gdx.gl.glActiveTexture(GL30.GL_TEXTURE0);
@@ -132,11 +131,11 @@ public class MultiBuffer {
         return false;
     }
 
-    public void renderAll(ModelBatch modelBatch, ModelBatch depthBatch, PerspectiveCamera cam) {
+    public void renderAll(ModelBatch modelBatch, PerspectiveCamera cam) {
         Gdx.gl.glBindFramebuffer(GL30.GL_FRAMEBUFFER, deferredFBO);
         for (Buffer buffer : buffers) {
             buffer.bind();
-            buffer.draw(buffer.shaderInfo.isDepth() ? depthBatch : depthBatch, cam);
+            buffer.draw(modelBatch, cam);
         }
         Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
         FrameBuffer.unbind();

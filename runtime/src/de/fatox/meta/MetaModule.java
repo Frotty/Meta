@@ -11,7 +11,7 @@ import de.fatox.meta.api.graphics.Renderer;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.entity.MetaEntityManager;
-import de.fatox.meta.graphics.MetaFontProvider;
+import de.fatox.meta.graphics.font.MetaFontProvider;
 import de.fatox.meta.graphics.renderer.BufferRenderer;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.injection.Named;
@@ -49,11 +49,10 @@ public class MetaModule {
     @Named("default")
     public PerspectiveCamera perspectiveCamera() {
         PerspectiveCamera cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        cam.position.set(2f, 2f, 2f);
+        cam.position.set(30f, 30f, 30f);
         cam.lookAt(0, 0, 0);
-        cam.near = .1f;
-        cam.far = 300f;
-        cam.update();
+        cam.near = 1f;
+        cam.far = 350f;
         return cam;
     }
 

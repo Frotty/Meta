@@ -17,10 +17,8 @@ allprojects {
         appName = "Meta"
         gdxVersion = '1.9.4-SNAPSHOT'
         roboVMVersion = '1.12.0'
-        box2DLightsVersion = '1.4'
-        ashleyVersion = '1.7.0'
         aiVersion = '1.8.0'
-        visuiVersion = '1.0.2'
+        visuiVersion = '1.1.1'
     }
 
     repositories {
@@ -71,12 +69,11 @@ project(":runtime") {
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
+        compile "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-ai:$aiVersion"
         compile "com.kotcrab.vis:vis-ui:$visuiVersion"
-        compile 'org.yaml:snakeyaml:1.17'
-        compile 'com.google.code.gson:gson:2.6.2'
+        compile 'io.gsonfire:gson-fire:1.5.1'
         compile fileTree(dir: 'libs', include: '*.jar')
-
         testCompile "junit:junit:4.11"
         testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
         testCompile "com.badlogicgames.gdx:gdx:$gdxVersion"
@@ -95,10 +92,6 @@ project(":editor") {
 
         compile 'com.google.code.gson:gson:2.6.2'
         testCompile 'org.mockito:mockito-core:2.0.43-beta'
-        testCompile "junit:junit:4.11"
-        testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
-        testCompile "com.badlogicgames.gdx:gdx:$gdxVersion"
-        testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
     }
 }
 
@@ -111,11 +104,6 @@ project(":example") {
         compile project(":runtime")
         compile fileTree(dir: 'libs', include: '*.jar')
 
-        testCompile 'org.mockito:mockito-core:2.0.43-beta'
-        testCompile "junit:junit:4.11"
-        testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
-        testCompile "com.badlogicgames.gdx:gdx:$gdxVersion"
-        testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
     }
 }
 
