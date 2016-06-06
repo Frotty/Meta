@@ -28,6 +28,7 @@ public class MetaAssetProvider implements AssetProvider {
         load("models/cryofan.g3db", Model.class);
         load("models/CryoFanNM.jpg", Texture.class);
         load("ui/appbar.new.png", Texture.class);
+        load("ui/appbar.folder.open.png", Texture.class);
         assetManager.finishLoading();
     }
 

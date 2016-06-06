@@ -7,6 +7,8 @@ import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.ui.MetaEditorUI;
+import de.fatox.meta.ui.tabs.ProjectHomeTab;
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -16,15 +18,27 @@ public class MetaProjectManager implements ProjectManager {
     private Gson gson;
     @Inject
     private UIManager uiManager;
+    @Inject
+    private MetaEditorUI editorUI;
+
+    private MetaProjectData currentProject;
 
     public MetaProjectManager() {
         Meta.inject(this);
     }
 
     @Override
+    public MetaProjectData getCurrentProject() {
+        return currentProject;
+    }
+
+    @Override
     public MetaProjectData loadProject(FileHandle projectFile) {
         MetaProjectData metaProjectData = gson.fromJson(projectFile.readString(), MetaProjectData.class);
+        metaProjectData.setRoot(projectFile);
         createFolders(metaProjectData);
+        currentProject = metaProjectData;
+        editorUI.addTab(new ProjectHomeTab(metaProjectData));
         return metaProjectData;
     }
 
@@ -45,6 +59,19 @@ public class MetaProjectManager implements ProjectManager {
         toastTable.add(new VisLabel("Project created"));
         uiManager.addToast(toastTable);
     }
+
+    @Override
+    public boolean verifyProjectFile(FileHandle file) {
+        try {
+            MetaProjectData metaProjectData = gson.fromJson(file.readString(), MetaProjectData.class);
+            if(metaProjectData.isValid()) {
+                return true;
+            }
+        } catch (Exception e) {
+        }
+        return false;
+    }
+
 
     private void createFolders(MetaProjectData projectData) {
         projectData.root.child("assets").mkdirs();

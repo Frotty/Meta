@@ -33,6 +33,8 @@ public class MetaFontProvider implements FontProvider {
         generator = new FreeTypeFontGenerator(assetProvider.get("fonts/Vulpes.ttf"));
         param = new FreeTypeFontGenerator.FreeTypeFontParameter();
         param.genMipMaps = true;
+        param.kerning = true;
+        param.incremental = true;
         param.minFilter = Texture.TextureFilter.MipMapLinearLinear;
         param.magFilter = Texture.TextureFilter.Linear;
         param.genMipMaps = true;
@@ -42,8 +44,7 @@ public class MetaFontProvider implements FontProvider {
 
     @Override
     public BitmapFont getFont(float size) {
-        param.size = (int) size;
-        return generator.generateFont(param);
+        return bitmapFont;
     }
 
     @Override

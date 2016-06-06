@@ -29,6 +29,8 @@ public class MetaEditorScreen extends ScreenAdapter {
 
     @Inject
     private FontProvider fontProvider;
+    @Inject
+    private MetaEditorUI metaEditorUISetup;
 
     @Override
     public void show() {
@@ -45,9 +47,6 @@ public class MetaEditorScreen extends ScreenAdapter {
     public void render(float delta) {
         update();
         clearFrame();
-        spriteBatch.begin();
-        fontProvider.write(Gdx.graphics.getWidth()/2f, Gdx.graphics.getHeight()/2f, "Meta", 25);
-        spriteBatch.end();
         uiManager.draw();
     }
 
@@ -59,7 +58,6 @@ public class MetaEditorScreen extends ScreenAdapter {
     }
 
     private void setupEditorUi() {
-        MetaEditorUI metaEditorUISetup = new MetaEditorUI();
         metaEditorUISetup.setup();
     }
 

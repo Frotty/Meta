@@ -28,16 +28,21 @@ public abstract class MetaDialog extends MetaWindow {
         leftButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                onResult(false);
+                if (!leftButton.isDisabled()) {
+                    onResult(false);
+                }
             }
         });
         buttonTable.add(leftButton).pad(4).left();
         buttonTable.add(statusLabel).growX();
         rightButton = new MetaTextButton(right);
+        rightButton.setColor(0.9f, 0.8f, 1, 1);
         rightButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                onResult(true);
+                if (!rightButton.isDisabled()) {
+                    onResult(true);
+                }
             }
         });
         buttonTable.add(rightButton).pad(4).right();

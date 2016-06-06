@@ -2,6 +2,7 @@ package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.google.gson.annotations.Expose;
+import de.fatox.meta.util.StringUtil;
 
 /**
  * Created by Frotty on 02.06.2016.
@@ -23,4 +24,7 @@ public class MetaProjectData {
     }
 
 
+    public boolean isValid() {
+        return ! StringUtil.isBlank(name);
+    }
 }

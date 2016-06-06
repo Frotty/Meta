@@ -16,10 +16,17 @@ import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.lang.MetaLanguageBundle;
 import de.fatox.meta.screens.MetaEditorScreen;
 import de.fatox.meta.shader.MetaShaderLibrary;
+import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.MetaUIRenderer;
 import io.gsonfire.GsonFireBuilder;
 
 public class MetaEditorModule {
+
+    @Provides
+    @Singleton
+    public MetaEditorUI metaEditorUI() {
+        return new MetaEditorUI();
+    }
 
     @Provides
     @Singleton

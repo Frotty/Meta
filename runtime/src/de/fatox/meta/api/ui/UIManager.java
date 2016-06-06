@@ -15,7 +15,7 @@ public interface UIManager {
 
     void resize(int width, int height);
 
-    void addTable(Table table);
+    void addTable(Table table, boolean gx, boolean gy);
 
     void addWindow(Window window);
 

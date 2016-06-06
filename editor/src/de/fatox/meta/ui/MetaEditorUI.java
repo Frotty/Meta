@@ -1,6 +1,7 @@
 package de.fatox.meta.ui;
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane;
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPaneAdapter;
@@ -8,6 +9,7 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
+import de.fatox.meta.ui.tabs.WelcomeTab;
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -32,16 +34,22 @@ public class MetaEditorUI {
         uiManager.addMenuBar(metaToolbar.menuBar);
 
         tabbedPane = new TabbedPane();
-        tabbedPane.addListener(new TabbedPaneAdapter(){
+        tabbedPane.addListener(new TabbedPaneAdapter() {
             @Override
-            public void switchedTab (Tab tab) {
+            public void switchedTab(Tab tab) {
                 Table content = tab.getContentTable();
 
                 tabTable.clearChildren();
                 tabTable.add(content).expand().fill();
             }
+
         });
-        uiManager.addTable(tabTable);
+        VisTable visTable = new VisTable();
+        visTable.add().top();
+        visTable.add().grow();
+        addTab(new WelcomeTab());
+        uiManager.addTable(tabbedPane.getTable(), true, false);
+        uiManager.addTable(tabTable, true, true);
     }
 
     public void addTab(Tab tab) {

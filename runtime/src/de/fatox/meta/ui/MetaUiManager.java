@@ -1,5 +1,7 @@
 package de.fatox.meta.ui;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.Array;
@@ -20,9 +22,14 @@ public class MetaUiManager implements UIManager {
     private Array<Window> windowCache = new Array<>();
     private Array<Table> tables = new Array<>();
     private Array<MenuBar> menuBars = new Array<>();
+    private Table contentTable = new Table();
 
     public MetaUiManager() {
         Meta.inject(this);
+        contentTable.setPosition(0, 0);
+        contentTable.setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight() - 26);
+        contentTable.top().left();
+        uiRenderer.getStage().addActor(contentTable);
     }
 
     @Override
@@ -41,8 +48,15 @@ public class MetaUiManager implements UIManager {
     }
 
     @Override
-    public void addTable(Table table) {
-        uiRenderer.getStage().addActor(table);
+    public void addTable(Table table, boolean gx, boolean gy) {
+        contentTable.row();
+        Cell<Table> add = contentTable.add(table);
+        if (gy) {
+            add.growY();
+        }
+        if (gx) {
+            add.growX();
+        }
     }
 
     @Override

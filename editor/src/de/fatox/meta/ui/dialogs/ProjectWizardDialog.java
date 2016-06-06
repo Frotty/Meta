@@ -1,4 +1,4 @@
-package de.fatox.meta.ui.windows;
+package de.fatox.meta.ui.dialogs;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -124,6 +124,7 @@ public class ProjectWizardDialog extends MetaDialog {
         if ((boolean) object == true) {
             MetaProjectData metaProjectData = new MetaProjectData(projectNameTF.getTextField().getText(), rootfile);
             projectManager.saveProject(metaProjectData);
+            projectManager.loadProject(metaProjectData.root);
         }
         close();
     }

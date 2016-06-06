@@ -25,7 +25,7 @@ public class MetaWindow extends VisWindow {
         add();
         row();
         setColor(1, 1, 1, 0);
-        addAction(alpha(0.85f, 0.5f));
+        addAction(alpha(0.9025f, 0.5f));
         if (resizable) {
             padBottom(6);
         }

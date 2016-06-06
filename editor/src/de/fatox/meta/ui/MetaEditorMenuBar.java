@@ -14,7 +14,8 @@ import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
-import de.fatox.meta.ui.windows.ProjectWizardDialog;
+import de.fatox.meta.ui.dialogs.OpenProjectDialog;
+import de.fatox.meta.ui.dialogs.ProjectWizardDialog;
 
 public class MetaEditorMenuBar {
     @Inject
@@ -51,7 +52,15 @@ public class MetaEditorMenuBar {
             }
         });
         fileMenu.addItem(menuItemNew);
-        fileMenu.addItem(new MenuItem(languageBundle.get("filemenu_open")));
+        MenuItem menuItemOpen = new MenuItem(languageBundle.get("filemenu_open"), new Image(assetProvider.get("ui/appbar.folder.open.png", Texture.class)));
+        menuItemOpen.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                OpenProjectDialog openProjectDialog = new OpenProjectDialog();
+                openProjectDialog.show(fileMenu.getStage());
+            }
+        });
+        fileMenu.addItem(menuItemOpen);
         fileMenu.setWidth(200);
         return fileMenu;
     }
