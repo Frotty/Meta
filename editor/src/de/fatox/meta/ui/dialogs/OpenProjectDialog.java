@@ -33,7 +33,6 @@ public class OpenProjectDialog extends MetaDialog {
     private VisLabel folderLabel;
     private MetaTextButton folderButton;
     private FileHandle rootfile;
-    private boolean locationValid;
 
     public OpenProjectDialog() {
         super("Open Project", "Cancel", "Open");
@@ -61,6 +60,7 @@ public class OpenProjectDialog extends MetaDialog {
                 fileTypeFilter.addRule("Meta Project File", "json");
                 fileChooser.setFileTypeFilter(fileTypeFilter);
                 fileChooser.fadeIn();
+                getStage().setKeyboardFocus(fileChooser);
                 fileChooser.setListener(new FileChooserAdapter() {
                     @Override
                     public void selected(Array<FileHandle> file) {
@@ -70,8 +70,6 @@ public class OpenProjectDialog extends MetaDialog {
                             if(projectManager.verifyProjectFile(rootfile)) {
                                 rightButton.setDisabled(false);
                             }
-                        } else {
-                            locationValid = false;
                         }
                         fileChooser.fadeOut();
                     }

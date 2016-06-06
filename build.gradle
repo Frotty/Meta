@@ -5,6 +5,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:1.5.0'
+        classpath 'me.tatarka:gradle-retrolambda:3.2.5'
     }
 }
 
@@ -63,7 +64,7 @@ project(":android") {
 
 project(":runtime") {
     apply plugin: "java"
-
+    apply plugin: 'me.tatarka.retrolambda'
     sourceSets.test.java.srcDirs = ["test/"]
 
     dependencies {
@@ -83,7 +84,7 @@ project(":runtime") {
 
 project(":editor") {
     apply plugin: "java"
-
+    apply plugin: 'me.tatarka.retrolambda'
     sourceSets.test.java.srcDirs = ["test/"]
 
     dependencies {

@@ -121,7 +121,7 @@ public class ProjectWizardDialog extends MetaDialog {
 
     @Override
     public void onResult(Object object) {
-        if ((boolean) object == true) {
+        if ((boolean) object) {
             MetaProjectData metaProjectData = new MetaProjectData(projectNameTF.getTextField().getText(), rootfile);
             projectManager.saveProject(metaProjectData);
             projectManager.loadProject(metaProjectData.root);
