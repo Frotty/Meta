@@ -9,6 +9,7 @@ import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.tabs.ProjectHomeTab;
+import de.fatox.meta.ui.windows.AssetManagerWindow;
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -20,6 +21,10 @@ public class MetaProjectManager implements ProjectManager {
     private UIManager uiManager;
     @Inject
     private MetaEditorUI editorUI;
+    @Inject
+    private AssetManager assetManager;
+    @Inject
+    private AssetManagerWindow assetManagerWindow;
 
     private MetaProjectData currentProject;
 
@@ -35,9 +40,11 @@ public class MetaProjectManager implements ProjectManager {
     @Override
     public MetaProjectData loadProject(FileHandle projectFile) {
         MetaProjectData metaProjectData = gson.fromJson(projectFile.readString(), MetaProjectData.class);
-        metaProjectData.setRoot(projectFile);
+        metaProjectData.setRoot(projectFile.parent());
         createFolders(metaProjectData);
         currentProject = metaProjectData;
+        assetManager.setFromProject(currentProject);
+        assetManagerWindow.refresh();
         editorUI.addTab(new ProjectHomeTab(metaProjectData));
         return metaProjectData;
     }

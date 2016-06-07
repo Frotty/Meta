@@ -5,6 +5,7 @@ import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
+import de.fatox.meta.Meta;
 import de.fatox.meta.ide.MetaProjectData;
 import de.fatox.meta.ui.components.TextWidget;
 
@@ -17,6 +18,7 @@ public class ProjectHomeTab extends Tab {
 
     public ProjectHomeTab(MetaProjectData metaProjectData) {
         super(true, true);
+        Meta.inject(this);
         this.projectData = metaProjectData;
         visTable.top();
         visTable.row().height(128);
@@ -26,7 +28,7 @@ public class ProjectHomeTab extends Tab {
         visTable.row();
         VisLabel visLabel = new VisLabel("This is your project home tab.");
         visLabel.setAlignment(Align.center);
-        visTable.add(visLabel);
+        visTable.add(visLabel).padBottom(128);
     }
 
     @Override

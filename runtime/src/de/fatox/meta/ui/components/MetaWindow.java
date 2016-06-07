@@ -28,6 +28,7 @@ public class MetaWindow extends VisWindow {
         addAction(alpha(0.9025f, 0.5f));
         if (resizable) {
             padBottom(6);
+            setResizable(true);
         }
     }
 }

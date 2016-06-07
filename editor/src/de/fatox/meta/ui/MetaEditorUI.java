@@ -10,6 +10,7 @@ import de.fatox.meta.api.Logger;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.tabs.WelcomeTab;
+import de.fatox.meta.ui.windows.AssetManagerWindow;
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -21,6 +22,9 @@ public class MetaEditorUI {
     private Logger log;
     @Inject
     private MetaUiManager uiManager;
+    @Inject
+    private AssetManagerWindow assetManagerWindow;
+
     private TabbedPane tabbedPane;
     private Table tabTable = new Table();
 
@@ -50,6 +54,7 @@ public class MetaEditorUI {
         addTab(new WelcomeTab());
         uiManager.addTable(tabbedPane.getTable(), true, false);
         uiManager.addTable(tabTable, true, true);
+        uiManager.addWindow(assetManagerWindow);
     }
 
     public void addTab(Tab tab) {
