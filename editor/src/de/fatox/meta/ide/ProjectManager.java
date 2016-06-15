@@ -1,6 +1,7 @@
 package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
+import de.fatox.meta.dao.MetaProjectData;
 
 public interface ProjectManager {
 

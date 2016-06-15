@@ -33,7 +33,7 @@ public class MetaEditorUI {
     }
 
     public void setup() {
-        MetaEditorMenuBar metaToolbar = new MetaEditorMenuBar();
+        EditorMenuBar metaToolbar = new EditorMenuBar();
         log.info(TAG, "Toolbar created");
         uiManager.addMenuBar(metaToolbar.menuBar);
 

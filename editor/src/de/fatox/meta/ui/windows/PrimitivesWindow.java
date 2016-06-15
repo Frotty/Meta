@@ -3,7 +3,6 @@ package de.fatox.meta.ui.windows;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import de.fatox.meta.ui.components.MetaClickListener;
-import de.fatox.meta.ui.components.MetaWindow;
 
 /**
  * Created by Frotty on 20.05.2016.

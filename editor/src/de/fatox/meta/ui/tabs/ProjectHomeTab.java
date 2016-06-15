@@ -6,7 +6,7 @@ import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
 import de.fatox.meta.Meta;
-import de.fatox.meta.ide.MetaProjectData;
+import de.fatox.meta.dao.MetaProjectData;
 import de.fatox.meta.ui.components.TextWidget;
 
 /**

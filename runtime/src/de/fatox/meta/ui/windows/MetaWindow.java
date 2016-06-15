@@ -1,4 +1,4 @@
-package de.fatox.meta.ui.components;
+package de.fatox.meta.ui.windows;
 
 import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisWindow;

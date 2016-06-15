@@ -1,4 +1,4 @@
-package de.fatox.meta.ui.components;
+package de.fatox.meta.ui.windows;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -6,6 +6,8 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
+import de.fatox.meta.ui.components.MetaClickListener;
+import de.fatox.meta.ui.components.MetaTextButton;
 import de.fatox.meta.util.GoldenRatio;
 
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;

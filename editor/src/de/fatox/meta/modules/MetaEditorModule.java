@@ -7,9 +7,7 @@ import com.google.gson.GsonBuilder;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.api.lang.LanguageBundle;
-import de.fatox.meta.ide.AssetManager;
-import de.fatox.meta.ide.MetaProjectManager;
-import de.fatox.meta.ide.ProjectManager;
+import de.fatox.meta.ide.*;
 import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
@@ -20,6 +18,11 @@ import io.gsonfire.GsonFireBuilder;
 
 public class MetaEditorModule {
 
+    @Provides
+    @Singleton
+    public SceneManager sceneManager(MetaSceneManager sceneManager) {
+        return sceneManager;
+    }
 
     @Provides
     @Singleton
