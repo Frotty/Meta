@@ -3,13 +3,12 @@ package de.fatox.meta.ui.tabs;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
-import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
 import de.fatox.meta.ui.components.TextWidget;
 
 /**
  * Created by Frotty on 05.06.2016.
  */
-public class WelcomeTab extends Tab {
+public class WelcomeTab extends MetaTab {
     private VisTable visTable = new VisTable();
 
     public WelcomeTab() {
@@ -21,6 +20,10 @@ public class WelcomeTab extends Tab {
         visTable.add();
         visTable.row();
         visTable.add(new VisLabel("Welcome to the Meta Engine\nCreate or load a project"));
+    }
+
+    @Override
+    public void onDisplay() {
     }
 
     @Override

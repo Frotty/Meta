@@ -7,13 +7,11 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.lang.AvailableLanguages;
 import de.fatox.meta.api.lang.LanguageBundle;
-import de.fatox.meta.ide.persist.Persist;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 
 import java.util.Locale;
 
-@Persist(key = "globalConf/")
 public class MetaLanguageBundle implements LanguageBundle {
     @Inject
     @Log
@@ -21,7 +19,6 @@ public class MetaLanguageBundle implements LanguageBundle {
 
     public I18NBundle currentBundle;
 
-    @Persist(key = "Current Language", defaultValue = "EN")
     private AvailableLanguages currentLanguage;
 
 

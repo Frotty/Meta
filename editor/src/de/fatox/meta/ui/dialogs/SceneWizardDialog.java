@@ -20,5 +20,6 @@ public class SceneWizardDialog extends MetaDialog {
         if((boolean) object) {
             sceneManager.createNew("Test");
         }
+        close();
     }
 }

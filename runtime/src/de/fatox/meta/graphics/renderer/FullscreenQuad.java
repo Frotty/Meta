@@ -31,17 +31,17 @@ public class FullscreenQuad {
 
     private Mesh createFullscreenQuad() {
         // vertex coord
-        verts[X1] = -1;
-        verts[Y1] = -1;
+        verts[X1] = -0.8f;
+        verts[Y1] = -0.8f;
 
-        verts[X2] = 1;
-        verts[Y2] = -1;
+        verts[X2] = 0.8f;
+        verts[Y2] = -0.8f;
 
-        verts[X3] = 1;
-        verts[Y3] = 1;
+        verts[X3] = 0.8f;
+        verts[Y3] = 0.8f;
 
-        verts[X4] = -1;
-        verts[Y4] = 1;
+        verts[X4] = -0.8f;
+        verts[Y4] = 0.8f;
 
         // tex coords
         verts[U1] = 0f;

@@ -9,6 +9,7 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
+import de.fatox.meta.ui.tabs.MetaTab;
 import de.fatox.meta.ui.tabs.WelcomeTab;
 import de.fatox.meta.ui.windows.AssetManagerWindow;
 
@@ -41,6 +42,7 @@ public class MetaEditorUI {
         tabbedPane.addListener(new TabbedPaneAdapter() {
             @Override
             public void switchedTab(Tab tab) {
+                ((MetaTab)tab).onDisplay();
                 Table content = tab.getContentTable();
 
                 tabTable.clearChildren();

@@ -22,4 +22,12 @@ public class MetaSceneData {
     public void setEntityDatas(MetaEntityData[] entityDatas) {
         this.entityDatas = entityDatas;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

@@ -5,6 +5,8 @@ import com.google.gson.Gson;
 import de.fatox.meta.Meta;
 import de.fatox.meta.dao.MetaSceneData;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.ui.MetaEditorUI;
+import de.fatox.meta.ui.tabs.SceneTab;
 
 /**
  * Created by Frotty on 15.06.2016.
@@ -12,7 +14,8 @@ import de.fatox.meta.injection.Inject;
 public class MetaSceneManager implements SceneManager {
     @Inject
     private Gson gson;
-
+    @Inject
+    private MetaEditorUI metaEditorUI;
 
     public MetaSceneManager() {
         Meta.inject(this);
@@ -22,7 +25,7 @@ public class MetaSceneManager implements SceneManager {
     public MetaSceneData createNew(String name) {
         MetaSceneData metaSceneData = new MetaSceneData(name);
         gson.toJson(metaSceneData);
-
+        metaEditorUI.addTab(new SceneTab(metaSceneData));
         return metaSceneData;
     }
 

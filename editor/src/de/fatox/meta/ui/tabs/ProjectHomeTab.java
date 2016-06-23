@@ -4,7 +4,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
-import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
 import de.fatox.meta.Meta;
 import de.fatox.meta.dao.MetaProjectData;
 import de.fatox.meta.ui.components.TextWidget;
@@ -12,7 +11,7 @@ import de.fatox.meta.ui.components.TextWidget;
 /**
  * Created by Frotty on 06.06.2016.
  */
-public class ProjectHomeTab extends Tab {
+public class ProjectHomeTab extends MetaTab {
     private final MetaProjectData projectData;
     private VisTable visTable = new VisTable();
 
@@ -39,5 +38,9 @@ public class ProjectHomeTab extends Tab {
     @Override
     public Table getContentTable() {
         return visTable;
+    }
+
+    @Override
+    public void onDisplay() {
     }
 }
