@@ -1,8 +1,12 @@
 package de.fatox.meta.ui.tabs;
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.utils.Align;
+import com.kotcrab.vis.ui.widget.LinkLabel;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
+import de.fatox.meta.dao.MetaEditorData;
+import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.components.TextWidget;
 
 /**
@@ -10,6 +14,8 @@ import de.fatox.meta.ui.components.TextWidget;
  */
 public class WelcomeTab extends MetaTab {
     private VisTable visTable = new VisTable();
+    @Inject
+    private MetaEditorData metaEditorData;
 
     public WelcomeTab() {
         super(false, false);
@@ -19,7 +25,15 @@ public class WelcomeTab extends MetaTab {
         visTable.row().height(64);
         visTable.add();
         visTable.row();
-        visTable.add(new VisLabel("Welcome to the Meta Engine\nCreate or load a project"));
+        VisLabel visLabel = new VisLabel("Welcome to the Meta Engine\nCreate or load a project\n\nRecent projects:");
+        visLabel.setAlignment(Align.center);
+
+        visTable.add(visLabel).pad(16);
+
+        for (String lastProj : metaEditorData.getLastProjectFiles()) {
+            visTable.row();
+            visTable.add(new LinkLabel(lastProj)).center().pad(2);
+        }
     }
 
     @Override

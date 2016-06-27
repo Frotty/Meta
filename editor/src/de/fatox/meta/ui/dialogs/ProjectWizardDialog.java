@@ -108,7 +108,6 @@ public class ProjectWizardDialog extends MetaDialog {
                     errors.add(new MetaError(languageBundle.get("newproj_dia_inalid_name"), "Name can only contain alphanumeric characters") {
                         @Override
                         public void gotoError() {
-                            projectWizard.getStage().setKeyboardFocus(projectWizard);
                         }
                     });
                     namevalid = false;

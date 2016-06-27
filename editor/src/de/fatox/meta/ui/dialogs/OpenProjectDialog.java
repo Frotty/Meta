@@ -60,7 +60,7 @@ public class OpenProjectDialog extends MetaDialog {
                 fileTypeFilter.addRule("Meta Project File", "json");
                 fileChooser.setFileTypeFilter(fileTypeFilter);
                 fileChooser.fadeIn();
-//                getStage().setKeyboardFocus(fileChooser);
+                getStage().setKeyboardFocus(fileChooser);
                 fileChooser.setListener(new FileChooserAdapter() {
                     @Override
                     public void selected(Array<FileHandle> file) {

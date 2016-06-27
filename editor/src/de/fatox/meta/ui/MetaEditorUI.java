@@ -56,7 +56,6 @@ public class MetaEditorUI {
         addTab(new WelcomeTab());
         uiManager.addTable(tabbedPane.getTable(), true, false);
         uiManager.addTable(tabTable, true, true);
-        uiManager.addWindow(assetManagerWindow);
     }
 
     public void addTab(Tab tab) {

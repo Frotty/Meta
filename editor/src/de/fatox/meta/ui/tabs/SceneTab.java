@@ -1,9 +1,13 @@
 package de.fatox.meta.ui.tabs;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.InputMultiplexer;
+import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.Meta;
-import de.fatox.meta.camera.ArcCamControl;
+import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.dao.MetaSceneData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.SceneWidget;
@@ -15,7 +19,9 @@ public class SceneTab extends MetaTab {
     private MetaSceneData sceneData;
     private Table table;
     @Inject
-    private ArcCamControl arcCamControl;
+    private PerspectiveCamera perspectiveCamera;
+    @Inject
+    private UIRenderer uiRenderer;
 
     public SceneTab(MetaSceneData sceneData) {
         Meta.inject(this);
@@ -36,6 +42,6 @@ public class SceneTab extends MetaTab {
 
     @Override
     public void onDisplay() {
-//        Gdx.input.setInputProcessor(new InputMultiplexer(arcCamControl));
+        Gdx.input.setInputProcessor(new InputMultiplexer(uiRenderer.getStage(), new CameraInputController(perspectiveCamera)));
     }
 }

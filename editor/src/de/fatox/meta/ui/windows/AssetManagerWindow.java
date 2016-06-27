@@ -5,10 +5,10 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.utils.Array;
-import com.kotcrab.vis.ui.building.GridTableBuilder;
 import com.kotcrab.vis.ui.widget.ListView;
 import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisScrollPane;
+import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.ide.AssetManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.FolderListAdapter;
@@ -35,7 +35,7 @@ public class AssetManagerWindow extends MetaWindow {
 
         @Override
         public String toString() {
-            return fileHandle.nameWithoutExtension();
+            return fileHandle.nameWithoutExtension() + "/";
         }
 
     }
@@ -51,28 +51,39 @@ public class AssetManagerWindow extends MetaWindow {
     }
 
     private void createFilePane() {
+        top();
         if (assetManager.getCurrentChildFiles() == null) {
             return;
         }
-        GridTableBuilder tableBuilder = new GridTableBuilder((int) (getWidth() - 128));
+        VisTable visTable = new VisTable();
+        visTable.defaults().pad(2);
+        visTable.top();
+        visTable.setSize((int) (getWidth() - 128), getHeight() - 64);
+        visTable.row().height(78);
+        float counter = 0;
         for (FileHandle file : assetManager.getCurrentChildFiles()) {
             MetaTextButton metaTextButton = new MetaTextButton(file.name());
             metaTextButton.addListener(new MetaClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
-//                    assetManager.openFolder(String.valueOf(metaTextButton.getText()));
+                    assetManager.openFolder(String.valueOf(metaTextButton.getText()));
+                    refresh();
                 }
             });
             metaTextButton.setSize(78, 78);
-            tableBuilder.append(metaTextButton);
+            visTable.add(metaTextButton).top();
+            counter += 78;
+            if (counter > getWidth() - 128) {
+                visTable.row().height(78);
+            }
         }
 
-        if(filePane == null) {
-            filePane = new VisScrollPane(tableBuilder.build());
-            add(filePane).growY();
-        }else {
+        if (filePane == null) {
+            filePane = new VisScrollPane(visTable);
+            add(filePane).growY().top().pad(2);
+        } else {
             filePane.clear();
-            filePane.setWidget(tableBuilder.build());
+            filePane.setWidget(visTable);
         }
     }
 
@@ -85,12 +96,14 @@ public class AssetManagerWindow extends MetaWindow {
     }
 
     public void refresh() {
-        setPosition(Math.round((getStage().getWidth() - getWidth()) / 2), 128);
-        adapter.clear();
-        for (FileHandle child : assetManager.getCurrentChildFolders()) {
-            adapter.add(new Model(child));
+        if (getStage() != null) {
+            setPosition(Math.round((getStage().getWidth() - getWidth()) / 2), 128);
+            adapter.clear();
+            for (FileHandle child : assetManager.getCurrentChildFolders()) {
+                adapter.add(new Model(child));
+            }
+            createFilePane();
         }
-        createFilePane();
     }
 
 

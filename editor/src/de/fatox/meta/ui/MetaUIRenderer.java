@@ -44,7 +44,11 @@ public class MetaUIRenderer implements UIRenderer {
 
     @Override
     public void addActor(Actor actor) {
-        stage.addActor(actor);
+        try {
+            stage.addActor(actor);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

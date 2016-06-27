@@ -7,6 +7,7 @@ import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.dao.MetaProjectData;
+import de.fatox.meta.dao.MetaEditorData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.tabs.ProjectHomeTab;
@@ -26,6 +27,8 @@ public class MetaProjectManager implements ProjectManager {
     private AssetManager assetManager;
     @Inject
     private AssetManagerWindow assetManagerWindow;
+    @Inject
+    private MetaEditorData metaEditorData;
 
     private MetaProjectData currentProject;
 
@@ -47,6 +50,7 @@ public class MetaProjectManager implements ProjectManager {
         assetManager.setFromProject(currentProject);
         assetManagerWindow.refresh();
         editorUI.addTab(new ProjectHomeTab(metaProjectData));
+        metaEditorData.addLastProject(projectFile.pathWithoutExtension());
         return metaProjectData;
     }
 

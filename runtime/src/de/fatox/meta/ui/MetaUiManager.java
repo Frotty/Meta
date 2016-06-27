@@ -61,8 +61,10 @@ public class MetaUiManager implements UIManager {
 
     @Override
     public void addWindow(Window window) {
-        windowCache.add(window);
-        uiRenderer.addActor(window);
+        if (!windowCache.contains(window, true)) {
+            windowCache.add(window);
+            uiRenderer.addActor(window);
+        }
     }
 
     @Override
