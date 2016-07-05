@@ -5,11 +5,13 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import de.fatox.meta.EditorMeta;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
+import de.fatox.meta.dao.MetaEditorData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.MetaEditorUI;
@@ -23,20 +25,22 @@ public class MetaEditorScreen extends ScreenAdapter {
     private UIManager uiManager;
     @Inject
     private UIRenderer uiRenderer;
-
     @Inject
     private SpriteBatch spriteBatch;
-
     @Inject
     private FontProvider fontProvider;
     @Inject
     private MetaEditorUI metaEditorUISetup;
+    @Inject
+    private MetaEditorData metaEditorData;
 
     @Override
     public void show() {
         Meta.inject(this);
         setupEditorUi();
         Gdx.input.setInputProcessor(new InputMultiplexer(uiRenderer.getStage()));
+        EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
+        editorMeta.setWindowData(metaEditorData.getWindowWidth(), metaEditorData.getWindowHeight());
     }
 
     private void update() {
@@ -64,6 +68,8 @@ public class MetaEditorScreen extends ScreenAdapter {
     @Override
     public void resize(int width, int height) {
         uiManager.resize(width, height);
-//        Gdx.input.setInputProcessor(uiRenderer.getInputProcessor());
+        metaEditorData.setWindowData(width, height);
+        EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
+        editorMeta.setWindowData(width,height);
     }
 }

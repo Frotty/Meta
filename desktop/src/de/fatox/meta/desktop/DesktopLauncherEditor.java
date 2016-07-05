@@ -7,10 +7,11 @@ import de.fatox.meta.EditorMeta;
 public class DesktopLauncherEditor {
     public static void main(String[] arg) {
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
+        config.setWindowPosition(32, 64);
         config.setResizable(true);
         config.setTitle("Meta");
-        config.setWindowedMode(1500,800);
         config.useOpenGL3(true, 3, 2);
-        new Lwjgl3Application(new EditorMeta(), config);
+        EditorMeta editorMeta = new EditorMeta();
+        new Lwjgl3Application(editorMeta, config);
     }
 }

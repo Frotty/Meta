@@ -20,11 +20,14 @@ public class MetaEditorData {
     private String[] lastProjects;
     @Expose
     private MetaWindowData[] windowData;
-
+    @Expose
+    private int windowWidth = 1200;
+    @Expose
+    private int windowHeight = 700;
     @Inject
     private Gson gson;
-    private FileHandle fileHandle;
 
+    private FileHandle fileHandle;
     public MetaEditorData() {
         Meta.inject(this);
     }
@@ -53,5 +56,19 @@ public class MetaEditorData {
             lastProjectFiles.addAll(lastProjects);
         }
         return lastProjectFiles;
+    }
+
+    public int getWindowWidth() {
+        return windowWidth;
+    }
+
+    public int getWindowHeight() {
+        return windowHeight;
+    }
+
+    public void setWindowData(int width, int height) {
+        this.windowWidth = width;
+        this.windowHeight = height;
+        write();
     }
 }

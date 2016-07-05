@@ -79,4 +79,5 @@ public class Meta extends Game {
     public Class getLastScreenType() {
         return lastScreen.getClass();
     }
+
 }

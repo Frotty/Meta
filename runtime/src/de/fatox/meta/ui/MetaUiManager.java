@@ -28,7 +28,6 @@ public class MetaUiManager implements UIManager {
         contentTable.top().left();
         contentTable.setPosition(0, 0);
         contentTable.setFillParent(true);
-        contentTable.debugTable();
         uiRenderer.getStage().addActor(contentTable);
     }
 
@@ -41,12 +40,10 @@ public class MetaUiManager implements UIManager {
     public void addTable(Table table, boolean gx, boolean gy) {
         contentTable.row();
         Cell<Table> add = contentTable.add(table).top();
-        if (gy) {
-            add.growY();
-        }
-        if (gx) {
+        if (gx)
             add.growX();
-        }
+        if (gy)
+            add.growY();
     }
 
     @Override
