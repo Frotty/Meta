@@ -10,6 +10,7 @@ import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
  * Created by Frotty on 08.05.2016.
  */
 public class MetaWindow extends VisWindow {
+
     public MetaWindow(String title, boolean resizable, boolean closeButton) {
         super(title, resizable ? "resizable" : "default");
         Meta.inject(this);
@@ -31,4 +32,5 @@ public class MetaWindow extends VisWindow {
             setResizable(true);
         }
     }
+
 }

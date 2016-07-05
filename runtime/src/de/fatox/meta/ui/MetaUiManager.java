@@ -1,6 +1,5 @@
 package de.fatox.meta.ui;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
@@ -26,20 +25,11 @@ public class MetaUiManager implements UIManager {
 
     public MetaUiManager() {
         Meta.inject(this);
-        contentTable.setPosition(0, 0);
-        contentTable.setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight() - 26);
         contentTable.top().left();
+        contentTable.setPosition(0, 0);
+        contentTable.setFillParent(true);
+        contentTable.debugTable();
         uiRenderer.getStage().addActor(contentTable);
-    }
-
-    @Override
-    public void update() {
-        uiRenderer.update();
-    }
-
-    @Override
-    public void draw() {
-        uiRenderer.draw();
     }
 
     @Override
@@ -50,7 +40,7 @@ public class MetaUiManager implements UIManager {
     @Override
     public void addTable(Table table, boolean gx, boolean gy) {
         contentTable.row();
-        Cell<Table> add = contentTable.add(table);
+        Cell<Table> add = contentTable.add(table).top();
         if (gy) {
             add.growY();
         }
@@ -63,20 +53,16 @@ public class MetaUiManager implements UIManager {
     public void addWindow(Window window) {
         if (!windowCache.contains(window, true)) {
             windowCache.add(window);
+
             uiRenderer.addActor(window);
         }
     }
 
     @Override
     public void addMenuBar(MenuBar menuBar) {
-        RTable rTable = new RTable();
-        rTable.setFillParent(true);
-        rTable.top().row();
-        rTable.add(menuBar.getTable()).fillX().expandX();
-        rTable.row().height(0.5f);
-        rTable.add();
         menuBars.add(menuBar);
-        uiRenderer.addActor(rTable);
+        contentTable.row().height(26);
+        contentTable.add(menuBar.getTable()).growX().top();
     }
 
     @Override

@@ -5,13 +5,13 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.injection.Inject;
 
-public class MetaErrors {
+public class MetaErrorHandler {
     @Inject
     private LanguageBundle languageBundle;
 
     private Array<MetaError> errors = new Array<>();
 
-    public MetaErrors() {
+    public MetaErrorHandler() {
         Meta.inject(this);
     }
 

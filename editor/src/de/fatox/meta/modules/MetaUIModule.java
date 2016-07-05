@@ -12,7 +12,8 @@ import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.MetaUIRenderer;
-import de.fatox.meta.ui.windows.AssetManagerWindow;
+import de.fatox.meta.ui.windows.AssetDiscovererWindow;
+import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 
 /**
  * Created by Frotty on 07.06.2016.
@@ -23,6 +24,12 @@ public class MetaUIModule {
 
     public MetaUIModule() {
         Meta.inject(this);
+    }
+
+    @Provides
+    @Singleton
+    public ShaderLibraryWindow shaderLibraryWindow() {
+        return new ShaderLibraryWindow();
     }
 
     @Provides
@@ -44,8 +51,8 @@ public class MetaUIModule {
 
     @Provides
     @Singleton
-    public AssetManagerWindow assetManagerWindow() {
-        return new AssetManagerWindow();
+    public AssetDiscovererWindow assetManagerWindow() {
+        return new AssetDiscovererWindow();
     }
 
     @Provides

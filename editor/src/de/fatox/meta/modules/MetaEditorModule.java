@@ -26,8 +26,8 @@ public class MetaEditorModule {
 
     @Provides
     @Singleton
-    public AssetManager assetManager() {
-        return new AssetManager();
+    public AssetDiscoverer assetManager() {
+        return new AssetDiscoverer();
     }
 
     @Provides

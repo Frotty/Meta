@@ -29,7 +29,6 @@ public class CompositeShader extends FullscreenShader {
         String vert = Gdx.files.internal("shaders/composite.vert").readString();
         String frag = Gdx.files.internal("shaders/composite.frag").readString();
         program = new ShaderProgram(vert, frag);
-        program.pedantic = true;
         if (!program.isCompiled())
             throw new GdxRuntimeException(program.getLog());
 

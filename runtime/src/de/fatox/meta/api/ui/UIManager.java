@@ -9,10 +9,6 @@ import com.kotcrab.vis.ui.widget.toast.ToastTable;
  * Created by Frotty on 20.05.2016.
  */
 public interface UIManager {
-    void update();
-
-    void draw();
-
     void resize(int width, int height);
 
     void addTable(Table table, boolean gx, boolean gy);

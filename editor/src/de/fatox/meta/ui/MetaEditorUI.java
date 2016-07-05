@@ -11,7 +11,7 @@ import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.tabs.MetaTab;
 import de.fatox.meta.ui.tabs.WelcomeTab;
-import de.fatox.meta.ui.windows.AssetManagerWindow;
+import de.fatox.meta.ui.windows.AssetDiscovererWindow;
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -24,7 +24,7 @@ public class MetaEditorUI {
     @Inject
     private MetaUiManager uiManager;
     @Inject
-    private AssetManagerWindow assetManagerWindow;
+    private AssetDiscovererWindow assetDiscovererWindow;
 
     private TabbedPane tabbedPane;
     private Table tabTable = new Table();

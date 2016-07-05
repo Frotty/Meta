@@ -8,7 +8,7 @@ import de.fatox.meta.dao.MetaProjectData;
 /**
  * Created by Frotty on 07.06.2016.
  */
-public class AssetManager {
+public class AssetDiscoverer {
 
     private FileHandle root;
 
@@ -18,7 +18,7 @@ public class AssetManager {
 
     private Array<FileHandle> currentChildFiles;
 
-    public AssetManager() {
+    public AssetDiscoverer() {
         Meta.inject(this);
     }
 
@@ -28,7 +28,12 @@ public class AssetManager {
         refresh();
     }
 
-    public void openFolder(String name) {
+    public void openFolder(FileHandle fileHandle) {
+        currentFolder = fileHandle;
+        refresh();
+    }
+
+    public void openChild(String name) {
         currentFolder = currentFolder.child(name);
         refresh();
     }
@@ -53,4 +58,11 @@ public class AssetManager {
         }
     }
 
+    public void openFile(String s) {
+
+    }
+
+    public FileHandle getCurrentFolder() {
+        return currentFolder;
+    }
 }

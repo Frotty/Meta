@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
 import de.fatox.meta.Meta;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.ui.windows.MetaWindow;
 
 /**
  * Created by Frotty on 26.06.2016.
@@ -14,8 +15,11 @@ public class MetaEditorData {
     public static final String DATA_FILE_NAME = "metadata.json";
 
     public Array<String> lastProjectFiles = new Array<>();
+    public Array<MetaWindowData> windowDatas = new Array<>();
     @Expose
     private String[] lastProjects;
+    @Expose
+    private MetaWindowData[] windowData;
 
     @Inject
     private Gson gson;
@@ -25,8 +29,11 @@ public class MetaEditorData {
         Meta.inject(this);
     }
 
-    public void write() {
+    private void write() {
         fileHandle.writeBytes(gson.toJson(this).getBytes(),false);
+    }
+
+    public void updateWindowData(MetaWindow metaWindow) {
     }
 
     public void addLastProject(String s) {

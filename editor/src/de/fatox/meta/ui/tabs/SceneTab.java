@@ -10,7 +10,7 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.dao.MetaSceneData;
 import de.fatox.meta.injection.Inject;
-import de.fatox.meta.ui.SceneWidget;
+import de.fatox.meta.ui.components.SceneWidget;
 
 /**
  * Created by Frotty on 13.06.2016.

@@ -11,7 +11,7 @@ import de.fatox.meta.dao.MetaEditorData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.tabs.ProjectHomeTab;
-import de.fatox.meta.ui.windows.AssetManagerWindow;
+import de.fatox.meta.ui.windows.AssetDiscovererWindow;
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -24,9 +24,9 @@ public class MetaProjectManager implements ProjectManager {
     @Inject
     private MetaEditorUI editorUI;
     @Inject
-    private AssetManager assetManager;
+    private AssetDiscoverer assetDiscoverer;
     @Inject
-    private AssetManagerWindow assetManagerWindow;
+    private AssetDiscovererWindow assetDiscovererWindow;
     @Inject
     private MetaEditorData metaEditorData;
 
@@ -47,10 +47,10 @@ public class MetaProjectManager implements ProjectManager {
         metaProjectData.setRoot(projectFile.parent());
         createFolders(metaProjectData);
         currentProject = metaProjectData;
-        assetManager.setFromProject(currentProject);
-        assetManagerWindow.refresh();
+        assetDiscoverer.setFromProject(currentProject);
+        assetDiscovererWindow.refresh();
         editorUI.addTab(new ProjectHomeTab(metaProjectData));
-        metaEditorData.addLastProject(projectFile.pathWithoutExtension());
+        metaEditorData.addLastProject(projectFile.path());
         return metaProjectData;
     }
 

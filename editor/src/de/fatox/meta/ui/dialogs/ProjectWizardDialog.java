@@ -8,7 +8,7 @@ import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.error.MetaError;
-import de.fatox.meta.error.MetaErrors;
+import de.fatox.meta.error.MetaErrorHandler;
 import de.fatox.meta.dao.MetaProjectData;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
@@ -103,7 +103,7 @@ public class ProjectWizardDialog extends MetaDialog {
         projectNameTF = new MetaValidTextField(languageBundle.get("newproj_dia_name_tf"), statusLabel);
         projectNameTF.addValidator(new MetaInputValidator() {
             @Override
-            public void validateInput(String input, MetaErrors errors) {
+            public void validateInput(String input, MetaErrorHandler errors) {
                 if (!StringUtil.isValidFolderName(input)) {
                     errors.add(new MetaError(languageBundle.get("newproj_dia_inalid_name"), "Name can only contain alphanumeric characters") {
                         @Override

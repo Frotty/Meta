@@ -8,7 +8,6 @@ import de.fatox.meta.injection.Inject;
 import de.fatox.meta.input.Hotkey;
 import de.fatox.meta.input.KeyListener;
 import de.fatox.meta.input.MetaInput;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.awt.*;
@@ -34,8 +33,6 @@ public class ShortcutTest extends MetaTest{
     public void testSimple() throws AWTException {
         new TestShortcutClass();
         IntMap<Array<KeyListener>> keyListenerMap = metaInput.getKeyListenerMap();
-        Assert.assertTrue(keyListenerMap.containsKey(Input.Keys.CONTROL_LEFT));
-        Assert.assertTrue(keyListenerMap.containsKey(Input.Keys.D));
 
         Robot robot = new Robot();
         robot.keyPress(KeyEvent.VK_CONTROL);

@@ -1,4 +1,4 @@
-package de.fatox.meta.ui;
+package de.fatox.meta.ui.components;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.ui.Widget;

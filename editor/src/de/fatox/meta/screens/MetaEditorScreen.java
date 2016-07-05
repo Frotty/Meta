@@ -40,14 +40,14 @@ public class MetaEditorScreen extends ScreenAdapter {
     }
 
     private void update() {
-        uiManager.update();
+        uiRenderer.update();
     }
 
     @Override
     public void render(float delta) {
         update();
         clearFrame();
-        uiManager.draw();
+        uiRenderer.draw();
     }
 
     private void clearFrame() {

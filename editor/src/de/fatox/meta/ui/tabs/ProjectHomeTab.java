@@ -5,11 +5,11 @@ import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.api.ui.UIManager;
-import de.fatox.meta.dao.MetaEditorData;
 import de.fatox.meta.dao.MetaProjectData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.components.TextWidget;
-import de.fatox.meta.ui.windows.AssetManagerWindow;
+import de.fatox.meta.ui.windows.AssetDiscovererWindow;
+import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 
 /**
  * Created by Frotty on 06.06.2016.
@@ -21,14 +21,17 @@ public class ProjectHomeTab extends MetaTab {
     @Inject
     private UIManager uiManager;
     @Inject
-    private AssetManagerWindow assetManagerWindow;
+    private AssetDiscovererWindow assetDiscovererWindow;
+    @Inject
+    private ShaderLibraryWindow shaderLibraryWindow;
 
     public ProjectHomeTab(MetaProjectData metaProjectData) {
         super(true, true);
         this.projectData = metaProjectData;
         setupTable(metaProjectData);
-        uiManager.addWindow(assetManagerWindow);
-        assetManagerWindow.refresh();
+        uiManager.addWindow(assetDiscovererWindow);
+        uiManager.addWindow(shaderLibraryWindow);
+        assetDiscovererWindow.refresh();
     }
 
     private void setupTable(MetaProjectData metaProjectData) {

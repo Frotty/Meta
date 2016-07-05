@@ -2,9 +2,9 @@ package de.fatox.meta.shader;
 
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.utils.Array;
+import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.api.graphics.ShaderInfo;
 import de.fatox.meta.api.graphics.ShaderLibrary;
-import de.fatox.meta.api.graphics.ShaderSource;
 
 public class MetaShaderLibrary implements ShaderLibrary {
 
@@ -38,11 +38,6 @@ public class MetaShaderLibrary implements ShaderLibrary {
             }
         };
         activeShaders.add(testShader);
-    }
-
-    @Override
-    public ShaderInfo compileAndAdd(ShaderSource shaderInfo) {
-        return null;
     }
 
     @Override
@@ -84,5 +79,10 @@ public class MetaShaderLibrary implements ShaderLibrary {
             };
         }
         return shaderInfo;
+    }
+
+    @Override
+    public void addShader(GLShaderHandle glShaderHandle) {
+
     }
 }
