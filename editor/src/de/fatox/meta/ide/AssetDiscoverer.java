@@ -3,7 +3,7 @@ package de.fatox.meta.ide;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
-import de.fatox.meta.dao.MetaProjectData;
+import de.fatox.meta.api.dao.MetaProjectData;
 
 /**
  * Created by Frotty on 07.06.2016.

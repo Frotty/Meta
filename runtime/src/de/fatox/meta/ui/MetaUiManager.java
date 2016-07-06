@@ -7,6 +7,8 @@ import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.dao.MetaEditorData;
+import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.injection.Inject;
@@ -17,6 +19,8 @@ import de.fatox.meta.injection.Inject;
 public class MetaUiManager implements UIManager {
     @Inject
     private UIRenderer uiRenderer;
+    @Inject
+    private MetaEditorData editorData;
 
     private Array<Window> windowCache = new Array<>();
     private Array<Table> tables = new Array<>();
@@ -48,6 +52,9 @@ public class MetaUiManager implements UIManager {
 
     @Override
     public void addWindow(Window window) {
+        MetaWindowData windowData = editorData.getWindowData(window);
+        window.setSize(windowData.getWidth(), windowData.getHeight());
+        window.setPosition(windowData.getX(), windowData.getY());
         if (!windowCache.contains(window, true)) {
             windowCache.add(window);
 

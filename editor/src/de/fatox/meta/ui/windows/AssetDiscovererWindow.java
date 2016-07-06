@@ -1,6 +1,5 @@
 package de.fatox.meta.ui.windows;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
@@ -8,13 +7,12 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import com.kotcrab.vis.ui.widget.*;
 import de.fatox.meta.api.AssetProvider;
-import de.fatox.meta.dao.MetaEditorData;
+import de.fatox.meta.api.dao.MetaEditorData;
 import de.fatox.meta.ide.AssetDiscoverer;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.FolderListAdapter;
 import de.fatox.meta.ui.components.MetaClickListener;
 import de.fatox.meta.ui.components.MetaTextButton;
-import de.fatox.meta.util.GoldenRatio;
 
 /**
  * Created by Frotty on 07.06.2016.
@@ -52,8 +50,7 @@ public class AssetDiscovererWindow extends MetaWindow {
 
     public AssetDiscovererWindow() {
         super("Asset Discoverer", true, true);
-        setSize(Gdx.graphics.getWidth() * GoldenRatio.B, 256);
-        setPosition(24, 128);
+        setSize(500, 200);
         setup();
     }
 
@@ -160,13 +157,8 @@ public class AssetDiscovererWindow extends MetaWindow {
     }
 
     public void enableSelectionMode() {
-
+        toFront();
+        getStage().setKeyboardFocus(this);
     }
 
-
-    @Override
-    public void setPosition(float x, float y) {
-        super.setPosition(x, y);
-        metaEditorData.updateWindowData(this);
-    }
 }

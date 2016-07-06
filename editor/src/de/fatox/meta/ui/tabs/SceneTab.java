@@ -8,7 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.ui.UIRenderer;
-import de.fatox.meta.dao.MetaSceneData;
+import de.fatox.meta.api.dao.MetaSceneData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.components.SceneWidget;
 

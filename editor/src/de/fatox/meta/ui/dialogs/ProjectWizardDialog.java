@@ -9,7 +9,7 @@ import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
-import de.fatox.meta.dao.MetaProjectData;
+import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Named;

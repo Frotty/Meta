@@ -1,12 +1,12 @@
-package de.fatox.meta.dao;
+package de.fatox.meta.api.dao;
 
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.Array;
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
 import de.fatox.meta.Meta;
 import de.fatox.meta.injection.Inject;
-import de.fatox.meta.ui.windows.MetaWindow;
 
 /**
  * Created by Frotty on 26.06.2016.
@@ -28,19 +28,17 @@ public class MetaEditorData {
     private Gson gson;
 
     private FileHandle fileHandle;
+
     public MetaEditorData() {
         Meta.inject(this);
     }
 
-    private void write() {
-        fileHandle.writeBytes(gson.toJson(this).getBytes(),false);
-    }
-
-    public void updateWindowData(MetaWindow metaWindow) {
+    public void write() {
+        fileHandle.writeBytes(gson.toJson(this).getBytes(), false);
     }
 
     public void addLastProject(String s) {
-        if(! lastProjectFiles.contains(s, false)) {
+        if (!lastProjectFiles.contains(s, false)) {
             lastProjectFiles.add(s);
         }
         lastProjects = lastProjectFiles.toArray(String.class);
@@ -49,26 +47,42 @@ public class MetaEditorData {
 
     public void setFileHandle(FileHandle fileHandle) {
         this.fileHandle = fileHandle;
+
+        windowDatas.addAll(windowData);
     }
 
     public Array<String> getLastProjectFiles() {
-        if(lastProjectFiles.size == 0) {
+        if (lastProjectFiles.size == 0) {
             lastProjectFiles.addAll(lastProjects);
         }
         return lastProjectFiles;
     }
 
-    public int getWindowWidth() {
+    public int getMainWindowWidth() {
         return windowWidth;
     }
 
-    public int getWindowHeight() {
+    public int getMainWindowHeight() {
         return windowHeight;
     }
 
-    public void setWindowData(int width, int height) {
+    public void setMainWindowSize(int width, int height) {
         this.windowWidth = width;
         this.windowHeight = height;
         write();
+    }
+
+    public MetaWindowData getWindowData(Window window) {
+        String name = window.getTitleLabel().getText().toString();
+        for (MetaWindowData data : windowDatas) {
+            if (data.name.equals(name)) {
+                return data;
+            }
+        }
+        MetaWindowData data = new MetaWindowData(window);
+        windowDatas.add(data);
+        windowData = windowDatas.toArray(MetaWindowData.class);
+        write();
+        return data;
     }
 }

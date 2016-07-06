@@ -11,7 +11,7 @@ import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
-import de.fatox.meta.dao.MetaEditorData;
+import de.fatox.meta.api.dao.MetaEditorData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.MetaEditorUI;
@@ -40,7 +40,7 @@ public class MetaEditorScreen extends ScreenAdapter {
         setupEditorUi();
         Gdx.input.setInputProcessor(new InputMultiplexer(uiRenderer.getStage()));
         EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
-        editorMeta.setWindowData(metaEditorData.getWindowWidth(), metaEditorData.getWindowHeight());
+        editorMeta.setWindowData(metaEditorData.getMainWindowWidth(), metaEditorData.getMainWindowHeight());
     }
 
     private void update() {
@@ -68,7 +68,7 @@ public class MetaEditorScreen extends ScreenAdapter {
     @Override
     public void resize(int width, int height) {
         uiManager.resize(width, height);
-        metaEditorData.setWindowData(width, height);
+        metaEditorData.setMainWindowSize(width, height);
         EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
         editorMeta.setWindowData(width,height);
     }

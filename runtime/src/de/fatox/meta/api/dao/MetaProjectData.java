@@ -1,4 +1,4 @@
-package de.fatox.meta.dao;
+package de.fatox.meta.api.dao;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.google.gson.annotations.Expose;

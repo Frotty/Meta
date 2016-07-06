@@ -1,7 +1,7 @@
 package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
-import de.fatox.meta.dao.MetaSceneData;
+import de.fatox.meta.api.dao.MetaSceneData;
 
 /**
  * Created by Frotty on 15.06.2016.

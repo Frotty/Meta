@@ -1,8 +1,11 @@
 package de.fatox.meta.ui.windows;
 
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.dao.MetaEditorData;
+import de.fatox.meta.injection.Inject;
 
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
 
@@ -10,6 +13,8 @@ import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
  * Created by Frotty on 08.05.2016.
  */
 public class MetaWindow extends VisWindow {
+    @Inject
+    private MetaEditorData metaEditorData;
 
     public MetaWindow(String title, boolean resizable, boolean closeButton) {
         super(title, resizable ? "resizable" : "default");
@@ -33,4 +38,13 @@ public class MetaWindow extends VisWindow {
         }
     }
 
+    @Override
+    public void draw(Batch batch, float parentAlpha) {
+        super.draw(batch, parentAlpha);
+        if(isDragging()) {
+            System.out.println("ssss");
+            metaEditorData.getWindowData(this).setFrom(this);
+            metaEditorData.write();
+        }
+    }
 }

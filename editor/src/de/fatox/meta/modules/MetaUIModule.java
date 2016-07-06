@@ -5,7 +5,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.google.gson.Gson;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.ui.UIRenderer;
-import de.fatox.meta.dao.MetaEditorData;
+import de.fatox.meta.api.dao.MetaEditorData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;

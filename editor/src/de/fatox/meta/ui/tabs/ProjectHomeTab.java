@@ -5,7 +5,7 @@ import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.api.ui.UIManager;
-import de.fatox.meta.dao.MetaProjectData;
+import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.components.TextWidget;
 import de.fatox.meta.ui.windows.AssetDiscovererWindow;

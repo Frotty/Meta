@@ -3,7 +3,7 @@ package de.fatox.meta.ide;
 import com.badlogic.gdx.files.FileHandle;
 import com.google.gson.Gson;
 import de.fatox.meta.Meta;
-import de.fatox.meta.dao.MetaSceneData;
+import de.fatox.meta.api.dao.MetaSceneData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.tabs.SceneTab;
