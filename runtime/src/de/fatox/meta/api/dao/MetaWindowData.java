@@ -14,6 +14,8 @@ public class MetaWindowData {
 
     @Expose
     private float width, height;
+    @Expose
+    public boolean displayed = true;
 
     public MetaWindowData() {
     }

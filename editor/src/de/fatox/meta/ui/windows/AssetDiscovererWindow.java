@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.windows;
 
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.scenes.scene2d.Action;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.utils.Array;
@@ -32,6 +33,7 @@ public class AssetDiscovererWindow extends MetaWindow {
     private VisTable fileViewTable = new VisTable();
 
     private boolean selectionMode = false;
+    private SelectListener listener;
 
     private class FolderModel {
 
@@ -54,16 +56,19 @@ public class AssetDiscovererWindow extends MetaWindow {
         setup();
     }
 
+    @Override
+    public void addAction(Action action) {
+        super.addAction(action);
+        refresh();
+    }
+
     private void setup() {
         adapter = new FolderListAdapter<>(new Array<FolderModel>());
         view = new ListView<>(adapter);
         view.getMainTable().defaults().pad(2);
-        view.setItemClickListener(new ListView.ItemClickListener<FolderModel>() {
-            @Override
-            public void clicked (FolderModel item) {
-                assetDiscoverer.openFolder(item.fileHandle);
-                refresh();
-            }
+        view.setItemClickListener(item -> {
+            assetDiscoverer.openFolder(((FolderModel) item).fileHandle);
+            refresh();
         });
         left();
         row().height(24);
@@ -110,16 +115,22 @@ public class AssetDiscovererWindow extends MetaWindow {
         visTable2.row().height(78);
         float counter = 0;
         for (FileHandle file : assetDiscoverer.getCurrentChildFiles()) {
-            MetaTextButton metaTextButton = new MetaTextButton(file.name());
-            metaTextButton.addListener(new MetaClickListener() {
+            MetaTextButton fileButton = new MetaTextButton(file.name());
+            fileButton.addListener(new MetaClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
-                    assetDiscoverer.openFile(String.valueOf(metaTextButton.getText()));
+                    if (selectionMode) {
+                        listener.onSelect(file);
+                        listener = null;
+                        selectionMode = false;
+                    } else {
+                        assetDiscoverer.openFile(file);
+                    }
                     refresh();
                 }
             });
-            metaTextButton.setSize(78, 78);
-            visTable2.add(metaTextButton).top();
+            fileButton.setSize(78, 78);
+            visTable2.add(fileButton).top();
             counter += 78;
             if (counter > getWidth() - 128) {
                 visTable2.row().height(78);
@@ -156,9 +167,15 @@ public class AssetDiscovererWindow extends MetaWindow {
         }
     }
 
-    public void enableSelectionMode() {
+    public void enableSelectionMode(SelectListener selectListener) {
         toFront();
         getStage().setKeyboardFocus(this);
+        this.listener = selectListener;
+        selectionMode = true;
+    }
+
+    public interface SelectListener {
+        void onSelect(FileHandle fileHandle);
     }
 
 }

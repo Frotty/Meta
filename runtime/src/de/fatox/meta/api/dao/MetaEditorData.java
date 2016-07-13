@@ -3,6 +3,7 @@ package de.fatox.meta.api.dao;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.TimeUtils;
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
 import de.fatox.meta.Meta;
@@ -28,13 +29,17 @@ public class MetaEditorData {
     private Gson gson;
 
     private FileHandle fileHandle;
+    private long lastMillis = TimeUtils.millis();
 
     public MetaEditorData() {
         Meta.inject(this);
     }
 
     public void write() {
-        fileHandle.writeBytes(gson.toJson(this).getBytes(), false);
+        if (lastMillis + 500 < TimeUtils.millis()) {
+            fileHandle.writeBytes(gson.toJson(this).getBytes(), false);
+            lastMillis = TimeUtils.millis();
+        }
     }
 
     public void addLastProject(String s) {

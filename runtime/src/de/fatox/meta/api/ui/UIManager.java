@@ -1,8 +1,8 @@
 package de.fatox.meta.api.ui;
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.kotcrab.vis.ui.widget.MenuBar;
+import com.kotcrab.vis.ui.widget.VisWindow;
 import com.kotcrab.vis.ui.widget.toast.ToastTable;
 
 /**
@@ -13,7 +13,7 @@ public interface UIManager {
 
     void addTable(Table table, boolean gx, boolean gy);
 
-    void addWindow(Window window);
+    void addWindow(VisWindow window, boolean startup);
 
     void addMenuBar(MenuBar menuBar);
 

@@ -9,7 +9,6 @@ import de.fatox.meta.api.dao.MetaProjectData;
  * Created by Frotty on 07.06.2016.
  */
 public class AssetDiscoverer {
-
     private FileHandle root;
 
     private FileHandle currentFolder;
@@ -58,7 +57,7 @@ public class AssetDiscoverer {
         }
     }
 
-    public void openFile(String s) {
+    public void openFile(FileHandle s) {
 
     }
 

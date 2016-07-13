@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.MenuBar;
+import com.kotcrab.vis.ui.widget.VisWindow;
 import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaEditorData;
@@ -51,14 +52,22 @@ public class MetaUiManager implements UIManager {
     }
 
     @Override
-    public void addWindow(Window window) {
+    public void addWindow(VisWindow window, boolean startup) {
         MetaWindowData windowData = editorData.getWindowData(window);
+        if(startup && !windowData.displayed) {
+            return;
+        }
+        if(!startup) {
+            windowData.displayed = true;
+            editorData.write();
+        }
         window.setSize(windowData.getWidth(), windowData.getHeight());
         window.setPosition(windowData.getX(), windowData.getY());
         if (!windowCache.contains(window, true)) {
             windowCache.add(window);
-
             uiRenderer.addActor(window);
+        } else {
+            window.fadeIn();
         }
     }
 

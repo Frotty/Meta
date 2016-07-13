@@ -42,9 +42,15 @@ public class MetaWindow extends VisWindow {
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
         if(isDragging()) {
-            System.out.println("ssss");
             metaEditorData.getWindowData(this).setFrom(this);
             metaEditorData.write();
         }
+    }
+
+    @Override
+    protected void close() {
+        super.close();
+        metaEditorData.getWindowData(this).displayed = false;
+        metaEditorData.write();
     }
 }

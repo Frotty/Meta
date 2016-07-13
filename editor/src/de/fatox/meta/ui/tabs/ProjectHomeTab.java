@@ -29,8 +29,8 @@ public class ProjectHomeTab extends MetaTab {
         super(true, true);
         this.projectData = metaProjectData;
         setupTable(metaProjectData);
-        uiManager.addWindow(assetDiscovererWindow);
-        uiManager.addWindow(shaderLibraryWindow);
+        uiManager.addWindow(assetDiscovererWindow, true);
+        uiManager.addWindow(shaderLibraryWindow, true);
         assetDiscovererWindow.refresh();
     }
 
