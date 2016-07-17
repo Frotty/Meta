@@ -5,6 +5,7 @@ import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
+import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
@@ -24,6 +25,8 @@ public class ShaderWizardDialog extends MetaDialog {
 
     private MetaValidTextField shaderNameTF;
     private ButtonGroup<VisCheckBox> renderTargetGroup = new ButtonGroup<>();
+    private AssetSelectButton vertexSelect;
+    private AssetSelectButton fragmentSelect;
 
     public ShaderWizardDialog() {
         super("Shader Wizard", "Cancel", "Finish");
@@ -31,13 +34,15 @@ public class ShaderWizardDialog extends MetaDialog {
         shaderNameTF.addValidator(new MetaInputValidator() {
             @Override
             public void validateInput(String input, MetaErrorHandler errors) {
-                if (!StringUtil.isBlank(input)){
+                if (StringUtil.isBlank(input)){
                     errors.add(new MetaError("Invalid Shader name", "") {
                         @Override
                         public void gotoError() {
 
                         }
                     });
+                } else {
+                    checkButton();
                 }
             }
         });
@@ -46,6 +51,15 @@ public class ShaderWizardDialog extends MetaDialog {
         renderTargetGroup.setMinCheckCount(1);
         rightButton.setDisabled(true);
         setupTable();
+    }
+
+
+    private void checkButton() {
+        if(! StringUtil.isBlank(shaderNameTF.getTextField().getMessageText()) && vertexSelect.hasFile() && fragmentSelect.hasFile()) {
+            rightButton.setDisabled(false);
+        } else {
+            rightButton.setDisabled(true);
+        }
     }
 
     private void setupTable() {
@@ -73,12 +87,14 @@ public class ShaderWizardDialog extends MetaDialog {
         visTable.row();
 
 
-        AssetSelectButton assetSelectButton = new AssetSelectButton("Vertex Shader");
-        visTable.add(assetSelectButton.getTable()).colspan(2).growX();
+        vertexSelect = new AssetSelectButton("Vertex Shader");
+        vertexSelect.setSelectListener((file) -> checkButton());
+        visTable.add(vertexSelect.getTable()).colspan(2).growX();
         visTable.row();
 
-        AssetSelectButton assetSelectButton2 = new AssetSelectButton("Fragment Shader");
-        visTable.add(assetSelectButton2.getTable()).colspan(2).growX();
+        fragmentSelect = new AssetSelectButton("Fragment Shader");
+        fragmentSelect.setSelectListener((file) -> checkButton());
+        visTable.add(fragmentSelect.getTable()).colspan(2).growX();
         visTable.row();
 
         renderTargetGroup.add(geometryButton);
@@ -90,8 +106,8 @@ public class ShaderWizardDialog extends MetaDialog {
     @Override
     public void onResult(Object object) {
         if((boolean)object) {
-//            shaderLibrary.addShader(new GLShaderHandle(shaderNameTF.getTextField().getText(), ))
+            shaderLibrary.addShader(new GLShaderHandle(shaderNameTF.getTextField().getText(), vertexSelect.getFile(), fragmentSelect.getFile()));
         }
-
+        close();
     }
 }

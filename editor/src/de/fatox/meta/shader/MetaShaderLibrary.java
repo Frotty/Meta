@@ -2,16 +2,23 @@ package de.fatox.meta.shader;
 
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.utils.Array;
+import de.fatox.meta.Meta;
 import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.api.graphics.ShaderInfo;
 import de.fatox.meta.api.graphics.ShaderLibrary;
+import de.fatox.meta.injection.Inject;
+import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 
 public class MetaShaderLibrary implements ShaderLibrary {
+    @Inject
+    private ShaderLibraryWindow shaderLibraryWindow;
 
     private ShaderInfo shaderInfo;
     private Array<ShaderInfo> activeShaders = new Array<>();
+    private Array<GLShaderHandle> glShaders = new Array<>();
 
     public MetaShaderLibrary() {
+        Meta.inject(this);
         Shader gbufSHader = new GBufferShader();
         gbufSHader.init();
         ShaderInfo testShader = new ShaderInfo() {
@@ -83,6 +90,6 @@ public class MetaShaderLibrary implements ShaderLibrary {
 
     @Override
     public void addShader(GLShaderHandle glShaderHandle) {
-
+        glShaders.add(glShaderHandle);
     }
 }

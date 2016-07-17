@@ -21,6 +21,7 @@ public class AssetSelectButton {
     private VisTextField assetNameLabel;
     private String name;
     private FileHandle selectedAsset;
+    private AssetDiscovererWindow.SelectListener selectListener;
 
     @Inject
     private AssetDiscovererWindow assetDiscovererWindow;
@@ -45,15 +46,17 @@ public class AssetSelectButton {
             public void clicked(InputEvent event, float x, float y) {
                 assetDiscovererWindow.enableSelectionMode((FileHandle selected) -> {
                     AssetSelectButton.this.selectedAsset = selected;
-                    name = selectedAsset.name();
-                    assetNameLabel.setText(name);
+                    if (selectListener != null) {
+                        selectListener.onSelect(selected);
+                    }
+                    assetNameLabel.setText(name + ": " + selectedAsset.name());
                     // Bring window to Front
                     Group table = AssetSelectButton.this.getTable();
                     while (table != null && !(table instanceof Window)) {
                         table = table.getParent();
                     }
                     if (table != null) {
-                        VisWindow visWindow = ((VisWindow)table);
+                        VisWindow visWindow = ((VisWindow) table);
                         visWindow.toFront();
                     }
 
@@ -69,5 +72,17 @@ public class AssetSelectButton {
 
     public VisTable getTable() {
         return visTable;
+    }
+
+    public boolean hasFile() {
+        return selectedAsset != null && selectedAsset.exists();
+    }
+
+    public void setSelectListener(AssetDiscovererWindow.SelectListener selectListener) {
+        this.selectListener = selectListener;
+    }
+
+    public FileHandle getFile() {
+        return selectedAsset;
     }
 }
