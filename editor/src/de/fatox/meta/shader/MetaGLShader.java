@@ -1,6 +1,5 @@
 package de.fatox.meta.shader;
 
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
@@ -9,6 +8,7 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
 import de.fatox.meta.injection.Inject;
@@ -19,21 +19,13 @@ import de.fatox.meta.injection.Inject;
 public abstract class MetaGLShader implements Shader {
     @Inject
     private MetaErrorHandler metaErrorHandler;
-
+    protected GLShaderHandle shaderHandle;
     protected ShaderProgram shaderProgram;
     private Array<UniformDef> uniformDefs = new Array<>();
 
-    public MetaGLShader(FileHandle vert, FileHandle frag) {
+    public MetaGLShader(GLShaderHandle shaderHandle) {
         Meta.inject(this);
-        shaderProgram = new ShaderProgram(vert, frag);
-        if (!shaderProgram.isCompiled()) {
-            metaErrorHandler.add(new MetaError("Shader compilation failed", "") {
-                @Override
-                public void gotoError() {
-                    // TODO
-                }
-            });
-        }
+        this.shaderHandle = shaderHandle;
     }
 
     public void addUniform(String name) {
@@ -42,7 +34,15 @@ public abstract class MetaGLShader implements Shader {
 
     @Override
     public void init() {
-
+        shaderProgram = new ShaderProgram(shaderHandle.getVertexHandle(), shaderHandle.getFragmentHandle());
+        if (!shaderProgram.isCompiled()) {
+            metaErrorHandler.add(new MetaError("Shader compilation failed", "") {
+                @Override
+                public void gotoError() {
+                    // TODO
+                }
+            });
+        }
     }
 
     @Override

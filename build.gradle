@@ -19,7 +19,7 @@ allprojects {
         gdxVersion = '1.9.3'
         roboVMVersion = '1.12.0'
         aiVersion = '1.8.0'
-        visuiVersion = '1.1.4-SNAPSHOT'
+        visuiVersion = '1.1.4'
     }
 
     repositories {

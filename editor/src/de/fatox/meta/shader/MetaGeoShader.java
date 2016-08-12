@@ -1,9 +1,9 @@
 package de.fatox.meta.shader;
 
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
+import de.fatox.meta.api.graphics.GLShaderHandle;
 
 /**
  * Created by Frotty on 29.06.2016.
@@ -12,8 +12,20 @@ public class MetaGeoShader extends MetaGLShader {
     private Camera camera;
     private RenderContext context;
 
-    public MetaGeoShader(FileHandle vert, FileHandle frag) {
-        super(vert, frag);
+
+    public MetaGeoShader(GLShaderHandle shaderHandle) {
+        super(shaderHandle);
+    }
+
+    @Override
+    public void init() {
+        super.init();
+        if(shaderProgram.isCompiled()) {
+            String[] uniforms = shaderProgram.getUniforms();
+            for (String uniform : uniforms) {
+                addUniform(uniform);
+            }
+        }
     }
 
     @Override

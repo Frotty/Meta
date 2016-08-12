@@ -15,7 +15,7 @@ public class MetaShaderLibrary implements ShaderLibrary {
 
     private ShaderInfo shaderInfo;
     private Array<ShaderInfo> activeShaders = new Array<>();
-    private Array<GLShaderHandle> glShaders = new Array<>();
+    private Array<MetaGLShader> metaShaders = new Array<>();
 
     public MetaShaderLibrary() {
         Meta.inject(this);
@@ -90,6 +90,8 @@ public class MetaShaderLibrary implements ShaderLibrary {
 
     @Override
     public void addShader(GLShaderHandle glShaderHandle) {
-        glShaders.add(glShaderHandle);
+        MetaGLShader metaShader = new MetaGeoShader(glShaderHandle);
+        metaShader.init();
+        metaShaders.add(metaShader);
     }
 }

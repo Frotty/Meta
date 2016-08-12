@@ -24,6 +24,7 @@ import de.fatox.meta.ui.dialogs.SceneWizardDialog;
 import de.fatox.meta.ui.windows.AssetDiscovererWindow;
 import de.fatox.meta.ui.windows.MetaConfirmDialog;
 import de.fatox.meta.ui.windows.ShaderLibraryWindow;
+import de.fatox.meta.ui.windows.ShaderPipelineWindow;
 
 public class EditorMenuBar {
     @Inject
@@ -37,6 +38,8 @@ public class EditorMenuBar {
     private ProjectManager projectManager;
     @Inject
     private ShaderLibraryWindow shaderLibraryWindow;
+    @Inject
+    private ShaderPipelineWindow shaderPipelineWindow;
     @Inject
     private AssetDiscovererWindow assetDiscovererWindow;
     @Inject
@@ -111,8 +114,16 @@ public class EditorMenuBar {
                 uiManager.addWindow(shaderLibraryWindow, false);
             }
         });
+        MenuItem shaderPipeMenu = new MenuItem("Shader Pipeline");
+        shaderPipeMenu.addListener(new MetaClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                uiManager.addWindow(shaderPipelineWindow, false);
+            }
+        });
         editMenu.addItem(assetMenu);
         editMenu.addItem(shaderMenu);
+        editMenu.addItem(shaderPipeMenu);
         return editMenu;
     }
 
