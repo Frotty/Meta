@@ -6,7 +6,16 @@ sourceCompatibility = 1.8
 
 sourceSets.main.java.srcDirs = [ "src/" ]
 
-
-eclipse.project {
-    name = appName + "-runtime"
+dependencies {
+    compile "com.badlogicgames.gdx:gdx:$gdxVersion"
+    compile "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
+    compile "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+    compile "com.kotcrab.vis:vis-ui:$visuiVersion"
+    compile 'io.gsonfire:gson-fire:1.5.1'
+    compile fileTree(dir: 'libs', include: '*.jar')
+    testCompile "junit:junit:4.11"
+    testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
+    testCompile "com.badlogicgames.gdx:gdx:$gdxVersion"
+    testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
 }
+

@@ -34,8 +34,6 @@ public class MetaUIRenderer implements UIRenderer {
         VisUI.load();
 
         FileChooser.setDefaultPrefsName("de.fatox.meta");
-//        skin.add("default-font", fontProvider.getFont(14));
-//        skin.add("default", fontProvider.getFont(14));
         log.debug(TAG, "Loaded VisUi");
         VisUI.setDefaultTitleAlign(Align.center);
         stage = new Stage(new ScreenViewport());

@@ -6,7 +6,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import com.kotcrab.vis.ui.widget.VisWindow;
-import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaEditorData;
 import de.fatox.meta.api.dao.MetaWindowData;
@@ -78,7 +77,4 @@ public class MetaUiManager implements UIManager {
         contentTable.add(menuBar.getTable()).growX().top();
     }
 
-    @Override
-    public void addToast(ToastTable toast) {
-    }
 }

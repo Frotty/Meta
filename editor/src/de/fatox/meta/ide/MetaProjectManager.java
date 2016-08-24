@@ -69,7 +69,6 @@ public class MetaProjectManager implements ProjectManager {
         child.writeBytes(gson.toJson(projectData).getBytes(), false);
         ToastTable toastTable = new ToastTable();
         toastTable.add(new VisLabel("Project created"));
-        uiManager.addToast(toastTable);
     }
 
     @Override

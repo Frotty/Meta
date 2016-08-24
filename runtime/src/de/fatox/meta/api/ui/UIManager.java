@@ -3,7 +3,6 @@ package de.fatox.meta.api.ui;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import com.kotcrab.vis.ui.widget.VisWindow;
-import com.kotcrab.vis.ui.widget.toast.ToastTable;
 
 /**
  * Created by Frotty on 20.05.2016.
@@ -17,5 +16,4 @@ public interface UIManager {
 
     void addMenuBar(MenuBar menuBar);
 
-    void addToast(ToastTable toast);
 }
