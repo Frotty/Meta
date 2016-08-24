@@ -4,6 +4,7 @@ android:
     - build-tools-23.0.1
     - android-20
 jdk:
+  - oraclejdk7
   - oraclejdk8
 
 cache:
@@ -14,3 +15,5 @@ cache:
 
 before_install:
   - chmod +x gradlew
+  - export JAVA7_HOME=/usr/lib/jvm/java-7-oracle
+  - export JAVA8_HOME=/usr/lib/jvm/java-8-oracle
