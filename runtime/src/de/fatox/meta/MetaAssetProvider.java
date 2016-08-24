@@ -8,7 +8,6 @@ import com.badlogic.gdx.assets.loaders.TextureLoader;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import de.fatox.meta.api.AssetProvider;
@@ -29,19 +28,6 @@ public class MetaAssetProvider implements AssetProvider {
         textureParam.minFilter = Texture.TextureFilter.MipMapLinearLinear;
         textureParam.genMipMaps = true;
 
-        load("models/white.png", Texture.class);
-        load("models/sphere.g3db", Model.class);
-        load("models/cryofan.g3db", Model.class);
-        load("models/CryoFanNM.jpg", Texture.class);
-        loadEditorAssets();
-        assetManager.finishLoading();
-    }
-
-    private void loadEditorAssets() {
-        load("ui/appbar.new.png", Texture.class, textureParam);
-        load("ui/appbar.folder.open.png", Texture.class, textureParam);
-        load("ui/appbar.page.add.png", Texture.class, textureParam);
-        load("ui/appbar.page.search.png", Texture.class, textureParam);
     }
 
     @Override
@@ -56,7 +42,7 @@ public class MetaAssetProvider implements AssetProvider {
 
     @Override
     public <T> void load(String fileName, Class<T> type) {
-        assetManager.load(fileName, type);
+        assetManager.load(fileName, type, (AssetLoaderParameters<T>) textureParam);
     }
 
     @Override
@@ -67,5 +53,10 @@ public class MetaAssetProvider implements AssetProvider {
     @Override
     public FileHandle get(String s) {
         return Gdx.files.internal(s);
+    }
+
+    @Override
+    public void finish() {
+        assetManager.finishLoading();
     }
 }

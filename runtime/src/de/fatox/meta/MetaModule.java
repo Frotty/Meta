@@ -9,6 +9,7 @@ import de.fatox.meta.api.entity.EntityManager;
 import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.graphics.Renderer;
 import de.fatox.meta.api.ui.UIManager;
+import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.entity.MetaEntityManager;
 import de.fatox.meta.graphics.font.MetaFontProvider;
@@ -18,10 +19,18 @@ import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.input.MetaInput;
+import de.fatox.meta.ui.MetaUIRenderer;
 import de.fatox.meta.ui.MetaUiManager;
 
 
 public class MetaModule {
+
+    @Provides
+    @Singleton
+    @Named("default")
+    public UIRenderer uiRenderer(MetaUIRenderer metaUIRenderer) {
+        return metaUIRenderer;
+    }
 
     @Provides
     @Singleton

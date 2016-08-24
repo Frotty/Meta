@@ -12,4 +12,6 @@ public interface AssetProvider {
     <T> void load (String fileName, Class<T> type, AssetLoaderParameters<T> parameter);
 
     FileHandle get(String s);
+
+    void finish();
 }

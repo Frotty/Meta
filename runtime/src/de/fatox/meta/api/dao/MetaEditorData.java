@@ -52,7 +52,6 @@ public class MetaEditorData {
 
     public void setFileHandle(FileHandle fileHandle) {
         this.fileHandle = fileHandle;
-
     }
 
     public Array<String> getLastProjectFiles() {

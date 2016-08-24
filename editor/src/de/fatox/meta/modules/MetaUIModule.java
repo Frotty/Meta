@@ -42,8 +42,8 @@ public class MetaUIModule {
             metaEditorData.setFileHandle(absolute);
         } else {
             metaEditorData = new MetaEditorData();
-            metaEditorData.setFileHandle(absolute);
             absolute.writeBytes(gson.toJson(metaEditorData).getBytes(), false);
+            metaEditorData.setFileHandle(absolute);
         }
         return metaEditorData;
     }

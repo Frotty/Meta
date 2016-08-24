@@ -4,14 +4,17 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL30;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g3d.Model;
 import de.fatox.meta.EditorMeta;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
+import de.fatox.meta.api.dao.MetaEditorData;
 import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
-import de.fatox.meta.api.dao.MetaEditorData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.MetaEditorUI;
@@ -33,14 +36,28 @@ public class MetaEditorScreen extends ScreenAdapter {
     private MetaEditorUI metaEditorUISetup;
     @Inject
     private MetaEditorData metaEditorData;
+    @Inject
+    private AssetProvider assetProvider;
 
     @Override
     public void show() {
         Meta.inject(this);
+        loadAssets();
         setupEditorUi();
         Gdx.input.setInputProcessor(new InputMultiplexer(uiRenderer.getStage()));
         EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
         editorMeta.setWindowData(metaEditorData.getMainWindowWidth(), metaEditorData.getMainWindowHeight());
+    }
+
+    private void loadAssets() {
+        assetProvider.load("models/white.png", Texture.class);
+        assetProvider.load("models/sphere.g3db", Model.class);
+        assetProvider.load("models/cryofan.g3db", Model.class);
+        assetProvider.load("models/CryoFanNM.jpg", Texture.class);
+        assetProvider.load("ui/appbar.new.png", Texture.class);
+        assetProvider.load("ui/appbar.folder.open.png", Texture.class);
+        assetProvider. load("ui/appbar.page.add.png", Texture.class);
+        assetProvider.load("ui/appbar.page.search.png", Texture.class);
     }
 
     private void update() {
