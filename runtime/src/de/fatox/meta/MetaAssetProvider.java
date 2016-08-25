@@ -17,6 +17,7 @@ public class MetaAssetProvider implements AssetProvider {
     private TextureLoader.TextureParameter textureParam;
     private AssetManager assetManager = new AssetManager();
 
+
     public MetaAssetProvider() {
         fontParam = new BitmapFontLoader.BitmapFontParameter();
         fontParam.genMipMaps = true;

@@ -58,6 +58,7 @@ public class MetaEditorScreen extends ScreenAdapter {
         assetProvider.load("ui/appbar.folder.open.png", Texture.class);
         assetProvider. load("ui/appbar.page.add.png", Texture.class);
         assetProvider.load("ui/appbar.page.search.png", Texture.class);
+        assetProvider.finish();
     }
 
     private void update() {

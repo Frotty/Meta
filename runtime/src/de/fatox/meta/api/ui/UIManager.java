@@ -12,6 +12,11 @@ public interface UIManager {
 
     void addTable(Table table, boolean gx, boolean gy);
 
+    /**
+     *
+     * @param window the window to add
+     * @param startup is this an event-driven add or does it happen at startup
+     */
     void addWindow(VisWindow window, boolean startup);
 
     void addMenuBar(MenuBar menuBar);

@@ -4,14 +4,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.google.gson.Gson;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.api.dao.MetaEditorData;
 import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.MetaEditorUI;
-import de.fatox.meta.ui.MetaUIRenderer;
 import de.fatox.meta.ui.windows.AssetDiscovererWindow;
 import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 
@@ -61,10 +58,4 @@ public class MetaUIModule {
         return new MetaEditorUI();
     }
 
-    @Provides
-    @Singleton
-    @Named("default")
-    public UIRenderer uiRenderer(MetaUIRenderer uiRenderer) {
-        return uiRenderer;
-    }
 }
