@@ -7,20 +7,22 @@ import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaEditorData;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Singleton;
 
 /**
  * Created by Frotty on 20.05.2016.
  */
+@Singleton
 public class MetaUiManager implements UIManager {
     @Inject
     private UIRenderer uiRenderer;
     @Inject
-    private MetaEditorData editorData;
+    private MetaData editorData;
 
     private Array<Window> windowCache = new Array<>();
     private Array<Table> tables = new Array<>();
@@ -32,12 +34,23 @@ public class MetaUiManager implements UIManager {
         contentTable.top().left();
         contentTable.setPosition(0, 0);
         contentTable.setFillParent(true);
-        uiRenderer.getStage().addActor(contentTable);
+        uiRenderer.addActor(contentTable);
     }
 
     @Override
     public void resize(int width, int height) {
         uiRenderer.resize(width, height);
+    }
+
+    @Override
+    public void changeScreen(String screenIdentifier) {
+        editorData.getScreenData(screenIdentifier);
+        contentTable.remove();
+        contentTable.clear();
+        uiRenderer.addActor(contentTable);
+        for(Window window : windowCache) {
+            window.remove();
+        }
     }
 
     @Override
@@ -53,10 +66,10 @@ public class MetaUiManager implements UIManager {
     @Override
     public void addWindow(VisWindow window, boolean startup) {
         MetaWindowData windowData = editorData.getWindowData(window);
-        if(startup && !windowData.displayed) {
+        if (startup && !windowData.displayed) {
             return;
         }
-        if(!startup) {
+        if (!startup) {
             windowData.displayed = true;
             editorData.write();
         }

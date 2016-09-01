@@ -33,8 +33,6 @@ public class MetaModule {
     }
 
     @Provides
-    @Singleton
-    @Named("default")
     public UIManager uiManager(MetaUiManager metaUiManager) {
         return metaUiManager;
     }

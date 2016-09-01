@@ -7,6 +7,10 @@ import com.badlogic.gdx.utils.IntMap;
 public class MetaInput extends InputAdapter {
     private final IntMap<Array<KeyListener>> keyListenerMap = new IntMap<>();
 
+    public MetaInput() {
+        System.out.println("");
+    }
+
     public IntMap<Array<KeyListener>> getKeyListenerMap() {
         return keyListenerMap;
     }

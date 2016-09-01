@@ -4,7 +4,8 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaEditorData;
+import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.injection.Inject;
 
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
@@ -12,9 +13,13 @@ import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
 /**
  * Created by Frotty on 08.05.2016.
  */
-public class MetaWindow extends VisWindow {
+public abstract class MetaWindow extends VisWindow {
     @Inject
-    private MetaEditorData metaEditorData;
+    private MetaData metaData;
+
+    public MetaWindow(String title) {
+        this(title, false, false);
+    }
 
     public MetaWindow(String title, boolean resizable, boolean closeButton) {
         super(title, resizable ? "resizable" : "default");
@@ -38,19 +43,34 @@ public class MetaWindow extends VisWindow {
         }
     }
 
+    public void setDefault(float x, float y) {
+        setDefault(x, y, getWidth(), getHeight());
+    }
+
+    public void setDefault(float x, float y, float width, float height) {
+        if (metaData.hasWindowData(this)) {
+            MetaWindowData windowData = metaData.getWindowData(this);
+            windowData.set(this);
+        } else {
+            setPosition(x,y);
+            setSize(width,height);
+            metaData.getWindowData(this);
+        }
+    }
+
     @Override
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
-        if(isDragging()) {
-            metaEditorData.getWindowData(this).setFrom(this);
-            metaEditorData.write();
+        if (isDragging()) {
+            metaData.getWindowData(this).setFrom(this);
+            metaData.write();
         }
     }
 
     @Override
     protected void close() {
         super.close();
-        metaEditorData.getWindowData(this).displayed = false;
-        metaEditorData.write();
+        metaData.getWindowData(this).displayed = false;
+        metaData.write();
     }
 }

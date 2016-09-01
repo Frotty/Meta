@@ -218,7 +218,7 @@ public class MRTFrameBuffer implements Disposable {
 		}
 
 		private static void addManagedFrameBuffer (Application app, MRTFrameBuffer frameBuffer) {
-			Array<MRTFrameBuffer> managedResources = buffers.get(app);
+            Array<MRTFrameBuffer> managedResources = buffers.get(app);
 			if (managedResources == null)
 				managedResources = new Array<MRTFrameBuffer>();
 			managedResources.add(frameBuffer);

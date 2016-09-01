@@ -10,6 +10,13 @@ import com.kotcrab.vis.ui.widget.VisWindow;
 public interface UIManager {
     void resize(int width, int height);
 
+    /**
+     * Indicates a screen change. This will remove/modify the elements of the current screen
+     * and load the saved elements
+     * @param screenIdentifier name of the screen for the json persitence
+     */
+    void changeScreen(String screenIdentifier);
+
     void addTable(Table table, boolean gx, boolean gy);
 
     /**

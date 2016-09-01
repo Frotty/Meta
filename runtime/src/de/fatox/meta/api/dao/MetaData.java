@@ -1,37 +1,38 @@
 package de.fatox.meta.api.dao;
 
 import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.scenes.scene2d.ui.Window;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
+import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
 import de.fatox.meta.injection.Inject;
 
 /**
  * Created by Frotty on 26.06.2016.
  */
-public class MetaEditorData {
+public class MetaData {
     public static final String DATA_FILE_NAME = "metadata.json";
 
-    public Array<String> lastProjectFiles = new Array<>();
-    public Array<MetaWindowData> windowDatas = new Array<>();
     @Expose
     private String[] lastProjects;
     @Expose
-    private MetaWindowData[] windowData;
+    private ExposedArray<MetaScreenData> screenData = new ExposedArray<>(4);
     @Expose
     private int windowWidth = 1200;
     @Expose
     private int windowHeight = 700;
+
+    public ExposedArray<String> lastProjectFiles = new ExposedArray<>();
+    public MetaScreenData currentScreenData;
+
     @Inject
     private Gson gson;
 
     private FileHandle fileHandle;
     private long lastMillis = TimeUtils.millis();
 
-    public MetaEditorData() {
+    public MetaData() {
         Meta.inject(this);
     }
 
@@ -54,7 +55,7 @@ public class MetaEditorData {
         this.fileHandle = fileHandle;
     }
 
-    public Array<String> getLastProjectFiles() {
+    public ExposedArray<String> getLastProjectFiles() {
         if (lastProjectFiles.size == 0) {
             lastProjectFiles.addAll(lastProjects);
         }
@@ -75,17 +76,38 @@ public class MetaEditorData {
         write();
     }
 
-    public MetaWindowData getWindowData(Window window) {
-        String name = window.getTitleLabel().getText().toString();
-        for (MetaWindowData data : windowDatas) {
-            if (data.name.equals(name)) {
+    public MetaScreenData getScreenData(String screenName) {
+        for (MetaScreenData data : screenData) {
+            if (data.name.equals(screenName)) {
+                currentScreenData = data;
                 return data;
             }
         }
-        MetaWindowData data = new MetaWindowData(window);
-        windowDatas.add(data);
-        windowData = windowDatas.toArray(MetaWindowData.class);
+        MetaScreenData data = new MetaScreenData(screenName);
+        screenData.add(data);
+        currentScreenData = data;
         write();
         return data;
+    }
+
+    public boolean hasWindowData(VisWindow data) {
+        for (MetaWindowData wdata : currentScreenData.windowData) {
+            if (wdata.name.equals(data.getTitleLabel().getText().toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public MetaWindowData getWindowData(VisWindow data) {
+        for (MetaWindowData wdata : currentScreenData.windowData) {
+            if (wdata.name.equals(data.getTitleLabel().getText().toString())) {
+                return wdata;
+            }
+        }
+        MetaWindowData ndata = new MetaWindowData(data);
+        currentScreenData.windowData.add(ndata);
+        write();
+        return ndata;
     }
 }

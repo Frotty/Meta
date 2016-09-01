@@ -85,8 +85,8 @@
 //	ModelCache modelCache;
 //	ModelInstance floorInstance;
 //	ModelInstance cannon;
-//	Array<Light> lights = new Array<Light>();
-//	Array<Renderable> renderables = new Array<Renderable>();
+//	ExposedArray<Light> lights = new ExposedArray<Light>();
+//	ExposedArray<Renderable> renderables = new ExposedArray<Renderable>();
 //	RenderablePool renerablePool = new RenderablePool();
 //
 //	static int DIFFUSE_ATTACHMENT = 0;
@@ -458,10 +458,10 @@
 //	static class MRTFrameBuffer implements Disposable {
 //
 //		/** the frame buffers **/
-//		private final static Map<Application, Array<MRTFrameBuffer>> buffers = new HashMap<Application, Array<MRTFrameBuffer>>();
+//		private final static Map<Application, ExposedArray<MRTFrameBuffer>> buffers = new HashMap<Application, ExposedArray<MRTFrameBuffer>>();
 //
 //		/** the color buffer texture **/
-//		private Array<Texture> colorTextures;
+//		private ExposedArray<Texture> colorTextures;
 //
 //		/** the default framebuffer handle, a.k.a screen. */
 //		private static int defaultFramebufferHandle;
@@ -523,7 +523,7 @@
 //				}
 //			}
 //
-//			colorTextures = new Array<Texture>();
+//			colorTextures = new ExposedArray<Texture>();
 //
 //			framebufferHandle = gl.glGenFramebuffer();
 //			gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, framebufferHandle);
@@ -657,9 +657,9 @@
 //		}
 //
 //		private static void addManagedFrameBuffer (Application app, MRTFrameBuffer frameBuffer) {
-//			Array<MRTFrameBuffer> managedResources = buffers.get(app);
+//			ExposedArray<MRTFrameBuffer> managedResources = buffers.get(app);
 //			if (managedResources == null)
-//				managedResources = new Array<MRTFrameBuffer>();
+//				managedResources = new ExposedArray<MRTFrameBuffer>();
 //			managedResources.add(frameBuffer);
 //			buffers.put(app, managedResources);
 //		}
@@ -680,7 +680,7 @@
 //	}
 //
 //	protected static class RenderablePool extends Pool<Renderable> {
-//		protected Array<Renderable> obtained = new Array<Renderable>();
+//		protected ExposedArray<Renderable> obtained = new ExposedArray<Renderable>();
 //
 //		@Override
 //		protected Renderable newObject () {
