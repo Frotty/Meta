@@ -23,6 +23,7 @@ public abstract class MetaWindow extends VisWindow {
 
     public MetaWindow(String title, boolean resizable, boolean closeButton) {
         super(title, resizable ? "resizable" : "default");
+        defaults().pad(2);
         Meta.inject(this);
         if (closeButton) {
             addCloseButton();

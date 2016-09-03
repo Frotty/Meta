@@ -26,6 +26,8 @@ public abstract class MetaDialog extends MetaWindow {
         super(title, false, true);
         statusLabel.setAlignment(Align.center);
         buttonTable = new VisTable();
+        buttonTable.add(statusLabel).growX().colspan(2);
+        buttonTable.row();
         leftButton = new MetaTextButton(left);
         leftButton.addListener(new MetaClickListener() {
             @Override
@@ -36,7 +38,6 @@ public abstract class MetaDialog extends MetaWindow {
             }
         });
         buttonTable.add(leftButton).pad(4).left();
-        buttonTable.add(statusLabel).growX();
         rightButton = new MetaTextButton(right);
         rightButton.setColor(0.9f, 0.8f, 1, 1);
         rightButton.addListener(new MetaClickListener() {
