@@ -92,7 +92,7 @@ public class MetaData {
 
     public boolean hasWindowData(VisWindow data) {
         for (MetaWindowData wdata : currentScreenData.windowData) {
-            if (wdata.name.equals(data.getTitleLabel().getText().toString())) {
+            if (wdata.name.equals(data.getClass().getSimpleName())) {
                 return true;
             }
         }
@@ -101,7 +101,7 @@ public class MetaData {
 
     public MetaWindowData getWindowData(VisWindow data) {
         for (MetaWindowData wdata : currentScreenData.windowData) {
-            if (wdata.name.equals(data.getTitleLabel().getText().toString())) {
+            if (wdata.name.equals(data.getClass().getSimpleName())) {
                 return wdata;
             }
         }
