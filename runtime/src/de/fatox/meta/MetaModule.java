@@ -33,6 +33,7 @@ public class MetaModule {
     }
 
     @Provides
+    @Singleton
     public UIManager uiManager(MetaUiManager metaUiManager) {
         return metaUiManager;
     }

@@ -24,12 +24,12 @@ public class Meta extends Game {
 
     public Meta() {
         metaInstance = this;
+        setupMetastasis();
         addModule(new MetaModule());
     }
 
     public static void addModule(Object module) {
-        getInstance().modules.add(module);
-        getInstance().setupMetastasis();
+        getInstance().metastasis.loadModule(module);
     }
 
     public static void registerMetaAnnotation(Class annotationClass) {
@@ -63,7 +63,7 @@ public class Meta extends Game {
     }
 
     private final void setupMetastasis() {
-        metastasis = Metastasis.with(modules);
+        metastasis = new Metastasis();
     }
 
     public static final void inject(Object object) {

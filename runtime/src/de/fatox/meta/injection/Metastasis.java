@@ -1,9 +1,5 @@
 package de.fatox.meta.injection;
 
-import de.fatox.meta.input.Hotkey;
-import de.fatox.meta.input.MetaShortcut;
-import de.fatox.meta.task.MetaTask;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
@@ -13,36 +9,104 @@ public class Metastasis {
     private final Map<Key, Object> singletons = new HashMap<>();
     private final Map<Class, Object[][]> injectFields = new HashMap<>(0);
 
-    private Metastasis(Iterable<?> modules) {
-        providers.put(Key.of(Metastasis.class), new Provider() {
-                    @Override
-                    public Object get() {
-                        return this;
-                    }
-                }
-        );
-        for (final Object module : modules) {
-            if (module instanceof Class) {
-                throw new MetastasisException(String.format("%s provided as class instead of an instance.", ((Class) module).getName()));
-            }
-            for (Method providerMethod : providers(module.getClass())) {
-                providerMethod(module, providerMethod);
-            }
+    public Metastasis() {
+        // Add Metastasis to the injectable classes
+        providers.put(Key.of(Metastasis.class), () -> null);
+    }
+
+    public void loadModule(Object module) {
+        // Only allow module instances, not classes
+        if (module instanceof Class) {
+            throw new MetastasisException(String.format("%s provided as class instead of an instance.", ((Class) module).getName()));
+        }
+        // Find and Register all providerMethods
+        Set<Method> providerMethods = getProviderMethods(module.getClass());
+        for (Method providerMethod : providerMethods) {
+            registerProviderMethod(module, providerMethod);
         }
     }
 
     /**
-     * Constructs Metastasis with configuration modules
+     * @return an instance of type
      */
-    public static Metastasis with(Object... modules) {
-        return new Metastasis(Arrays.asList(modules));
+    public <T> T instance(Class<T> type) {
+        return provider(Key.of(type), null).get();
     }
 
     /**
-     * Constructs Metastasis with configuration modules
+     * @return instance specified by key (type and qualifier)
      */
-    public static Metastasis with(Iterable<?> modules) {
-        return new Metastasis(modules);
+    public <T> T instance(Key<T> key) {
+        return provider(key, null).get();
+    }
+
+    /**
+     * @return provider of type
+     */
+    public <T> Provider<T> provider(Class<T> type) {
+        return provider(Key.of(type), null);
+    }
+
+    /**
+     * @return provider of key (type, qualifier)
+     */
+    public <T> Provider<T> provider(Key<T> key) {
+        return provider(key, null);
+    }
+
+    /**
+     * Injects getInjectedFields to the target object
+     */
+    public void injectFields(Object target) {
+        if (!injectFields.containsKey(target.getClass())) {
+            Object[][] fieldObjects = injectFields(target.getClass());
+            injectFields.put(target.getClass(), fieldObjects);
+        }
+        for (Object[] f : injectFields.get(target.getClass())) {
+            Field field = (Field) f[0];
+            boolean provider = (boolean) f[1];
+            Key key = (Key) f[2];
+            Key key2 = Key.of(field.getType(), "default");
+            try {
+                if (providers.containsKey(key)) {
+                    field.set(target, providers.get(key).get());
+                } else if (providers.containsKey(key2)) {
+                    field.set(target, providers.get(key2).get());
+                } else {
+                    throw new MetastasisException(String.format("Can't inject field %s in %s because there is no provider defined for the type", field
+                            .getName(), target.getClass().getName()));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new MetastasisException(String.format("Can't inject field %s in %s", field.getName(), target.getClass().getName()));
+            }
+        }
+    }
+
+    private void registerProviderMethod(final Object module, final Method m) {
+        // Build key
+        final Key key = Key.of(m.getReturnType(), qualifier(m.getAnnotations()));
+        // Forbid double providers without different qualifiers
+        if (providers.containsKey(key)) {
+            throw new MetastasisException(String.format("%s has multiple providers, module %s", key.toString(), module.getClass()));
+        }
+
+        boolean isSingleton = m.getAnnotation(Singleton.class) != null;
+        final Provider<?>[] paramProviders = paramProviders(key, m.getParameterTypes(), m.getGenericParameterTypes(), m.getParameterAnnotations(),
+                Collections.singleton(key)
+        );
+        if (isSingleton) {
+            singletonProvider(key, () -> {
+                try {
+                    return m.invoke(module, params(paramProviders));
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            });
+        } else {
+            provider(key, null);
+        }
     }
 
     private static Object[] params(Provider<?>[] paramProviders) {
@@ -64,21 +128,22 @@ public class Metastasis {
     }
 
     private static Object[][] injectFields(Class<?> target) {
-        Set<Field> fields = fields(target);
-        Object[][] fs = new Object[fields.size()][];
+        Set<Field> injectedFields = getInjectedFields(target);
+        Object[][] fs = new Object[injectedFields.size()][];
         int i = 0;
-        for (Field field : fields) {
-            Class<?> providerType = field.getType().equals(Provider.class) ?
-                    (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0] :
-                    null;
+        for (Field field : injectedFields) {
+            Class<?> providerType = field.getType().equals(Provider.class) ? (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()
+                    [0] : null;
             Class<?> aClass = (providerType != null) ? providerType : field.getType();
-            fs[i++] = new Object[]{field, providerType != null, Key.of(aClass, qualifier(field.getAnnotations()))
-            };
+            fs[i++] = new Object[]{field, providerType != null, Key.of(aClass, qualifier(field.getAnnotations()))};
         }
         return fs;
     }
 
-    private static Set<Field> fields(Class<?> type) {
+    /**
+     * Retrieves all fields with @Inject annotation for the given class
+     */
+    private static Set<Field> getInjectedFields(Class<?> type) {
         Class<?> current = type;
         Set<Field> fields = new HashSet<>();
         while (!current.equals(Object.class)) {
@@ -125,7 +190,7 @@ public class Metastasis {
         }
     }
 
-    private static Set<Method> providers(Class<?> type) {
+    private static Set<Method> getProviderMethods(Class<?> type) {
         Class<?> current = type;
         Set<Method> providers = new HashSet<>();
         while (!current.equals(Object.class)) {
@@ -159,83 +224,6 @@ public class Metastasis {
         return false;
     }
 
-    /**
-     * @return an instance of type
-     */
-    public <T> T instance(Class<T> type) {
-        return provider(Key.of(type), null).get();
-    }
-
-    /**
-     * @return instance specified by key (type and qualifier)
-     */
-    public <T> T instance(Key<T> key) {
-        return provider(key, null).get();
-    }
-
-    /**
-     * @return provider of type
-     */
-    public <T> Provider<T> provider(Class<T> type) {
-        return provider(Key.of(type), null);
-    }
-
-    /**
-     * @return provider of key (type, qualifier)
-     */
-    public <T> Provider<T> provider(Key<T> key) {
-        return provider(key, null);
-    }
-
-    /**
-     * Injects fields to the target object
-     */
-    public void injectFields(Object target) {
-        if (!injectFields.containsKey(target.getClass())) {
-            injectFields.put(target.getClass(), injectFields(target.getClass()));
-        }
-        for (Object[] f : injectFields.get(target.getClass())) {
-            Field field = (Field) f[0];
-            Key key = (Key) f[2];
-            try {
-                field.set(target, (boolean) f[1] ? provider(key) : instance(key));
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new MetastasisException(String.format("Can't inject field %s in %s", field.getName(), target.getClass().getName()));
-            }
-        }
-    }
-
-    public void registerHotkeys(final Object target) {
-        for (final Method method : target.getClass().getMethods()) {
-            Annotation[] annotations = method.getAnnotations();
-            for (Annotation annotation : annotations) {
-                if (annotation instanceof Hotkey) {
-                    final Hotkey hotkey = (Hotkey) annotation;
-                    new MetaShortcut(new MetaTask() {
-                        @Override
-                        public String getName() {
-                            return Arrays.toString(hotkey.keycodes());
-                        }
-
-                        @Override
-                        public void execute() {
-                            try {
-                                method.invoke(instance(target.getClass()));
-                            } catch (IllegalAccessException | InvocationTargetException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        @Override
-                        public void reverse() {
-
-                        }
-                    }, hotkey.keycodes());
-                }
-            }
-        }
-    }
 
     @SuppressWarnings("unchecked")
     private <T> Provider<T> provider(final Key<T> key, Set<Key> chain) {
@@ -251,55 +239,35 @@ public class Metastasis {
             final Constructor constructor = constructor(key);
             final Provider<?>[] paramProviders = paramProviders(key, constructor.getParameterTypes(), constructor
                     .getGenericParameterTypes(), constructor.getParameterAnnotations(), chain);
-            providers.put(key, singletonProvider(key, key.type.getAnnotation(Singleton.class), (Provider) () -> {
+            providers.put(key, () -> {
                         try {
                             return constructor.newInstance(params(paramProviders));
                         } catch (Exception e) {
                             throw new MetastasisException(String.format("Can't instantiate %s", key.toString()), e);
                         }
-                    })
+                    }
             );
         }
         return (Provider<T>) providers.get(key);
     }
 
-    private void providerMethod(final Object module, final Method m) {
-        final Key key = Key.of(m.getReturnType(), qualifier(m.getAnnotations()));
-        if (providers.containsKey(key)) {
-            throw new MetastasisException(String.format("%s has multiple providers, module %s", key.toString(), module.getClass()));
-        }
-        Singleton singleton = m.getAnnotation(Singleton.class) != null ? m.getAnnotation(Singleton.class) : m.getReturnType()
-                .getAnnotation(Singleton.class);
-        final Provider<?>[] paramProviders = paramProviders(
-                key,
-                m.getParameterTypes(),
-                m.getGenericParameterTypes(),
-                m.getParameterAnnotations(),
-                Collections.singleton(key)
-        );
-        providers.put(key, singletonProvider(key, singleton, (Provider) () -> {
-                    try {
-                        return m.invoke(module, params(paramProviders));
-                    } catch (Exception e) {
-                        throw new MetastasisException(String.format("Can't instantiate %s with provider", key.toString()), e);
-                    }
-                }
-                )
-        );
-    }
 
     @SuppressWarnings("unchecked")
-    private <T> Provider<T> singletonProvider(final Key key, Singleton singleton, final Provider<T> provider) {
-        return singleton != null ? () -> {
-            if (!singletons.containsKey(key)) {
-                synchronized (singletons) {
-                    if (!singletons.containsKey(key)) {
-                        singletons.put(key, provider.get());
+    private <T> Provider<T> singletonProvider(final Key key, final Provider provider) {
+        if (!providers.containsKey(key)) {
+            Provider singletonProvider = () -> {
+                if (!singletons.containsKey(key)) {
+                    synchronized (singletons) {
+                        if (!singletons.containsKey(key)) {
+                            singletons.put(key, provider.get());
+                        }
                     }
                 }
-            }
-            return (T) singletons.get(key);
-        } : provider;
+                return (T) singletons.get(key);
+            };
+            providers.put(key, singletonProvider);
+        }
+        return (Provider<T>) providers.get(key);
     }
 
     private Provider<?>[] paramProviders(

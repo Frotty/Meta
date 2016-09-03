@@ -35,12 +35,10 @@ public class Key<T> {
     }
 
     public static <T> Key<T> of(Class<T> type, Annotation qualifier) {
-        if(qualifier == null) {
+        if (qualifier == null) {
             return Key.of(type);
         } else {
-            return qualifier.annotationType().equals(Named.class) ?
-                    Key.of(type, ((Named) qualifier).value()) :
-                    Key.of(type, qualifier.annotationType());
+            return qualifier.annotationType().equals(Named.class) ? Key.of(type, ((Named) qualifier).value()) : Key.of(type, qualifier.annotationType());
         }
     }
 
