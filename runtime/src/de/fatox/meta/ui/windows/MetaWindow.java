@@ -49,7 +49,7 @@ public abstract class MetaWindow extends VisWindow {
     }
 
     public void setDefault(float x, float y, float width, float height) {
-        if (metaData.hasWindowData(this)) {
+        if (metaData.hasWindowData(this.getClass())) {
             MetaWindowData windowData = metaData.getWindowData(this);
             windowData.set(this);
         } else {

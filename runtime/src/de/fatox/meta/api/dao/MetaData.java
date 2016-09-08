@@ -1,10 +1,10 @@
 package de.fatox.meta.api.dao;
 
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
-import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
 import de.fatox.meta.injection.Inject;
 
@@ -90,16 +90,16 @@ public class MetaData {
         return data;
     }
 
-    public boolean hasWindowData(VisWindow data) {
+    public boolean hasWindowData(Class<? extends Window> data) {
         for (MetaWindowData wdata : currentScreenData.windowData) {
-            if (wdata.name.equals(data.getClass().getSimpleName())) {
+            if (wdata.name.equals(data.getSimpleName())) {
                 return true;
             }
         }
         return false;
     }
 
-    public MetaWindowData getWindowData(VisWindow data) {
+    public MetaWindowData getWindowData(Window data) {
         for (MetaWindowData wdata : currentScreenData.windowData) {
             if (wdata.name.equals(data.getClass().getSimpleName())) {
                 return wdata;

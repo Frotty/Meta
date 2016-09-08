@@ -2,7 +2,6 @@ package de.fatox.meta.api.dao;
 
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.google.gson.annotations.Expose;
-import de.fatox.meta.ui.windows.MetaWindow;
 
 /**
  * Created by Frotty on 28.06.2016.
@@ -52,7 +51,7 @@ public class MetaWindowData {
         this.height = metaWindow.getHeight();
     }
 
-    public void set(MetaWindow metaWindow) {
+    public void set(Window metaWindow) {
         metaWindow.setPosition(x, y);
         metaWindow.setSize(width, height);
     }
