@@ -1,7 +1,36 @@
 package de.fatox.meta.input;
 
-public interface KeyListener {
-    void onDown();
+import com.badlogic.gdx.utils.Timer;
 
-    void onUp();
+public abstract class KeyListener {
+    private long requiredLengthMilis = 0;
+    private Timer.Task task = null;
+
+    public abstract void onEvent();
+
+    public void onDown() {
+        if (requiredLengthMilis > 0) {
+            task = new Timer.Task() {
+                @Override
+                public void run() {
+                    onEvent();
+                }
+            };
+            Timer.schedule(task, requiredLengthMilis / 1000f);
+        }
+    }
+
+    public void onUp() {
+        if (task != null) {
+            task.cancel();
+        }
+        if(requiredLengthMilis <= 0) {
+            onEvent();
+        }
+    }
+
+    public void setRequiredLengthMilis(long requiredLengthMilis) {
+        this.requiredLengthMilis = requiredLengthMilis;
+    }
+
 }

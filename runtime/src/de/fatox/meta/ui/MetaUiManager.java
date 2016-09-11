@@ -13,6 +13,7 @@ import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.injection.Singleton;
+import de.fatox.meta.input.MetaInput;
 
 /**
  * Created by Frotty on 20.05.2016.
@@ -27,10 +28,11 @@ public class MetaUiManager implements UIManager {
     private UIRenderer uiRenderer;
     @Inject
     private MetaData metaData;
+    @Inject
+    private MetaInput metaInput;
 
     private Array<Window> displayedWindows = new Array<>();
     private Array<Window> cachedWindows = new Array<>();
-    private Array<Table> tables = new Array<>();
     private Array<MenuBar> menuBars = new Array<>();
     private Table contentTable = new Table();
 
@@ -49,12 +51,12 @@ public class MetaUiManager implements UIManager {
 
     @Override
     public void changeScreen(String screenIdentifier) {
+        metaInput.changeScreen();
         metaData.getScreenData(screenIdentifier);
         for (Window window : displayedWindows) {
-            window.remove();
-            cachedWindows.add(window);
-            window.setVisible(false);
+            cacheWindow(window);
         }
+        displayedWindows.clear();
         contentTable.remove();
         contentTable.clear();
         uiRenderer.addActor(contentTable);
@@ -80,7 +82,7 @@ public class MetaUiManager implements UIManager {
     public <T extends Window> T showWindow(Class<? extends T> windowClass) {
         // If the window is annotated singleton only one instance should be displayed
         if (windowClass.isAnnotationPresent(Singleton.class)) {
-            T displayedWindow = getDisplayedWindow(windowClass);
+            T displayedWindow = getDisplayedClass(windowClass);
             if (displayedWindow != null) {
                 return displayedWindow;
             }
@@ -115,16 +117,6 @@ public class MetaUiManager implements UIManager {
         return (T) theWindow;
     }
 
-    private <T extends Window> T getDisplayedWindow(Class<? extends Window> windowClass) {
-        for (Window displayedWindow : displayedWindows) {
-            if (displayedWindow.getClass() == windowClass) {
-                return (T) displayedWindow;
-            }
-        }
-        return null;
-    }
-
-
     @Override
     public void addMenuBar(MenuBar menuBar) {
         menuBars.add(menuBar);
@@ -135,8 +127,41 @@ public class MetaUiManager implements UIManager {
     @Override
     public <T extends Window> T getWindow(Class<? extends T> windowClass) {
         // TODO avoid NPE
-        return getDisplayedWindow(windowClass);
+        return getDisplayedClass(windowClass);
+    }
+
+    @Override
+    public void closeWindow(Window window) {
+        Window displayedWindow = getDisplayedInstance(window);
+        if(displayedWindow != null) {
+            metaData.getWindowData(displayedWindow).displayed = false;
+            displayedWindows.removeValue(window, true);
+            cacheWindow(window);
+        }
+    }
+
+    private <T extends Window> T getDisplayedClass(Class<? extends Window> windowClass) {
+        for (Window displayedWindow : displayedWindows) {
+            if (displayedWindow.getClass() == windowClass) {
+                return (T) displayedWindow;
+            }
+        }
+        return null;
+    }
+
+    private Window getDisplayedInstance(Window window) {
+        for (Window displayedWindow : displayedWindows) {
+            if (displayedWindow == window) {
+                return displayedWindow;
+            }
+        }
+        return null;
     }
 
 
+    private void cacheWindow(Window window) {
+        window.remove();
+        cachedWindows.add(window);
+        window.setVisible(false);
+    }
 }

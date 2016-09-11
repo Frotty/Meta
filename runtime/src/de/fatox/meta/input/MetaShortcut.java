@@ -14,22 +14,28 @@ public class MetaShortcut {
     public MetaShortcut(final MetaTask callback, int... keycodes) {
         Meta.inject(this);
         missingKeys = keycodes.length;
-        for(int code : keycodes) {
-            metaInput.registerKeyListener(code, new KeyListener() {
-                @Override
-                public void onDown() {
-                    missingKeys--;
-                    if(missingKeys <= 0) {
-                        callback.execute();
-                    }
-                }
-
-                @Override
-                public void onUp() {
-                    missingKeys++;
-                }
-            });
-        }
+        // TODO use new metainput
+//        for(int code : keycodes) {
+//            metaInput.registerKeyListener(code, new KeyListener() {
+//                @Override
+//                void onEvent() {
+//
+//                }
+//
+//                @Override
+//                public void onDown() {
+//                    missingKeys--;
+//                    if(missingKeys <= 0) {
+//                        callback.execute();
+//                    }
+//                }
+//
+//                @Override
+//                public void onUp() {
+//                    missingKeys++;
+//                }
+//            });
+//        }
     }
 
 }

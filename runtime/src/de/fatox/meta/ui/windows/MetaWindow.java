@@ -4,9 +4,12 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.dao.MetaWindowData;
+import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Log;
 
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
 
@@ -14,6 +17,12 @@ import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
  * Created by Frotty on 08.05.2016.
  */
 public abstract class MetaWindow extends VisWindow {
+    private static final String TAG = "MetaWindow";
+    @Inject
+    @Log
+    private Logger log;
+    @Inject
+    private UIManager uiManager;
     @Inject
     private MetaData metaData;
 
@@ -28,7 +37,7 @@ public abstract class MetaWindow extends VisWindow {
         if (closeButton) {
             addCloseButton();
         }
-        // Seperator
+        // Separator
         getTitleTable().row().height(2);
         getTitleTable().add(new Separator()).growX().padTop(2).colspan(closeButton ? 2 : 1);
         getTitleTable().top();
@@ -71,7 +80,7 @@ public abstract class MetaWindow extends VisWindow {
     @Override
     protected void close() {
         super.close();
-        metaData.getWindowData(this).displayed = false;
-        metaData.write();
+        log.debug(TAG, "on close");
+        uiManager.closeWindow(this);
     }
 }
