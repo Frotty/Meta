@@ -8,7 +8,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import com.kotcrab.vis.ui.widget.*;
 import de.fatox.meta.api.AssetProvider;
-import de.fatox.meta.api.dao.MetaEditorData;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.ide.AssetDiscoverer;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.FolderListAdapter;
@@ -24,7 +24,7 @@ public class AssetDiscovererWindow extends MetaWindow {
     @Inject
     private AssetDiscoverer assetDiscoverer;
     @Inject
-    private MetaEditorData metaEditorData;
+    private MetaData metaData;
     private FolderListAdapter<FolderModel> adapter;
     private ScrollPane filePane;
     private ListView view;

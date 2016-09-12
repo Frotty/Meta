@@ -46,6 +46,7 @@ public class MetaFontProvider implements FontProvider {
     @Override
     public void write(float x, float y, String text, int size) {
         spriteBatch.setColor(Color.WHITE);
+        spriteBatch.enableBlending();
         spriteBatch.setShader(null);
         spriteBatch.begin();
         getFont(size).draw(spriteBatch, text, x, y);
@@ -59,10 +60,9 @@ public class MetaFontProvider implements FontProvider {
 
     private void fontDefaults() {
         param.genMipMaps = true;
-        param.kerning = true;
         param.incremental = true;
         param.minFilter = Texture.TextureFilter.MipMapLinearLinear;
         param.magFilter = Texture.TextureFilter.Linear;
-        param.genMipMaps = true;
+        param.borderStraight = true;
     }
 }

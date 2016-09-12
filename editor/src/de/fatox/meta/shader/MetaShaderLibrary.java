@@ -6,13 +6,8 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.api.graphics.ShaderInfo;
 import de.fatox.meta.api.graphics.ShaderLibrary;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 
 public class MetaShaderLibrary implements ShaderLibrary {
-    @Inject
-    private ShaderLibraryWindow shaderLibraryWindow;
-
     private ShaderInfo shaderInfo;
     private Array<ShaderInfo> activeShaders = new Array<>();
     private Array<MetaGLShader> metaShaders = new Array<>();

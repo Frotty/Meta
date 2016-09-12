@@ -37,12 +37,6 @@ public class EditorMenuBar {
     @Inject
     private ProjectManager projectManager;
     @Inject
-    private ShaderLibraryWindow shaderLibraryWindow;
-    @Inject
-    private ShaderPipelineWindow shaderPipelineWindow;
-    @Inject
-    private AssetDiscovererWindow assetDiscovererWindow;
-    @Inject
     private UIManager uiManager;
 
     public final MenuBar menuBar;
@@ -103,22 +97,21 @@ public class EditorMenuBar {
         assetMenu.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                assetDiscovererWindow.refresh();
-                uiManager.addWindow(assetDiscovererWindow, false);
+                uiManager.showWindow(AssetDiscovererWindow.class);
             }
         });
         MenuItem shaderMenu = new MenuItem("Shader Library");
         shaderMenu.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                uiManager.addWindow(shaderLibraryWindow, false);
+                uiManager.showWindow(ShaderLibraryWindow.class);
             }
         });
         MenuItem shaderPipeMenu = new MenuItem("Shader Pipeline");
         shaderPipeMenu.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                uiManager.addWindow(shaderPipelineWindow, false);
+                uiManager.showWindow(ShaderPipelineWindow.class);
             }
         });
         editMenu.addItem(assetMenu);

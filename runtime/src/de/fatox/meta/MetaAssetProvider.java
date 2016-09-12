@@ -43,8 +43,13 @@ public class MetaAssetProvider implements AssetProvider {
 
     @Override
     public <T> void load(String fileName, Class<T> type) {
-        assetManager.load(fileName, type, (AssetLoaderParameters<T>) textureParam);
+        if (type == Texture.class) {
+            assetManager.load(fileName, type);
+        } else {
+            assetManager.load(fileName, type);
+        }
     }
+
 
     @Override
     public <T> void load(String fileName, Class<T> type, AssetLoaderParameters<T> parameter) {

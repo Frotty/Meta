@@ -6,7 +6,7 @@ import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.LinkLabel;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
-import de.fatox.meta.api.dao.MetaEditorData;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.components.TextWidget;
@@ -17,7 +17,7 @@ import de.fatox.meta.ui.components.TextWidget;
 public class WelcomeTab extends MetaTab {
     private VisTable visTable = new VisTable();
     @Inject
-    private MetaEditorData metaEditorData;
+    private MetaData metaData;
     @Inject
     private ProjectManager projectManager;
 
@@ -34,7 +34,7 @@ public class WelcomeTab extends MetaTab {
 
         visTable.add(visLabel).pad(16);
 
-        for (String lastProj : metaEditorData.getLastProjectFiles()) {
+        for (String lastProj : metaData.getLastProjectFiles()) {
             visTable.row();
             LinkLabel linkLabel = new LinkLabel(lastProj.substring(0, lastProj.lastIndexOf("/")));
             linkLabel.setListener(url -> projectManager.loadProject(Gdx.files.absolute(lastProj)));

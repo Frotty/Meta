@@ -20,18 +20,13 @@ public class ProjectHomeTab extends MetaTab {
 
     @Inject
     private UIManager uiManager;
-    @Inject
-    private AssetDiscovererWindow assetDiscovererWindow;
-    @Inject
-    private ShaderLibraryWindow shaderLibraryWindow;
 
     public ProjectHomeTab(MetaProjectData metaProjectData) {
         super(true, true);
         this.projectData = metaProjectData;
         setupTable(metaProjectData);
-        uiManager.addWindow(assetDiscovererWindow, true);
-        uiManager.addWindow(shaderLibraryWindow, true);
-        assetDiscovererWindow.refresh();
+        uiManager.showWindow(AssetDiscovererWindow.class);
+        uiManager.showWindow(ShaderLibraryWindow.class);
     }
 
     private void setupTable(MetaProjectData metaProjectData) {

@@ -6,12 +6,11 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g3d.Model;
 import de.fatox.meta.EditorMeta;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.dao.MetaEditorData;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
@@ -35,7 +34,7 @@ public class MetaEditorScreen extends ScreenAdapter {
     @Inject
     private MetaEditorUI metaEditorUISetup;
     @Inject
-    private MetaEditorData metaEditorData;
+    private MetaData metaData;
     @Inject
     private AssetProvider assetProvider;
 
@@ -46,17 +45,13 @@ public class MetaEditorScreen extends ScreenAdapter {
         setupEditorUi();
         Gdx.input.setInputProcessor(new InputMultiplexer(uiRenderer.getStage()));
         EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
-        editorMeta.setWindowData(metaEditorData.getMainWindowWidth(), metaEditorData.getMainWindowHeight());
+        editorMeta.setWindowData(metaData.getMainWindowWidth(), metaData.getMainWindowHeight());
     }
 
     private void loadAssets() {
-        assetProvider.load("models/white.png", Texture.class);
-        assetProvider.load("models/sphere.g3db", Model.class);
-        assetProvider.load("models/cryofan.g3db", Model.class);
-        assetProvider.load("models/CryoFanNM.jpg", Texture.class);
         assetProvider.load("ui/appbar.new.png", Texture.class);
         assetProvider.load("ui/appbar.folder.open.png", Texture.class);
-        assetProvider. load("ui/appbar.page.add.png", Texture.class);
+        assetProvider.load("ui/appbar.page.add.png", Texture.class);
         assetProvider.load("ui/appbar.page.search.png", Texture.class);
         assetProvider.finish();
     }
@@ -86,7 +81,7 @@ public class MetaEditorScreen extends ScreenAdapter {
     @Override
     public void resize(int width, int height) {
         uiManager.resize(width, height);
-        metaEditorData.setMainWindowSize(width, height);
+        metaData.setMainWindowSize(width, height);
         EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
         editorMeta.setWindowData(width,height);
     }

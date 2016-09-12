@@ -7,6 +7,7 @@ import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane;
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPaneAdapter;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
+import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.tabs.MetaTab;
@@ -22,9 +23,7 @@ public class MetaEditorUI {
     @Log
     private Logger log;
     @Inject
-    private MetaUiManager uiManager;
-    @Inject
-    private AssetDiscovererWindow assetDiscovererWindow;
+    private UIManager uiManager;
 
     private TabbedPane tabbedPane;
     private Table tabTable = new Table();
