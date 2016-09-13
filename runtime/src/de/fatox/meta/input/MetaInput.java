@@ -50,6 +50,9 @@ public class MetaInput extends InputAdapter {
                 listener.onDown();
             }
         }
+        for(InputProcessor processor : screenProcessors) {
+            processor.keyDown(keycode);
+        }
         return false;
     }
 
@@ -59,6 +62,9 @@ public class MetaInput extends InputAdapter {
             for (KeyListener listener : keyListenerMap.get(keycode)) {
                 listener.onUp();
             }
+        }
+        for(InputProcessor processor : screenProcessors) {
+            processor.keyUp(keycode);
         }
         return false;
     }

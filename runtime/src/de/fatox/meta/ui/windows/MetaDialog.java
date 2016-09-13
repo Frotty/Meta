@@ -23,6 +23,10 @@ public abstract class MetaDialog extends MetaWindow {
     protected final MetaTextButton rightButton;
 
     public MetaDialog(String title, String left, String right) {
+        this(title, null, left, right);
+    }
+
+    public MetaDialog(String title, String message, String left, String right) {
         super(title, false, true);
         statusLabel.setAlignment(Align.center);
         buttonTable = new VisTable();
@@ -51,6 +55,9 @@ public abstract class MetaDialog extends MetaWindow {
         buttonTable.add(rightButton).pad(4).right();
         contentTable = new VisTable();
         contentTable.top().padTop(2);
+        if(message != null) {
+            contentTable.add(new VisLabel(message)).grow();
+        }
         add(contentTable).top().grow();
         row();
         add(buttonTable).bottom().growX();

@@ -4,10 +4,14 @@ import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.reflect.ClassReflection;
+import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.api.dao.MetaScreenData;
+import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.injection.Inject;
@@ -52,7 +56,7 @@ public class MetaUiManager implements UIManager {
     @Override
     public void changeScreen(String screenIdentifier) {
         metaInput.changeScreen();
-        metaData.getScreenData(screenIdentifier);
+        MetaScreenData screenData = metaData.getScreenData(screenIdentifier);
         for (Window window : displayedWindows) {
             cacheWindow(window);
         }
@@ -60,6 +64,20 @@ public class MetaUiManager implements UIManager {
         contentTable.remove();
         contentTable.clear();
         uiRenderer.addActor(contentTable);
+
+        restoreWindows(screenData);
+    }
+
+    private void restoreWindows(MetaScreenData screenData) {
+        for (MetaWindowData windowData : screenData.windowData) {
+            if (windowData.displayed) {
+                try {
+                    showWindow(ClassReflection.forName("de.fatox.content.screens.windows." + windowData.name));
+                } catch (ReflectionException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     @Override
@@ -112,7 +130,12 @@ public class MetaUiManager implements UIManager {
         uiRenderer.addActor(theWindow);
         if (metaData.hasWindowData(windowClass)) {
             // If there is saved metadata, restore configuration
-            metaData.getWindowData(theWindow).set(theWindow);
+            MetaWindowData windowData = metaData.getWindowData(theWindow);
+            windowData.set(theWindow);
+            if (!windowData.displayed) {
+                windowData.displayed = true;
+                metaData.write();
+            }
         }
         return (T) theWindow;
     }
@@ -133,7 +156,7 @@ public class MetaUiManager implements UIManager {
     @Override
     public void closeWindow(Window window) {
         Window displayedWindow = getDisplayedInstance(window);
-        if(displayedWindow != null) {
+        if (displayedWindow != null) {
             metaData.getWindowData(displayedWindow).displayed = false;
             displayedWindows.removeValue(window, true);
             cacheWindow(window);
