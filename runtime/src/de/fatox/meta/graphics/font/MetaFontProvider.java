@@ -18,7 +18,6 @@ public class MetaFontProvider implements FontProvider {
     @Log
     private Logger log;
     private final IntMap<BitmapFont> bitmapFontMap = new IntMap<>();
-    private final FreeTypeFontGenerator.FreeTypeFontParameter param;
     private final FreeTypeFontGenerator generator;
 
     @Inject
@@ -30,9 +29,7 @@ public class MetaFontProvider implements FontProvider {
     public MetaFontProvider() {
         Meta.inject(this);
         log.debug("NetaFontProvider", "init");
-        generator = new FreeTypeFontGenerator(assetProvider.get("fonts/Vulpes.ttf"));
-        param = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        fontDefaults();
+        generator = new FreeTypeFontGenerator(assetProvider.get("fonts/Montserrat.ttf"));
     }
 
     @Override
@@ -54,15 +51,18 @@ public class MetaFontProvider implements FontProvider {
     }
 
     private BitmapFont generateFont(int size) {
+        FreeTypeFontGenerator.FreeTypeFontParameter param = defaultFontParam();
         param.size = size;
         return bitmapFontMap.put(param.size, generator.generateFont(param));
     }
 
-    private void fontDefaults() {
+    private FreeTypeFontGenerator.FreeTypeFontParameter defaultFontParam() {
+        FreeTypeFontGenerator.FreeTypeFontParameter param = new FreeTypeFontGenerator.FreeTypeFontParameter();
         param.genMipMaps = true;
         param.incremental = true;
         param.minFilter = Texture.TextureFilter.MipMapLinearLinear;
         param.magFilter = Texture.TextureFilter.Linear;
-        param.borderStraight = true;
+        param.hinting = FreeTypeFontGenerator.Hinting.Slight;
+        return param;
     }
 }

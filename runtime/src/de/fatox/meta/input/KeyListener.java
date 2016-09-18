@@ -13,6 +13,7 @@ public abstract class KeyListener {
             task = new Timer.Task() {
                 @Override
                 public void run() {
+                    Timer.schedule(task, requiredLengthMilis / 1000f);
                     onEvent();
                 }
             };
@@ -27,6 +28,11 @@ public abstract class KeyListener {
         if(requiredLengthMilis <= 0) {
             onEvent();
         }
+    }
+
+    public void resetDelay() {
+        task.cancel();
+        Timer.schedule(task, requiredLengthMilis / 1000f);
     }
 
     public void setRequiredLengthMilis(long requiredLengthMilis) {

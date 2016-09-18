@@ -21,7 +21,7 @@ public class MetaWindowData {
     }
 
     public MetaWindowData(Window metaWindow) {
-        this.name = metaWindow.getClass().getSimpleName();
+        this.name = metaWindow.getClass().getName();
         this.x = metaWindow.getX();
         this.y = metaWindow.getY();
         this.width = metaWindow.getWidth();

@@ -72,7 +72,7 @@ public class MetaUiManager implements UIManager {
         for (MetaWindowData windowData : screenData.windowData) {
             if (windowData.displayed) {
                 try {
-                    showWindow(ClassReflection.forName("de.fatox.content.screens.windows." + windowData.name));
+                    showWindow(ClassReflection.forName(windowData.name));
                 } catch (ReflectionException e) {
                     e.printStackTrace();
                 }
@@ -158,6 +158,7 @@ public class MetaUiManager implements UIManager {
         Window displayedWindow = getDisplayedInstance(window);
         if (displayedWindow != null) {
             metaData.getWindowData(displayedWindow).displayed = false;
+            metaData.write();
             displayedWindows.removeValue(window, true);
             cacheWindow(window);
         }

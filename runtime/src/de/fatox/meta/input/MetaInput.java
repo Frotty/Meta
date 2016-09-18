@@ -8,19 +8,16 @@ import com.badlogic.gdx.utils.IntMap;
 import de.fatox.meta.ui.components.MetaClickListener;
 
 public class MetaInput extends InputAdapter {
-    private final IntMap<Array<KeyListener>> keyListenerMap = new IntMap<>();
+    private final IntMap<Array<KeyListener>> globalKeyListeners = new IntMap<>();
+    private final IntMap<Array<KeyListener>> screenKeyListeners = new IntMap<>();
     private final Array<InputProcessor> screenProcessors = new Array<>();
 
     public MetaInput() {
         Gdx.input.setInputProcessor(this);
     }
 
-    public IntMap<Array<KeyListener>> getKeyListenerMap() {
-        return keyListenerMap;
-    }
-
     public void changeScreen() {
-        keyListenerMap.clear();
+        screenKeyListeners.clear();
         screenProcessors.clear();
     }
 
@@ -28,16 +25,33 @@ public class MetaInput extends InputAdapter {
         screenProcessors.add(adapter);
     }
 
-    public void registerKeyListener(int keycode, KeyListener keyListener) {
-        if (!keyListenerMap.containsKey(keycode)) {
-            keyListenerMap.put(keycode, new Array<>());
+    public void registerGlobalKeyListener(int keycode, KeyListener keyListener) {
+        registerGlobalKeyListener(keycode, 0, keyListener);
+    }
+
+    public void registerGlobalKeyListener(int keycode, long milisRequired, KeyListener keyListener) {
+        if (!globalKeyListeners.containsKey(keycode)) {
+            globalKeyListeners.put(keycode, new Array<>());
         }
-        keyListenerMap.get(keycode).add(keyListener);
+        keyListener.setRequiredLengthMilis(milisRequired);
+        globalKeyListeners.get(keycode).add(keyListener);
+    }
+
+    public void registerScreenKeyListener(int keycode, KeyListener keyListener) {
+        registerScreenKeyListener(keycode, 0, keyListener);
+    }
+
+    public void registerScreenKeyListener(int keycode, long milisRequired, KeyListener keyListener) {
+        if (!screenKeyListeners.containsKey(keycode)) {
+            screenKeyListeners.put(keycode, new Array<>());
+        }
+        keyListener.setRequiredLengthMilis(milisRequired);
+        screenKeyListeners.get(keycode).add(keyListener);
     }
 
     @Override
     public boolean keyTyped(char character) {
-        for(InputProcessor processor : screenProcessors) {
+        for (InputProcessor processor : screenProcessors) {
             processor.keyTyped(character);
         }
         return false;
@@ -45,12 +59,17 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean keyDown(int keycode) {
-        if (keyListenerMap.containsKey(keycode)) {
-            for (KeyListener listener : keyListenerMap.get(keycode)) {
+        if (screenKeyListeners.containsKey(keycode)) {
+            for (KeyListener listener : screenKeyListeners.get(keycode)) {
                 listener.onDown();
             }
         }
-        for(InputProcessor processor : screenProcessors) {
+        if (globalKeyListeners.containsKey(keycode)) {
+            for (KeyListener listener : globalKeyListeners.get(keycode)) {
+                listener.onDown();
+            }
+        }
+        for (InputProcessor processor : screenProcessors) {
             processor.keyDown(keycode);
         }
         return false;
@@ -58,12 +77,17 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean keyUp(int keycode) {
-        if (keyListenerMap.containsKey(keycode)) {
-            for (KeyListener listener : keyListenerMap.get(keycode)) {
+        if (screenKeyListeners.containsKey(keycode)) {
+            for (KeyListener listener : screenKeyListeners.get(keycode)) {
                 listener.onUp();
             }
         }
-        for(InputProcessor processor : screenProcessors) {
+        if (globalKeyListeners.containsKey(keycode)) {
+            for (KeyListener listener : globalKeyListeners.get(keycode)) {
+                listener.onUp();
+            }
+        }
+        for (InputProcessor processor : screenProcessors) {
             processor.keyUp(keycode);
         }
         return false;
@@ -71,7 +95,7 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean scrolled(int amount) {
-        for(InputProcessor processor : screenProcessors) {
+        for (InputProcessor processor : screenProcessors) {
             processor.scrolled(amount);
         }
         return true;
@@ -79,7 +103,7 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        for(InputProcessor processor : screenProcessors) {
+        for (InputProcessor processor : screenProcessors) {
             processor.touchDown(screenX, screenY, pointer, button);
         }
         return true;
@@ -87,7 +111,7 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        for(InputProcessor processor : screenProcessors) {
+        for (InputProcessor processor : screenProcessors) {
             processor.touchDragged(screenX, screenY, pointer);
         }
         return true;

@@ -19,9 +19,9 @@ public class MetaData {
     @Expose
     private ExposedArray<MetaScreenData> screenData = new ExposedArray<>(4);
     @Expose
-    private int windowWidth = 1200;
+    private int windowWidth = 1280;
     @Expose
-    private int windowHeight = 700;
+    private int windowHeight = 720;
 
     public ExposedArray<String> lastProjectFiles = new ExposedArray<>();
     public MetaScreenData currentScreenData;
@@ -92,7 +92,7 @@ public class MetaData {
 
     public boolean hasWindowData(Class<? extends Window> data) {
         for (MetaWindowData wdata : currentScreenData.windowData) {
-            if (wdata.name.equals(data.getSimpleName())) {
+            if (wdata.name.equals(data.getName())) {
                 return true;
             }
         }
@@ -101,7 +101,7 @@ public class MetaData {
 
     public MetaWindowData getWindowData(Window data) {
         for (MetaWindowData wdata : currentScreenData.windowData) {
-            if (wdata.name.equals(data.getClass().getSimpleName())) {
+            if (wdata.name.equals(data.getClass().getName())) {
                 return wdata;
             }
         }

@@ -3,32 +3,37 @@ package de.fatox.meta;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetLoaderParameters;
 import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.assets.loaders.BitmapFontLoader;
 import com.badlogic.gdx.assets.loaders.TextureLoader;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.api.AssetProvider;
+import de.fatox.meta.api.ui.AssetPromise;
 
 public class MetaAssetProvider implements AssetProvider {
-    private BitmapFontLoader.BitmapFontParameter fontParam;
+    private Array<FileHandle> assetFolders = new Array<>();
     private TextureLoader.TextureParameter textureParam;
     private AssetManager assetManager = new AssetManager();
 
-
     public MetaAssetProvider() {
-        fontParam = new BitmapFontLoader.BitmapFontParameter();
-        fontParam.genMipMaps = true;
-        fontParam.magFilter = Texture.TextureFilter.Linear;
-        fontParam.minFilter = Texture.TextureFilter.MipMapLinearLinear;
-
         textureParam = new TextureLoader.TextureParameter();
         textureParam.magFilter = Texture.TextureFilter.Linear;
         textureParam.minFilter = Texture.TextureFilter.MipMapLinearLinear;
         textureParam.genMipMaps = true;
+        assetManager.load("textures/ui/rotate_clockwise.png", Texture.class);
+        finish();
+    }
 
+    @Override
+    public boolean addAssetFolder(FileHandle folder) {
+        if(folder.isDirectory()) {
+            assetFolders.add(folder);
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -65,4 +70,10 @@ public class MetaAssetProvider implements AssetProvider {
     public void finish() {
         assetManager.finishLoading();
     }
+
+    @Override
+    public <T> AssetPromise<T> getPromise(String name, Class<T> type) {
+        return new AssetPromise<>(get("textures/ui/rotate_clockwise.png", type));
+    }
+
 }
