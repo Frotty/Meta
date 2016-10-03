@@ -1,15 +1,16 @@
 package de.fatox.meta.input;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
 import de.fatox.meta.ui.components.MetaClickListener;
 
-public class MetaInput extends InputAdapter {
+public class MetaInput implements InputProcessor {
     private final IntMap<Array<KeyListener>> globalKeyListeners = new IntMap<>();
     private final IntMap<Array<KeyListener>> screenKeyListeners = new IntMap<>();
+    private InputProcessor exclusiveProcessor;
+    private final Array<InputProcessor> globalProcessors = new Array<>();
     private final Array<InputProcessor> screenProcessors = new Array<>();
 
     public MetaInput() {
@@ -51,6 +52,13 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean keyTyped(char character) {
+        if (exclusiveProcessor != null) {
+            exclusiveProcessor.keyTyped(character);
+            return false;
+        }
+        for (InputProcessor processor : globalProcessors) {
+            processor.keyTyped(character);
+        }
         for (InputProcessor processor : screenProcessors) {
             processor.keyTyped(character);
         }
@@ -59,6 +67,10 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean keyDown(int keycode) {
+        if (exclusiveProcessor != null) {
+            exclusiveProcessor.keyDown(keycode);
+            return false;
+        }
         if (screenKeyListeners.containsKey(keycode)) {
             for (KeyListener listener : screenKeyListeners.get(keycode)) {
                 listener.onDown();
@@ -68,6 +80,9 @@ public class MetaInput extends InputAdapter {
             for (KeyListener listener : globalKeyListeners.get(keycode)) {
                 listener.onDown();
             }
+        }
+        for (InputProcessor processor : globalProcessors) {
+            processor.keyDown(keycode);
         }
         for (InputProcessor processor : screenProcessors) {
             processor.keyDown(keycode);
@@ -77,6 +92,10 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean keyUp(int keycode) {
+        if (exclusiveProcessor != null) {
+            exclusiveProcessor.keyUp(keycode);
+            return false;
+        }
         if (screenKeyListeners.containsKey(keycode)) {
             for (KeyListener listener : screenKeyListeners.get(keycode)) {
                 listener.onUp();
@@ -87,6 +106,9 @@ public class MetaInput extends InputAdapter {
                 listener.onUp();
             }
         }
+        for (InputProcessor processor : globalProcessors) {
+            processor.keyUp(keycode);
+        }
         for (InputProcessor processor : screenProcessors) {
             processor.keyUp(keycode);
         }
@@ -95,6 +117,13 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean scrolled(int amount) {
+        if (exclusiveProcessor != null) {
+            exclusiveProcessor.scrolled(amount);
+            return false;
+        }
+        for (InputProcessor processor : globalProcessors) {
+            processor.scrolled(amount);
+        }
         for (InputProcessor processor : screenProcessors) {
             processor.scrolled(amount);
         }
@@ -103,6 +132,13 @@ public class MetaInput extends InputAdapter {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        if (exclusiveProcessor != null) {
+            exclusiveProcessor.touchDown(screenX, screenY, pointer, button);
+            return false;
+        }
+        for (InputProcessor processor : globalProcessors) {
+            processor.touchDown(screenX, screenY, pointer, button);
+        }
         for (InputProcessor processor : screenProcessors) {
             processor.touchDown(screenX, screenY, pointer, button);
         }
@@ -110,13 +146,58 @@ public class MetaInput extends InputAdapter {
     }
 
     @Override
+    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+        if (exclusiveProcessor != null) {
+            exclusiveProcessor.touchUp(screenX, screenY, pointer, button);
+            return false;
+        }
+        for (InputProcessor processor : globalProcessors) {
+            processor.touchUp(screenX, screenY, pointer, button);
+        }
+        for (InputProcessor processor : screenProcessors) {
+            processor.touchUp(screenX, screenY, pointer, button);
+        }
+        return false;
+    }
+
+    @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
+        if (exclusiveProcessor != null) {
+            exclusiveProcessor.touchDragged(screenX, screenY, pointer);
+            return false;
+        }
+        for (InputProcessor processor : globalProcessors) {
+            processor.touchDragged(screenX, screenY, pointer);
+        }
         for (InputProcessor processor : screenProcessors) {
             processor.touchDragged(screenX, screenY, pointer);
         }
         return true;
     }
 
+    @Override
+    public boolean mouseMoved(int screenX, int screenY) {
+        if (exclusiveProcessor != null) {
+            exclusiveProcessor.mouseMoved(screenX, screenY);
+            return false;
+        }
+        for (InputProcessor processor : globalProcessors) {
+            processor.mouseMoved(screenX, screenY);
+        }
+        for (InputProcessor processor : screenProcessors) {
+            processor.mouseMoved(screenX, screenY);
+        }
+        return false;
+    }
+
     public void registerClick(String simpleName, MetaClickListener metaClickListener) {
+    }
+
+    public void setExclusiveProcessor(InputProcessor exclusiveProcessor) {
+        this.exclusiveProcessor = exclusiveProcessor;
+    }
+
+    public void addGlobalAdapter(InputProcessor processor) {
+        globalProcessors.add(processor);
     }
 }

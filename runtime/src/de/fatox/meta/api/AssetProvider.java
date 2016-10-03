@@ -11,12 +11,15 @@ public interface AssetProvider {
     Drawable getDrawable(String texturename);
 
     <T> T get(String fileName, Class<T> type);
+
     <T> void load(String fileName, Class<T> type);
-    <T> void load (String fileName, Class<T> type, AssetLoaderParameters<T> parameter);
+
+    <T> void load(String fileName, Class<T> type, AssetLoaderParameters<T> parameter);
 
     FileHandle get(String s);
 
     void finish();
 
     <T> AssetPromise<T> getPromise(String name, Class<T> type);
+
 }

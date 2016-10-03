@@ -10,7 +10,7 @@ public class MetaScreenData {
     public String name;
 
     @Expose
-    public ExposedArray<MetaWindowData> windowData = new ExposedArray<>(6);
+    public ExposedArray<MetaWindowData> windowData = new ExposedArray<>(1);
 
     public MetaScreenData(String screenName) {
         this.name = screenName;

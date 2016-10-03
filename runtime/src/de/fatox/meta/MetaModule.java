@@ -19,15 +19,21 @@ import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.input.MetaInput;
+import de.fatox.meta.sound.MetaSoundPlayer;
 import de.fatox.meta.ui.MetaUIRenderer;
 import de.fatox.meta.ui.MetaUiManager;
 
-
+@Singleton
 public class MetaModule {
 
     @Provides
     @Singleton
-    @Named("default")
+    public MetaSoundPlayer metaSoundPlayer() {
+        return new MetaSoundPlayer();
+    }
+
+    @Provides
+    @Singleton
     public UIRenderer uiRenderer(MetaUIRenderer metaUIRenderer) {
         return metaUIRenderer;
     }
@@ -40,21 +46,18 @@ public class MetaModule {
 
     @Provides
     @Singleton
-    @Named("default")
     public MetaInput metaInput() {
         return new MetaInput();
     }
 
     @Provides
     @Singleton
-    @Named("default")
     public Renderer renderer(BufferRenderer renderer) {
         return renderer;
     }
 
     @Provides
     @Singleton
-    @Named("default")
     public PerspectiveCamera perspectiveCamera() {
         PerspectiveCamera cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         cam.position.set(30f, 30f, 30f);

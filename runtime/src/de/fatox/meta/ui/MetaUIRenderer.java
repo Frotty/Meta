@@ -27,7 +27,6 @@ public class MetaUIRenderer implements UIRenderer {
 
     private Stage stage;
 
-    @Inject
     public MetaUIRenderer() {
         Meta.inject(this);
         log.debug(TAG, "Injected MetaUi");
@@ -37,6 +36,7 @@ public class MetaUIRenderer implements UIRenderer {
         log.debug(TAG, "Loaded VisUi");
         VisUI.setDefaultTitleAlign(Align.center);
         stage = new Stage(new ScreenViewport());
+        metaInput.addGlobalAdapter(stage);
     }
 
 
@@ -64,8 +64,4 @@ public class MetaUIRenderer implements UIRenderer {
         stage.getViewport().update(width, height, true);
     }
 
-    @Override
-    public Stage getStage() {
-        return stage;
-    }
 }

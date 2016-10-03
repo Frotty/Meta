@@ -3,6 +3,7 @@ package de.fatox.meta.api.ui;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.kotcrab.vis.ui.widget.MenuBar;
+import de.fatox.meta.ui.windows.MetaDialog;
 
 /**
  * Created by Frotty on 20.05.2016.
@@ -24,6 +25,8 @@ public interface UIManager {
      * @param windowClass The window to show
      */
     <T extends Window> T showWindow(Class<? extends T> windowClass);
+
+    <T extends MetaDialog> T showDialog(Class<? extends T> dialogClass);
 
     void addMenuBar(MenuBar menuBar);
 

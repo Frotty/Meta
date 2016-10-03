@@ -8,6 +8,10 @@ import com.badlogic.gdx.utils.TimeUtils;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Metastasis;
 
+import javax.swing.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 public class Meta extends Game {
     private static Meta metaInstance;
     private Metastasis metastasis;
@@ -23,6 +27,22 @@ public class Meta extends Game {
     }
 
     public Meta() {
+        Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
+            exception.printStackTrace();
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+                e.printStackTrace();
+            };
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            exception.printStackTrace(pw);
+            JTextArea jTextField = new JTextArea();
+            jTextField.setText("Please report this crash with the following info:\n" + sw.toString());
+            jTextField.setEditable(false);
+            JOptionPane.showMessageDialog(null, jTextField, "Uncaught Exception", JOptionPane.ERROR_MESSAGE);
+            // do something else useful here
+        });
         metaInstance = this;
         setupMetastasis();
         addModule(new MetaModule());
@@ -41,7 +61,7 @@ public class Meta extends Game {
     }
 
     public static void newLastScreen() {
-        if(getInstance().lastScreen != null) {
+        if (getInstance().lastScreen != null) {
             try {
                 changeScreen(getInstance().lastScreen.getClass().newInstance());
             } catch (InstantiationException | IllegalAccessException e) {

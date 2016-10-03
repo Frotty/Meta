@@ -18,6 +18,7 @@ import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.input.MetaInput;
+import de.fatox.meta.ui.windows.MetaDialog;
 
 /**
  * Created by Frotty on 20.05.2016.
@@ -98,46 +99,35 @@ public class MetaUiManager implements UIManager {
      */
     @Override
     public <T extends Window> T showWindow(Class<? extends T> windowClass) {
-        // If the window is annotated singleton only one instance should be displayed
-        if (windowClass.isAnnotationPresent(Singleton.class)) {
-            T displayedWindow = getDisplayedClass(windowClass);
-            if (displayedWindow != null) {
-                return displayedWindow;
-            }
-        }
-        // Check for a cached instance
-        Window theWindow = null;
-        for (Window cachedWindow : cachedWindows) {
-            if (cachedWindow.getClass() == windowClass) {
-                log.debug(TAG, "found cached window");
-                theWindow = cachedWindow;
-                break;
-            }
-        }
-        // If there was no cached instance we create a new one
-        if (theWindow != null) {
-            cachedWindows.removeValue(theWindow, true);
-        } else {
-            try {
-                theWindow = windowClass.newInstance();
+        T window = checkSingleton(windowClass);
+        if(window != null) return window;
+        log.debug(TAG, "show window: " + windowClass.getName());
+        window = displayWindow(windowClass);
 
-            } catch (InstantiationException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-        displayedWindows.add(theWindow);
-        theWindow.setVisible(true);
-        uiRenderer.addActor(theWindow);
+        window.setVisible(true);
+        uiRenderer.addActor(window);
         if (metaData.hasWindowData(windowClass)) {
             // If there is saved metadata, restore configuration
-            MetaWindowData windowData = metaData.getWindowData(theWindow);
-            windowData.set(theWindow);
+            MetaWindowData windowData = metaData.getWindowData(window);
+            windowData.set(window);
             if (!windowData.displayed) {
                 windowData.displayed = true;
                 metaData.write();
             }
         }
-        return (T) theWindow;
+        return window;
+    }
+
+    @Override
+    public <T extends MetaDialog> T showDialog(Class<? extends T> dialogClass) {
+        log.debug(TAG, "show dialog: " + dialogClass.getName());
+        // If the window is annotated singleton only one instance should be displayed
+        T displayedWindow = checkSingleton(dialogClass);
+        if (displayedWindow != null) return displayedWindow;
+        // Dialogs are just Window subtypes so we show it as usual
+        T dialog = showWindow(dialogClass);
+        dialog.show();
+        return dialog;
     }
 
     @Override
@@ -164,6 +154,42 @@ public class MetaUiManager implements UIManager {
         }
     }
 
+    public <T extends Window> T displayWindow(Class<? extends T> windowClass) {
+        // Check for a cached instance
+        T theWindow = null;
+        for (Window cachedWindow : cachedWindows) {
+            if (cachedWindow.getClass() == windowClass) {
+                log.debug(TAG, "found cached");
+                theWindow = (T) cachedWindow;
+                break;
+            }
+        }
+        // If there was no cached instance we create a new one
+        if (theWindow != null) {
+            cachedWindows.removeValue(theWindow, true);
+        } else {
+            try {
+                log.debug(TAG, "try instance");
+                theWindow = windowClass.newInstance();
+
+            } catch (InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        displayedWindows.add(theWindow);
+        return theWindow;
+    }
+
+    private <T extends Window> T checkSingleton(Class<? extends T> windowClass) {
+        if (windowClass.isAnnotationPresent(Singleton.class)) {
+            T displayedWindow = getDisplayedClass(windowClass);
+            if (displayedWindow != null) {
+                return displayedWindow;
+            }
+        }
+        return null;
+    }
+
     private <T extends Window> T getDisplayedClass(Class<? extends Window> windowClass) {
         for (Window displayedWindow : displayedWindows) {
             if (displayedWindow.getClass() == windowClass) {
@@ -188,4 +214,5 @@ public class MetaUiManager implements UIManager {
         cachedWindows.add(window);
         window.setVisible(false);
     }
+
 }
