@@ -100,7 +100,7 @@ public class MetaUiManager implements UIManager {
     @Override
     public <T extends Window> T showWindow(Class<? extends T> windowClass) {
         T window = checkSingleton(windowClass);
-        if(window != null) return window;
+        if (window != null) return window;
         log.debug(TAG, "show window: " + windowClass.getName());
         window = displayWindow(windowClass);
 
@@ -125,8 +125,9 @@ public class MetaUiManager implements UIManager {
         T displayedWindow = checkSingleton(dialogClass);
         if (displayedWindow != null) return displayedWindow;
         // Dialogs are just Window subtypes so we show it as usual
+        boolean firstSetup = !metaData.hasWindowData(dialogClass);
         T dialog = showWindow(dialogClass);
-        dialog.show();
+        dialog.show(firstSetup);
         return dialog;
     }
 

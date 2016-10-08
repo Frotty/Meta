@@ -5,6 +5,7 @@ import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.ui.components.MetaClickListener;
 
 import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
@@ -34,7 +35,7 @@ public abstract class MetaDialog extends MetaWindow {
         add(statusLabel).growX();
         row();
         add(buttonTable).bottom().growX();
-        pack();
+
     }
 
 
@@ -47,7 +48,7 @@ public abstract class MetaDialog extends MetaWindow {
                 }
             }
         });
-        if(buttonCount > 0) {
+        if (buttonCount > 0) {
             buttonTable.add().growX();
         }
         buttonCount++;
@@ -55,12 +56,16 @@ public abstract class MetaDialog extends MetaWindow {
         return button;
     }
 
-    public void show() {
-        pack();
+    public void show(boolean firstSetup) {
         // Set color invisible for fade in to work
         setColor(1, 1, 1, 0);
         // Center to middle of target stage
-        setPosition(Math.round((getStage().getWidth() - getWidth()) / 2), Math.round((getStage().getHeight() - getHeight()) / 2));
+        if (firstSetup) {
+            setPosition(Math.round((getStage().getWidth() - getWidth()) / 2), Math.round((getStage().getHeight() - getHeight()) / 2));
+            MetaWindowData windowData = metaData.getWindowData(this);
+            windowData.setFrom(this);
+            metaData.write();
+        }
         addAction(alpha(0.925f, 0.5f));
     }
 

@@ -22,7 +22,7 @@ public abstract class MetaWindow extends VisWindow {
     @Inject
     private UIManager uiManager;
     @Inject
-    private MetaData metaData;
+    protected MetaData metaData;
 
     public MetaWindow(String title) {
         this(title, false, false);
@@ -49,7 +49,7 @@ public abstract class MetaWindow extends VisWindow {
     }
 
     public void setDefaultSize(float width, float height) {
-        setDefault(getX(), getY(), getWidth(), getHeight());
+        setDefault(getX(), getY(), width, height);
     }
 
     public void setDefaultPos(float x, float y) {
@@ -71,8 +71,8 @@ public abstract class MetaWindow extends VisWindow {
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
         if (isDragging()) {
-            metaData.getWindowData(this).setFrom(this);
-            metaData.write();
+//            metaData.getWindowData(this).setFrom(this);
+//            metaData.write();
         }
     }
 
