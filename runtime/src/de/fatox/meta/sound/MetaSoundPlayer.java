@@ -2,6 +2,7 @@ package de.fatox.meta.sound;
 
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.Meta;
@@ -9,8 +10,10 @@ import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.injection.Inject;
 
 public class MetaSoundPlayer {
+    private static final Vector2 helper = new Vector2();
     private ObjectMap<String, MetaSoundDefinition> soundDefinitions = new ObjectMap<>();
     private Array<MetaSoundHandle> dynamicSoundHandles = new Array<>();
+
 
     @Inject
     private AssetProvider assetProvider;
@@ -39,6 +42,13 @@ public class MetaSoundPlayer {
     public MetaSoundHandle playSound(MetaSoundDefinition sound, Vector2 listenerPosition, Vector2 soundPosition) {
         MetaSoundHandle metaSoundHandle = playSound(sound);
         metaSoundHandle.setSoundPosition(listenerPosition, soundPosition);
+        return metaSoundHandle;
+    }
+
+    public MetaSoundHandle playSound(MetaSoundDefinition sound, Vector2 listenerPosition, Vector3 soundPosition) {
+        MetaSoundHandle metaSoundHandle = playSound(sound);
+        helper.set(soundPosition.x, soundPosition.y);
+        metaSoundHandle.setSoundPosition(listenerPosition, helper);
         return metaSoundHandle;
     }
 

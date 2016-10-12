@@ -1,7 +1,6 @@
 package de.fatox.meta.sound;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import de.fatox.meta.Meta;
@@ -27,6 +26,7 @@ public class MetaSoundHandle {
     public MetaSoundHandle(MetaSoundDefinition definition, long id) {
         this.definition = definition;
         this.handleId = id;
+        definition.getSound().setVolume(handleId, 0.25f);
         Meta.inject(this);
     }
 
@@ -37,14 +37,13 @@ public class MetaSoundHandle {
         log.debug(TAG, "audible range2: " + audibleRangeSquared);
         float distSquared = listenerPos.dst2(soundPos);
         log.debug(TAG, "dist to listener2: " + distSquared);
-        float volumeRemap = MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
+        float volumeRemap = 0.15f * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
         log.debug(TAG, "volume: " + volumeRemap);
         float xPan = soundPos.x - listenerPos.x;
         log.debug(TAG, "xPan" + xPan);
         float remappedXPan = MathUtils.clamp(xPan / audibleRange, -1, 1);
         log.debug(TAG, "remappedXPan" + remappedXPan);
-        Sound sound = definition.getSound();
-        sound.setPan(handleId, remappedXPan, volumeRemap);
+        definition.getSound().setPan(handleId, remappedXPan, volumeRemap);
 
     }
 

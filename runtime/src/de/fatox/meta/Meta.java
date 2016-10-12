@@ -3,7 +3,6 @@ package de.fatox.meta;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.TimeUtils;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Metastasis;
@@ -15,8 +14,8 @@ import java.io.StringWriter;
 public class Meta extends Game {
     private static Meta metaInstance;
     private Metastasis metastasis;
-    private Array<Object> modules = new Array<>();
-    private static long lastChange = 0;
+
+    private long lastChange = 0;
     private Screen lastScreen;
 
     @Inject
@@ -57,7 +56,7 @@ public class Meta extends Game {
     }
 
     public static boolean canChangeScreen() {
-        return (TimeUtils.millis() > lastChange + 250);
+        return (TimeUtils.millis() > metaInstance.lastChange + 250);
     }
 
     public static void newLastScreen() {
@@ -72,13 +71,12 @@ public class Meta extends Game {
 
     public static void changeScreen(final Screen newScreen) {
         if (canChangeScreen()) {
-            lastChange = TimeUtils.millis();
+            metaInstance.lastChange = TimeUtils.millis();
             Screen oldScreen = getInstance().getScreen();
             if (oldScreen != null && !oldScreen.getClass().isInstance(newScreen)) {
                 getInstance().lastScreen = oldScreen;
             }
             Gdx.app.postRunnable(() -> getInstance().setScreen(newScreen));
-//            inputManager.clearDownKeys();
         }
     }
 
