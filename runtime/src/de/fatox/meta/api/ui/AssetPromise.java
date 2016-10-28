@@ -11,11 +11,11 @@ public class AssetPromise<TYPE> {
         this.asset = asset;
     }
 
-    public TYPE get() {
+    public synchronized TYPE get() {
         return asset;
     }
 
-    public void set(TYPE asset) {
+    public synchronized void set(TYPE asset) {
         this.asset = asset;
     }
 }

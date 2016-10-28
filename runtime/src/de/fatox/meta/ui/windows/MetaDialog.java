@@ -14,7 +14,6 @@ import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
  * Created by Frotty on 04.06.2016.
  */
 public abstract class MetaDialog extends MetaWindow {
-    protected final VisTable contentTable = new VisTable();
     protected final VisTable buttonTable = new VisTable();
     protected final VisLabel statusLabel = new VisLabel();
     protected DialogListener dialogListener;
@@ -24,14 +23,12 @@ public abstract class MetaDialog extends MetaWindow {
         void onResult(Object object);
     }
 
-    public MetaDialog(String title) {
-        super(title, false, false);
-        contentTable.top().padTop(2);
+    public MetaDialog(String title, boolean hasCloseButton) {
+        super(title, false, hasCloseButton);
+        contentTable.top().padTop(4);
         statusLabel.setAlignment(Align.center);
         statusLabel.setWrap(true);
 
-        add(contentTable).top().grow();
-        row();
         add(statusLabel).growX();
         row();
         add(buttonTable).bottom().growX();

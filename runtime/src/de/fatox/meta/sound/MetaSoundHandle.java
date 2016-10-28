@@ -1,11 +1,13 @@
 package de.fatox.meta.sound;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.TimeUtils;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 
@@ -14,42 +16,71 @@ public class MetaSoundHandle {
     @Inject
     @Log
     private Logger log;
+    @Inject
+    private ShapeRenderer shapeRenderer;
+
     private final MetaSoundDefinition definition;
     private final long handleId;
+    // For 2d positioning
     private Vector2 listenerPos;
     private Vector2 soundPos;
 
-    @Inject
-    private UIRenderer uiRenderer;
+    private long startTime;
+    private boolean done = false;
+    private boolean playing = true;
 
 
     public MetaSoundHandle(MetaSoundDefinition definition, long id) {
         this.definition = definition;
         this.handleId = id;
-        definition.getSound().setVolume(handleId, 0.25f);
+        this.startTime = TimeUtils.millis();
+        this.definition.getSound().setVolume(handleId, definition.getVolume());
+        if (!playing) {
+            stop();
+        }
         Meta.inject(this);
     }
 
-    private void calculateVolPitchPan() {
-        log.debug(TAG, "updating dynamic sound");
+    public void calculateVolPitchPan() {
         float audibleRange = (Gdx.graphics.getHeight() * 0.6f);
         float audibleRangeSquared = audibleRange * audibleRange;
-        log.debug(TAG, "audible range2: " + audibleRangeSquared);
         float distSquared = listenerPos.dst2(soundPos);
-        log.debug(TAG, "dist to listener2: " + distSquared);
-        float volumeRemap = 0.15f * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
-        log.debug(TAG, "volume: " + volumeRemap);
+        float volumeRemap = definition.getVolume() * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
         float xPan = soundPos.x - listenerPos.x;
-        log.debug(TAG, "xPan" + xPan);
-        float remappedXPan = MathUtils.clamp(xPan / audibleRange, -1, 1);
-        log.debug(TAG, "remappedXPan" + remappedXPan);
-        definition.getSound().setPan(handleId, remappedXPan, volumeRemap);
-
+        float remappedXPan = MathUtils.clamp(xPan / (audibleRange - 200), -1, 1);
+        if (distSquared > audibleRangeSquared) {
+            log.debug(TAG, "dynamic sound out of reach");
+            setDone();
+        } else {
+            definition.getSound().setPan(handleId, remappedXPan, volumeRemap);
+        }
     }
 
     public void setSoundPosition(Vector2 listenerPos, Vector2 soundPos) {
         this.listenerPos = listenerPos;
         this.soundPos = soundPos;
         calculateVolPitchPan();
+    }
+
+    public void stop() {
+        definition.getSound().stop(handleId);
+    }
+
+    public void setDone() {
+        done = true;
+        stop();
+    }
+
+    public boolean isDone() {
+        return done || (!definition.isLooping() && TimeUtils.timeSinceMillis(startTime) > definition.getDuration());
+    }
+
+    public boolean isPlaying() {
+        return playing;
+    }
+
+    public void debugRender() {
+        shapeRenderer.setColor(Color.CHARTREUSE);
+        shapeRenderer.circle(soundPos.x + 16, soundPos.y + 16, 14);
     }
 }

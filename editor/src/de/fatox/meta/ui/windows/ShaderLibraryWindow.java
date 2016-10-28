@@ -3,13 +3,12 @@ package de.fatox.meta.ui.windows;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.utils.Scaling;
 import com.kotcrab.vis.ui.widget.*;
-import de.fatox.meta.MetaAssetProvider;
 import de.fatox.meta.api.graphics.GLShaderHandle;
+import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.components.AssetSelectButton;
 import de.fatox.meta.ui.components.MetaClickListener;
 import de.fatox.meta.ui.components.MetaTextButton;
-import de.fatox.meta.ui.dialogs.ShaderWizardDialog;
 
 /**
  * Created by Frotty on 28.06.2016.
@@ -49,7 +48,7 @@ public class ShaderLibraryWindow extends MetaWindow {
         visImageButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                new ShaderWizardDialog().show(getStage());
+//                new ShaderWizardDialog().show(getStage());
             }
         });
 

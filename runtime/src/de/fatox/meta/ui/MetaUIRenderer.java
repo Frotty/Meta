@@ -1,6 +1,7 @@
 package de.fatox.meta.ui;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Align;
@@ -62,6 +63,11 @@ public class MetaUIRenderer implements UIRenderer {
     @Override
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
+    }
+
+    @Override
+    public Camera getCamera() {
+        return stage.getCamera();
     }
 
 }

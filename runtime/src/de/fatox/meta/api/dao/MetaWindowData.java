@@ -2,6 +2,7 @@ package de.fatox.meta.api.dao;
 
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.google.gson.annotations.Expose;
+import de.fatox.meta.ui.windows.MetaDialog;
 
 /**
  * Created by Frotty on 28.06.2016.
@@ -15,7 +16,7 @@ public class MetaWindowData {
     @Expose
     private float width, height;
     @Expose
-    public boolean displayed = true;
+    public boolean displayed = false;
 
     public MetaWindowData() {
     }
@@ -49,6 +50,9 @@ public class MetaWindowData {
         this.y = metaWindow.getY();
         this.width = metaWindow.getWidth();
         this.height = metaWindow.getHeight();
+        if (!(metaWindow instanceof MetaDialog)) {
+            displayed = true;
+        }
     }
 
     public void set(Window metaWindow) {

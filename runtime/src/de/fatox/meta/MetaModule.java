@@ -10,6 +10,7 @@ import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.graphics.Renderer;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
+import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.entity.MetaEntityManager;
 import de.fatox.meta.graphics.font.MetaFontProvider;

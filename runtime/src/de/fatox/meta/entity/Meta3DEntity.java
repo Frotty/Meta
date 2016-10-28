@@ -1,16 +1,14 @@
 package de.fatox.meta.entity;
 
 import com.badlogic.gdx.graphics.Camera;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.RenderableProvider;
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import de.fatox.meta.Meta;
-import de.fatox.meta.MetaAssetProvider;
 import de.fatox.meta.api.entity.Entity;
+import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.injection.Inject;
 
 public class Meta3DEntity implements Entity<Vector3> {
@@ -31,7 +29,7 @@ public class Meta3DEntity implements Entity<Vector3> {
         this.actorModel = new ModelInstance(modelBase, pos);
         calculateBounds();
 //        actorModel.materials.get(0).set(TextureAttribute.createDiffuse(assetProvider.get("models/mat_ship.bmp", Texture.class)));
-        actorModel.materials.get(0).set(TextureAttribute.createNormal(assetProvider.get("models/CryoFanNM.jpg", Texture.class)));
+       // TODO actorModel.materials.get(0).set(TextureAttribute.createNormal(assetProvider.get("models/CryoFanNM.jpg", Texture.class)));
     }
 
     private void calculateBounds() {

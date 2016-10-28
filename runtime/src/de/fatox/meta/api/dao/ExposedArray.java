@@ -115,7 +115,7 @@ public class ExposedArray<T> implements Iterable<T> {
     public void addAll (ExposedArray<? extends T> exposedArray, int start, int count) {
         if (start + count > exposedArray.size)
             throw new IllegalArgumentException("start + count must be <= size: " + start + " + " + count + " <= " + exposedArray.size);
-        addAll((T[]) exposedArray.items, start, count);
+        addAll(exposedArray.items, start, count);
     }
 
     public void addAll (T... array) {
@@ -239,7 +239,7 @@ public class ExposedArray<T> implements Iterable<T> {
     public T removeIndex (int index) {
         if (index >= size) throw new IndexOutOfBoundsException("index can't be >= size: " + index + " >= " + size);
         T[] items = this.items;
-        T value = (T)items[index];
+        T value = items[index];
         size--;
         if (ordered)
             System.arraycopy(items, index + 1, items, index, size - index);

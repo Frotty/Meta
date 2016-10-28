@@ -119,13 +119,15 @@ public class MetaInput implements InputProcessor {
     public boolean scrolled(int amount) {
         if (exclusiveProcessor != null) {
             exclusiveProcessor.scrolled(amount);
-            return false;
+            return true;
         }
         for (InputProcessor processor : globalProcessors) {
-            processor.scrolled(amount);
+            if (processor.scrolled(amount))
+                return true;
         }
         for (InputProcessor processor : screenProcessors) {
-            processor.scrolled(amount);
+            if (processor.scrolled(amount))
+                return true;
         }
         return true;
     }
@@ -134,13 +136,15 @@ public class MetaInput implements InputProcessor {
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         if (exclusiveProcessor != null) {
             exclusiveProcessor.touchDown(screenX, screenY, pointer, button);
-            return false;
+            return true;
         }
         for (InputProcessor processor : globalProcessors) {
-            processor.touchDown(screenX, screenY, pointer, button);
+            if (processor.touchDown(screenX, screenY, pointer, button))
+                return true;
         }
         for (InputProcessor processor : screenProcessors) {
-            processor.touchDown(screenX, screenY, pointer, button);
+            if (processor.touchDown(screenX, screenY, pointer, button))
+                return true;
         }
         return true;
     }
@@ -152,10 +156,12 @@ public class MetaInput implements InputProcessor {
             return false;
         }
         for (InputProcessor processor : globalProcessors) {
-            processor.touchUp(screenX, screenY, pointer, button);
+            if (processor.touchUp(screenX, screenY, pointer, button)) ;
+            return true;
         }
         for (InputProcessor processor : screenProcessors) {
-            processor.touchUp(screenX, screenY, pointer, button);
+            if (processor.touchUp(screenX, screenY, pointer, button))
+                return true;
         }
         return false;
     }
@@ -167,10 +173,12 @@ public class MetaInput implements InputProcessor {
             return false;
         }
         for (InputProcessor processor : globalProcessors) {
-            processor.touchDragged(screenX, screenY, pointer);
+            if (processor.touchDragged(screenX, screenY, pointer))
+                return true;
         }
         for (InputProcessor processor : screenProcessors) {
-            processor.touchDragged(screenX, screenY, pointer);
+            if (processor.touchDragged(screenX, screenY, pointer))
+                return true;
         }
         return true;
     }
@@ -182,10 +190,12 @@ public class MetaInput implements InputProcessor {
             return false;
         }
         for (InputProcessor processor : globalProcessors) {
-            processor.mouseMoved(screenX, screenY);
+            if (processor.mouseMoved(screenX, screenY))
+                return true;
         }
         for (InputProcessor processor : screenProcessors) {
-            processor.mouseMoved(screenX, screenY);
+            if (processor.mouseMoved(screenX, screenY))
+                return true;
         }
         return false;
     }

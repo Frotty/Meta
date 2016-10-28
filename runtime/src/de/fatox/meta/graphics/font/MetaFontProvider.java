@@ -1,5 +1,6 @@
 package de.fatox.meta.graphics.font;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -28,8 +29,8 @@ public class MetaFontProvider implements FontProvider {
     @Inject
     public MetaFontProvider() {
         Meta.inject(this);
-        log.debug("NetaFontProvider", "init");
-        generator = new FreeTypeFontGenerator(assetProvider.get("fonts/Montserrat.ttf"));
+        log.debug("MetaFontProvider", "init");
+        generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/Montserrat.ttf"));
     }
 
     @Override
@@ -53,16 +54,16 @@ public class MetaFontProvider implements FontProvider {
     private BitmapFont generateFont(int size) {
         FreeTypeFontGenerator.FreeTypeFontParameter param = defaultFontParam();
         param.size = size;
-        return bitmapFontMap.put(param.size, generator.generateFont(param));
+        BitmapFont value = generator.generateFont(param);
+        return bitmapFontMap.put(size, value);
     }
 
     private FreeTypeFontGenerator.FreeTypeFontParameter defaultFontParam() {
         FreeTypeFontGenerator.FreeTypeFontParameter param = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        param.genMipMaps = true;
         param.incremental = true;
-        param.minFilter = Texture.TextureFilter.MipMapLinearLinear;
+        param.minFilter = Texture.TextureFilter.Linear;
         param.magFilter = Texture.TextureFilter.Linear;
-        param.hinting = FreeTypeFontGenerator.Hinting.Slight;
+        param.hinting = FreeTypeFontGenerator.Hinting.Medium;
         return param;
     }
 }

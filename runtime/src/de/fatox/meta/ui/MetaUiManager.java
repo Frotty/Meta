@@ -110,10 +110,10 @@ public class MetaUiManager implements UIManager {
             // If there is saved metadata, restore configuration
             MetaWindowData windowData = metaData.getWindowData(window);
             windowData.set(window);
-            if (!windowData.displayed) {
+            if (!windowData.displayed && !(MetaDialog.class.isInstance(window))) {
                 windowData.displayed = true;
-                metaData.write();
             }
+            metaData.write();
         }
         return window;
     }

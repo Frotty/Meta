@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
-import de.fatox.meta.MetaAssetProvider;
+import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.api.entity.EntityManager;
 import de.fatox.meta.injection.Inject;
 
@@ -28,7 +28,7 @@ public class MetaEntityManager implements EntityManager<Meta3DEntity> {
         pxmp.drawPixel(0, 0);
         Texture whiteTex = new Texture(pxmp);
         ModelBuilder modelBuilder = new ModelBuilder();
-        Model model = assetProvider.get("models/cryofan.g3db", Model.class);
+        Model model = null;//TODO assetProvider.get("models/cryofan.g3db", Model.class);
         final Material material = new Material(ColorAttribute.createDiffuse(Color.CORAL));
         final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates;
         addEntity(new Meta3DEntity(new Vector3(0, 0, 0), model));
