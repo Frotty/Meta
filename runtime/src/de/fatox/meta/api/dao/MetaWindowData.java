@@ -17,6 +17,8 @@ public class MetaWindowData {
     private float width, height;
     @Expose
     public boolean displayed = false;
+    @Expose
+    public boolean dialog = false;
 
     public MetaWindowData() {
     }
@@ -27,6 +29,7 @@ public class MetaWindowData {
         this.y = metaWindow.getY();
         this.width = metaWindow.getWidth();
         this.height = metaWindow.getHeight();
+        this.dialog = MetaDialog.class.isInstance(metaWindow);
     }
 
     public float getWidth() {
@@ -50,6 +53,7 @@ public class MetaWindowData {
         this.y = metaWindow.getY();
         this.width = metaWindow.getWidth();
         this.height = metaWindow.getHeight();
+        this.dialog = MetaDialog.class.isInstance(metaWindow);
         if (!(metaWindow instanceof MetaDialog)) {
             displayed = true;
         }

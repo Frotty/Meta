@@ -50,7 +50,6 @@ public class MetaSoundPlayer {
         Array<MetaSoundHandle> handleList = playingHandles.get(soundDefinition);
         cleanupHandles(handleList);
         if (handleList.size >= soundDefinition.maxInstances) {
-            log.debug(TAG, "Rejecting sound because maxInstances reached");
             return null;
         }
 

@@ -73,7 +73,12 @@ public class MetaUiManager implements UIManager {
         for (MetaWindowData windowData : screenData.windowData) {
             if (windowData.displayed) {
                 try {
-                    showWindow(ClassReflection.forName(windowData.name));
+                    Class windowclass = ClassReflection.forName(windowData.name);
+                    if (MetaDialog.class.isAssignableFrom(windowclass)) {
+                        continue;
+                    } else {
+                        showWindow(ClassReflection.forName(windowData.name));
+                    }
                 } catch (ReflectionException e) {
                     e.printStackTrace();
                 }
@@ -109,10 +114,10 @@ public class MetaUiManager implements UIManager {
         if (metaData.hasWindowData(windowClass)) {
             // If there is saved metadata, restore configuration
             MetaWindowData windowData = metaData.getWindowData(window);
-            windowData.set(window);
-            if (!windowData.displayed && !(MetaDialog.class.isInstance(window))) {
+            if (!windowData.displayed) {
                 windowData.displayed = true;
             }
+            windowData.set(window);
             metaData.write();
         }
         return window;
@@ -148,9 +153,9 @@ public class MetaUiManager implements UIManager {
     public void closeWindow(Window window) {
         Window displayedWindow = getDisplayedInstance(window);
         if (displayedWindow != null) {
+            displayedWindows.removeValue(window, true);
             metaData.getWindowData(displayedWindow).displayed = false;
             metaData.write();
-            displayedWindows.removeValue(window, true);
             cacheWindow(window);
         }
     }

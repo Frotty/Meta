@@ -17,7 +17,7 @@ public class MetaConfirmDialog extends MetaWindow {
         defaults().pad(4);
         add(new VisLabel(message)).growX();
         row();
-        MetaTextButton close = new MetaTextButton("Close");
+        MetaTextButton close = new MetaTextButton("Close", 14);
         close.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {

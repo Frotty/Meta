@@ -22,5 +22,5 @@ public abstract class MetaTask {
 
     public abstract void execute();
 
-    public abstract void reverse();
+    public abstract void undo();
 }

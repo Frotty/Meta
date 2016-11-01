@@ -8,8 +8,6 @@ import com.kotcrab.vis.ui.widget.VisTextButton;
 import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.ui.components.MetaClickListener;
 
-import static com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha;
-
 /**
  * Created by Frotty on 04.06.2016.
  */
@@ -55,15 +53,16 @@ public abstract class MetaDialog extends MetaWindow {
 
     public void show(boolean firstSetup) {
         // Set color invisible for fade in to work
-        setColor(1, 1, 1, 0);
+
         // Center to middle of target stage
         if (firstSetup) {
+            setColor(1, 1, 1, 0);
             setPosition(Math.round((getStage().getWidth() - getWidth()) / 2), Math.round((getStage().getHeight() - getHeight()) / 2));
             MetaWindowData windowData = metaData.getWindowData(this);
             windowData.setFrom(this);
             metaData.write();
         }
-        addAction(alpha(0.925f, 0.5f));
+        fadeIn();
     }
 
     public void setDialogListener(DialogListener dialogListener) {

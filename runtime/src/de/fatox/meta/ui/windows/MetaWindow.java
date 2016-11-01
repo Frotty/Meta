@@ -83,7 +83,6 @@ public abstract class MetaWindow extends VisWindow {
 
     @Override
     public void close() {
-        super.close();
         log.debug(TAG, "on close");
         uiManager.closeWindow(this);
     }

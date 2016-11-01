@@ -12,7 +12,7 @@ public class MetaTaskManager {
     }
 
     public void reverseLastTask() {
-        taskHistoryStack.pop().reverse();
+        taskHistoryStack.pop().undo();
     }
 
 }
