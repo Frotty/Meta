@@ -41,9 +41,14 @@ public class MetaLabel extends Widget {
     public MetaLabel(CharSequence text, int size, Color color) {
         Meta.inject(this);
         font = metaFontProvider.getFont(size);
-        fontColor = color;
-        setText(text);
-        cache = font.newFontCache();
+		setAlignment(Align.center);
+		fontColor = color;
+		setText(text);
+		cache = font.newFontCache();
+	}
+
+	public MetaLabel(CharSequence text, int size) {
+		this(text, size, Color.WHITE);
 	}
 
 	/** @param newText May be null, "" will be used. */

@@ -115,7 +115,7 @@ public class AssetDiscovererWindow extends MetaWindow {
         visTable2.row().height(78);
         float counter = 0;
         for (FileHandle file : assetDiscoverer.getCurrentChildFiles()) {
-            MetaTextButton fileButton = new MetaTextButton(file.name());
+            MetaTextButton fileButton = new MetaTextButton(file.name(), 12);
             fileButton.addListener(new MetaClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {

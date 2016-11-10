@@ -1,5 +1,6 @@
 package de.fatox.meta.api.dao;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.TimeUtils;
@@ -19,11 +20,10 @@ public class MetaData {
     @Expose
     private ExposedArray<MetaScreenData> screenData = new ExposedArray<>(4);
     @Expose
-    private int windowWidth = 1280;
-    @Expose
-    private int windowHeight = 720;
+    private MetaVideoData videoData = new MetaVideoData();
 
     public ExposedArray<String> lastProjectFiles = new ExposedArray<>();
+
     public MetaScreenData currentScreenData;
 
     @Inject
@@ -34,6 +34,17 @@ public class MetaData {
 
     public MetaData() {
         Meta.inject(this);
+    }
+
+    public void apply() {
+        Gdx.graphics.setVSync(videoData.isVsyncEnabled());
+        if (videoData.isFullscreen() && !Gdx.graphics.isFullscreen()) {
+            Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayModes()[videoData.getDisplayMode()]);
+        } else {
+            Gdx.graphics.setUndecorated(videoData.isBorderless());
+            Gdx.graphics.setWindowedMode(videoData.getWidth(), videoData.getHeight());
+        }
+        write();
     }
 
     public void write() {
@@ -62,17 +73,13 @@ public class MetaData {
         return lastProjectFiles;
     }
 
-    public int getMainWindowWidth() {
-        return windowWidth;
-    }
-
-    public int getMainWindowHeight() {
-        return windowHeight;
+    public MetaVideoData getVideoData() {
+        return videoData;
     }
 
     public void setMainWindowSize(int width, int height) {
-        this.windowWidth = width;
-        this.windowHeight = height;
+        videoData.setWidth(width);
+        videoData.setHeight(height);
         write();
     }
 
@@ -110,4 +117,5 @@ public class MetaData {
         write();
         return ndata;
     }
+
 }

@@ -35,12 +35,11 @@ public class ShaderLibraryWindow extends MetaWindow {
     }
 
     public void addShader(GLShaderHandle shader) {
-        MetaTextButton metaTextButton = new MetaTextButton("");
+        MetaTextButton metaTextButton = new MetaTextButton("", 12);
         VisTable visTable = new VisTable();
         visTable.add(new VisLabel("Shader: " + shader.getName())).growX();
         visTable.row();
         visTable.add(new AssetSelectButton("").getTable());
-        metaTextButton.getLabelCell().setActor(visTable);
     }
 
     private void createToolbar() {

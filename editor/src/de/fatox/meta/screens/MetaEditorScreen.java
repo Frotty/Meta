@@ -1,7 +1,6 @@
 package de.fatox.meta.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.Texture;
@@ -43,7 +42,6 @@ public class MetaEditorScreen extends ScreenAdapter {
         Meta.inject(this);
         loadAssets();
         setupEditorUi();
-        Gdx.input.setInputProcessor(new InputMultiplexer(uiRenderer.getStage()));
         EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
         editorMeta.setWindowData(metaData.getMainWindowWidth(), metaData.getMainWindowHeight());
     }
@@ -83,6 +81,6 @@ public class MetaEditorScreen extends ScreenAdapter {
         uiManager.resize(width, height);
         metaData.setMainWindowSize(width, height);
         EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
-        editorMeta.setWindowData(width,height);
+        editorMeta.setWindowData(width, height);
     }
 }

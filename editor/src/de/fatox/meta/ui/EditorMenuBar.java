@@ -60,8 +60,7 @@ public class EditorMenuBar {
         menuItemNewProject.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                ProjectWizardDialog projectWizard = new ProjectWizardDialog(languageBundle.get("newproj_dia_title"));
-                projectWizard.show(fileMenu.getStage());
+                uiManager.showDialog(ProjectWizardDialog.class);
             }
         });
         fileMenu.addItem(menuItemNewProject);
@@ -70,8 +69,7 @@ public class EditorMenuBar {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 if(projectManager.getCurrentProject() != null) {
-                    SceneWizardDialog newSceneDialog = new SceneWizardDialog(languageBundle.get("newscene_dia_title"));
-                    newSceneDialog.show(fileMenu.getStage());
+                    uiManager.showDialog(SceneWizardDialog.class);
                 } else {
                     new MetaConfirmDialog("Project required", "Please open a project first").show(fileMenu.getStage());
                 }
@@ -82,8 +80,7 @@ public class EditorMenuBar {
         menuItemOpen.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                OpenProjectDialog openProjectDialog = new OpenProjectDialog();
-                openProjectDialog.show(fileMenu.getStage());
+                uiManager.showDialog(OpenProjectDialog.class);
             }
         });
         fileMenu.addItem(menuItemOpen);

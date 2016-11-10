@@ -23,7 +23,7 @@ public class ShaderPipelineWindow extends MetaWindow {
     private void setup() {
         visTable = new VisTable();
         visTable.row();
-        visTable.add(new MetaTextButton("Select Shader")).size(200);
+        visTable.add(new MetaTextButton("Select Shader", 12)).size(200);
 
         shaderLibrary.getActiveShaders();
     }

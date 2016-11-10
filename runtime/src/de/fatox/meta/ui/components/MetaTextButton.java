@@ -14,6 +14,10 @@ import de.fatox.meta.util.GoldenRatio;
 public class MetaTextButton extends Button {
     private final MetaLabel label;
 
+    public MetaTextButton(String text) {
+        this(text, 12);
+    }
+
     public MetaTextButton(String text, int size) {
         super(VisUI.getSkin().get(VisTextButton.VisTextButtonStyle.class));
         pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20);

@@ -5,6 +5,8 @@ import com.badlogic.gdx.assets.loaders.TextureLoader;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.api.AssetProvider;
 
@@ -38,10 +40,10 @@ public class MetaAssetProvider implements AssetProvider {
     public <T> T get(String name, Class<T> type) {
         if (assetManager.isLoaded(name, type)) {
             return assetManager.get(name, type);
-        } else if(type == TextureRegion.class){
-            for(TextureAtlas atlas : atlasCache) {
+        } else if (type == TextureRegion.class) {
+            for (TextureAtlas atlas : atlasCache) {
                 TextureAtlas.AtlasRegion region = atlas.findRegion(name);
-                if(region != null) {
+                if (region != null) {
                     return (T) region;
                 }
             }
@@ -50,6 +52,11 @@ public class MetaAssetProvider implements AssetProvider {
             return get(name, type);
         }
         return null;
+    }
+
+    @Override
+    public Drawable getDrawable(String name) {
+        return new TextureRegionDrawable(get(name, TextureRegion.class));
     }
 
     @Override

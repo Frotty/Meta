@@ -21,6 +21,7 @@ import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.input.MetaInput;
 import de.fatox.meta.sound.MetaSoundPlayer;
+import de.fatox.meta.task.MetaTaskManager;
 import de.fatox.meta.ui.MetaUIRenderer;
 import de.fatox.meta.ui.MetaUiManager;
 
@@ -109,9 +110,18 @@ public class MetaModule {
 
     @Provides
     @Singleton
+    @Named("default")
+    public MetaTaskManager taskManager() {
+        return new MetaTaskManager();
+    }
+
+    @Provides
+    @Singleton
     @Log
     public Logger log(MetaLogger metaLogger) {
         return metaLogger;
     }
+
+
 
 }

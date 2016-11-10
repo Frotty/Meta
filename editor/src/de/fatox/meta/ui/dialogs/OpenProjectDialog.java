@@ -35,7 +35,7 @@ public class OpenProjectDialog extends MetaDialog {
     private FileHandle rootfile;
 
     public OpenProjectDialog() {
-        super("Open Project", "Cancel", "Open");
+        super("Open Project", true);
 
         createFolderButton();
 
@@ -45,7 +45,6 @@ public class OpenProjectDialog extends MetaDialog {
         visTable.add(folderButton).growX();
         visTable.row();
         contentTable.add(visTable).top().growX();
-        rightButton.setDisabled(true);
     }
 
 

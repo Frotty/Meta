@@ -22,7 +22,7 @@ public class FolderListAdapter<ItemT> extends ArrayAdapter<ItemT, VisTable> {
 	protected VisTable createView (ItemT item) {
 		VisTable table = new VisTable();
 		table.pad(1);
-		MetaTextButton visTextButton = new MetaTextButton(item.toString());
+		MetaTextButton visTextButton = new MetaTextButton(item.toString(), 12);
         table.add(visTextButton).growX().prefWidth(128).pad(1);
 		return table;
 	}
