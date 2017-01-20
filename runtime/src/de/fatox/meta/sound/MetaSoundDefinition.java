@@ -75,7 +75,6 @@ public class MetaSoundDefinition {
     }
 
     public long getDuration() {
-        System.out.println("dur: " + duration);
         return duration;
     }
 

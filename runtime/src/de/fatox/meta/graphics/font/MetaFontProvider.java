@@ -30,7 +30,7 @@ public class MetaFontProvider implements FontProvider {
     public MetaFontProvider() {
         Meta.inject(this);
         log.debug("MetaFontProvider", "init");
-        generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/Montserrat.ttf"));
+        generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/Vulpes.ttf"));
     }
 
     @Override

@@ -5,13 +5,17 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.Timer;
+import de.fatox.meta.Meta;
+import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.injection.Inject;
 
 /**
  * Created by Frotty on 09.11.2016.
  */
 public class MetaMusicPlayer {
+    @Inject
+    private MetaData metaData;
 
-    public float masterVolume = 1f;
     public float startVolume = 0.01f;
     private boolean musicEnabled = true;
 
@@ -26,11 +30,18 @@ public class MetaMusicPlayer {
 
 
     public MetaMusicPlayer() {
+        Meta.inject(this);
         Timer.schedule(new Timer.Task() {
             @Override
             public void run() {
-                if (!musicEnabled) return;
-                if (currentMusic == null) {
+                float volume = metaData.getAudioVideoData().getMasterVolume() * metaData.getAudioVideoData().getMusicVolume();
+                if (!musicEnabled || volume <= startVolume) {
+                    if (currentMusic != null) {
+                        currentMusic.setVolume(0);
+                    }
+                    return;
+                }
+                if (currentMusic == null || !currentMusic.isPlaying()) {
                     if (nextMusic == null) {
                         if (enablePool) {
                             nextFromPool();
@@ -45,18 +56,21 @@ public class MetaMusicPlayer {
 
                 if (currentMusic.getVolume() < startVolume) {
                     currentMusic.stop();
-                    currentMusic = nextMusic;
-                    nextMusic = null;
-                    currentMusic.play();
-                    currentMusic.setVolume(startVolume);
+                    if (nextMusic != null) {
+                        currentMusic = nextMusic;
+                        nextMusic = null;
+                        currentMusic.play();
+                        currentMusic.setVolume(startVolume);
+                    }
                 } else {
+
                     if (nextMusic != null && currentMusic.isPlaying()) {
                         currentMusic.setVolume(currentMusic.getVolume() * 0.4f);
-                    } else if (currentMusic.getVolume() >= startVolume && currentMusic.getVolume() < masterVolume) {
+                    } else if (currentMusic.getVolume() >= startVolume && currentMusic.getVolume() < volume) {
                         currentMusic.setVolume(currentMusic.getVolume() * 3f);
-                        if (currentMusic.getVolume() > masterVolume) {
-                            currentMusic.setVolume(masterVolume);
-                        }
+                    }
+                    if (currentMusic.getVolume() > volume) {
+                        currentMusic.setVolume(volume);
                     }
                 }
 
@@ -90,6 +104,7 @@ public class MetaMusicPlayer {
     public void addMusicToPool(String musicName) {
         Music music = getMusic(musicName);
         allPool.add(music);
+        allPool.shuffle();
     }
 
     public void nextFromPool() {
@@ -97,7 +112,7 @@ public class MetaMusicPlayer {
             activePool.addAll(allPool);
             activePool.shuffle();
         }
-        if(activePool.size <= 0) return;
+        if (activePool.size <= 0) return;
         if (currentMusic == null) {
             startMusic(activePool.pop());
         } else {

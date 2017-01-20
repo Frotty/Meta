@@ -9,9 +9,10 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.ui.UIRenderer;
+import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 
@@ -28,13 +29,15 @@ public class MetaSoundPlayer {
     private Array<MetaSoundHandle> dynamicHandles = new Array<>();
 
     @Inject
-    private AssetProvider assetProvider;
+    private MetaAssetProvider metaAssetProvider;
     @Inject
     private ShapeRenderer shapeRenderer;
     @Inject
     private SpriteBatch spriteBatch;
     @Inject
     private UIRenderer uiRenderer;
+    @Inject
+    private MetaData metaData;
 
     public MetaSoundPlayer() {
         Meta.inject(this);
@@ -55,11 +58,12 @@ public class MetaSoundPlayer {
 
         if (soundDefinition.getSound() == null) {
             // Load sound if it is played for the first time
-            Sound sound = assetProvider.get(soundDefinition.soundName, Sound.class);
+            Sound sound = metaAssetProvider.get(soundDefinition.soundName, Sound.class);
             soundDefinition.setSound(sound);
         }
         // Play or loop sound
-        long id = soundDefinition.isLooping() ? soundDefinition.getSound().loop(1, 1, 0) : soundDefinition.getSound().play(1, 1, 0);
+        float volume = metaData.getAudioVideoData().getMasterVolume() * metaData.getAudioVideoData().getSoundVolume();
+        long id = soundDefinition.isLooping() ? soundDefinition.getSound().loop(volume, 1, 0) : soundDefinition.getSound().play(volume, 1, 0);
 
         MetaSoundHandle soundHandle = new MetaSoundHandle(soundDefinition, id);
         handleList.add(soundHandle);
@@ -98,7 +102,6 @@ public class MetaSoundPlayer {
     private boolean soundInScreen(Vector2 soundPosition) {
         helper.set(soundPosition.x, soundPosition.y, 0);
         Vector3 project = uiRenderer.getCamera().project(helper);
-        log.debug(TAG, "project: " + project.toString());
         return project.x > 0 && project.x < Gdx.graphics.getWidth() && project.y > 0 && project.y < Gdx.graphics.getHeight();
     }
 
@@ -123,7 +126,6 @@ public class MetaSoundPlayer {
             MetaSoundHandle soundHandle = iterator.next();
             if (soundHandle.isDone() || !soundHandle.isPlaying()) {
                 stopSound(soundHandle);
-                System.out.println("removed: " + dynamicHandles.size);
             } else {
                 soundHandle.calculateVolPitchPan();
             }

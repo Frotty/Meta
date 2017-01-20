@@ -3,7 +3,11 @@ package de.fatox.meta.ui;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
@@ -37,6 +41,11 @@ public class MetaUIRenderer implements UIRenderer {
         log.debug(TAG, "Loaded VisUi");
         VisUI.setDefaultTitleAlign(Align.center);
         stage = new Stage(new ScreenViewport());
+        stage.getRoot().addCaptureListener(new InputListener() {
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                if (!((event.getTarget() instanceof TextField) || (event.getTarget() instanceof ScrollPane))) stage.setScrollFocus(null);
+                return false;
+            }});
         metaInput.addGlobalAdapter(stage);
     }
 

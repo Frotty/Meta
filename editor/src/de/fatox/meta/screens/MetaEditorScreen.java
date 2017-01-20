@@ -5,7 +5,6 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import de.fatox.meta.EditorMeta;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
@@ -36,14 +35,19 @@ public class MetaEditorScreen extends ScreenAdapter {
     private MetaData metaData;
     @Inject
     private AssetProvider assetProvider;
+    private boolean isInited = false;
 
     @Override
     public void show() {
-        Meta.inject(this);
-        loadAssets();
-        setupEditorUi();
-        EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
-        editorMeta.setWindowData(metaData.getMainWindowWidth(), metaData.getMainWindowHeight());
+        if (!isInited) {
+            Meta.inject(this);
+            uiManager.changeScreen(getClass().getName());
+            loadAssets();
+            setupEditorUi();
+            isInited = true;
+        } else {
+            uiManager.changeScreen(getClass().getName());
+        }
     }
 
     private void loadAssets() {
@@ -52,15 +56,12 @@ public class MetaEditorScreen extends ScreenAdapter {
         assetProvider.load("ui/appbar.page.add.png", Texture.class);
         assetProvider.load("ui/appbar.page.search.png", Texture.class);
         assetProvider.finish();
-    }
-
-    private void update() {
-        uiRenderer.update();
+        System.out.println("done");
     }
 
     @Override
     public void render(float delta) {
-        update();
+        uiRenderer.update();
         clearFrame();
         uiRenderer.draw();
     }
@@ -78,9 +79,11 @@ public class MetaEditorScreen extends ScreenAdapter {
 
     @Override
     public void resize(int width, int height) {
-        uiManager.resize(width, height);
-        metaData.setMainWindowSize(width, height);
-        EditorMeta editorMeta = (EditorMeta) Gdx.app.getApplicationListener();
-        editorMeta.setWindowData(width, height);
+        if (isInited && width > 120 && height > 0) {
+            uiManager.resize(width, height);
+            if (!Gdx.graphics.isFullscreen()) {
+                metaData.setMainWindowSize(width, height);
+            }
+        }
     }
 }

@@ -2,22 +2,27 @@ package de.fatox.meta.ui.dialogs;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.*;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
+import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
-import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Named;
-import de.fatox.meta.ui.components.*;
+import de.fatox.meta.ui.components.MetaClickListener;
+import de.fatox.meta.ui.components.MetaInputValidator;
+import de.fatox.meta.ui.components.MetaTextButton;
+import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
 import de.fatox.meta.util.StringUtil;
 
 public class ProjectWizardDialog extends MetaDialog {
+    private final VisTextButton createBtn;
     @Inject
     private LanguageBundle languageBundle;
     @Inject
@@ -27,7 +32,7 @@ public class ProjectWizardDialog extends MetaDialog {
     private ProjectManager projectManager;
 
     private MetaValidTextField projectNameTF;
-    private VisTextButton folderButton;
+    private MetaTextButton folderButton;
     private VisLabel folderLabel;
     private FileHandle rootfile;
     private boolean namevalid;
@@ -37,8 +42,10 @@ public class ProjectWizardDialog extends MetaDialog {
 
 
     public ProjectWizardDialog(String title) {
-        super(title, "Cancel", "Finish");
+        super(title, true);
 
+        addButton(new VisTextButton("Cancel"), Align.left, false);
+        createBtn = addButton(new VisTextButton("Create"), Align.right, true);
         createProjectNameTF();
         createFolderButton();
         createExampleCheckbox();
@@ -54,7 +61,16 @@ public class ProjectWizardDialog extends MetaDialog {
         visTable.add(checkboxLabel).growX();
         visTable.add(checkbox).growX();
         contentTable.add(visTable).top().growX();
-        rightButton.setDisabled(true);
+        createBtn.setDisabled(true);
+
+        setDialogListener(object -> {
+            if ((boolean) object) {
+                MetaProjectData metaProjectData = new MetaProjectData(projectNameTF.getTextField().getText(), rootfile);
+                projectManager.saveProject(metaProjectData);
+                projectManager.loadProject(metaProjectData.root);
+            }
+            close();
+        });
     }
 
     private void createExampleCheckbox() {
@@ -65,7 +81,7 @@ public class ProjectWizardDialog extends MetaDialog {
 
     private void checkValid() {
         if (locationValid && namevalid) {
-            rightButton.setDisabled(false);
+            createBtn.setDisabled(false);
         }
     }
 
@@ -119,13 +135,4 @@ public class ProjectWizardDialog extends MetaDialog {
         new Tooltip.Builder(languageBundle.get("newproj_dia_tooltip_name")).target(projectNameTF.getDescription()).build();
     }
 
-    @Override
-    public void onResult(Object object) {
-        if ((boolean) object) {
-            MetaProjectData metaProjectData = new MetaProjectData(projectNameTF.getTextField().getText(), rootfile);
-            projectManager.saveProject(metaProjectData);
-            projectManager.loadProject(metaProjectData.root);
-        }
-        close();
-    }
 }

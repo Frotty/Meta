@@ -13,7 +13,7 @@ import com.badlogic.gdx.utils.Array;
  */
 public class AnimationHandler {
     public Array<Animation> animQueue;
-    private Animation currentAnimation;
+    private Animation<TextureRegion> currentAnimation;
     private boolean playing = false;
     private float stateTime = 0;
 

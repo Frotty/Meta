@@ -5,6 +5,7 @@ import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
+import com.kotcrab.vis.ui.widget.VisTextButton;
 import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.error.MetaError;
@@ -20,6 +21,8 @@ import de.fatox.meta.util.StringUtil;
  * Created by Frotty on 29.06.2016.
  */
 public class ShaderWizardDialog extends MetaDialog {
+    private final VisTextButton cancelBtn;
+    private final VisTextButton createBtn;
     @Inject
     private ShaderLibrary shaderLibrary;
 
@@ -29,7 +32,10 @@ public class ShaderWizardDialog extends MetaDialog {
     private AssetSelectButton fragmentSelect;
 
     public ShaderWizardDialog() {
-        super("Shader Wizard", "Cancel", "Finish");
+        super("Shader Wizard", true);
+
+        cancelBtn = addButton(new VisTextButton("Cancel"), Align.left, false);
+        createBtn = addButton(new VisTextButton("Create"), Align.right, true);
         shaderNameTF = new MetaValidTextField("Shader name:", statusLabel);
         shaderNameTF.addValidator(new MetaInputValidator() {
             @Override
@@ -49,16 +55,16 @@ public class ShaderWizardDialog extends MetaDialog {
 
         renderTargetGroup.setMaxCheckCount(1);
         renderTargetGroup.setMinCheckCount(1);
-        rightButton.setDisabled(true);
+        createBtn.setDisabled(true);
         setupTable();
     }
 
 
     private void checkButton() {
         if(! StringUtil.isBlank(shaderNameTF.getTextField().getMessageText()) && vertexSelect.hasFile() && fragmentSelect.hasFile()) {
-            rightButton.setDisabled(false);
+            createBtn.setDisabled(false);
         } else {
-            rightButton.setDisabled(true);
+            createBtn.setDisabled(true);
         }
     }
 
@@ -101,13 +107,13 @@ public class ShaderWizardDialog extends MetaDialog {
         renderTargetGroup.add(fullscreenButton);
 
         contentTable.add(visTable).top().growX();
+
+        setDialogListener((Object object) -> {
+            if((boolean)object) {
+                shaderLibrary.addShader(new GLShaderHandle(shaderNameTF.getTextField().getText(), vertexSelect.getFile(), fragmentSelect.getFile()));
+            }
+            close();
+        });
     }
 
-    @Override
-    public void onResult(Object object) {
-        if((boolean)object) {
-            shaderLibrary.addShader(new GLShaderHandle(shaderNameTF.getTextField().getText(), vertexSelect.getFile(), fragmentSelect.getFile()));
-        }
-        close();
-    }
 }

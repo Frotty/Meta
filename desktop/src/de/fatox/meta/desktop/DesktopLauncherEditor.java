@@ -10,6 +10,7 @@ public class DesktopLauncherEditor {
         config.setWindowPosition(32, 64);
         config.setResizable(true);
         config.setTitle("Meta");
+        config.setWindowedMode(1280,720);
         config.useOpenGL3(true, 3, 2);
         EditorMeta editorMeta = new EditorMeta();
         new Lwjgl3Application(editorMeta, config);

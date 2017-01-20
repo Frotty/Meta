@@ -22,7 +22,7 @@ public abstract class MetaWindow extends VisWindow {
     @Log
     private Logger log;
     @Inject
-    private UIManager uiManager;
+    protected UIManager uiManager;
     @Inject
     protected MetaData metaData;
 
@@ -35,7 +35,6 @@ public abstract class MetaWindow extends VisWindow {
     public MetaWindow(String title, boolean resizable, boolean closeButton) {
         super(title, resizable ? "resizable" : "default");
         Meta.inject(this);
-        defaults().pad(2);
         if (closeButton) {
             addCloseButton();
         }
@@ -43,7 +42,7 @@ public abstract class MetaWindow extends VisWindow {
         getTitleTable().top();
         getTitleTable().row().height(2);
         getTitleTable().add(new Separator()).growX().padTop(2).colspan(closeButton ? 2 : 1);
-        getTitleTable().pad(2);
+        getTitleTable().padTop(2);
         if (resizable) {
             padBottom(6);
             setResizable(true);
@@ -83,6 +82,7 @@ public abstract class MetaWindow extends VisWindow {
 
     @Override
     public void close() {
+        super.close();
         log.debug(TAG, "on close");
         uiManager.closeWindow(this);
     }

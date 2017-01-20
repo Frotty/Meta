@@ -20,7 +20,7 @@ public class MetaData {
     @Expose
     private ExposedArray<MetaScreenData> screenData = new ExposedArray<>(4);
     @Expose
-    private MetaVideoData videoData = new MetaVideoData();
+    private MetaAudioVideoData videoData = new MetaAudioVideoData();
 
     public ExposedArray<String> lastProjectFiles = new ExposedArray<>();
 
@@ -37,13 +37,15 @@ public class MetaData {
     }
 
     public void apply() {
-        Gdx.graphics.setVSync(videoData.isVsyncEnabled());
-        if (videoData.isFullscreen() && !Gdx.graphics.isFullscreen()) {
-            Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayModes()[videoData.getDisplayMode()]);
+        if (videoData.isFullscreen()) {
+            if (!Gdx.graphics.isFullscreen()) {
+                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayModes()[videoData.getDisplayMode()]);
+            }
         } else {
             Gdx.graphics.setUndecorated(videoData.isBorderless());
             Gdx.graphics.setWindowedMode(videoData.getWidth(), videoData.getHeight());
         }
+        Gdx.graphics.setVSync(videoData.isVsyncEnabled());
         write();
     }
 
@@ -67,13 +69,13 @@ public class MetaData {
     }
 
     public ExposedArray<String> getLastProjectFiles() {
-        if (lastProjectFiles.size == 0) {
+        if (lastProjectFiles.size == 0 && lastProjects != null && lastProjects.length > 0) {
             lastProjectFiles.addAll(lastProjects);
         }
         return lastProjectFiles;
     }
 
-    public MetaVideoData getVideoData() {
+    public MetaAudioVideoData getAudioVideoData() {
         return videoData;
     }
 

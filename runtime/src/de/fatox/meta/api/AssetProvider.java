@@ -8,6 +8,8 @@ public interface AssetProvider {
 
     <T> void load(String name, Class<T> type);
 
+    <T> T get (String fileName, Class<T> type, int index);
+
     <T> T get (String fileName, Class<T> type);
 
     Drawable getDrawable(String name);

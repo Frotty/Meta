@@ -33,4 +33,5 @@ public interface UIManager {
     <T extends Window> T  getWindow(Class<? extends T> windowClass);
 
     void closeWindow(Window window);
+
 }

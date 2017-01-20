@@ -1,6 +1,8 @@
 package de.fatox.meta.ui.dialogs;
 
+import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisTable;
+import com.kotcrab.vis.ui.widget.VisTextButton;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
 import de.fatox.meta.ide.SceneManager;
@@ -14,15 +16,19 @@ import de.fatox.meta.util.StringUtil;
  * Created by Frotty on 13.06.2016.
  */
 public class SceneWizardDialog extends MetaDialog {
+    private final VisTextButton cancelBtn;
+    private final VisTextButton createBtn;
     @Inject
     private SceneManager sceneManager;
 
     private MetaValidTextField sceneNameTF;
 
     public SceneWizardDialog(String title) {
-        super(title, "Cancel", "Finish");
+        super(title, true);
 
 
+        cancelBtn = addButton(new VisTextButton("Cancel"), Align.left, false);
+        createBtn = addButton(new VisTextButton("Create"), Align.right, true);
         sceneNameTF = new MetaValidTextField("Scene name:", statusLabel);
         sceneNameTF.addValidator(new MetaInputValidator() {
             @Override
@@ -35,7 +41,7 @@ public class SceneWizardDialog extends MetaDialog {
                         }
                     });
                 } else {
-                    rightButton.setDisabled(false);
+                    createBtn.setDisabled(false);
                 }
             }
         });
@@ -46,14 +52,14 @@ public class SceneWizardDialog extends MetaDialog {
         visTable.add(sceneNameTF.getTextField()).growX();
         visTable.row();
         contentTable.add(visTable).top().growX();
-        rightButton.setDisabled(true);
+        createBtn.setDisabled(true);
+
+        setDialogListener((Object object) -> {
+            if((boolean) object) {
+                sceneManager.createNew(sceneNameTF.getTextField().getText());
+            }
+            close();
+        });
     }
 
-    @Override
-    public void onResult(Object object) {
-        if((boolean) object) {
-            sceneManager.createNew(sceneNameTF.getTextField().getText());
-        }
-        close();
-    }
 }

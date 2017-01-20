@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.windows;
 
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
@@ -16,6 +17,7 @@ public abstract class MetaDialog extends MetaWindow {
     protected final VisLabel statusLabel = new VisLabel();
     protected DialogListener dialogListener;
     private int buttonCount = 0;
+
 
     public interface DialogListener {
         void onResult(Object object);
@@ -51,6 +53,14 @@ public abstract class MetaDialog extends MetaWindow {
         return button;
     }
 
+    @Override
+    public void close() {
+        super.close();
+        if (dialogListener != null) {
+            dialogListener.onResult(null);
+        }
+    }
+
     public void show(boolean firstSetup) {
         // Set color invisible for fade in to work
 
@@ -62,7 +72,8 @@ public abstract class MetaDialog extends MetaWindow {
             windowData.setFrom(this);
             metaData.write();
         }
-        fadeIn();
+        setColor(1, 1, 1, 0);
+        addAction(Actions.alpha(0.9f, 1f));
     }
 
     public void setDialogListener(DialogListener dialogListener) {

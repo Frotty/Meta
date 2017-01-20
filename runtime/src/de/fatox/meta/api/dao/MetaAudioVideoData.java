@@ -5,7 +5,7 @@ import com.google.gson.annotations.Expose;
 /**
  * Created by Frotty on 05.11.2016.
  */
-public class MetaVideoData {
+public class MetaAudioVideoData {
     @Expose
     private boolean resizeable = true;
     @Expose
@@ -17,9 +17,16 @@ public class MetaVideoData {
     @Expose
     private int displayMode = 0;
     @Expose
-    private boolean vsyncEnabled = false;
+    private boolean vsyncEnabled = true;
     @Expose
     private boolean videoDebug = false;
+
+    @Expose
+    private float masterVolume = 0.5f;
+    @Expose
+    private float musicVolume = 1f;
+    @Expose
+    private float soundVolume = 1f;
 
     public boolean isResizeable() {
         return resizeable;
@@ -83,5 +90,29 @@ public class MetaVideoData {
 
     public void setVideoDebug(boolean videoDebug) {
         this.videoDebug = videoDebug;
+    }
+
+    public float getMasterVolume() {
+        return masterVolume;
+    }
+
+    public void setMasterVolume(float masterVolume) {
+        this.masterVolume = masterVolume;
+    }
+
+    public float getMusicVolume() {
+        return musicVolume;
+    }
+
+    public void setMusicVolume(float musicVolume) {
+        this.musicVolume = musicVolume;
+    }
+
+    public float getSoundVolume() {
+        return soundVolume;
+    }
+
+    public void setSoundVolume(float soundVolume) {
+        this.soundVolume = soundVolume;
     }
 }

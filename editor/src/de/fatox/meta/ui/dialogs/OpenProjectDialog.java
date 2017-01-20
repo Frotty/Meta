@@ -2,10 +2,12 @@ package de.fatox.meta.ui.dialogs;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.Tooltip;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
+import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 import com.kotcrab.vis.ui.widget.file.FileTypeFilter;
@@ -37,6 +39,11 @@ public class OpenProjectDialog extends MetaDialog {
     public OpenProjectDialog() {
         super("Open Project", true);
 
+        setDefaultSize(250, 250);
+
+        addButton(new VisTextButton("Cancel"), Align.left, false);
+        addButton(new VisTextButton("Open"), Align.left, true);
+
         createFolderButton();
 
         VisTable visTable = new VisTable();
@@ -45,6 +52,14 @@ public class OpenProjectDialog extends MetaDialog {
         visTable.add(folderButton).growX();
         visTable.row();
         contentTable.add(visTable).top().growX();
+
+        setDialogListener(object -> {
+            boolean b = (boolean) object;
+            if(b) {
+                projectManager.loadProject(rootfile);
+            }
+            close();
+        });
     }
 
 
@@ -67,7 +82,7 @@ public class OpenProjectDialog extends MetaDialog {
                             rootfile = file.get(0);
                             folderButton.setText(StringUtil.truncate(file.get(0).pathWithoutExtension(), 30));
                             if(projectManager.verifyProjectFile(rootfile)) {
-                                rightButton.setDisabled(false);
+//                                rightButton.setDisabled(false);
                             }
                         }
                         fileChooser.fadeOut();
@@ -80,12 +95,4 @@ public class OpenProjectDialog extends MetaDialog {
         new Tooltip.Builder(languageBundle.get("newproj_dia_tooltip_location")).target(folderLabel).build();
     }
 
-    @Override
-    public void onResult(Object object) {
-        boolean b = (boolean) object;
-        if(b) {
-            projectManager.loadProject(rootfile);
-        }
-        close();
-    }
 }

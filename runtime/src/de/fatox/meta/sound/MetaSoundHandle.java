@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 
@@ -18,6 +19,8 @@ public class MetaSoundHandle {
     private Logger log;
     @Inject
     private ShapeRenderer shapeRenderer;
+    @Inject
+    private MetaData metaData;
 
     private final MetaSoundDefinition definition;
     private final long handleId;
@@ -45,7 +48,8 @@ public class MetaSoundHandle {
         float audibleRange = (Gdx.graphics.getHeight() * 0.6f);
         float audibleRangeSquared = audibleRange * audibleRange;
         float distSquared = listenerPos.dst2(soundPos);
-        float volumeRemap =  definition.getVolume() * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
+        float volumeMod = metaData.getAudioVideoData().getMasterVolume() * metaData.getAudioVideoData().getSoundVolume();
+        float volumeRemap =  volumeMod * definition.getVolume() * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
         float xPan = soundPos.x - listenerPos.x;
         float remappedXPan = MathUtils.clamp(xPan / (audibleRange - 200), -1, 1);
         if (distSquared > audibleRangeSquared) {
