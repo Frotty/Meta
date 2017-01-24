@@ -65,8 +65,8 @@ public abstract class MetaWindow extends VisWindow {
             MetaWindowData windowData = metaData.getWindowData(this);
             windowData.set(this);
         } else {
-            setPosition(x,y);
-            setSize(width,height);
+            setPosition(x, y);
+            setSize(width, height);
             metaData.getWindowData(this);
         }
     }

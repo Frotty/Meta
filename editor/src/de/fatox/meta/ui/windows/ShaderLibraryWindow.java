@@ -3,8 +3,8 @@ package de.fatox.meta.ui.windows;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.utils.Scaling;
 import com.kotcrab.vis.ui.widget.*;
+import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.graphics.GLShaderHandle;
-import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.components.AssetSelectButton;
 import de.fatox.meta.ui.components.MetaClickListener;
@@ -18,7 +18,7 @@ public class ShaderLibraryWindow extends MetaWindow {
     private VisScrollPane scrollPane;
 
     @Inject
-    private MetaAssetProvider assetProvider;
+    private AssetProvider assetProvider;
 
     public ShaderLibraryWindow() {
         super("Shader Library", true, true);

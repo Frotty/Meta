@@ -1,8 +1,10 @@
 package de.fatox.meta.ui.windows;
 
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.utils.Align;
+import com.kotcrab.vis.ui.widget.VisImageButton;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
@@ -25,6 +27,12 @@ public abstract class MetaDialog extends MetaWindow {
 
     public MetaDialog(String title, boolean hasCloseButton) {
         super(title, false, hasCloseButton);
+        if (hasCloseButton) {
+            Actor btn = getTitleTable().getCells().get(getTitleTable().getCells().size - 1).getActor();
+            if (btn instanceof VisImageButton) {
+                btn.addListener(event -> {dialogListener.onResult(null);return false;});
+            }
+        }
         contentTable.top().padTop(4);
         statusLabel.setAlignment(Align.center);
         statusLabel.setWrap(true);
@@ -51,14 +59,6 @@ public abstract class MetaDialog extends MetaWindow {
         buttonCount++;
         buttonTable.add(button).align(align);
         return button;
-    }
-
-    @Override
-    public void close() {
-        super.close();
-        if (dialogListener != null) {
-            dialogListener.onResult(null);
-        }
     }
 
     public void show(boolean firstSetup) {
