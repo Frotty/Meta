@@ -1,3 +1,4 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/1ea970cfeeb143bd908827a44a64b1d6)](https://www.codacy.com/app/frotty/Meta?utm_source=github.com&utm_medium=referral&utm_content=Frotty/Meta&utm_campaign=badger)
 [![Build Status](https://travis-ci.org/Frotty/Meta.svg?branch=master)](https://travis-ci.org/Frotty/Meta)
 # Meta
 Conceptual 3D Rendering engine build ontop of libGDX
