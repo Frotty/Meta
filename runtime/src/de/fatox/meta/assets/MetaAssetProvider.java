@@ -43,10 +43,6 @@ public class MetaAssetProvider implements AssetProvider {
         if (assetManager.isLoaded(name, type)) {
             return assetManager.get(name, type);
         } else if (type == TextureRegion.class) {
-            if (assetManager.isLoaded(name, Texture.class)) {
-                return (T) new TextureRegion(get(name, Texture.class));
-            }
-
             for (TextureAtlas atlas : atlasCache) {
                 TextureAtlas.AtlasRegion region;
                 if (index <= 0) {
@@ -58,6 +54,13 @@ public class MetaAssetProvider implements AssetProvider {
                     return (T) region;
                 }
             }
+
+            Texture texture = get(name, Texture.class);
+            if (texture != null) {
+                return (T) new TextureRegion(texture);
+            }
+
+
         } else {
             load(name, type);
             return get(name, type);

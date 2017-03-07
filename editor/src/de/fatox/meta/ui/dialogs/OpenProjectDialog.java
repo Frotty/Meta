@@ -31,19 +31,19 @@ public class OpenProjectDialog extends MetaDialog {
     private FileChooser fileChooser;
     @Inject
     private ProjectManager projectManager;
-
     private VisLabel folderLabel;
+    private final VisTextButton openBtn;
     private MetaTextButton folderButton;
     private FileHandle rootfile;
 
     public OpenProjectDialog() {
         super("Open Project", true);
 
-        setDefaultSize(250, 250);
+        setDefaultSize(450, 200);
 
         addButton(new VisTextButton("Cancel"), Align.left, false);
-        addButton(new VisTextButton("Open"), Align.left, true);
-
+        openBtn = addButton(new VisTextButton("Open"), Align.left, true);
+        openBtn.setDisabled(true);
         createFolderButton();
 
         VisTable visTable = new VisTable();
@@ -54,8 +54,7 @@ public class OpenProjectDialog extends MetaDialog {
         contentTable.add(visTable).top().growX();
 
         setDialogListener(object -> {
-            boolean b = (boolean) object;
-            if(b) {
+            if (object != null && (boolean) object) {
                 projectManager.loadProject(rootfile);
             }
             close();
@@ -81,8 +80,8 @@ public class OpenProjectDialog extends MetaDialog {
                         if (file.size == 1) {
                             rootfile = file.get(0);
                             folderButton.setText(StringUtil.truncate(file.get(0).pathWithoutExtension(), 30));
-                            if(projectManager.verifyProjectFile(rootfile)) {
-//                                rightButton.setDisabled(false);
+                            if (projectManager.verifyProjectFile(rootfile)) {
+                                openBtn.setDisabled(false);
                             }
                         }
                         fileChooser.fadeOut();

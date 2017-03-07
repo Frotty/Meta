@@ -6,13 +6,16 @@ import com.kotcrab.vis.ui.widget.*;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.components.AssetSelectButton;
 import de.fatox.meta.ui.components.MetaClickListener;
 import de.fatox.meta.ui.components.MetaTextButton;
+import de.fatox.meta.ui.dialogs.ShaderWizardDialog;
 
 /**
  * Created by Frotty on 28.06.2016.
  */
+@Singleton
 public class ShaderLibraryWindow extends MetaWindow {
     private final VisTable visTable;
     private VisScrollPane scrollPane;
@@ -31,7 +34,7 @@ public class ShaderLibraryWindow extends MetaWindow {
         visTable.defaults().pad(4);
         scrollPane = new VisScrollPane(visTable);
 
-        add(scrollPane).top().grow();
+        contentTable.add(scrollPane).top().grow();
     }
 
     public void addShader(GLShaderHandle shader) {
@@ -47,16 +50,15 @@ public class ShaderLibraryWindow extends MetaWindow {
         visImageButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-//                new ShaderWizardDialog().show(getStage());
+                uiManager.showDialog(ShaderWizardDialog.class);
             }
         });
 
-
-        top();
-        add(visImageButton).size(24).top().left();
-        row().height(1);
-        add(new Separator()).growX();
-        row();
+        contentTable.row().size(26);
+        contentTable.add(visImageButton).size(24).top().left();
+        contentTable.row().height(1);
+        contentTable.add(new Separator()).growX();
+        contentTable.row();
         visImageButton.getImage().setScaling(Scaling.fill);
         visImageButton.getImage().setSize(24, 24);
     }

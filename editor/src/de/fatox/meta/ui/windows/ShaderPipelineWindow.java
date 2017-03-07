@@ -3,11 +3,13 @@ package de.fatox.meta.ui.windows;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.components.MetaTextButton;
 
 /**
  * Created by Frotty on 29.07.2016.
  */
+@Singleton
 public class ShaderPipelineWindow extends MetaWindow {
     @Inject
     private ShaderLibrary shaderLibrary;

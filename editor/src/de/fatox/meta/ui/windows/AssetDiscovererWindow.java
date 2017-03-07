@@ -11,13 +11,15 @@ import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.ide.AssetDiscoverer;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.FolderListAdapter;
 import de.fatox.meta.ui.components.MetaClickListener;
-import de.fatox.meta.ui.components.MetaTextButton;
+import de.fatox.meta.ui.components.MetaIconTextButton;
 
 /**
  * Created by Frotty on 07.06.2016.
  */
+@Singleton
 public class AssetDiscovererWindow extends MetaWindow {
     @Inject
     private AssetProvider assetProvider;
@@ -59,30 +61,26 @@ public class AssetDiscovererWindow extends MetaWindow {
     @Override
     public void addAction(Action action) {
         super.addAction(action);
-        refresh();
     }
 
     private void setup() {
         adapter = new FolderListAdapter<>(new Array<FolderModel>());
         view = new ListView<>(adapter);
         view.getMainTable().defaults().pad(2);
-        view.setItemClickListener(item -> {
-            assetDiscoverer.openFolder(((FolderModel) item).fileHandle);
-            refresh();
-        });
-        left();
-        row().height(24);
-        add(toolbarTable).left().growX();
-        row().height(1);
-        add(new Separator()).growX();
-        row();
-        add(fileViewTable).left().grow();
+        view.setItemClickListener(item -> assetDiscoverer.openFolder(((FolderModel) item).fileHandle));
+        contentTable.top().left();
+        contentTable.row().left().top().height(24);
+        contentTable.add(toolbarTable).growX();
+        contentTable.row().height(1);
+        contentTable.add(new Separator()).growX();
+        contentTable.row();
+        contentTable.add(fileViewTable).left().grow();
         createToolbarBar();
         createFileView();
     }
 
     private void createToolbarBar() {
-        toolbarTable.left();
+        toolbarTable.left().top();
         toolbarTable.row().height(24);
         VisImageButton newFileButton = new VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"));
         newFileButton.getImage().setScaling(Scaling.fill);
@@ -98,7 +96,7 @@ public class AssetDiscovererWindow extends MetaWindow {
 
     private void createFileView() {
         fileViewTable.left();
-        fileViewTable.add(view.getMainTable()).growY().pad(2);
+        fileViewTable.add(view.getMainTable()).growY().pad(2).minWidth(128);
         fileViewTable.add(new Separator()).width(2).growY();
         createFilePane();
     }
@@ -115,7 +113,7 @@ public class AssetDiscovererWindow extends MetaWindow {
         visTable2.row().height(78);
         float counter = 0;
         for (FileHandle file : assetDiscoverer.getCurrentChildFiles()) {
-            MetaTextButton fileButton = new MetaTextButton(file.name(), 12);
+            MetaIconTextButton fileButton = new MetaIconTextButton(file.name(), assetProvider.getDrawable("ui/appbar.page.text.png"), 78);
             fileButton.addListener(new MetaClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
@@ -126,11 +124,9 @@ public class AssetDiscovererWindow extends MetaWindow {
                     } else {
                         assetDiscoverer.openFile(file);
                     }
-                    refresh();
                 }
             });
-            fileButton.setSize(78, 78);
-            visTable2.add(fileButton).top();
+            visTable2.add(fileButton).top().size(78, 78);
             counter += 78;
             if (counter > getWidth() - 128) {
                 visTable2.row().height(78);
@@ -158,13 +154,12 @@ public class AssetDiscovererWindow extends MetaWindow {
         for (FileHandle child : assetDiscoverer.getCurrentChildFolders()) {
             adapter.add(new FolderModel(child));
         }
+        view.rebuildView();
     }
 
     public void refresh() {
-        if (getStage() != null) {
-            refreshFolderView();
-            createFilePane();
-        }
+        createFilePane();
+        refreshFolderView();
     }
 
     public void enableSelectionMode(SelectListener selectListener) {

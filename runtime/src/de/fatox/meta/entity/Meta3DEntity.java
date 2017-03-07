@@ -7,8 +7,8 @@ import com.badlogic.gdx.graphics.g3d.RenderableProvider;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.entity.Entity;
-import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.injection.Inject;
 
 public class Meta3DEntity implements Entity<Vector3> {
@@ -22,7 +22,7 @@ public class Meta3DEntity implements Entity<Vector3> {
     private static Vector3 tempPos = new Vector3();
 
     @Inject
-    private MetaAssetProvider assetProvider;
+    private AssetProvider assetProvider;
 
     public Meta3DEntity(Vector3 pos, Model modelBase) {
         Meta.inject(this);
@@ -30,6 +30,11 @@ public class Meta3DEntity implements Entity<Vector3> {
         calculateBounds();
 //        actorModel.materials.get(0).set(TextureAttribute.createDiffuse(assetProvider.get("models/mat_ship.bmp", Texture.class)));
        // TODO actorModel.materials.get(0).set(TextureAttribute.createNormal(assetProvider.get("models/CryoFanNM.jpg", Texture.class)));
+    }
+
+    public Meta3DEntity fixInitialPos() {
+        this.actorModel.transform = actorModel.transform.rotate(Vector3.X, 90);
+        return this;
     }
 
     private void calculateBounds() {

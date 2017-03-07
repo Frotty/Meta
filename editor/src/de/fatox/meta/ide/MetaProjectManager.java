@@ -11,7 +11,6 @@ import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.tabs.ProjectHomeTab;
-import de.fatox.meta.ui.windows.AssetDiscovererWindow;
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -45,8 +44,8 @@ public class MetaProjectManager implements ProjectManager {
         metaProjectData.setRoot(projectFile.parent());
         createFolders(metaProjectData);
         currentProject = metaProjectData;
-        assetDiscoverer.setFromProject(currentProject);
         editorUI.addTab(new ProjectHomeTab(metaProjectData));
+        assetDiscoverer.setFromProject(currentProject);
         metaData.addLastProject(projectFile.path());
         return metaProjectData;
     }

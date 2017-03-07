@@ -59,7 +59,7 @@ public class MetaUiManager implements UIManager {
         metaInput.changeScreen();
         MetaScreenData screenData = metaData.getScreenData(screenIdentifier);
         for (Window window : displayedWindows) {
-            cacheWindow(window);
+            cacheWindow(window, true);
         }
         displayedWindows.clear();
         contentTable.remove();
@@ -156,9 +156,10 @@ public class MetaUiManager implements UIManager {
             displayedWindows.removeValue(window, true);
             metaData.getWindowData(displayedWindow).displayed = false;
             metaData.write();
-            cacheWindow(window);
+            cacheWindow(window, false);
         }
     }
+
 
     public <T extends Window> T displayWindow(Class<? extends T> windowClass) {
         // Check for a cached instance
@@ -215,10 +216,11 @@ public class MetaUiManager implements UIManager {
     }
 
 
-    private void cacheWindow(Window window) {
-        window.remove();
+    private void cacheWindow(Window window, boolean forceClose) {
         cachedWindows.add(window);
-        window.setVisible(false);
+        if(forceClose) {
+            window.remove();
+        }
     }
 
 }

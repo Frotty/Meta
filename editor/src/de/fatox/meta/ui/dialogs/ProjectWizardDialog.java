@@ -14,13 +14,14 @@ import de.fatox.meta.error.MetaErrorHandler;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Named;
+import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.components.MetaClickListener;
 import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaTextButton;
 import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
 import de.fatox.meta.util.StringUtil;
-
+@Singleton
 public class ProjectWizardDialog extends MetaDialog {
     private final VisTextButton createBtn;
     @Inject

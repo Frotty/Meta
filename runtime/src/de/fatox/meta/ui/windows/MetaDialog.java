@@ -30,7 +30,10 @@ public abstract class MetaDialog extends MetaWindow {
         if (hasCloseButton) {
             Actor btn = getTitleTable().getCells().get(getTitleTable().getCells().size - 1).getActor();
             if (btn instanceof VisImageButton) {
-                btn.addListener(event -> {dialogListener.onResult(null);return false;});
+                btn.addListener(event -> {
+                    dialogListener.onResult(null);
+                    return false;
+                });
             }
         }
         contentTable.top().padTop(4);
@@ -48,7 +51,7 @@ public abstract class MetaDialog extends MetaWindow {
         button.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if (dialogListener != null) {
+                if (!button.isDisabled() && dialogListener != null) {
                     dialogListener.onResult(result);
                 }
             }
@@ -66,7 +69,6 @@ public abstract class MetaDialog extends MetaWindow {
 
         // Center to middle of target stage
         if (firstSetup) {
-            setColor(1, 1, 1, 0);
             setPosition(Math.round((getStage().getWidth() - getWidth()) / 2), Math.round((getStage().getHeight() - getHeight()) / 2));
             MetaWindowData windowData = metaData.getWindowData(this);
             windowData.setFrom(this);

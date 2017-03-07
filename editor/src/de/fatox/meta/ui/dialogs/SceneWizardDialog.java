@@ -7,6 +7,7 @@ import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
 import de.fatox.meta.ide.SceneManager;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
@@ -15,6 +16,7 @@ import de.fatox.meta.util.StringUtil;
 /**
  * Created by Frotty on 13.06.2016.
  */
+@Singleton
 public class SceneWizardDialog extends MetaDialog {
     private final VisTextButton cancelBtn;
     private final VisTextButton createBtn;
@@ -23,9 +25,8 @@ public class SceneWizardDialog extends MetaDialog {
 
     private MetaValidTextField sceneNameTF;
 
-    public SceneWizardDialog(String title) {
-        super(title, true);
-
+    public SceneWizardDialog() {
+        super("Scene Wizard", true);
 
         cancelBtn = addButton(new VisTextButton("Cancel"), Align.left, false);
         createBtn = addButton(new VisTextButton("Create"), Align.right, true);

@@ -25,8 +25,9 @@ public class MetaLabel extends Widget {
 	private final GlyphLayout layout = new GlyphLayout();
 	private final Vector2 prefSize = new Vector2();
 	private final StringBuilder text = new StringBuilder();
-    private final BitmapFont font;
-    private BitmapFontCache cache;
+    private BitmapFont font;
+	private int size;
+	private BitmapFontCache cache;
 	private int labelAlign = Align.left;
 	private int lineAlign = Align.left;
 	private boolean wrap;
@@ -40,11 +41,13 @@ public class MetaLabel extends Widget {
 
     public MetaLabel(CharSequence text, int size, Color color) {
         Meta.inject(this);
+        this.size = size;
         font = metaFontProvider.getFont(size);
 		setAlignment(Align.center);
 		fontColor = color;
 		setText(text);
 		cache = font.newFontCache();
+		layout();
 	}
 
 	public MetaLabel(CharSequence text, int size) {
@@ -282,6 +285,17 @@ public class MetaLabel extends Widget {
 
 	public String toString () {
 		return super.toString() + ": " + text;
+	}
+
+	public void setMaxWidth(int maxWidth) {
+		while (getGlyphLayout().width > maxWidth) {
+			System.out.println("decrease");
+			size *= 0.95;
+			font = metaFontProvider.getFont(size);
+			setText(text);
+			cache = font.newFontCache();
+			layout();
+		}
 	}
 
 	/** The style for a label, see {@link MetaLabel}.

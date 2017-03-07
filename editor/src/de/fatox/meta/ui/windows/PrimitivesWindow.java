@@ -2,11 +2,13 @@ package de.fatox.meta.ui.windows;
 
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.components.MetaClickListener;
 
 /**
  * Created by Frotty on 20.05.2016.
  */
+@Singleton
 public class PrimitivesWindow extends MetaWindow {
     private final VisTextButton boxButton;
 

@@ -43,11 +43,12 @@ public abstract class MetaWindow extends VisWindow {
         getTitleTable().row().height(2);
         getTitleTable().add(new Separator()).growX().padTop(2).colspan(closeButton ? 2 : 1);
         getTitleTable().padTop(2);
+        getTitleTable().pack();
         if (resizable) {
             padBottom(6);
             setResizable(true);
         }
-        contentTable.top();
+        contentTable.top().padTop(2);
         add(contentTable).top().grow();
         row();
     }

@@ -4,11 +4,17 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaProjectData;
+import de.fatox.meta.api.ui.UIManager;
+import de.fatox.meta.injection.Inject;
+import de.fatox.meta.ui.windows.AssetDiscovererWindow;
 
 /**
  * Created by Frotty on 07.06.2016.
  */
 public class AssetDiscoverer {
+    @Inject
+    private UIManager uiManager;
+
     private FileHandle root;
 
     private FileHandle currentFolder;
@@ -54,6 +60,10 @@ public class AssetDiscoverer {
             } else {
                 currentChildFiles.add(child);
             }
+        }
+        AssetDiscovererWindow window = uiManager.getWindow(AssetDiscovererWindow.class);
+        if (window != null) {
+            window.refresh();
         }
     }
 

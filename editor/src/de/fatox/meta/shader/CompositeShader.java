@@ -32,7 +32,7 @@ public class CompositeShader extends FullscreenShader {
         if (!program.isCompiled())
             throw new GdxRuntimeException(program.getLog());
 
-        s_albedoTex = program.getUniformLocation("s_albedoTex");
+//        s_albedoTex = program.getUniformLocation("s_albedoTex");
         s_depthTex = program.getUniformLocation("s_depthTex");
         u_nearDistance = program.getUniformLocation("u_nearDistance");
         u_farDistance = program.getUniformLocation("u_farDistance");
@@ -51,8 +51,6 @@ public class CompositeShader extends FullscreenShader {
     @Override
     public void begin(Camera camera, RenderContext context) {
         program.begin();
-//        program.setUniformi(s_albedoTex, 11);
-        program.setUniformi(s_depthTex, 10);
         program.setUniformf(u_nearDistance, camera.near);
         program.setUniformf(u_farDistance, camera.far);
     }

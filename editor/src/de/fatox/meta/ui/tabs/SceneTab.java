@@ -6,7 +6,9 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaSceneData;
 import de.fatox.meta.api.ui.UIRenderer;
+import de.fatox.meta.camera.ArcCamControl;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.input.MetaInput;
 import de.fatox.meta.ui.components.SceneWidget;
 
 /**
@@ -19,6 +21,9 @@ public class SceneTab extends MetaTab {
     private PerspectiveCamera perspectiveCamera;
     @Inject
     private UIRenderer uiRenderer;
+    private ArcCamControl camControl = new ArcCamControl();
+    @Inject
+    private MetaInput metaInput;
 
     public SceneTab(MetaSceneData sceneData) {
         Meta.inject(this);
@@ -39,5 +44,6 @@ public class SceneTab extends MetaTab {
 
     @Override
     public void onDisplay() {
+        metaInput.addAdapterForScreen(camControl);
     }
 }

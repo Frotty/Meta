@@ -11,6 +11,7 @@ import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.components.AssetSelectButton;
 import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaValidTextField;
@@ -20,6 +21,7 @@ import de.fatox.meta.util.StringUtil;
 /**
  * Created by Frotty on 29.06.2016.
  */
+@Singleton
 public class ShaderWizardDialog extends MetaDialog {
     private final VisTextButton cancelBtn;
     private final VisTextButton createBtn;
@@ -56,6 +58,7 @@ public class ShaderWizardDialog extends MetaDialog {
         renderTargetGroup.setMaxCheckCount(1);
         renderTargetGroup.setMinCheckCount(1);
         createBtn.setDisabled(true);
+        setDefaultSize(300, 450);
         setupTable();
     }
 

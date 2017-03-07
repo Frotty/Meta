@@ -2,7 +2,7 @@
 precision highp float;
 
 in vec2 v_texCoord0;
-
+uniform sampler2D s_albedoTex;
 uniform sampler2D s_depthTex;
 uniform float u_nearDistance;
 uniform float u_farDistance;
@@ -118,7 +118,7 @@ void main()
 
 	ao /= float(samples);
 	ao = 1.0-ao;
-	outColor = vec4(ao); //ambient occlusion only
+	outColor = vec4(texture(s_albedoTex, v_texCoord0.xy)); //ambient occlusion only
 
 }
 //void main(void)

@@ -83,15 +83,14 @@ public class GBufferShader implements Shader {
         // Diffuse-
         TextureAttribute tex = (TextureAttribute) renderable.material.get(TextureAttribute.Diffuse);
         if (tex != null) {
-            (tex).textureDescription.texture.bind(0);
+            program.setUniformi(s_diffuseTex, context.textureBinder.bind((tex).textureDescription.texture));
         }
         // Normal Map (for different lighting on a plane)
         TextureAttribute texn = (TextureAttribute) renderable.material.get(TextureAttribute.Normal);
         if (texn != null) {
-            (texn).textureDescription.texture.bind(1);
+            program.setUniformi(s_normalTex, context.textureBinder.bind((texn).textureDescription.texture));
         }
-        program.setUniformi(s_diffuseTex, 0);
-        program.setUniformi(s_normalTex, 1);
+
         ColorAttribute col = (ColorAttribute) renderable.material.get(ColorAttribute.Diffuse);
         if (col != null) {
             program.setUniformf(u_diffuseColor, col.color.r, col.color.g, col.color.b);

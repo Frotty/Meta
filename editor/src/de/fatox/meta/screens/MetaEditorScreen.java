@@ -3,7 +3,6 @@ package de.fatox.meta.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.GL30;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
@@ -42,7 +41,6 @@ public class MetaEditorScreen extends ScreenAdapter {
         if (!isInited) {
             Meta.inject(this);
             uiManager.changeScreen(getClass().getName());
-            loadAssets();
             setupEditorUi();
             isInited = true;
         } else {
@@ -50,14 +48,6 @@ public class MetaEditorScreen extends ScreenAdapter {
         }
     }
 
-    private void loadAssets() {
-        assetProvider.load("ui/appbar.new.png", Texture.class);
-        assetProvider.load("ui/appbar.folder.open.png", Texture.class);
-        assetProvider.load("ui/appbar.page.add.png", Texture.class);
-        assetProvider.load("ui/appbar.page.search.png", Texture.class);
-        assetProvider.finish();
-        System.out.println("done");
-    }
 
     @Override
     public void render(float delta) {
