@@ -41,7 +41,9 @@ public class BufferRenderer implements Renderer {
 
     public BufferRenderer() {
         Meta.inject(this);
+        cam.update();
         rebuild(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
     }
 
     public void render(float x, float y, float width, float height) {
@@ -66,25 +68,24 @@ public class BufferRenderer implements Renderer {
         }
         shaderInfo.getShader().end();
 
-        renderContext.end();
+
         mrtFrameBuffer.end();
 
-//        ShaderProgram mrtSceneShader = ((FullscreenShader) shaderLibrary.getOutputShader().getShader()).getProgram();
-//        mrtSceneShader.begin();
-////        mrtSceneShader.setUniformi("u_diffuseTexture",
-////                renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(0)));
-////        mrtSceneShader.setUniformi("u_normalTexture",
-////                renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
-////        mrtSceneShader.setUniformi("u_positionTexture",
-////                renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(2)));
-//        mrtSceneShader.setUniformi("s_depthTex", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(3)));
-//        mrtSceneShader.setUniformf("u_nearDistance", cam.near);
-//        mrtSceneShader.setUniformf("u_farDistance", cam.far);
-//        //        mrtSceneShader.setUniformMatrix("u_inverseProjectionMatrix", cam.invProjectionView);
-//        fsquad.render(mrtSceneShader);
-//        mrtSceneShader.end();
-//        // Render to Screen
-
+        FullscreenShader mrtSceneShader = (FullscreenShader) shaderLibrary.getOutputShader().getShader();
+        mrtSceneShader.begin(cam, renderContext);
+////        mrtFrameBuffer.getColorBufferTexture(0).bind(21);
+//        mrtSceneShader.setUniformi("u_normalTexture",
+//                renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
+        mrtSceneShader.getProgram().setUniformi("s_albedoTex", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(0)));
+        mrtSceneShader.getProgram().setUniformi("s_depthTex", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(3)));
+//        renderContext.bind(mrtFrameBuffer.getColorBufferTexture(0));
+////        mrtSceneShader.setUniformf("u_nearDistance", cam.near);
+////        mrtSceneShader.setUniformf("u_farDistance", cam.far);
+////        //        mrtSceneShader.setUniformMatrix("u_inverseProjectionMatrix", cam.invProjectionView);
+        fsquad.render(mrtSceneShader.getProgram());
+        mrtSceneShader.end();
+        // Render to Screen
+        renderContext.end();
         debugAll(x, y, width, height);
     }
 

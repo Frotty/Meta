@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -29,13 +29,13 @@ public class MetaEntityManager implements EntityManager<Meta3DEntity> {
         Texture whiteTex = new Texture(pxmp);
         ModelBuilder modelBuilder = new ModelBuilder();
         Model model = assetProvider.get("models/cryofan.g3db", Model.class);
-        final Material material = new Material(TextureAttribute.createDiffuse(whiteTex));
-        final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates;
-        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), model).fixInitialPos());
-        addEntity(new Meta3DEntity(new Vector3(10, 0, 0), model).fixInitialPos());
-        addEntity(new Meta3DEntity(new Vector3(0, 10, 0), model).fixInitialPos());
-        Model box = modelBuilder.createBox(-200, 200, 2, material, attributes);
-        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), box));
+        final Material material = new Material(ColorAttribute.createDiffuse(Color.LIGHT_GRAY));
+        final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.ColorUnpacked;
+//        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), model).fixInitialPos());
+//        addEntity(new Meta3DEntity(new Vector3(10, 0, 0), model).fixInitialPos());
+//        addEntity(new Meta3DEntity(new Vector3(0, 10, 0), model).fixInitialPos());
+        Model box = modelBuilder.createLineGrid(64,64, 32, 32, material, attributes);
+        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), box).fixInitialPos());
     }
 
     @Override
