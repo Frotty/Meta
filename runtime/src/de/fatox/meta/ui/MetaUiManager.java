@@ -93,12 +93,18 @@ public class MetaUiManager implements UIManager {
             if (fh.name().endsWith("Window")) {
                 try {
                     Class windowclass = ClassReflection.forName(fh.name());
+                    MetaWindowData metaWindowData = metaGetWindow(windowclass.getName());
                     for (Window displayedWindow : displayedWindows) {
                         if (displayedWindow.getClass() == windowclass) {
+                            if(! metaWindowData.displayed) {
+                               cacheWindow(displayedWindow, true);
+                            }
                             continue outer;
                         }
                     }
-                    showWindow(windowclass);
+                    if(metaWindowData.displayed) {
+                        showWindow(windowclass);
+                    }
                 } catch (ReflectionException e) {
                     e.printStackTrace();
                 }
