@@ -61,6 +61,7 @@ public class SceneWizardDialog extends MetaDialog {
             }
             close();
         });
+        setDefaultSize(200, 400);
     }
 
 }

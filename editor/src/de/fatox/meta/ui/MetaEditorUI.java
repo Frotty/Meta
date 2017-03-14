@@ -34,12 +34,14 @@ public class MetaEditorUI {
     public void setup() {
         EditorMenuBar metaToolbar = new EditorMenuBar();
         log.info(TAG, "Toolbar created");
-        uiManager.addMenuBar(metaToolbar.menuBar);
+        uiManager.setMainMenuBar(metaToolbar.menuBar);
 
         tabbedPane = new TabbedPane();
         tabbedPane.addListener(new TabbedPaneAdapter() {
             @Override
             public void switchedTab(Tab tab) {
+                uiManager.changeScreen(tab.getClass().getName());
+                apply();
                 ((MetaTab)tab).onDisplay();
                 Table content = tab.getContentTable();
 
@@ -52,6 +54,9 @@ public class MetaEditorUI {
         visTable.add().top();
         visTable.add().grow();
         addTab(new WelcomeTab());
+    }
+
+    public void apply() {
         uiManager.addTable(tabbedPane.getTable(), true, false);
         uiManager.addTable(tabTable, true, true);
     }

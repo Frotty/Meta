@@ -66,3 +66,5 @@ build/
 android/libs/arm64-v8a/libgdx.so
 android/libs/x86_64/libgdx.so
 android/assets/metadata.json
+
+**/.meta/**

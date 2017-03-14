@@ -5,6 +5,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.google.gson.Gson;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.api.dao.MetaData2;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
@@ -35,6 +36,12 @@ public class MetaUIModule {
             metaEditorData.setFileHandle(absolute);
         }
         return metaEditorData;
+    }
+
+    @Provides
+    @Singleton
+    public MetaData2 metaData() {
+        return new MetaData2();
     }
 
     @Provides

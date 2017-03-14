@@ -1,16 +1,18 @@
 package de.fatox.meta.ui;
 
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.reflect.ClassReflection;
 import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.dao.MetaData;
-import de.fatox.meta.api.dao.MetaScreenData;
+import de.fatox.meta.api.dao.MetaData2;
 import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
@@ -19,6 +21,8 @@ import de.fatox.meta.injection.Log;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.input.MetaInput;
 import de.fatox.meta.ui.windows.MetaDialog;
+
+import java.io.File;
 
 /**
  * Created by Frotty on 20.05.2016.
@@ -34,12 +38,15 @@ public class MetaUiManager implements UIManager {
     @Inject
     private MetaData metaData;
     @Inject
+    private MetaData2 metaData2;
+    @Inject
     private MetaInput metaInput;
 
     private Array<Window> displayedWindows = new Array<>();
     private Array<Window> cachedWindows = new Array<>();
-    private Array<MenuBar> menuBars = new Array<>();
+    private MenuBar mainMenuBar;
     private Table contentTable = new Table();
+    private String currentScreenId = "(none)";
 
     public MetaUiManager() {
         Meta.inject(this);
@@ -56,29 +63,42 @@ public class MetaUiManager implements UIManager {
 
     @Override
     public void changeScreen(String screenIdentifier) {
+        this.currentScreenId = screenIdentifier;
         metaInput.changeScreen();
-        MetaScreenData screenData = metaData.getScreenData(screenIdentifier);
+
+        // Close or move currently shown windows
         for (Window window : displayedWindows) {
-            cacheWindow(window, true);
+            String name = window.getClass().getName();
+            if (metaHas(name)) {
+                // There exists saved window metadata
+                metaGetWindow(name).set(window);
+            } else {
+                cacheWindow(window, true);
+            }
         }
-        displayedWindows.clear();
         contentTable.remove();
         contentTable.clear();
+        if (mainMenuBar != null) {
+            contentTable.row().height(26);
+            contentTable.add(mainMenuBar.getTable()).growX().top();
+        }
         uiRenderer.addActor(contentTable);
-
-        restoreWindows(screenData);
+        restoreWindows();
     }
 
-    private void restoreWindows(MetaScreenData screenData) {
-        for (MetaWindowData windowData : screenData.windowData) {
-            if (windowData.displayed) {
+    private void restoreWindows() {
+        FileHandle[] list = metaData2.getCachedRootHandle(currentScreenId).list();
+        outer:
+        for (FileHandle fh : list) {
+            if (fh.name().endsWith("Window")) {
                 try {
-                    Class windowclass = ClassReflection.forName(windowData.name);
-                    if (MetaDialog.class.isAssignableFrom(windowclass)) {
-                        continue;
-                    } else {
-                        showWindow(ClassReflection.forName(windowData.name));
+                    Class windowclass = ClassReflection.forName(fh.name());
+                    for (Window displayedWindow : displayedWindows) {
+                        if (displayedWindow.getClass() == windowclass) {
+                            continue outer;
+                        }
                     }
+                    showWindow(windowclass);
                 } catch (ReflectionException e) {
                     e.printStackTrace();
                 }
@@ -104,21 +124,19 @@ public class MetaUiManager implements UIManager {
      */
     @Override
     public <T extends Window> T showWindow(Class<? extends T> windowClass) {
-        T window = checkSingleton(windowClass);
-        if (window != null) return window;
         log.debug(TAG, "show window: " + windowClass.getName());
-        window = displayWindow(windowClass);
+        T window = displayWindow(windowClass);
 
         window.setVisible(true);
         uiRenderer.addActor(window);
-        if (metaData.hasWindowData(windowClass)) {
-            // If there is saved metadata, restore configuration
-            MetaWindowData windowData = metaData.getWindowData(window);
-            if (!windowData.displayed) {
-                windowData.displayed = true;
-            }
+
+        if (metaHas(windowClass.getName())) {
+            // There exists metadata for this window.
+            MetaWindowData windowData = metaGetWindow(windowClass.getName());
             windowData.set(window);
-            metaData.write();
+        } else {
+            // First time the window has been shown on this screen
+            metaSaveWindow(windowClass.getName(), new MetaWindowData(window));
         }
         return window;
     }
@@ -126,21 +144,15 @@ public class MetaUiManager implements UIManager {
     @Override
     public <T extends MetaDialog> T showDialog(Class<? extends T> dialogClass) {
         log.debug(TAG, "show dialog: " + dialogClass.getName());
-        // If the window is annotated singleton only one instance should be displayed
-        T displayedWindow = checkSingleton(dialogClass);
-        if (displayedWindow != null) return displayedWindow;
         // Dialogs are just Window subtypes so we show it as usual
-        boolean firstSetup = !metaData.hasWindowData(dialogClass);
         T dialog = showWindow(dialogClass);
-        dialog.show(firstSetup);
+        dialog.show();
         return dialog;
     }
 
     @Override
-    public void addMenuBar(MenuBar menuBar) {
-        menuBars.add(menuBar);
-        contentTable.row().height(26);
-        contentTable.add(menuBar.getTable()).growX().top();
+    public void setMainMenuBar(MenuBar menuBar) {
+        mainMenuBar = menuBar;
     }
 
     @Override
@@ -154,16 +166,32 @@ public class MetaUiManager implements UIManager {
         Window displayedWindow = getDisplayedInstance(window);
         if (displayedWindow != null) {
             displayedWindows.removeValue(window, true);
-            metaData.getWindowData(displayedWindow).displayed = false;
-            metaData.write();
+            MetaWindowData metaWindowData = metaGetWindow(window.getClass().getName());
+            metaWindowData.displayed = false;
+            metaSaveWindow(displayedWindow.getClass().getName(), metaWindowData);
             cacheWindow(window, false);
+        }
+    }
+
+    @Override
+    public void updateWindow(Window window) {
+        String name = window.getClass().getName();
+        if(metaHas(name)) {
+            MetaWindowData metaWindowData = metaGetWindow(name);
+            metaWindowData.setFrom(window);
+            metaSaveWindow(name, metaWindowData);
         }
     }
 
 
     public <T extends Window> T displayWindow(Class<? extends T> windowClass) {
+        // Check if this window is a singleton. If it is and it is displayed, return displayed instance
+        T theWindow = checkSingleton(windowClass);
+        if (theWindow != null) {
+            log.debug(TAG, "singleton already displaying");
+            return theWindow;
+        }
         // Check for a cached instance
-        T theWindow = null;
         for (Window cachedWindow : cachedWindows) {
             if (cachedWindow.getClass() == windowClass) {
                 log.debug(TAG, "found cached");
@@ -217,9 +245,25 @@ public class MetaUiManager implements UIManager {
 
 
     private void cacheWindow(Window window, boolean forceClose) {
+        displayedWindows.removeValue(window, true);
         cachedWindows.add(window);
-        if(forceClose) {
+        if (forceClose) {
             window.remove();
+        }
+    }
+
+    private boolean metaHas(String name) {
+        return metaData2.has(currentScreenId + File.separator + name);
+    }
+
+    private MetaWindowData metaGetWindow(String name) {
+        return metaData2.get(currentScreenId + File.separator + name, MetaWindowData.class);
+    }
+
+    private void metaSaveWindow(String name, MetaWindowData windowData) {
+        String id = currentScreenId + File.separator + name;
+        if(TimeUtils.timeSinceMillis(metaData2.getCachedRootHandle(id).lastModified()) > 200) {
+            metaData2.save(id, windowData);
         }
     }
 

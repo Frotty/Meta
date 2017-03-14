@@ -28,10 +28,11 @@ public interface UIManager {
 
     <T extends MetaDialog> T showDialog(Class<? extends T> dialogClass);
 
-    void addMenuBar(MenuBar menuBar);
+    void setMainMenuBar(MenuBar menuBar);
 
     <T extends Window> T  getWindow(Class<? extends T> windowClass);
 
     void closeWindow(Window window);
 
+    void updateWindow(Window window);
 }

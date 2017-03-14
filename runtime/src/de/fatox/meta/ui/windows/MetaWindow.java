@@ -7,8 +7,6 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.dao.MetaData;
-import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
@@ -23,8 +21,6 @@ public abstract class MetaWindow extends VisWindow {
     private Logger log;
     @Inject
     protected UIManager uiManager;
-    @Inject
-    protected MetaData metaData;
 
     protected Table contentTable = new VisTable();
 
@@ -62,22 +58,15 @@ public abstract class MetaWindow extends VisWindow {
     }
 
     public void setDefault(float x, float y, float width, float height) {
-        if (metaData.hasWindowData(this.getClass())) {
-            MetaWindowData windowData = metaData.getWindowData(this);
-            windowData.set(this);
-        } else {
-            setPosition(x, y);
-            setSize(width, height);
-            metaData.getWindowData(this);
-        }
+        setPosition(x, y);
+        setSize(width, height);
     }
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
         if (isDragging()) {
-            metaData.getWindowData(this).setFrom(this);
-            metaData.write();
+            uiManager.updateWindow(this);
         }
     }
 

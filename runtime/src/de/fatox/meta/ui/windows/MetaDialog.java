@@ -8,7 +8,6 @@ import com.kotcrab.vis.ui.widget.VisImageButton;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
-import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.ui.components.MetaClickListener;
 
 /**
@@ -19,7 +18,6 @@ public abstract class MetaDialog extends MetaWindow {
     protected final VisLabel statusLabel = new VisLabel();
     protected DialogListener dialogListener;
     private int buttonCount = 0;
-
 
     public interface DialogListener {
         void onResult(Object object);
@@ -43,9 +41,7 @@ public abstract class MetaDialog extends MetaWindow {
         add(statusLabel).growX();
         row();
         add(buttonTable).bottom().growX();
-
     }
-
 
     public VisTextButton addButton(VisTextButton button, int align, Object result) {
         button.addListener(new MetaClickListener() {
@@ -64,16 +60,8 @@ public abstract class MetaDialog extends MetaWindow {
         return button;
     }
 
-    public void show(boolean firstSetup) {
+    public void show() {
         // Set color invisible for fade in to work
-
-        // Center to middle of target stage
-        if (firstSetup) {
-            setPosition(Math.round((getStage().getWidth() - getWidth()) / 2), Math.round((getStage().getHeight() - getHeight()) / 2));
-            MetaWindowData windowData = metaData.getWindowData(this);
-            windowData.setFrom(this);
-            metaData.write();
-        }
         setColor(1, 1, 1, 0);
         addAction(Actions.alpha(0.9f, 1f));
     }

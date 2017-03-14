@@ -2,7 +2,6 @@ package de.fatox.meta.api.dao;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.google.gson.Gson;
 import com.google.gson.annotations.Expose;
@@ -13,6 +12,7 @@ import de.fatox.meta.injection.Inject;
  * Created by Frotty on 26.06.2016.
  */
 public class MetaData {
+    public static final String DATA_FOLDER_NAME = "./.meta/";
     public static final String DATA_FILE_NAME = "metadata.json";
 
     @Expose
@@ -23,8 +23,6 @@ public class MetaData {
     private MetaAudioVideoData videoData = new MetaAudioVideoData();
 
     public ExposedArray<String> lastProjectFiles = new ExposedArray<>();
-
-    public MetaScreenData currentScreenData;
 
     @Inject
     private Gson gson;
@@ -83,41 +81,6 @@ public class MetaData {
         videoData.setWidth(width);
         videoData.setHeight(height);
         write();
-    }
-
-    public MetaScreenData getScreenData(String screenName) {
-        for (MetaScreenData data : screenData) {
-            if (data.name.equals(screenName)) {
-                currentScreenData = data;
-                return data;
-            }
-        }
-        MetaScreenData data = new MetaScreenData(screenName);
-        screenData.add(data);
-        currentScreenData = data;
-        write();
-        return data;
-    }
-
-    public boolean hasWindowData(Class<? extends Window> data) {
-        for (MetaWindowData wdata : currentScreenData.windowData) {
-            if (wdata.name.equals(data.getName())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public MetaWindowData getWindowData(Window data) {
-        for (MetaWindowData wdata : currentScreenData.windowData) {
-            if (wdata.name.equals(data.getClass().getName())) {
-                return wdata;
-            }
-        }
-        MetaWindowData ndata = new MetaWindowData(data);
-        currentScreenData.windowData.add(ndata);
-        write();
-        return ndata;
     }
 
 }
