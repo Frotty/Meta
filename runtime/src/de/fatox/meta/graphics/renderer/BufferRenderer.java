@@ -101,6 +101,12 @@ public class BufferRenderer implements Renderer {
 
     @Override
     public void rebuild(int width, int height) {
+        if(mrtFrameBuffer != null) {
+            if(width == mrtFrameBuffer.getWidth() && height == mrtFrameBuffer.getHeight()) {
+                return;
+            }
+            mrtFrameBuffer.dispose();
+        }
         mrtFrameBuffer = new MRTFrameBuffer(width, height, 3);
         renderContext = new RenderContext(new DefaultTextureBinder(DefaultTextureBinder.ROUNDROBIN));
     }

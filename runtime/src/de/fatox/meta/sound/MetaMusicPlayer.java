@@ -6,7 +6,8 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.Timer;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.api.dao.MetaAudioVideoData;
+import de.fatox.meta.api.dao.MetaData2;
 import de.fatox.meta.injection.Inject;
 
 /**
@@ -14,7 +15,7 @@ import de.fatox.meta.injection.Inject;
  */
 public class MetaMusicPlayer {
     @Inject
-    private MetaData metaData;
+    private MetaData2 metaData;
 
     public float startVolume = 0.01f;
     private boolean musicEnabled = true;
@@ -34,7 +35,8 @@ public class MetaMusicPlayer {
         Timer.schedule(new Timer.Task() {
             @Override
             public void run() {
-                float volume = metaData.getAudioVideoData().getMasterVolume() * metaData.getAudioVideoData().getMusicVolume();
+                MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
+                float volume = audioVideoData.getMasterVolume() * audioVideoData.getMusicVolume();
                 if (!musicEnabled || volume <= startVolume) {
                     if (currentMusic != null) {
                         currentMusic.setVolume(0);

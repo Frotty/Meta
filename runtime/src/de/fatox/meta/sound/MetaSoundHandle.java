@@ -8,19 +8,21 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.api.dao.MetaAudioVideoData;
+import de.fatox.meta.api.dao.MetaData2;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 
 public class MetaSoundHandle {
     private static final String TAG = "SoundHandle";
+    private final MetaAudioVideoData audioVideoData;
     @Inject
     @Log
     private Logger log;
     @Inject
     private ShapeRenderer shapeRenderer;
     @Inject
-    private MetaData metaData;
+    private MetaData2 metaData;
 
     private final MetaSoundDefinition definition;
     private final long handleId;
@@ -42,13 +44,14 @@ public class MetaSoundHandle {
             stop();
         }
         Meta.inject(this);
+        audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
     }
 
     public void calculateVolPitchPan() {
         float audibleRange = (Gdx.graphics.getHeight() * 0.6f);
         float audibleRangeSquared = audibleRange * audibleRange;
         float distSquared = listenerPos.dst2(soundPos);
-        float volumeMod = metaData.getAudioVideoData().getMasterVolume() * metaData.getAudioVideoData().getSoundVolume();
+        float volumeMod = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
         float volumeRemap =  volumeMod * definition.getVolume() * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
         float xPan = soundPos.x - listenerPos.x;
         float remappedXPan = MathUtils.clamp(xPan / (audibleRange - 200), -1, 1);

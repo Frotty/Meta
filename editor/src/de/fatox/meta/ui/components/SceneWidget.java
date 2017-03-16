@@ -23,11 +23,9 @@ public class SceneWidget extends Widget {
     public void draw(Batch batch, float parentAlpha) {
         batch.end();
         validate();
-        if (first) {
-            first = false;
-            renderer.rebuild((int) getWidth(), (int) getHeight());
-        }
+        renderer.rebuild((int) getWidth(), (int) getHeight());
         renderer.render(getX(), getY(), getWidth(), getHeight());
         batch.begin();
     }
+
 }

@@ -7,7 +7,8 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.api.dao.MetaAudioVideoData;
+import de.fatox.meta.api.dao.MetaData2;
 import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
@@ -31,7 +32,7 @@ public class MetaEditorScreen extends ScreenAdapter {
     @Inject
     private MetaEditorUI metaEditorUISetup;
     @Inject
-    private MetaData metaData;
+    private MetaData2 metaData;
     @Inject
     private AssetProvider assetProvider;
     private boolean isInited = false;
@@ -72,7 +73,10 @@ public class MetaEditorScreen extends ScreenAdapter {
         if (isInited && width > 120 && height > 0) {
             uiManager.resize(width, height);
             if (!Gdx.graphics.isFullscreen()) {
-                metaData.setMainWindowSize(width, height);
+                MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
+                audioVideoData.setWidth(width);
+                audioVideoData.setHeight(height);
+                metaData.save("audioVideoData", audioVideoData);
             }
         }
     }

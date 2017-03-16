@@ -6,7 +6,8 @@ import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.LinkLabel;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.api.dao.ExposedArray;
+import de.fatox.meta.api.dao.MetaData2;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
@@ -18,7 +19,7 @@ import de.fatox.meta.ui.components.TextWidget;
 public class WelcomeTab extends MetaTab {
     private VisTable visTable = new VisTable();
     @Inject
-    private MetaData metaData;
+    private MetaData2 metaData;
     @Inject
     private ProjectManager projectManager;
     @Inject
@@ -37,7 +38,11 @@ public class WelcomeTab extends MetaTab {
 
         visTable.add(visLabel).pad(16);
 
-        for (String lastProj : metaData.getLastProjectFiles()) {
+        if(!metaData.has("lastProjects")) {
+            metaData.save("lastProjects", new ExposedArray<String>());
+        }
+        ExposedArray<String> lastProjects = metaData.get("lastProjects", ExposedArray.class);
+        for (String lastProj : lastProjects) {
             visTable.row();
             LinkLabel linkLabel = new LinkLabel(lastProj.substring(0, lastProj.lastIndexOf("/")));
             linkLabel.setListener(url -> projectManager.loadProject(Gdx.files.absolute(lastProj)));

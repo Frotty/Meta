@@ -5,7 +5,8 @@ import com.google.gson.Gson;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.api.dao.ExposedArray;
+import de.fatox.meta.api.dao.MetaData2;
 import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
@@ -25,7 +26,7 @@ public class MetaProjectManager implements ProjectManager {
     @Inject
     private AssetDiscoverer assetDiscoverer;
     @Inject
-    private MetaData metaData;
+    private MetaData2 metaData;
 
     private MetaProjectData currentProject;
 
@@ -46,7 +47,16 @@ public class MetaProjectManager implements ProjectManager {
         currentProject = metaProjectData;
         editorUI.addTab(new ProjectHomeTab(metaProjectData));
         assetDiscoverer.setFromProject(currentProject);
-        metaData.addLastProject(projectFile.path());
+        ExposedArray<String> lastProjects;
+        if( metaData.has("lastProjects")) {
+            lastProjects = metaData.get("lastProjects", ExposedArray.class);
+        } else {
+            lastProjects = new ExposedArray<>();
+        }
+        if(! lastProjects.contains(projectFile.path(), false)) {
+            lastProjects.add(projectFile.path());
+            metaData.save("lastProjects", lastProjects);
+        }
         return metaProjectData;
     }
 

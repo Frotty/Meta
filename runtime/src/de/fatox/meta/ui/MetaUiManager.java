@@ -11,7 +11,6 @@ import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.dao.MetaData2;
 import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
@@ -36,9 +35,7 @@ public class MetaUiManager implements UIManager {
     @Inject
     private UIRenderer uiRenderer;
     @Inject
-    private MetaData metaData;
-    @Inject
-    private MetaData2 metaData2;
+    private MetaData2 metaData;
     @Inject
     private MetaInput metaInput;
 
@@ -87,7 +84,7 @@ public class MetaUiManager implements UIManager {
     }
 
     private void restoreWindows() {
-        FileHandle[] list = metaData2.getCachedRootHandle(currentScreenId).list();
+        FileHandle[] list = metaData.getCachedRootHandle(currentScreenId).list();
         outer:
         for (FileHandle fh : list) {
             if (fh.name().endsWith("Window")) {
@@ -259,17 +256,17 @@ public class MetaUiManager implements UIManager {
     }
 
     private boolean metaHas(String name) {
-        return metaData2.has(currentScreenId + File.separator + name);
+        return metaData.has(currentScreenId + File.separator + name);
     }
 
     private MetaWindowData metaGetWindow(String name) {
-        return metaData2.get(currentScreenId + File.separator + name, MetaWindowData.class);
+        return metaData.get(currentScreenId + File.separator + name, MetaWindowData.class);
     }
 
     private void metaSaveWindow(String name, MetaWindowData windowData) {
         String id = currentScreenId + File.separator + name;
-        if(TimeUtils.timeSinceMillis(metaData2.getCachedRootHandle(id).lastModified()) > 200) {
-            metaData2.save(id, windowData);
+        if(TimeUtils.timeSinceMillis(metaData.getCachedRootHandle(id).lastModified()) > 200) {
+            metaData.save(id, windowData);
         }
     }
 
