@@ -6,6 +6,7 @@ import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
@@ -21,6 +22,8 @@ public abstract class MetaWindow extends VisWindow {
     private Logger log;
     @Inject
     protected UIManager uiManager;
+    @Inject
+    protected AssetProvider assetProvider;
 
     protected Table contentTable = new VisTable();
 

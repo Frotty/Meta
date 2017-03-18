@@ -15,6 +15,7 @@ import java.io.File;
  */
 public class MetaSceneManager implements SceneManager {
     private static final String FOLDER = "scenes" + File.separator;
+    private static final String ENDING = ".metascene";
     @Inject
     private ProjectManager projectManager;
     @Inject
@@ -29,7 +30,7 @@ public class MetaSceneManager implements SceneManager {
     @Override
     public MetaSceneData createNew(String name) {
         MetaSceneData metaSceneData = new MetaSceneData(name);
-        projectManager.getCurrentProject().root.child(FOLDER + name).writeBytes(json.toJson(metaSceneData).getBytes(), false);
+        projectManager.getCurrentProject().root.child(FOLDER + name + ENDING).writeBytes(json.toJson(metaSceneData).getBytes(), false);
         metaEditorUI.addTab(new SceneTab(metaSceneData));
         return metaSceneData;
     }

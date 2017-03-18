@@ -21,10 +21,7 @@ import de.fatox.meta.ui.components.MetaClickListener;
 import de.fatox.meta.ui.dialogs.OpenProjectDialog;
 import de.fatox.meta.ui.dialogs.ProjectWizardDialog;
 import de.fatox.meta.ui.dialogs.SceneWizardDialog;
-import de.fatox.meta.ui.windows.AssetDiscovererWindow;
-import de.fatox.meta.ui.windows.MetaConfirmDialog;
-import de.fatox.meta.ui.windows.ShaderLibraryWindow;
-import de.fatox.meta.ui.windows.ShaderPipelineWindow;
+import de.fatox.meta.ui.windows.*;
 
 public class EditorMenuBar {
     @Inject
@@ -90,11 +87,18 @@ public class EditorMenuBar {
 
     private Menu createWindowsMenu() {
         Menu editMenu = new Menu(languageBundle.get("windowsmenu_title"));
-        MenuItem assetMenu = new MenuItem("Asset Discoverer");
-        assetMenu.addListener(new MetaClickListener() {
+        MenuItem assetItem = new MenuItem("Asset Discoverer");
+        assetItem.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 uiManager.showWindow(AssetDiscovererWindow.class);
+            }
+        });
+        MenuItem primitivesItem = new MenuItem("Primitives");
+        primitivesItem.addListener(new MetaClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                uiManager.showWindow(PrimitivesWindow.class);
             }
         });
         MenuItem shaderMenu = new MenuItem("Shader Library");
@@ -111,7 +115,8 @@ public class EditorMenuBar {
                 uiManager.showWindow(ShaderPipelineWindow.class);
             }
         });
-        editMenu.addItem(assetMenu);
+        editMenu.addItem(assetItem);
+        editMenu.addItem(primitivesItem);
         editMenu.addItem(shaderMenu);
         editMenu.addItem(shaderPipeMenu);
         return editMenu;

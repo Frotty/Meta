@@ -2,6 +2,7 @@ package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.api.ui.UIManager;
@@ -22,6 +23,8 @@ public class AssetDiscoverer {
     private Array<FileHandle> currentChildFolders;
 
     private Array<FileHandle> currentChildFiles;
+
+    private ObjectMap<String, AssetOpenListener> fileEndingListeners = new ObjectMap<>();
 
     public AssetDiscoverer() {
         Meta.inject(this);
@@ -67,7 +70,10 @@ public class AssetDiscoverer {
         }
     }
 
-    public void openFile(FileHandle s) {
+    public void openFile(FileHandle fileHandle) {
+        if(fileEndingListeners.containsKey(fileHandle.extension())) {
+            fileEndingListeners.get(fileHandle.extension()).onOpen(fileHandle);
+        }
 
     }
 
