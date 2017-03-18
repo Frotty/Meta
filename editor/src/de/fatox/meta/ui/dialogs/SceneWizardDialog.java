@@ -56,10 +56,10 @@ public class SceneWizardDialog extends MetaDialog {
         createBtn.setDisabled(true);
 
         setDialogListener((Object object) -> {
+            close();
             if((boolean) object) {
                 sceneManager.createNew(sceneNameTF.getTextField().getText());
             }
-            close();
         });
         setDefaultSize(200, 400);
     }

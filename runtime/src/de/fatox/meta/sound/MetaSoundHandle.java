@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.TimeUtils;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.dao.MetaAudioVideoData;
-import de.fatox.meta.api.dao.MetaData2;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 
@@ -22,7 +22,7 @@ public class MetaSoundHandle {
     @Inject
     private ShapeRenderer shapeRenderer;
     @Inject
-    private MetaData2 metaData;
+    private MetaData metaData;
 
     private final MetaSoundDefinition definition;
     private final long handleId;

@@ -38,10 +38,10 @@ public class FullscreenQuad {
         verts[Y2] = -1f;
 
         verts[X3] = 1f;
-        verts[Y3] = 0.9f;
+        verts[Y3] = 0.875f;
 
         verts[X4] = -1f;
-        verts[Y4] = 0.9f;
+        verts[Y4] = 0.875f;
 
         // tex coords
         verts[U1] = 0f;

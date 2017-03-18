@@ -62,6 +62,7 @@ public abstract class MetaDialog extends MetaWindow {
 
     public void show() {
         // Set color invisible for fade in to work
+        centerWindow();
         setColor(1, 1, 1, 0);
         addAction(Actions.alpha(0.9f, 1f));
     }

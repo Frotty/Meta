@@ -3,6 +3,7 @@ package de.fatox.meta;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.utils.Json;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.entity.EntityManager;
@@ -122,6 +123,11 @@ public class MetaModule {
         return metaLogger;
     }
 
-
+    @Provides
+    @Singleton
+    @Named("default")
+    public Json json() {
+        return new Json();
+    }
 
 }

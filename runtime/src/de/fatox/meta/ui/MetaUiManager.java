@@ -11,7 +11,7 @@ import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.dao.MetaData2;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
@@ -35,7 +35,7 @@ public class MetaUiManager implements UIManager {
     @Inject
     private UIRenderer uiRenderer;
     @Inject
-    private MetaData2 metaData;
+    private MetaData metaData;
     @Inject
     private MetaInput metaInput;
 

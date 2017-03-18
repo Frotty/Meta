@@ -11,7 +11,7 @@ import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.dao.MetaAudioVideoData;
-import de.fatox.meta.api.dao.MetaData2;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.injection.Inject;
@@ -38,7 +38,7 @@ public class MetaSoundPlayer {
     @Inject
     private UIRenderer uiRenderer;
     @Inject
-    private MetaData2 metaData;
+    private MetaData metaData;
 
     public MetaSoundPlayer() {
         Meta.inject(this);

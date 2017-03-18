@@ -2,7 +2,7 @@ package de.fatox.meta;
 
 import com.badlogic.gdx.Gdx;
 import de.fatox.meta.api.dao.MetaAudioVideoData;
-import de.fatox.meta.api.dao.MetaData2;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.modules.MetaEditorModule;
 import de.fatox.meta.modules.MetaUIModule;
@@ -10,7 +10,7 @@ import de.fatox.meta.screens.MetaEditorScreen;
 
 public class EditorMeta extends Meta {
     @Inject
-    private MetaData2 metaData;
+    private MetaData metaData;
 
     public EditorMeta() {
         super();

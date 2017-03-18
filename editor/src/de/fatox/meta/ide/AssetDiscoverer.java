@@ -28,7 +28,7 @@ public class AssetDiscoverer {
     }
 
     public void setFromProject(MetaProjectData metaProjectData) {
-        root = metaProjectData.root.child("assets");
+        root = metaProjectData.root;
         currentFolder = root;
         refresh();
     }

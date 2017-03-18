@@ -7,7 +7,7 @@ import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.Timer;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaAudioVideoData;
-import de.fatox.meta.api.dao.MetaData2;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.injection.Inject;
 
 /**
@@ -15,7 +15,7 @@ import de.fatox.meta.injection.Inject;
  */
 public class MetaMusicPlayer {
     @Inject
-    private MetaData2 metaData;
+    private MetaData metaData;
 
     public float startVolume = 0.01f;
     private boolean musicEnabled = true;

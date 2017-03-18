@@ -1,21 +1,26 @@
 package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
-import com.google.gson.Gson;
+import com.badlogic.gdx.utils.Json;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaSceneData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.tabs.SceneTab;
 
+import java.io.File;
+
 /**
  * Created by Frotty on 15.06.2016.
  */
 public class MetaSceneManager implements SceneManager {
+    private static final String FOLDER = "scenes" + File.separator;
     @Inject
-    private Gson gson;
+    private ProjectManager projectManager;
     @Inject
     private MetaEditorUI metaEditorUI;
+    @Inject
+    private Json json;
 
     public MetaSceneManager() {
         Meta.inject(this);
@@ -24,14 +29,14 @@ public class MetaSceneManager implements SceneManager {
     @Override
     public MetaSceneData createNew(String name) {
         MetaSceneData metaSceneData = new MetaSceneData(name);
-        gson.toJson(metaSceneData);
+        projectManager.getCurrentProject().root.child(FOLDER + name).writeBytes(json.toJson(metaSceneData).getBytes(), false);
         metaEditorUI.addTab(new SceneTab(metaSceneData));
         return metaSceneData;
     }
 
     @Override
     public MetaSceneData loadScene(FileHandle projectFile) {
-        return gson.fromJson(projectFile.readString(), MetaSceneData.class);
+        return json.fromJson(MetaSceneData.class, projectFile.readString());
     }
 
     @Override
