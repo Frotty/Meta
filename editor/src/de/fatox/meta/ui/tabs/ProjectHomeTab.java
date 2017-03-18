@@ -22,7 +22,7 @@ public class ProjectHomeTab extends MetaTab {
     private UIManager uiManager;
 
     public ProjectHomeTab(MetaProjectData metaProjectData) {
-        super(true, true);
+        super(true, false);
         this.projectData = metaProjectData;
         setupTable(metaProjectData);
         uiManager.showWindow(AssetDiscovererWindow.class);

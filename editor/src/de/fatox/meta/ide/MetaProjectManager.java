@@ -45,6 +45,7 @@ public class MetaProjectManager implements ProjectManager {
         metaProjectData.setRoot(projectFile.parent());
         createFolders(metaProjectData);
         currentProject = metaProjectData;
+        editorUI.closeTab("home");
         editorUI.addTab(new ProjectHomeTab(metaProjectData));
         assetDiscoverer.setFromProject(currentProject);
         ExposedArray<String> lastProjects;

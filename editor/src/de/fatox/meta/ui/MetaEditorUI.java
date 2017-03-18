@@ -42,7 +42,7 @@ public class MetaEditorUI {
             public void switchedTab(Tab tab) {
                 uiManager.changeScreen(tab.getClass().getName());
                 apply();
-                ((MetaTab)tab).onDisplay();
+                ((MetaTab) tab).onDisplay();
                 Table content = tab.getContentTable();
 
                 tabTable.clearChildren();
@@ -70,8 +70,8 @@ public class MetaEditorUI {
     }
 
     private Tab getTab(String name) {
-        for(Tab tab : tabbedPane.getTabs()) {
-            if(tab.getTabTitle().equalsIgnoreCase(name)) {
+        for (Tab tab : tabbedPane.getTabs()) {
+            if (tab.getTabTitle().equalsIgnoreCase(name)) {
                 return tab;
             }
         }
@@ -79,6 +79,14 @@ public class MetaEditorUI {
     }
 
     public void focusTab(String name) {
-        tabbedPane.switchTab(getTab(name));
+        if (hasTab(name)) {
+            tabbedPane.switchTab(getTab(name));
+        }
+    }
+
+    public void closeTab(String name) {
+        if (hasTab(name)) {
+            getTab(name).removeFromTabPane();
+        }
     }
 }
