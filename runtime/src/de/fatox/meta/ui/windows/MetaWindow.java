@@ -47,7 +47,7 @@ public abstract class MetaWindow extends VisWindow {
             padBottom(6);
             setResizable(true);
         }
-        contentTable.top().padTop(2);
+        contentTable.top().padTop(4);
         add(contentTable).top().grow();
         row();
     }

@@ -9,6 +9,9 @@ public class MetaSceneData {
     @Expose
     private String name;
 
+    public MetaSceneData() {
+    }
+
     public MetaSceneData(String name) {
         this.name = name;
     }

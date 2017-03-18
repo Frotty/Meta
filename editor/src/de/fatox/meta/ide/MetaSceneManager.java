@@ -15,29 +15,35 @@ import java.io.File;
  */
 public class MetaSceneManager implements SceneManager {
     private static final String FOLDER = "scenes" + File.separator;
-    private static final String ENDING = ".metascene";
+    private static final String EXTENSION = "metascene";
     @Inject
     private ProjectManager projectManager;
     @Inject
     private MetaEditorUI metaEditorUI;
     @Inject
+    private AssetDiscoverer assetDiscoverer;
+    @Inject
     private Json json;
 
     public MetaSceneManager() {
         Meta.inject(this);
+        assetDiscoverer.addOpenListener(EXTENSION, this::loadScene);
     }
 
     @Override
     public MetaSceneData createNew(String name) {
         MetaSceneData metaSceneData = new MetaSceneData(name);
-        projectManager.getCurrentProject().root.child(FOLDER + name + ENDING).writeBytes(json.toJson(metaSceneData).getBytes(), false);
+        projectManager.getCurrentProject().root.child(FOLDER + name + "." + EXTENSION).writeBytes(json.toJson(metaSceneData).getBytes(), false);
         metaEditorUI.addTab(new SceneTab(metaSceneData));
         return metaSceneData;
     }
 
     @Override
-    public MetaSceneData loadScene(FileHandle projectFile) {
-        return json.fromJson(MetaSceneData.class, projectFile.readString());
+    public void loadScene(FileHandle projectFile) {
+        if(metaEditorUI.hasTab(projectFile.name())) {
+            metaEditorUI.focusTab(projectFile.name());
+        }
+        metaEditorUI.addTab(new SceneTab(json.fromJson(MetaSceneData.class, projectFile.readString())));
     }
 
     @Override

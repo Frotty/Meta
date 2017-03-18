@@ -64,4 +64,21 @@ public class MetaEditorUI {
     public void addTab(Tab tab) {
         tabbedPane.add(tab);
     }
+
+    public boolean hasTab(String name) {
+        return getTab(name) != null;
+    }
+
+    private Tab getTab(String name) {
+        for(Tab tab : tabbedPane.getTabs()) {
+            if(tab.getTabTitle().equalsIgnoreCase(name)) {
+                return tab;
+            }
+        }
+        return null;
+    }
+
+    public void focusTab(String name) {
+        tabbedPane.switchTab(getTab(name));
+    }
 }

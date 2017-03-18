@@ -10,7 +10,7 @@ public interface SceneManager {
 
     MetaSceneData createNew(String name);
 
-    MetaSceneData loadScene(FileHandle projectFile);
+    void loadScene(FileHandle projectFile);
 
     void saveScene(MetaSceneData sceneData);
 }

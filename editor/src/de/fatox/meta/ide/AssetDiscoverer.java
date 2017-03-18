@@ -24,7 +24,7 @@ public class AssetDiscoverer {
 
     private Array<FileHandle> currentChildFiles;
 
-    private ObjectMap<String, AssetOpenListener> fileEndingListeners = new ObjectMap<>();
+    private ObjectMap<String, AssetOpenListener> fileOpenListeners = new ObjectMap<>();
 
     public AssetDiscoverer() {
         Meta.inject(this);
@@ -71,13 +71,16 @@ public class AssetDiscoverer {
     }
 
     public void openFile(FileHandle fileHandle) {
-        if(fileEndingListeners.containsKey(fileHandle.extension())) {
-            fileEndingListeners.get(fileHandle.extension()).onOpen(fileHandle);
+        if(fileOpenListeners.containsKey(fileHandle.extension())) {
+            fileOpenListeners.get(fileHandle.extension()).onOpen(fileHandle);
         }
-
     }
 
     public FileHandle getCurrentFolder() {
         return currentFolder;
+    }
+
+    public void addOpenListener(String extension, AssetOpenListener listener) {
+        fileOpenListeners.put(extension, listener);
     }
 }

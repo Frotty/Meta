@@ -156,8 +156,8 @@ public class MetaInput implements InputProcessor {
             return false;
         }
         for (InputProcessor processor : globalProcessors) {
-            if (processor.touchUp(screenX, screenY, pointer, button)) ;
-            return true;
+            if (processor.touchUp(screenX, screenY, pointer, button))
+                return true;
         }
         for (InputProcessor processor : screenProcessors) {
             if (processor.touchUp(screenX, screenY, pointer, button))

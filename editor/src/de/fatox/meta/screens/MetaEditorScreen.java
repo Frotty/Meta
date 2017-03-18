@@ -12,6 +12,7 @@ import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
+import de.fatox.meta.ide.SceneManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.MetaEditorUI;
@@ -35,6 +36,8 @@ public class MetaEditorScreen extends ScreenAdapter {
     private MetaData metaData;
     @Inject
     private AssetProvider assetProvider;
+    @Inject
+    private SceneManager sceneManager;
     private boolean isInited = false;
 
     @Override
