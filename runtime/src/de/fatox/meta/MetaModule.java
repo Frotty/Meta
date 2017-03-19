@@ -63,8 +63,8 @@ public class MetaModule {
     @Singleton
     public PerspectiveCamera perspectiveCamera() {
         PerspectiveCamera cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        cam.position.set(30f, 30f, 30f);
-        cam.lookAt(0, 0, 0);
+        cam.position.set(0, 50f, 50f);
+//        cam.lookAt(0, 0, 0);
         cam.near = 1f;
         cam.far = 350f;
         return cam;

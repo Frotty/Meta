@@ -12,6 +12,7 @@ import de.fatox.meta.api.entity.Entity;
 import de.fatox.meta.injection.Inject;
 
 public class Meta3DEntity implements Entity<Vector3> {
+    public final Vector3 position = new Vector3();
     public final Vector3 center = new Vector3();
     public final Vector3 dimensions = new Vector3();
     public float radius;
@@ -30,11 +31,6 @@ public class Meta3DEntity implements Entity<Vector3> {
         calculateBounds();
 //        actorModel.materials.get(0).set(TextureAttribute.createDiffuse(assetProvider.get("models/mat_ship.bmp", Texture.class)));
        // TODO actorModel.materials.get(0).set(TextureAttribute.createNormal(assetProvider.get("models/CryoFanNM.jpg", Texture.class)));
-    }
-
-    public Meta3DEntity fixInitialPos() {
-        this.actorModel.transform = actorModel.transform.rotate(Vector3.X, 90);
-        return this;
     }
 
     private void calculateBounds() {
@@ -57,7 +53,7 @@ public class Meta3DEntity implements Entity<Vector3> {
 
     @Override
     public Vector3 getCenter() {
-        return new Vector3(0, 0, 0);
+        return center;
     }
 
     @Override
@@ -67,12 +63,16 @@ public class Meta3DEntity implements Entity<Vector3> {
 
     @Override
     public void update() {
-
     }
 
     @Override
     public void draw() {
 
+    }
+
+    public void setPosition(Vector3 vec) {
+        position.set(vec);
+        actorModel.transform.setToTranslation(vec);
     }
 
 }

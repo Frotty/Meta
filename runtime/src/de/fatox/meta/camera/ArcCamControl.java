@@ -3,9 +3,17 @@ package de.fatox.meta.camera;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.VertexAttributes;
+import com.badlogic.gdx.graphics.g3d.Material;
+import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.entity.EntityManager;
+import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.injection.Inject;
 
 /**
@@ -15,6 +23,8 @@ import de.fatox.meta.injection.Inject;
  * @author Frotty
  */
 public class ArcCamControl implements InputProcessor {
+    private static Vector3 temp = new Vector3();
+    private final Meta3DEntity targetDebug;
     /**
      * The button for moving the target.
      */
@@ -35,6 +45,8 @@ public class ArcCamControl implements InputProcessor {
      */
     @Inject
     public PerspectiveCamera camera;
+    @Inject
+    public EntityManager<Meta3DEntity> entityManager;
     /**
      * Are we in moveMode?
      */
@@ -51,6 +63,7 @@ public class ArcCamControl implements InputProcessor {
      * The angle in which the camera looks onto the target
      */
     private float angleOfAttack = 56;
+
     /**
      * Distance from target
      */
@@ -69,32 +82,31 @@ public class ArcCamControl implements InputProcessor {
 
     public ArcCamControl() {
         Meta.inject(this);
+        ModelBuilder modelBuilder = new ModelBuilder();
+        final Material material = new Material(ColorAttribute.createDiffuse(Color.RED));
+        final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.ColorUnpacked;
+        Model box = modelBuilder.createBox(8, 8, 8, material, attributes);
+        targetDebug = new Meta3DEntity(target, box);
         update();
+        entityManager.addEntity(targetDebug);
     }
 
-    /**
-     * Peq's work
-     */
     public void update() {
-        if (angleOfAttack < -180) {
-            angleOfAttack += 360;
-        } else if (angleOfAttack > 180) {
-            angleOfAttack -= 360;
-        }
+        target.lerp(temp, 0.5f);
+        targetDebug.setPosition(target);
+
         camera.position.x = ppX(target.x, distance, rotationAngle, angleOfAttack);
-        camera.position.y = ppY(target.y, distance, rotationAngle, angleOfAttack);
-        camera.position.z = ppZ(0, distance, angleOfAttack);
+        camera.position.y = ppY(0, distance, angleOfAttack);
+        camera.position.z = ppZ(target.z, distance, rotationAngle, angleOfAttack);
 
         camera.direction.x = target.x - camera.position.x;
         camera.direction.y = target.y - camera.position.y;
         camera.direction.z = target.z - camera.position.z;
-        camera.direction.nor();
 
-        camera.up.x = -cos(rotationAngle) * sin(angleOfAttack);
-        camera.up.y = -sin(rotationAngle) * sin(angleOfAttack);
-        camera.up.z = cos(angleOfAttack);
+        camera.up.x = -sin(rotationAngle) * cos(angleOfAttack);
+        camera.up.y = sin(angleOfAttack);
+        camera.up.z = -cos(rotationAngle) * cos(angleOfAttack);
         camera.update();
-        target.lerp(temp, 0.5f);
     }
 
     private static float cos(float aoa) {
@@ -132,8 +144,6 @@ public class ArcCamControl implements InputProcessor {
         return false;
     }
 
-    private static Vector3 temp = new Vector3();
-
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
         // Touch drag equals clicking a mouseButton and then moving the mouse
@@ -154,7 +164,7 @@ public class ArcCamControl implements InputProcessor {
                     deltaX *= distance / 100;
                     deltaY *= distance / 100;
                 }
-                temp.set(target).add(cos(rotationAngle) * deltaY + sin(rotationAngle) * deltaX, sin(rotationAngle) * deltaY + cos(rotationAngle) * -deltaX, 0);
+                temp.set(target).add(sin(rotationAngle) * deltaY + cos(rotationAngle) * -deltaX, 0, cos(rotationAngle) * deltaY + sin(rotationAngle) * deltaX);
             }
             update();
         }
@@ -211,15 +221,15 @@ public class ArcCamControl implements InputProcessor {
      * Polar Projection from Wurst
      */
     private static float ppX(float x, float dist, float ang, float aoa) {
-        return (float) (x + dist * Math.cos(ang * DEGTORAD) * Math.cos(aoa * DEGTORAD));
+        return (float) (x + dist * Math.sin(ang * DEGTORAD) * Math.sin(aoa * DEGTORAD));
     }
 
-    private static float ppY(float y, float dist, float ang, float aoa) {
-        return (float) (y + dist * Math.sin(ang * DEGTORAD) * Math.cos(aoa * DEGTORAD));
+    private static float ppY(float y, float dist, float ang) {
+        return (float) (y + dist * Math.cos(ang * DEGTORAD));
     }
 
-    private static float ppZ(float z, float dist, float ang) {
-        return (float) (z + dist * Math.sin(ang * DEGTORAD));
+    private static float ppZ(float z, float dist, float ang, float aoa) {
+        return (float) (z + dist * Math.cos(ang * DEGTORAD) * Math.sin(aoa * DEGTORAD));
     }
 
     public static final float DEGTORAD = 0.017453293f;

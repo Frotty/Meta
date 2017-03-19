@@ -101,6 +101,13 @@ public class EditorMenuBar {
                 uiManager.showWindow(PrimitivesWindow.class);
             }
         });
+        MenuItem cameraItem = new MenuItem("Camera");
+        cameraItem.addListener(new MetaClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                uiManager.showWindow(CameraWindow.class);
+            }
+        });
         MenuItem shaderMenu = new MenuItem("Shader Library");
         shaderMenu.addListener(new MetaClickListener() {
             @Override
@@ -116,6 +123,7 @@ public class EditorMenuBar {
             }
         });
         editMenu.addItem(assetItem);
+        editMenu.addItem(cameraItem);
         editMenu.addItem(primitivesItem);
         editMenu.addItem(shaderMenu);
         editMenu.addItem(shaderPipeMenu);

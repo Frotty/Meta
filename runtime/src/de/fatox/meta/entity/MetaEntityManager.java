@@ -30,12 +30,15 @@ public class MetaEntityManager implements EntityManager<Meta3DEntity> {
         ModelBuilder modelBuilder = new ModelBuilder();
         Model model = assetProvider.get("models/cryofan.g3db", Model.class);
         final Material material = new Material(ColorAttribute.createDiffuse(Color.LIGHT_GRAY));
+        final Material material2 = new Material(ColorAttribute.createDiffuse(Color.GREEN));
         final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.ColorUnpacked;
 //        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), model).fixInitialPos());
 //        addEntity(new Meta3DEntity(new Vector3(10, 0, 0), model).fixInitialPos());
 //        addEntity(new Meta3DEntity(new Vector3(0, 10, 0), model).fixInitialPos());
+        Model box2 = modelBuilder.createXYZCoordinates(32, material2, attributes);
         Model box = modelBuilder.createLineGrid(64,64, 32, 32, material, attributes);
-        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), box).fixInitialPos());
+        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), box));
+        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), box2));
     }
 
     @Override
