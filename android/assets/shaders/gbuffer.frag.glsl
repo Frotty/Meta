@@ -13,6 +13,7 @@ uniform vec3 u_mat;
 uniform vec3 u_camPos;
 
 in vec4 v_pos;
+in vec4 v_color;
 in vec3 v_normal;
 in vec3 v_tangent;
 in vec3 v_binormal;
@@ -54,7 +55,7 @@ vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord )
 }
 
 void main() {
-	vec3 albedo = texture(s_diffuseTex, v_texCoord0).rgb * u_diffuseColor;
+	vec3 albedo = texture(s_diffuseTex, v_texCoord0).rgb * u_diffuseColor * v_color.rgb;
 	// Albedo (color-tinted diffuse)
 	o_albedo = vec4(albedo,1.0);//vec4(albedo, 1.0);
 	vec3 viewVec = normalize(u_camPos - v_pos.xyz);
