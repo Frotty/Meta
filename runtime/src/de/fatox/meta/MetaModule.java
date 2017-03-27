@@ -3,6 +3,7 @@ package de.fatox.meta;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.utils.Json;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
@@ -65,17 +66,16 @@ public class MetaModule {
         PerspectiveCamera cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         cam.position.set(0, 50f, 50f);
 //        cam.lookAt(0, 0, 0);
-        cam.near = 1f;
+        cam.near = 1;
         cam.far = 350f;
         return cam;
     }
 
-//    @Provides
-//    @Singleton
-//    @Named("default")
-//    public EntityManager entityManager(MetaEntityManager metaEntityManager) {
-//        return metaEntityManager;
-//    }
+    @Provides
+    @Singleton
+    public ModelBuilder modelBuilder() {
+        return new ModelBuilder();
+    }
 
     @Provides
     @Singleton

@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix3;
@@ -81,15 +80,15 @@ public class GBufferShader implements Shader {
 
         // Bind Textures
         // Diffuse-
-        TextureAttribute tex = (TextureAttribute) renderable.material.get(TextureAttribute.Diffuse);
-        if (tex != null) {
-            program.setUniformi(s_diffuseTex, context.textureBinder.bind((tex).textureDescription.texture));
-        }
-        // Normal Map (for different lighting on a plane)
-        TextureAttribute texn = (TextureAttribute) renderable.material.get(TextureAttribute.Normal);
-        if (texn != null) {
-            program.setUniformi(s_normalTex, context.textureBinder.bind((texn).textureDescription.texture));
-        }
+//        TextureAttribute tex = (TextureAttribute) renderable.material.get(TextureAttribute.Diffuse);
+//        if (tex != null) {
+//            program.setUniformi(s_diffuseTex, context.textureBinder.bind((tex).textureDescription.texture));
+//        }
+//        // Normal Map (for different lighting on a plane)
+//        TextureAttribute texn = (TextureAttribute) renderable.material.get(TextureAttribute.Normal);
+//        if (texn != null) {
+//            program.setUniformi(s_normalTex, context.textureBinder.bind((texn).textureDescription.texture));
+//        }
 
         ColorAttribute col = (ColorAttribute) renderable.material.get(ColorAttribute.Diffuse);
         if (col != null) {

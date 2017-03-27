@@ -40,6 +40,33 @@ public class MetaShaderLibrary implements ShaderLibrary {
             }
         };
         activeShaders.add(testShader);
+
+        Shader lightShader = new de.fatox.meta.entity.LightShader();
+        lightShader.init();
+        ShaderInfo testShader2 = new ShaderInfo() {
+            RenderTarget[] tgts = new RenderTarget[]{new RenderTarget("outColor")};
+
+            @Override
+            public boolean isDepth() {
+                return false;
+            }
+
+            @Override
+            public RenderTarget[] getRenderTargets() {
+                return tgts;
+            }
+
+            @Override
+            public Shader getShader() {
+                return lightShader;
+            }
+
+            @Override
+            public String getName() {
+                return "Test2";
+            }
+        };
+        activeShaders.add(testShader2);
     }
 
     @Override

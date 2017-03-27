@@ -118,8 +118,8 @@ void main()
 
 	ao /= float(samples);
 	ao = 1.0-ao;
-	outColor = vec4(texture(s_albedoTex, v_texCoord0.xy)); //ambient occlusion only
 
+	outColor = vec4(ao);//vec4(texture(s_albedoTex, v_texCoord0.xy)); //ambient occlusion only
 }
 //void main(void)
 //{

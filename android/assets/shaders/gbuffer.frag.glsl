@@ -11,7 +11,7 @@ uniform mat4 u_projTrans;
 uniform mat4 u_mvTrans;
 uniform vec3 u_mat;
 uniform vec3 u_camPos;
-
+uniform mat4 u_worldTrans;
 in vec4 v_pos;
 in vec4 v_color;
 in vec3 v_normal;
@@ -21,7 +21,7 @@ in vec2 v_texCoord0;
 
 layout(location = 0) out vec4 o_albedo;
 layout(location = 1) out vec4 o_normalsDepth;
-layout(location = 2) out vec4 o_aux;
+layout(location = 2) out vec4 o_pos;
 
 mat3 cotangent_frame( vec3 N, vec3 p, vec2 uv )
 {
@@ -46,7 +46,7 @@ vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord )
 {
     // assume N, the interpolated vertex normal and 
     // V, the view vector (vertex to eye)
-    vec3 map = texture( s_normalTex, texcoord ).xyz;
+    vec3 map = texture(s_normalTex, texcoord ).xyz;
     map = map * 255./127. - 128./127.;
    //map.z = sqrt( 1. - dot( map.xy, map.xy ) );
     //map.y = -map.y;
@@ -58,9 +58,8 @@ void main() {
 	vec3 albedo = texture(s_diffuseTex, v_texCoord0).rgb * u_diffuseColor * v_color.rgb;
 	// Albedo (color-tinted diffuse)
 	o_albedo = vec4(albedo,1.0);//vec4(albedo, 1.0);
-	vec3 viewVec = normalize(u_camPos - v_pos.xyz);
 	// Normals & Depth
-	o_normalsDepth = vec4(perturb_normal(v_normal, viewVec, v_texCoord0),1);
+	o_normalsDepth = vec4(v_normal,1);
 	// Material Properties	
-	o_aux = vec4(u_mat, 1.0);
+	o_pos = v_pos;
 }

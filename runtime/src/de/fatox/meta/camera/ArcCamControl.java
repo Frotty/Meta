@@ -47,6 +47,8 @@ public class ArcCamControl implements InputProcessor {
     public PerspectiveCamera camera;
     @Inject
     public EntityManager<Meta3DEntity> entityManager;
+    @Inject
+    public ModelBuilder modelBuilder;
     /**
      * Are we in moveMode?
      */
@@ -82,10 +84,10 @@ public class ArcCamControl implements InputProcessor {
 
     public ArcCamControl() {
         Meta.inject(this);
-        ModelBuilder modelBuilder = new ModelBuilder();
-        final Material material = new Material(ColorAttribute.createDiffuse(Color.RED));
+
+        final Material material = new Material(ColorAttribute.createDiffuse(Color.SLATE));
         final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.ColorUnpacked;
-        Model box = modelBuilder.createBox(8, 8, 8, material, attributes);
+        Model box = modelBuilder.createSphere(4, 4, 4, 12,12, material, attributes);
         targetDebug = new Meta3DEntity(target, box);
         update();
         entityManager.addEntity(targetDebug);

@@ -52,8 +52,8 @@ public class Meta3DEntity implements Entity<Vector3> {
     }
 
     @Override
-    public Vector3 getCenter() {
-        return center;
+    public Vector3 getPosition() {
+        return position;
     }
 
     @Override

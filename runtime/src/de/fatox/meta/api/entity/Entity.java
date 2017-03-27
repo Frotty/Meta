@@ -6,7 +6,7 @@ public interface Entity<DIMENSION extends Vector> {
 
     int getId();
 
-    DIMENSION getCenter();
+    DIMENSION getPosition();
 
     void update();
 

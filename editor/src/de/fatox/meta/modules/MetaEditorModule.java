@@ -1,7 +1,6 @@
 package de.fatox.meta.modules;
 
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
@@ -79,13 +78,6 @@ public class MetaEditorModule {
     @Named("default")
     public ShaderLibrary shaderLibrary(MetaShaderLibrary metaShaderLibrary) {
         return metaShaderLibrary;
-    }
-
-    @Provides
-    @Singleton
-    @Named("default")
-    public DefaultTextureBinder textureBinder() {
-        return new DefaultTextureBinder(DefaultTextureBinder.ROUNDROBIN, 10);
     }
 
     @Provides
