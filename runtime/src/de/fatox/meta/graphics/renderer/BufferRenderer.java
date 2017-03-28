@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pool;
@@ -57,6 +58,7 @@ public class BufferRenderer implements Renderer {
     }
 
     public void render(float x, float y, float width, float height) {
+        ShaderProgram.pedantic = false;
         mrtFrameBuffer.begin();
         renderContext.begin();
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
@@ -87,7 +89,7 @@ public class BufferRenderer implements Renderer {
         shader.begin(cam, renderContext);
         int bind = renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(3));
         shader.getProgram().setUniformi("s_depth", bind);
-//        shader.getProgram().setUniformi("s_normalDepthTex", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
+        shader.getProgram().setUniformi("s_normal", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
         for (LightEntity le : lights) {
             shader.render(le.volumeSphere.getRenderable(new Renderable()));
         }
@@ -117,12 +119,11 @@ public class BufferRenderer implements Renderer {
     private void debugAll(float x, float y, float width, float height) {
         batch.disableBlending();
         batch.begin();
-        float debugScreens = 5;
+        float debugScreens = 4;
         batch.draw(mrtFrameBuffer.getColorBufferTexture(0), x, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
         batch.draw(mrtFrameBuffer.getColorBufferTexture(1), x + width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
-        batch.draw(mrtFrameBuffer.getColorBufferTexture(2), x + 2 * width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
-        batch.draw(mrtFrameBuffer.getColorBufferTexture(3), x + 3 * width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
-        batch.draw(lightingBuffer.getColorBufferTexture(), x + 4 * width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
+        batch.draw(mrtFrameBuffer.getColorBufferTexture(3), x + 2 * width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
+        batch.draw(lightingBuffer.getColorBufferTexture(), x + 3 * width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
         batch.end();
     }
 
