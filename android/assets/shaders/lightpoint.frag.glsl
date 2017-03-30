@@ -35,5 +35,5 @@ void main() {
     float fallof = max(0.0, 1.0f / (distFromLight / (u_lightRadius - distFromLight)));
     float lambert = clamp(dot(normal, lightDir), 0.0, 1.0);
     float diff = fallof * lambert;
-    outColor = vec4(diff,diff,diff,1.0);
+    outColor = vec4(diff * u_lightColor,1.0);
 }

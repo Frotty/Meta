@@ -54,7 +54,8 @@ public class BufferRenderer implements Renderer {
         Meta.inject(this);
         cam.update();
         rebuild(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        lights.add(new LightEntity(Vector3.Zero, 50, Vector3.X));
+        lights.add(new LightEntity(new Vector3(0, 50, 0), 150, Vector3.X));
+        lights.add(new LightEntity(new Vector3(50, 0, 0), 150, Vector3.Y));
     }
 
     public void render(float x, float y, float width, float height) {
@@ -91,6 +92,7 @@ public class BufferRenderer implements Renderer {
         shader.getProgram().setUniformi("s_depth", bind);
         shader.getProgram().setUniformi("s_normal", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
         for (LightEntity le : lights) {
+            shader.getProgram().setUniformf("u_lightColor", le.color);
             shader.render(le.volumeSphere.getRenderable(new Renderable()));
         }
         shader.end();

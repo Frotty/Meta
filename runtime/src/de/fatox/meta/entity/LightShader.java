@@ -78,14 +78,13 @@ public class LightShader implements Shader {
     @Override
     public void render(Renderable renderable) {
         context.setDepthMask(false);
-        context.setDepthTest(0);
+        context.setDepthTest(GL20.GL_GEQUAL);
         context.setBlending(true, GL20.GL_ONE, GL20.GL_ONE);
         context.setCullFace(GL20.GL_FRONT);
         renderable.worldTransform.getTranslation(tempV);
         program.setUniformf(u_LightPosition, tempV);
 
         program.setUniformf(u_LightRadius, 50f);
-        program.setUniformf(u_LightColor, Vector3.X);
 
 
         program.setUniformMatrix(u_WorldTrans, renderable.worldTransform);
