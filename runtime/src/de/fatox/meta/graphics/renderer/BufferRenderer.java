@@ -54,8 +54,8 @@ public class BufferRenderer implements Renderer {
         Meta.inject(this);
         cam.update();
         rebuild(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        lights.add(new LightEntity(new Vector3(0, 50, 0), 150, Vector3.X));
-        lights.add(new LightEntity(new Vector3(50, 0, 0), 150, Vector3.Y));
+        lights.add(new LightEntity(new Vector3(0, 50, 0), 250, Vector3.Y));
+        lights.add(new LightEntity(new Vector3(50, 0, 0), 250, Vector3.X));
     }
 
     public void render(float x, float y, float width, float height) {
@@ -84,10 +84,12 @@ public class BufferRenderer implements Renderer {
         renderContext.end();
         renderContext.begin();
         lightingBuffer.begin();
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
         ShaderInfo shaderInfo2 = shaderLibrary.getActiveShaders().get(1);
         LightShader shader = (LightShader) shaderInfo2.getShader();
         shader.begin(cam, renderContext);
+        shader.getProgram().setUniformf("u_inverseScreenSize", 1.0f / mrtFrameBuffer.getWidth(), 1.0f /  mrtFrameBuffer.getHeight());
         int bind = renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(3));
         shader.getProgram().setUniformi("s_depth", bind);
         shader.getProgram().setUniformi("s_normal", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
@@ -104,8 +106,8 @@ public class BufferRenderer implements Renderer {
 ////        mrtFrameBuffer.getColorBufferTexture(0).bind(21);
 //        mrtSceneShader.setUniformi("u_normalTexture",
 //                renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
-//        mrtSceneShader.getProgram().setUniformi("s_albedoTex", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(0)));
-        mrtSceneShader.getProgram().setUniformi("s_depthTex", bind);
+        mrtSceneShader.getProgram().setUniformi("s_albedoTex", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(0)));
+        mrtSceneShader.getProgram().setUniformi("s_lightTex", renderContext.textureBinder.bind(lightingBuffer.getColorBufferTexture()));
 //        renderContext.bind(mrtFrameBuffer.getColorBufferTexture(0));
 ////        mrtSceneShader.setUniformf("u_nearDistance", cam.near);
 ////        mrtSceneShader.setUniformf("u_farDistance", cam.far);

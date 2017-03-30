@@ -125,6 +125,5 @@ public class LightShader implements Shader {
 //        program.setUniformf("u_farDistance", camera.far);
         program.setUniformf(u_FarDistance, camera.far);
         program.setUniformf(u_CamPos, camera.position);
-        program.setUniformf(u_InverseScreenSize, 1.0f / Gdx.graphics.getWidth(), 1.0f / Gdx.graphics.getHeight());
     }
 }

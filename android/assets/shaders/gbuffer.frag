@@ -1,11 +1,12 @@
 #version 300 es
 precision mediump float;
+
 // Textures
 uniform sampler2D s_diffuseTex;
 uniform sampler2D s_normalTex;
-
 // Material Properties
 uniform vec3 u_diffuseColor;
+
 in vec4 v_pos;
 in vec4 v_color;
 in vec3 v_normal;

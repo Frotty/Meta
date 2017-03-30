@@ -9,5 +9,6 @@ out vec2 v_texCoord0;
 
 void main() {
     v_texCoord0 = a_texCoord0.st;
+	
     gl_Position = a_position;
 }
