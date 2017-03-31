@@ -47,6 +47,7 @@ public class MetaEditorUI {
 
                 tabTable.clearChildren();
                 tabTable.add(content).expand().fill();
+                uiManager.bringWindowsToFront();
             }
 
         });

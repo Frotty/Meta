@@ -3,12 +3,7 @@ package de.fatox.meta.camera;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.VertexAttributes;
-import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import de.fatox.meta.Meta;
@@ -17,58 +12,39 @@ import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.injection.Inject;
 
 /**
- * Better camera control because I dislike LibGDX's ones
+ * Better camera control because I dislike LibGDX's
  * Very similar to World Editor.
  *
  * @author Frotty
  */
 public class ArcCamControl implements InputProcessor {
     private static Vector3 temp = new Vector3();
-    private final Meta3DEntity targetDebug;
-    /**
-     * The button for moving the target.
-     */
+    /** The button for moving the target. */
     public int moveCameraButton = Buttons.RIGHT;
     public int resetCameraButton = Buttons.MIDDLE;
-    /**
-     * The units to translate the camera when moved the full width or height of the screen.
-     */
+    /** The units to translate the camera when moved the full width or height of the screen. */
     public float translateUnits = 2f; // FIXME auto calculate this based on the target
-    /**
-     * The key which must be pressed to enter rotation mode.
-     */
+    /** The key which must be pressed to enter rotation mode. */
     public int rotateMode = Keys.CONTROL_LEFT;
     protected boolean rotateModeOn = false;
     protected boolean fastZoomMode = false;
-    /**
-     * The camera.
-     */
+    /** The camera. */
     @Inject
     public PerspectiveCamera camera;
     @Inject
     public EntityManager<Meta3DEntity> entityManager;
     @Inject
     public ModelBuilder modelBuilder;
-    /**
-     * Are we in moveMode?
-     */
+    /** Are we in moveMode? */
     private boolean moveModeOn = false;
-    /**
-     * The target of the arcball
-     */
+    /** The target of the arcball */
     private Vector3 target = Vector3.Zero;
-    /**
-     * The planar (X/Y) rotation of the camera
-     */
+    /** The planar (X/Y) rotation of the camera */
     private float rotationAngle = 0;
-    /**
-     * The angle in which the camera looks onto the target
-     */
+    /** The angle in which the camera looks onto the target */
     private float angleOfAttack = 56;
 
-    /**
-     * Distance from target
-     */
+    /** Distance from target */
     private float distance = 50;
 
     public float getDistance() {
@@ -84,18 +60,11 @@ public class ArcCamControl implements InputProcessor {
 
     public ArcCamControl() {
         Meta.inject(this);
-
-        final Material material = new Material(ColorAttribute.createDiffuse(Color.SLATE));
-        final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.ColorUnpacked;
-        Model box = modelBuilder.createSphere(4, 4, 4, 42,42, material, attributes);
-        targetDebug = new Meta3DEntity(target, box);
         update();
-        entityManager.addEntity(targetDebug);
     }
 
     public void update() {
         target.lerp(temp, 0.5f);
-        targetDebug.setPosition(target);
 
         camera.position.x = ppX(target.x, distance, rotationAngle, angleOfAttack);
         camera.position.y = ppY(0, distance, angleOfAttack);
@@ -219,9 +188,7 @@ public class ArcCamControl implements InputProcessor {
         return false;
     }
 
-    /**
-     * Polar Projection from Wurst
-     */
+    /** Polar Projection from Wurst */
     private static float ppX(float x, float dist, float ang, float aoa) {
         return (float) (x + dist * Math.sin(ang * DEGTORAD) * Math.sin(aoa * DEGTORAD));
     }

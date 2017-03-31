@@ -2,6 +2,9 @@ package de.fatox.meta.shader;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
@@ -27,6 +30,7 @@ public class GBufferShader implements Shader {
     private int s_normalTex;
     private int u_diffuseColor;
     private int u_camPos;
+    private Texture whiteTex;
 
     @Override
     public void init() {
@@ -45,6 +49,10 @@ public class GBufferShader implements Shader {
         s_diffuseTex = program.getUniformLocation("s_diffuseTex");
         s_normalTex = program.getUniformLocation("s_normalTex");
         u_camPos = program.getUniformLocation("u_camPos");
+
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGB888);
+        pixmap.drawPixel(0,0, Color.WHITE.toIntBits());
+        whiteTex = new Texture(pixmap);
     }
 
     @Override
@@ -69,6 +77,8 @@ public class GBufferShader implements Shader {
     Vector3 tempV = new Vector3();
     private final static Matrix4 idtMatrix = new Matrix4();
 
+
+
     @Override
     public void render(Renderable renderable) {
         program.setUniformMatrix(u_worldTrans, renderable.worldTransform);
@@ -84,6 +94,8 @@ public class GBufferShader implements Shader {
         TextureAttribute diffuseTex = (TextureAttribute) renderable.material.get(TextureAttribute.Diffuse);
         if (diffuseTex != null) {
             program.setUniformi(s_diffuseTex, context.textureBinder.bind((diffuseTex).textureDescription.texture));
+        } else {
+            program.setUniformi(s_diffuseTex, context.textureBinder.bind(whiteTex));
         }
         // Normal Map (for different lighting on a plane)
         TextureAttribute normalTex = (TextureAttribute) renderable.material.get(TextureAttribute.Normal);

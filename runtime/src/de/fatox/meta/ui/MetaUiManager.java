@@ -186,6 +186,13 @@ public class MetaUiManager implements UIManager {
         }
     }
 
+    @Override
+    public void bringWindowsToFront() {
+        for(Window window : displayedWindows) {
+            window.toFront();
+        }
+    }
+
 
     public <T extends Window> T displayWindow(Class<? extends T> windowClass) {
         // Check if this window is a singleton. If it is and it is displayed, return displayed instance

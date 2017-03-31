@@ -2,6 +2,7 @@ package de.fatox.meta.graphics.renderer;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -57,16 +58,17 @@ public class BufferRenderer implements Renderer {
         rebuild(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         for (int i = -2; i < 2; i++) {
             for (int j = -2; j < 2; j++) {
-                lights.add(new LightEntity(new Vector3(i * 45, 25, j * 45), 150, new Vector3(MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f))));
             }
         }
+        lights.add(new LightEntity(new Vector3(0, 25, 0), 150, new Vector3(MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f))));
     }
 
     public void render(float x, float y, float width, float height) {
         ShaderProgram.pedantic = false;
         mrtFrameBuffer.begin();
         renderContext.begin();
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+        Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT |
+                (Gdx.graphics.getBufferFormat().coverageSampling ? GL20.GL_COVERAGE_BUFFER_BIT_NV : 0));
         renerablePool.flush();
         renderables.clear();
 
@@ -89,7 +91,8 @@ public class BufferRenderer implements Renderer {
         renderContext.begin();
         lightingBuffer.begin();
         Gdx.gl.glClearColor(0f, 0f, 0f, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+        Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT |
+                (Gdx.graphics.getBufferFormat().coverageSampling ? GL20.GL_COVERAGE_BUFFER_BIT_NV : 0));
         ShaderInfo shaderInfo2 = shaderLibrary.getActiveShaders().get(1);
         LightShader shader = (LightShader) shaderInfo2.getShader();
         shader.begin(cam, renderContext);

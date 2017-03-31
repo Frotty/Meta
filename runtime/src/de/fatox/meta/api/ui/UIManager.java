@@ -35,4 +35,6 @@ public interface UIManager {
     void closeWindow(Window window);
 
     void updateWindow(Window window);
+
+    void bringWindowsToFront();
 }

@@ -53,7 +53,8 @@ public abstract class Buffer {
         Gdx.gl30.glDrawBuffers(ibuffer.capacity(), ibuffer);
         Gdx.gl30.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         Gdx.gl30.glClearDepthf(1.0f);
-        Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT);
+        Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT |
+                (Gdx.graphics.getBufferFormat().coverageSampling ? GL20.GL_COVERAGE_BUFFER_BIT_NV : 0));
     }
 
     public abstract void draw(ModelBatch mbatch, PerspectiveCamera cam);
@@ -62,7 +63,7 @@ public abstract class Buffer {
         texs = new Array<>(ibuffer.capacity() + 1);
         for (int i = 0; i < ibuffer.capacity(); i++) {
             BufferTexture tex;
-            if(shaderInfo.isDepth()) {
+            if (shaderInfo.isDepth()) {
                 tex = new BufferTexture(GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE, offset + i, shaderInfo.getRenderTargets()[i].name);
             } else {
                 tex = new BufferTexture(offset + i, shaderInfo.getRenderTargets()[i].name);
