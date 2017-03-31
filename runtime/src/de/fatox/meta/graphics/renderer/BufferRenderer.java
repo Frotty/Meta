@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pool;
@@ -54,8 +55,11 @@ public class BufferRenderer implements Renderer {
         Meta.inject(this);
         cam.update();
         rebuild(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        lights.add(new LightEntity(new Vector3(0, 50, 0), 250, Vector3.Y));
-        lights.add(new LightEntity(new Vector3(50, 0, 0), 250, Vector3.X));
+        for (int i = -2; i < 2; i++) {
+            for (int j = -2; j < 2; j++) {
+                lights.add(new LightEntity(new Vector3(i * 45, 25, j * 45), 150, new Vector3(MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f))));
+            }
+        }
     }
 
     public void render(float x, float y, float width, float height) {

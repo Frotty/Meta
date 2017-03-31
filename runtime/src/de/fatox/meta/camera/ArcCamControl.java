@@ -87,7 +87,7 @@ public class ArcCamControl implements InputProcessor {
 
         final Material material = new Material(ColorAttribute.createDiffuse(Color.SLATE));
         final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.ColorUnpacked;
-        Model box = modelBuilder.createSphere(4, 4, 4, 12,12, material, attributes);
+        Model box = modelBuilder.createSphere(4, 4, 4, 42,42, material, attributes);
         targetDebug = new Meta3DEntity(target, box);
         update();
         entityManager.addEntity(targetDebug);

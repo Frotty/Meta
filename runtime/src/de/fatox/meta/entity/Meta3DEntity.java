@@ -29,8 +29,6 @@ public class Meta3DEntity implements Entity<Vector3> {
         Meta.inject(this);
         this.actorModel = new ModelInstance(modelBase, pos);
         calculateBounds();
-//        actorModel.materials.get(0).set(TextureAttribute.createDiffuse(assetProvider.get("models/mat_ship.bmp", Texture.class)));
-       // TODO actorModel.materials.get(0).set(TextureAttribute.createNormal(assetProvider.get("models/CryoFanNM.jpg", Texture.class)));
     }
 
     private void calculateBounds() {

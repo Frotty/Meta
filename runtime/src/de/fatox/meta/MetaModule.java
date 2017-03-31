@@ -67,7 +67,7 @@ public class MetaModule {
         cam.position.set(0, 50f, 50f);
 //        cam.lookAt(0, 0, 0);
         cam.near = 1;
-        cam.far = 350f;
+        cam.far = 750f;
         return cam;
     }
 

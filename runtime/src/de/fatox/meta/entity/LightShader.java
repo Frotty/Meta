@@ -36,8 +36,8 @@ public class LightShader implements Shader {
 
     @Override
     public void init() {
-        String vert = Gdx.files.internal("shaders/lightpoint.vert.glsl").readString();
-        String frag = Gdx.files.internal("shaders/lightpoint.frag.glsl").readString();
+        String vert = Gdx.files.internal("shaders/lightpoint.vert").readString();
+        String frag = Gdx.files.internal("shaders/lightpoint.frag").readString();
         program = new ShaderProgram(vert, frag);
         if (!program.isCompiled()) {
             throw new GdxRuntimeException(program.getLog());
