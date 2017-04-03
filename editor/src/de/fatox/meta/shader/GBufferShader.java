@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
@@ -15,7 +16,11 @@ import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import de.fatox.meta.Meta;
+import de.fatox.meta.api.AssetProvider;
+import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.camera.ArcCamControl;
+import de.fatox.meta.injection.Inject;
 
 public class GBufferShader implements Shader {
     ShaderProgram program;
@@ -34,8 +39,12 @@ public class GBufferShader implements Shader {
     private Texture whiteTex;
     private Texture emptyNormals;
 
+    @Inject
+    private AssetProvider assetProvider;
+
     @Override
     public void init() {
+        Meta.inject(this);
         String vert = Gdx.files.internal("shaders/gbuffer.vert").readString();
         String frag = Gdx.files.internal("shaders/gbuffer.frag").readString();
         program = new ShaderProgram(vert, frag);
@@ -55,9 +64,7 @@ public class GBufferShader implements Shader {
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGB888);
         pixmap.drawPixel(0, 0, Color.WHITE.toIntBits());
         whiteTex = new Texture(pixmap);
-        Pixmap pixmap2 = new Pixmap(1, 1, Pixmap.Format.RGB888);
-        pixmap2.drawPixel(0, 0, Color.valueOf("#7d80fe").toIntBits());
-        emptyNormals = new Texture(pixmap2);
+        emptyNormals = assetProvider.get("models/empty_n.png", Texture.class);
     }
 
     @Override

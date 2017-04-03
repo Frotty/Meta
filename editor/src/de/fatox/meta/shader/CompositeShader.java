@@ -53,6 +53,7 @@ public class CompositeShader extends FullscreenShader {
         program.begin();
         program.setUniformf(u_nearDistance, camera.near);
         program.setUniformf(u_farDistance, camera.far);
+        program.setUniformMatrix("u_invProjTrans", camera.invProjectionView);
     }
 
 

@@ -98,7 +98,8 @@ public class BufferRenderer implements Renderer {
         shader.getProgram().setUniformf("u_inverseScreenSize", 1.0f / mrtFrameBuffer.getWidth(), 1.0f / mrtFrameBuffer.getHeight());
         int bind = renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(3));
         shader.getProgram().setUniformi("s_depth", bind);
-        shader.getProgram().setUniformi("s_normal", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
+        int bind1 = renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1));
+        shader.getProgram().setUniformi("s_normal", bind1);
         for (LightEntity le : lights) {
             shader.getProgram().setUniformf("u_lightColor", le.color);
             shader.render(le.volumeSphere.getRenderable(new Renderable()));
@@ -114,6 +115,8 @@ public class BufferRenderer implements Renderer {
 //                renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
         mrtSceneShader.getProgram().setUniformi("s_albedoTex", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(0)));
         mrtSceneShader.getProgram().setUniformi("s_lightTex", renderContext.textureBinder.bind(lightingBuffer.getColorBufferTexture()));
+        shader.getProgram().setUniformi("s_normalTex", bind1);
+        mrtSceneShader.getProgram().setUniformi("s_depthTex", bind);
 //        renderContext.bind(mrtFrameBuffer.getColorBufferTexture(0));
 ////        mrtSceneShader.setUniformf("u_nearDistance", cam.near);
 ////        mrtSceneShader.setUniformf("u_farDistance", cam.far);

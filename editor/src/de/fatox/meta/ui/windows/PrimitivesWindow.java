@@ -41,14 +41,15 @@ public class PrimitivesWindow extends MetaWindow {
                     TextureAttribute.createNormal(assetProvider.get("models/crates_n.png", Texture.class)));
             final long attributes = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.ColorUnpacked |
                     VertexAttributes.Usage.TextureCoordinates;
-            model = modelBuilder.createSphere(10, 10, 10, 32,32, material, attributes);
+            model = modelBuilder.createBox(10, 10, 10, material, attributes);
         }
         this.boxButton = new MetaIconTextButton("Box", assetProvider.getDrawable("ui/appbar.box.png"));
         boxButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 for (int i = 0; i < 100; i++) {
-                    Meta3DEntity entity = new Meta3DEntity(new Vector3(MathUtils.random(-250, 250), MathUtils.random(-5, 50f), MathUtils.random(-250, 250)), model);
+                    Meta3DEntity entity = new Meta3DEntity(new Vector3(MathUtils.random(-50, 50), MathUtils.random(-5, 50f), MathUtils.random(-50, 50)),
+                            model);
                     entityManager.addEntity(entity);
                     entity.actorModel.transform.rotate(MathUtils.random(0, 1), MathUtils.random(0, 1), MathUtils.random(0, 1), MathUtils.random(0, 360));
                 }
