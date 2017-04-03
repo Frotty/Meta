@@ -33,7 +33,7 @@ public class LightEntity implements Entity<Vector3> {
     public LightEntity(Vector3 pos, float radius, Vector3 color) {
         if (model == null) {
             Meta.inject(this);
-            model = modelBuilder.createSphere(1f, 1f, 1f, 20, 20, new Material(), Usage.Position | Usage.Normal | Usage.ColorUnpacked | Usage.TextureCoordinates);
+            model = modelBuilder.createSphere(2f, 2f, 2f, 20, 20, new Material(), Usage.Position | Usage.Normal | Usage.ColorUnpacked | Usage.TextureCoordinates);
             model.materials.get(0).set(blendingAttribute);
             model.materials.get(0).set(IntAttribute.createCullFace(GL20.GL_FRONT));
         }

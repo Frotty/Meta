@@ -11,5 +11,5 @@ out vec4 outColor;
 void main() {
     vec3 albedo = texture(s_albedoTex, v_texCoord0.xy).rgb;
     vec3 light = texture(s_lightTex, v_texCoord0.xy).rgb;
-	outColor = vec4(albedo * 0.1 + albedo * light, 1.0);
+	outColor = vec4(albedo * 0.05 + albedo * light, 1.0);
 }

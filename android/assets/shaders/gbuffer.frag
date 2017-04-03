@@ -36,7 +36,8 @@ mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
 
 vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord )
 {
-    vec3 map = texture(s_normalTex, texcoord).xyz * 2.0 - 1.0;
+    vec3 map = texture(s_normalTex, texcoord).xyz;
+    map = map * 255./127. - 128./127.;
     mat3 TBN = cotangentFrame(N, -V, texcoord);
     return normalize(TBN * map);
 }
@@ -46,5 +47,5 @@ void main() {
 	o_albedo = vec4(albedo,1.0);
 
 	vec3 viewVec = normalize(u_camPos - v_pos.xyz);
-	o_normals = (perturb_normal(v_normal, viewVec, v_texCoord0) + 1.0) * 0.5;
+	o_normals = (perturb_normal(normalize(v_normal), viewVec, v_texCoord0)  + 1.0) * 0.5;
 }

@@ -94,7 +94,7 @@ public class MRTFrameBuffer implements Disposable {
 				GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE);
 			//rgb
 			Texture normal = createColorTexture(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest, GL30.GL_RGB8,
-				GL30.GL_RGB, GL30.GL_BYTE);
+				GL30.GL_RGB, GL30.GL_UNSIGNED_BYTE);
 			//rgb
 			Texture position = createColorTexture(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest, GL30.GL_RGB8,
 				GL30.GL_RGB, GL30.GL_UNSIGNED_BYTE);

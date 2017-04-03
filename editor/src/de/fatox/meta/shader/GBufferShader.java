@@ -15,6 +15,7 @@ import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import de.fatox.meta.camera.ArcCamControl;
 
 public class GBufferShader implements Shader {
     ShaderProgram program;
@@ -31,6 +32,7 @@ public class GBufferShader implements Shader {
     private int u_diffuseColor;
     private int u_camPos;
     private Texture whiteTex;
+    private Texture emptyNormals;
 
     @Override
     public void init() {
@@ -51,8 +53,11 @@ public class GBufferShader implements Shader {
         u_camPos = program.getUniformLocation("u_camPos");
 
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGB888);
-        pixmap.drawPixel(0,0, Color.WHITE.toIntBits());
+        pixmap.drawPixel(0, 0, Color.WHITE.toIntBits());
         whiteTex = new Texture(pixmap);
+        Pixmap pixmap2 = new Pixmap(1, 1, Pixmap.Format.RGB888);
+        pixmap2.drawPixel(0, 0, Color.valueOf("#7d80fe").toIntBits());
+        emptyNormals = new Texture(pixmap2);
     }
 
     @Override
@@ -78,7 +83,6 @@ public class GBufferShader implements Shader {
     private final static Matrix4 idtMatrix = new Matrix4();
 
 
-
     @Override
     public void render(Renderable renderable) {
         program.setUniformMatrix(u_worldTrans, renderable.worldTransform);
@@ -100,7 +104,10 @@ public class GBufferShader implements Shader {
         // Normal Map (for different lighting on a plane)
         TextureAttribute normalTex = (TextureAttribute) renderable.material.get(TextureAttribute.Normal);
         if (normalTex != null) {
-            program.setUniformi(s_normalTex, context.textureBinder.bind((normalTex).textureDescription.texture));
+            if (ArcCamControl.yes)
+                program.setUniformi(s_normalTex, context.textureBinder.bind((normalTex).textureDescription.texture));
+            else
+                program.setUniformi(s_normalTex, context.textureBinder.bind(emptyNormals));
         }
 
         ColorAttribute col = (ColorAttribute) renderable.material.get(ColorAttribute.Diffuse);

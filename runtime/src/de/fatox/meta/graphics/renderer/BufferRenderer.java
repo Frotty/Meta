@@ -46,9 +46,8 @@ public class BufferRenderer implements Renderer {
 
     private MRTFrameBuffer mrtFrameBuffer;
     private FrameBuffer lightingBuffer;
+    private FrameBuffer shadowBuffer;
     private RenderContext renderContext;
-    private Array<Renderable> renderables = new Array<Renderable>();
-    private RenderablePool renerablePool = new RenderablePool();
 
     private Array<LightEntity> lights = new Array<>();
 
@@ -58,34 +57,34 @@ public class BufferRenderer implements Renderer {
         rebuild(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         for (int i = -2; i < 2; i++) {
             for (int j = -2; j < 2; j++) {
+                lights.add(new LightEntity(new Vector3(i* 50, 25, j * 50), 50, new Vector3(MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f),
+                        MathUtils.random(0.1f, 0.9f))));
             }
         }
-        lights.add(new LightEntity(new Vector3(0, 25, 0), 150, new Vector3(MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f))));
+        lights.add(new LightEntity(new Vector3(0, 25, 0), 150, new Vector3(1, 1,1)));
     }
 
-    public void render(float x, float y, float width, float height) {
-        ShaderProgram.pedantic = false;
-        mrtFrameBuffer.begin();
-        renderContext.begin();
-        Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT |
-                (Gdx.graphics.getBufferFormat().coverageSampling ? GL20.GL_COVERAGE_BUFFER_BIT_NV : 0));
-        renerablePool.flush();
-        renderables.clear();
-
-        modelCache.begin(cam);
+    @Override
+    public void rebuildCache() {
+        modelCache.begin();
         for (Meta3DEntity entity : entityManager.getEntities()) {
             modelCache.add(entity.getActor());
         }
         modelCache.end();
-        modelCache.getRenderables(renderables, renerablePool);
+    }
 
+    public void render(float x, float y, float width, float height) {
+        ShaderProgram.pedantic = false;
+
+        mrtFrameBuffer.begin();
+        renderContext.begin();
+        Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT |
+                (Gdx.graphics.getBufferFormat().coverageSampling ? GL20.GL_COVERAGE_BUFFER_BIT_NV : 0));
         ShaderInfo shaderInfo = shaderLibrary.getActiveShaders().get(0);
-        shaderInfo.getShader().begin(cam, renderContext);
 
-        for (Renderable renderable : renderables) {
-            shaderInfo.getShader().render(renderable);
-        }
-        shaderInfo.getShader().end();
+        modelBatch.begin(cam);
+        modelBatch.render(modelCache, shaderInfo.getShader());
+        modelBatch.end();
         mrtFrameBuffer.end();
         renderContext.end();
         renderContext.begin();
@@ -96,7 +95,7 @@ public class BufferRenderer implements Renderer {
         ShaderInfo shaderInfo2 = shaderLibrary.getActiveShaders().get(1);
         LightShader shader = (LightShader) shaderInfo2.getShader();
         shader.begin(cam, renderContext);
-        shader.getProgram().setUniformf("u_inverseScreenSize", 1.0f / mrtFrameBuffer.getWidth(), 1.0f /  mrtFrameBuffer.getHeight());
+        shader.getProgram().setUniformf("u_inverseScreenSize", 1.0f / mrtFrameBuffer.getWidth(), 1.0f / mrtFrameBuffer.getHeight());
         int bind = renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(3));
         shader.getProgram().setUniformi("s_depth", bind);
         shader.getProgram().setUniformi("s_normal", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(1)));
@@ -133,7 +132,7 @@ public class BufferRenderer implements Renderer {
         float debugScreens = 4;
         batch.draw(mrtFrameBuffer.getColorBufferTexture(0), x, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
         batch.draw(mrtFrameBuffer.getColorBufferTexture(1), x + width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
-        batch.draw(mrtFrameBuffer.getColorBufferTexture(3), x + 2 * width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
+        batch.draw(shadowBuffer.getColorBufferTexture(), x + 2 * width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
         batch.draw(lightingBuffer.getColorBufferTexture(), x + 3 * width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
         batch.end();
     }
@@ -148,6 +147,7 @@ public class BufferRenderer implements Renderer {
         }
         mrtFrameBuffer = new MRTFrameBuffer(width, height, 4);
         lightingBuffer = new FrameBuffer(Pixmap.Format.RGB888, width, height, false);
+        shadowBuffer = new FrameBuffer(Pixmap.Format.RGB888, width, height, true);
         renderContext = new RenderContext(new DefaultTextureBinder(DefaultTextureBinder.ROUNDROBIN, 5));
         modelBatch = new ModelBatch(renderContext);
     }

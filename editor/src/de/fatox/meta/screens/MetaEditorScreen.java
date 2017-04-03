@@ -2,6 +2,7 @@ package de.fatox.meta.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -41,6 +42,7 @@ public class MetaEditorScreen extends ScreenAdapter {
     private SceneManager sceneManager;
     private boolean isInited = false;
 
+    private FPSLogger fpsLogger = new FPSLogger();
     @Override
     public void show() {
         if (!isInited) {
@@ -59,6 +61,7 @@ public class MetaEditorScreen extends ScreenAdapter {
         uiRenderer.update();
         clearFrame();
         uiRenderer.draw();
+        fpsLogger.log();
     }
 
     private void clearFrame() {

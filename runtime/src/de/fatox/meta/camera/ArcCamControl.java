@@ -19,6 +19,7 @@ import de.fatox.meta.injection.Inject;
  */
 public class ArcCamControl implements InputProcessor {
     private static Vector3 temp = new Vector3();
+    public static boolean yes = true;
     /** The button for moving the target. */
     public int moveCameraButton = Buttons.RIGHT;
     public int resetCameraButton = Buttons.MIDDLE;
@@ -164,6 +165,8 @@ public class ArcCamControl implements InputProcessor {
             rotateModeOn = true;
         } else if (keycode == Keys.SHIFT_LEFT) {
             fastZoomMode = true;
+        } else {
+            yes= ! yes;
         }
         return false;
     }
