@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
@@ -18,7 +17,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
-import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.camera.ArcCamControl;
 import de.fatox.meta.injection.Inject;
 
@@ -115,6 +113,8 @@ public class GBufferShader implements Shader {
                 program.setUniformi(s_normalTex, context.textureBinder.bind((normalTex).textureDescription.texture));
             else
                 program.setUniformi(s_normalTex, context.textureBinder.bind(emptyNormals));
+        } else {
+            program.setUniformi(s_normalTex, context.textureBinder.bind(emptyNormals));
         }
 
         ColorAttribute col = (ColorAttribute) renderable.material.get(ColorAttribute.Diffuse);

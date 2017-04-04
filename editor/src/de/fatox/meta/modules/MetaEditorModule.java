@@ -4,6 +4,7 @@ import com.badlogic.gdx.Screen;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
+import de.fatox.meta.Primitives;
 import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.ide.*;
@@ -16,6 +17,12 @@ import de.fatox.meta.shader.MetaShaderLibrary;
 import io.gsonfire.GsonFireBuilder;
 
 public class MetaEditorModule {
+
+    @Provides
+    @Singleton
+    public Primitives primitives() {
+        return new Primitives();
+    }
 
     @Provides
     @Singleton

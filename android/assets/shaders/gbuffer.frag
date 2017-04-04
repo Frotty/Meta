@@ -34,8 +34,7 @@ mat3 cotangentFrame(vec3 N, vec3 p, vec2 uv) {
   return mat3(T * invmax, B * invmax, N);
 }
 
-vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord )
-{
+vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord ) {
     vec3 map = texture(s_normalTex, texcoord).xyz;
     map = map * 255./127. - 128./127.;
     mat3 TBN = cotangentFrame(N, -V, texcoord);
