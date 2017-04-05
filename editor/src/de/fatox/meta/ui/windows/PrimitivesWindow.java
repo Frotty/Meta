@@ -34,8 +34,8 @@ public class PrimitivesWindow extends MetaWindow {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 for (int i = 0; i < 100; i++) {
-                    Meta3DEntity entity = new Meta3DEntity(new Vector3(MathUtils.random(-50, 50), MathUtils.random(-5, 50f), MathUtils.random(-50, 50)),
-                            primitives.getBoxFilled());
+                    Meta3DEntity entity = new Meta3DEntity(new Vector3(MathUtils.random(-250, 250), MathUtils.random(-5, 50f), MathUtils.random(-250, 250)),
+                            primitives.getSphereFilled());
                     entityManager.addEntity(entity);
                     entity.actorModel.transform.rotate(MathUtils.random(0, 1), MathUtils.random(0, 1), MathUtils.random(0, 1), MathUtils.random(0, 360));
                 }

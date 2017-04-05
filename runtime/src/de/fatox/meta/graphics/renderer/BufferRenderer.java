@@ -1,10 +1,7 @@
 package de.fatox.meta.graphics.renderer;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.GL30;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelCache;
@@ -55,8 +52,8 @@ public class BufferRenderer implements Renderer {
         Meta.inject(this);
         cam.update();
         rebuild(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        for (int i = -2; i < 2; i++) {
-            for (int j = -2; j < 2; j++) {
+        for (int i = -5; i < 5; i++) {
+            for (int j = -5; j < 5; j++) {
                 lights.add(new LightEntity(new Vector3(i* 50, 25, j * 50), 50, new Vector3(MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f),
                         MathUtils.random(0.1f, 0.9f))));
             }
@@ -73,7 +70,7 @@ public class BufferRenderer implements Renderer {
         modelCache.end();
     }
 
-    public void render(float x, float y, float width, float height) {
+    public void render(float x, float y) {
         ShaderProgram.pedantic = false;
 
         mrtFrameBuffer.begin();
@@ -126,13 +123,15 @@ public class BufferRenderer implements Renderer {
         // Render to Screen
 
         renderContext.end();
-        debugAll(x, y, width, height);
+        debugAll(x, y);
     }
 
-    private void debugAll(float x, float y, float width, float height) {
+    private void debugAll(float x, float y) {
         batch.disableBlending();
         batch.begin();
         float debugScreens = 4;
+        float width = mrtFrameBuffer.getWidth();
+        float height = mrtFrameBuffer.getHeight();
         batch.draw(mrtFrameBuffer.getColorBufferTexture(0), x, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
         batch.draw(mrtFrameBuffer.getColorBufferTexture(1), x + width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
         batch.draw(shadowBuffer.getColorBufferTexture(), x + 2 * width / debugScreens, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
@@ -147,12 +146,18 @@ public class BufferRenderer implements Renderer {
                 return;
             }
             mrtFrameBuffer.dispose();
+            lightingBuffer.dispose();
+            shadowBuffer.dispose();
+            cam.viewportWidth = width;
+            cam.viewportHeight = height;
+            cam.update();
         }
         mrtFrameBuffer = new MRTFrameBuffer(width, height, 4);
         lightingBuffer = new FrameBuffer(Pixmap.Format.RGB888, width, height, false);
         shadowBuffer = new FrameBuffer(Pixmap.Format.RGB888, width, height, true);
         renderContext = new RenderContext(new DefaultTextureBinder(DefaultTextureBinder.ROUNDROBIN, 5));
         modelBatch = new ModelBatch(renderContext);
+        batch.getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
     protected static class RenderablePool extends Pool<Renderable> {

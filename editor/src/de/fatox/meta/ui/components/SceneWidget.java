@@ -13,8 +13,6 @@ public class SceneWidget extends Widget {
     @Inject
     private Renderer renderer;
 
-    private boolean first = true;
-
     public SceneWidget() {
         Meta.inject(this);
     }
@@ -24,7 +22,7 @@ public class SceneWidget extends Widget {
         batch.end();
         validate();
         renderer.rebuild((int) getWidth(), (int) getHeight());
-        renderer.render(getX(), getY(), getWidth(), getHeight());
+        renderer.render(getX(), getY());
         batch.begin();
     }
 
