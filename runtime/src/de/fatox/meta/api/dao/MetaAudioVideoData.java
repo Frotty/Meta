@@ -1,5 +1,6 @@
 package de.fatox.meta.api.dao;
 
+import com.badlogic.gdx.Gdx;
 import com.google.gson.annotations.Expose;
 
 /**
@@ -114,5 +115,17 @@ public class MetaAudioVideoData {
 
     public void setSoundVolume(float soundVolume) {
         this.soundVolume = soundVolume;
+    }
+
+    public void apply() {
+        if (isFullscreen()) {
+            if (!Gdx.graphics.isFullscreen()) {
+                Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayModes()[getDisplayMode()]);
+            }
+        } else {
+            Gdx.graphics.setUndecorated(isBorderless());
+            Gdx.graphics.setWindowedMode(getWidth(), getHeight());
+        }
+        Gdx.graphics.setVSync(isVsyncEnabled());
     }
 }

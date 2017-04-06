@@ -22,5 +22,4 @@ public abstract class MetaTab extends Tab {
         Meta.inject(this);
     }
 
-    public abstract void onDisplay();
 }

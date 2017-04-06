@@ -67,18 +67,20 @@ public class MetaUiManager implements UIManager {
         for (Window window : displayedWindows) {
             String name = window.getClass().getName();
             if (metaHas(name)) {
-                // There exists saved window metadata
-                metaGetWindow(name).set(window);
+                MetaWindowData metaWindowData = metaGetWindow(name);
+                if (metaWindowData.displayed) {
+                    // There exists saved window metadata
+                    metaWindowData.set(window);
+                } else {
+                    cacheWindow(window, true);
+                }
             } else {
                 cacheWindow(window, true);
             }
         }
+        displayedWindows.removeAll(cachedWindows, true);
         contentTable.remove();
         contentTable.clear();
-        if (mainMenuBar != null) {
-            contentTable.row().height(26);
-            contentTable.add(mainMenuBar.getTable()).growX().top();
-        }
         uiRenderer.addActor(contentTable);
         restoreWindows();
     }
@@ -94,13 +96,13 @@ public class MetaUiManager implements UIManager {
                     for (Window displayedWindow : displayedWindows) {
                         if (displayedWindow.getClass() == windowclass) {
                             if(! metaWindowData.displayed) {
-                               cacheWindow(displayedWindow, true);
+                                cacheWindow(displayedWindow, true);
                             }
                             continue outer;
                         }
                     }
-                    if(metaWindowData.displayed) {
-                        showWindow(windowclass);
+                    if (metaWindowData.displayed) {
+                        metaWindowData.set(showWindow(windowclass));
                     }
                 } catch (ReflectionException e) {
                     e.printStackTrace();
@@ -131,12 +133,15 @@ public class MetaUiManager implements UIManager {
         T window = displayWindow(windowClass);
 
         window.setVisible(true);
-        uiRenderer.addActor(window);
 
         if (metaHas(windowClass.getName())) {
             // There exists metadata for this window.
             MetaWindowData windowData = metaGetWindow(windowClass.getName());
             windowData.set(window);
+            if(!windowData.displayed) {
+                windowData.displayed = true;
+                metaSaveWindow(windowClass.getName(), windowData);
+            }
         } else {
             // First time the window has been shown on this screen
             metaSaveWindow(windowClass.getName(), new MetaWindowData(window));
@@ -155,6 +160,13 @@ public class MetaUiManager implements UIManager {
 
     @Override
     public void setMainMenuBar(MenuBar menuBar) {
+
+        if (menuBar != null) {
+            contentTable.row().height(26);
+            contentTable.add(menuBar.getTable()).growX().top();
+        } else if (mainMenuBar != null) {
+            contentTable.removeActor(mainMenuBar.getTable());
+        }
         mainMenuBar = menuBar;
     }
 
@@ -170,8 +182,10 @@ public class MetaUiManager implements UIManager {
         if (displayedWindow != null) {
             displayedWindows.removeValue(window, true);
             MetaWindowData metaWindowData = metaGetWindow(window.getClass().getName());
-            metaWindowData.displayed = false;
-            metaSaveWindow(displayedWindow.getClass().getName(), metaWindowData);
+            if (metaWindowData != null) {
+                metaWindowData.displayed = false;
+                metaSaveWindow(displayedWindow.getClass().getName(), metaWindowData);
+            }
             cacheWindow(window, false);
         }
     }
@@ -179,7 +193,7 @@ public class MetaUiManager implements UIManager {
     @Override
     public void updateWindow(Window window) {
         String name = window.getClass().getName();
-        if(metaHas(name)) {
+        if (metaHas(name)) {
             MetaWindowData metaWindowData = metaGetWindow(name);
             metaWindowData.setFrom(window);
             metaSaveWindow(name, metaWindowData);
@@ -188,7 +202,7 @@ public class MetaUiManager implements UIManager {
 
     @Override
     public void bringWindowsToFront() {
-        for(Window window : displayedWindows) {
+        for (Window window : displayedWindows) {
             window.toFront();
         }
     }
@@ -221,6 +235,7 @@ public class MetaUiManager implements UIManager {
                 e.printStackTrace();
             }
         }
+        uiRenderer.addActor(theWindow);
         displayedWindows.add(theWindow);
         return theWindow;
     }
@@ -255,8 +270,8 @@ public class MetaUiManager implements UIManager {
 
 
     private void cacheWindow(Window window, boolean forceClose) {
-        displayedWindows.removeValue(window, true);
         cachedWindows.add(window);
+        window.setVisible(false);
         if (forceClose) {
             window.remove();
         }
@@ -272,9 +287,8 @@ public class MetaUiManager implements UIManager {
 
     private void metaSaveWindow(String name, MetaWindowData windowData) {
         String id = currentScreenId + File.separator + name;
-        if(TimeUtils.timeSinceMillis(metaData.getCachedRootHandle(id).lastModified()) > 200) {
+        if (TimeUtils.timeSinceMillis(metaData.getCachedRootHandle(id).lastModified()) > 200) {
             metaData.save(id, windowData);
         }
     }
-
 }

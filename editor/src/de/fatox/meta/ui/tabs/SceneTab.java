@@ -30,6 +30,11 @@ public class SceneTab extends MetaTab {
         this.sceneData = sceneData;
         table = new VisTable();
         table.add(new SceneWidget()).grow();
+
+//        Model xyzCoordinates = modelBuilder.createXYZCoordinates(24, new Material(), attributes);
+//        Model grid = modelBuilder.createLineGrid(64,64, 32, 32, material, attributes);
+//        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), grid));
+//        addEntity(new Meta3DEntity(new Vector3(0, 0, 0), xyzCoordinates));
     }
 
     @Override
@@ -43,7 +48,12 @@ public class SceneTab extends MetaTab {
     }
 
     @Override
-    public void onDisplay() {
+    public void onShow() {
         metaInput.addAdapterForScreen(camControl);
+    }
+
+    @Override
+    public void onHide() {
+        metaInput.removeAdapterFromScreen(camControl);
     }
 }

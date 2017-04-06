@@ -18,10 +18,14 @@ public class SceneWidget extends Widget {
     }
 
     @Override
+    public void layout() {
+        renderer.rebuild((int) getWidth(), (int) getHeight());
+    }
+
+    @Override
     public void draw(Batch batch, float parentAlpha) {
         batch.end();
         validate();
-        renderer.rebuild((int) getWidth(), (int) getHeight());
         renderer.render(getX(), getY());
         batch.begin();
     }

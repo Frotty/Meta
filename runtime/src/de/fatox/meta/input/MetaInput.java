@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
+import de.fatox.meta.camera.ArcCamControl;
 import de.fatox.meta.ui.components.MetaClickListener;
 
 public class MetaInput implements InputProcessor {
@@ -209,5 +210,9 @@ public class MetaInput implements InputProcessor {
 
     public void addGlobalAdapter(InputProcessor processor) {
         globalProcessors.add(processor);
+    }
+
+    public void removeAdapterFromScreen(ArcCamControl camControl) {
+        screenProcessors.removeValue(camControl, true);
     }
 }

@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.windows;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisTable;
@@ -65,12 +66,24 @@ public abstract class MetaWindow extends VisWindow {
         setSize(width, height);
     }
 
+    boolean startDrag = false;
+
     @Override
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
-        if (isDragging()) {
+        if (isDragging() ) {
+            startDrag = true;
+        } else if(startDrag) {
+            startDrag = false;
             uiManager.updateWindow(this);
         }
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        super.setVisible(visible);
+        setColor(1,1,1,0);
+        addAction(Actions.alpha(0.9f, 0.75f));
     }
 
     @Override

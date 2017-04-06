@@ -50,9 +50,6 @@ public class WelcomeTab extends MetaTab {
         }
     }
 
-    @Override
-    public void onDisplay() {
-    }
 
     @Override
     public String getTabTitle() {

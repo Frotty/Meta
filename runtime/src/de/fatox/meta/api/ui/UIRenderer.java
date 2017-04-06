@@ -13,5 +13,4 @@ public interface UIRenderer {
     void resize(int width, int height);
 
     Camera getCamera();
-
 }

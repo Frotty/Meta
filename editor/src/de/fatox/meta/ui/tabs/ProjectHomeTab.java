@@ -52,7 +52,4 @@ public class ProjectHomeTab extends MetaTab {
         return visTable;
     }
 
-    @Override
-    public void onDisplay() {
-    }
 }

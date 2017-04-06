@@ -79,4 +79,5 @@ public class MetaUIRenderer implements UIRenderer {
         return stage.getCamera();
     }
 
+
 }
