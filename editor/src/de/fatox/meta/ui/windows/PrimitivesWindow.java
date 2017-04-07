@@ -1,6 +1,8 @@
 package de.fatox.meta.ui.windows;
 
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -35,11 +37,12 @@ public class PrimitivesWindow extends MetaWindow {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 for (int i = 0; i < 100; i++) {
-                    Meta3DEntity entity = new Meta3DEntity(new Vector3(MathUtils.random(-250, 250), MathUtils.random(-5, 50f), MathUtils.random(-250, 250)),
+                    Meta3DEntity entity = new Meta3DEntity(new Vector3(MathUtils.random(-10, 10), MathUtils.random(-0.5f, 5.0f), MathUtils.random(-10, 10)),
                             primitives.getBoxFilled());
                     entityManager.addEntity(entity);
                     entity.actorModel.transform.rotate(MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0, 360));
                     entity.actorModel.materials.get(0).set(ColorAttribute.createDiffuse(MathUtils.random(0, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), 1));
+                    entity.actorModel.materials.get(0).set(TextureAttribute.createNormal(assetProvider.get("models/crates_n.png", Texture.class)));
                 }
                 renderer.rebuildCache();
             }

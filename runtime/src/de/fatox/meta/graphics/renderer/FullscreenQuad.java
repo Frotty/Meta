@@ -3,7 +3,7 @@ package de.fatox.meta.graphics.renderer;
 import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttribute;
-import com.badlogic.gdx.graphics.VertexAttributes.Usage;
+import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 
 /**
@@ -30,55 +30,39 @@ public class FullscreenQuad {
     }
 
     private Mesh createFullscreenQuad() {
-        // vertex coord
-        verts[X1] = -1f;
-        verts[Y1] = -1f;
+        float[] verts = new float[20];
+        int i = 0;
 
-        verts[X2] = 1f;
-        verts[Y2] = -1f;
+        verts[i++] = -1;
+        verts[i++] = -1;
+        verts[i++] = 0;
+        verts[i++] = 0f;
+        verts[i++] = 0f;
 
-        verts[X3] = 1f;
-        verts[Y3] = 0.875f;
+        verts[i++] = 1f;
+        verts[i++] = -1;
+        verts[i++] = 0;
+        verts[i++] = 1f;
+        verts[i++] = 0f;
 
-        verts[X4] = -1f;
-        verts[Y4] = 0.875f;
+        verts[i++] = 1f;
+        verts[i++] = 1f;
+        verts[i++] = 0;
+        verts[i++] = 1f;
+        verts[i++] = 1f;
 
-        // tex coords
-        verts[U1] = 0f;
-        verts[V1] = 0f;
+        verts[i++] = -1;
+        verts[i++] = 1f;
+        verts[i++] = 0;
+        verts[i++] = 0f;
+        verts[i++] = 1f;
 
-        verts[U2] = 1f;
-        verts[V2] = 0f;
+        Mesh mesh = new Mesh(true, 4, 0,
+                new VertexAttribute(VertexAttributes.Usage.Position, 3, ShaderProgram.POSITION_ATTRIBUTE),
+                new VertexAttribute(VertexAttributes.Usage.TextureCoordinates, 2, ShaderProgram.TEXCOORD_ATTRIBUTE + "0"));
 
-        verts[U3] = 1f;
-        verts[V3] = 1f;
-
-        verts[U4] = 0f;
-        verts[V4] = 1f;
-
-        Mesh tmpMesh =
-                new Mesh(true, 4, 0, new VertexAttribute(Usage.Position, 2, "a_position"), new VertexAttribute(Usage.TextureCoordinates, 2, "a_texCoord0"));
-
-        tmpMesh.setVertices(verts);
-        return tmpMesh;
+        mesh.setVertices(verts);
+        return mesh;
     }
 
-    private static final int VERT_SIZE = 16;
-    private static float[] verts = new float[VERT_SIZE];
-    private static final int X1 = 0;
-    private static final int Y1 = 1;
-    private static final int U1 = 2;
-    private static final int V1 = 3;
-    private static final int X2 = 4;
-    private static final int Y2 = 5;
-    private static final int U2 = 6;
-    private static final int V2 = 7;
-    private static final int X3 = 8;
-    private static final int Y3 = 9;
-    private static final int U3 = 10;
-    private static final int V3 = 11;
-    private static final int X4 = 12;
-    private static final int Y4 = 13;
-    private static final int U4 = 14;
-    private static final int V4 = 15;
 }

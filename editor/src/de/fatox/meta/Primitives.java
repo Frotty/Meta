@@ -32,9 +32,9 @@ public class Primitives {
     public Model getPlaneLines() {
         if (planeLines == null) {
             planeLines = modelBuilder.createRect(0, 0, 0,
-                    10, 0, 0,
-                    10, 10, 0,
-                    0, 10, 0,
+                    1, 0, 0,
+                    1, 1, 0,
+                    0, 1, 0,
                     0, 0, 1, GL20.GL_LINES, defaultMaterial, defaultAttr);
         }
         return planeLines;
@@ -43,9 +43,9 @@ public class Primitives {
     public Model getPlaneFilled() {
         if (planeFilled == null) {
             planeFilled = modelBuilder.createRect(0, 0, 0,
-                    10, 0, 0,
-                    10, 10, 0,
-                    0, 10, 0,
+                    1, 0, 0,
+                    1, 1, 0,
+                    0, 1, 0,
                     0, 0, 1, defaultMaterial, defaultAttr);
         }
         return planeFilled;
@@ -53,21 +53,21 @@ public class Primitives {
 
     public Model getBoxFilled() {
         if (boxFilled == null) {
-            boxFilled = modelBuilder.createBox(10, 10, 10, defaultMaterial, defaultAttr);
+            boxFilled = modelBuilder.createBox(1, 1, 1, defaultMaterial, defaultAttr);
         }
         return boxFilled;
     }
 
     public Model getBoxLines() {
         if (boxLines == null) {
-            boxLines = modelBuilder.createBox(10, 10, 10, GL20.GL_LINES, defaultMaterial, defaultAttr);
+            boxLines = modelBuilder.createBox(1, 1, 1, GL20.GL_LINES, defaultMaterial, defaultAttr);
         }
         return boxLines;
     }
 
     public Model getSphereLines() {
         if (sphereLines == null) {
-            sphereLines = modelBuilder.createSphere(10, 10, 10, 32, 32, GL20.GL_LINES, defaultMaterial, defaultAttr);
+            sphereLines = modelBuilder.createSphere(1, 1, 1, 32, 32, GL20.GL_LINES, defaultMaterial, defaultAttr);
         }
         return sphereLines;
     }
@@ -75,7 +75,7 @@ public class Primitives {
 
     public Model getSphereFilled() {
         if (sphereFilled == null) {
-            sphereFilled = modelBuilder.createSphere(10, 10, 10, 32, 32, defaultMaterial, defaultAttr);
+            sphereFilled = modelBuilder.createSphere(1, 1, 1, 32, 32, defaultMaterial, defaultAttr);
         }
         return sphereFilled;
     }

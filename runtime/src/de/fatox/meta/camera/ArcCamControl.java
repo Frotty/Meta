@@ -24,7 +24,7 @@ public class ArcCamControl implements InputProcessor {
     public int moveCameraButton = Buttons.RIGHT;
     public int resetCameraButton = Buttons.MIDDLE;
     /** The units to translate the camera when moved the full width or height of the screen. */
-    public float translateUnits = 2f; // FIXME auto calculate this based on the target
+    public float translateUnits = 0.2f; // FIXME auto calculate this based on the target
     /** The key which must be pressed to enter rotation mode. */
     public int rotateMode = Keys.CONTROL_LEFT;
     protected boolean rotateModeOn = false;
@@ -46,7 +46,7 @@ public class ArcCamControl implements InputProcessor {
     private float angleOfAttack = 56;
 
     /** Distance from target */
-    private float distance = 50;
+    private float distance = 10;
 
     public float getDistance() {
         return distance;
@@ -99,7 +99,7 @@ public class ArcCamControl implements InputProcessor {
         if (button == resetCameraButton) {
             rotationAngle = 0;
             angleOfAttack = 56;
-            distance = 50;
+            distance = 10;
         }
         update();
         return false;

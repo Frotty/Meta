@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import de.fatox.meta.graphics.renderer.FullscreenShader;
 
@@ -18,12 +19,12 @@ public class CompositeShader extends FullscreenShader {
     private int s_depthTex;
     private int u_nearDistance;
     private int u_farDistance;
-
     @Override
     public ShaderProgram getProgram() {
         return program;
     }
 
+    private Matrix4 temp = new Matrix4();
     @Override
     public void init() {
         String vert = Gdx.files.internal("shaders/composite.vert").readString();
@@ -34,8 +35,9 @@ public class CompositeShader extends FullscreenShader {
 
 //        s_albedoTex = program.getUniformLocation("s_albedoTex");
         s_depthTex = program.getUniformLocation("s_depthTex");
-        u_nearDistance = program.getUniformLocation("u_nearDistance");
-        u_farDistance = program.getUniformLocation("u_farDistance");
+        u_nearDistance = program.getUniformLocation("u_cameraNear");
+        u_farDistance = program.getUniformLocation("u_cameraFar");
+
     }
 
     @Override
@@ -53,7 +55,9 @@ public class CompositeShader extends FullscreenShader {
         program.begin();
         program.setUniformf(u_nearDistance, camera.near);
         program.setUniformf(u_farDistance, camera.far);
+        program.setUniformf("s_resolution", camera.viewportWidth, camera.viewportHeight);
         program.setUniformMatrix("u_invProjTrans", camera.invProjectionView);
+        program.setUniformMatrix("u_projTrans", camera.projection);
     }
 
 
