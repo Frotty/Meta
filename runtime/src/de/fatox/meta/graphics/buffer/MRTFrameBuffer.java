@@ -116,7 +116,6 @@ public class MRTFrameBuffer implements Disposable {
         buffer.put(GL30.GL_COLOR_ATTACHMENT1);
         buffer.put(GL30.GL_COLOR_ATTACHMENT2);
         buffer.position(0);
-        new Pixmap().drawPixel(0, 0, Color.toIntBits(1, 0, 0, 125));
         Gdx.gl30.glDrawBuffers(3, buffer);
 
         gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, 0);
