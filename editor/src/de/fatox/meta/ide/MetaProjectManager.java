@@ -1,11 +1,11 @@
 package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
-import com.google.gson.Gson;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Json;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.ExposedArray;
 import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.api.ui.UIManager;
@@ -18,7 +18,7 @@ import de.fatox.meta.ui.tabs.ProjectHomeTab;
  */
 public class MetaProjectManager implements ProjectManager {
     @Inject
-    private Gson gson;
+    private Json json;
     @Inject
     private UIManager uiManager;
     @Inject
@@ -29,6 +29,7 @@ public class MetaProjectManager implements ProjectManager {
     private MetaData metaData;
 
     private MetaProjectData currentProject;
+    private FileHandle currentProjectRoot;
 
     public MetaProjectManager() {
         Meta.inject(this);
@@ -41,20 +42,20 @@ public class MetaProjectManager implements ProjectManager {
 
     @Override
     public MetaProjectData loadProject(FileHandle projectFile) {
-        MetaProjectData metaProjectData = gson.fromJson(projectFile.readString(), MetaProjectData.class);
-        metaProjectData.setRoot(projectFile.parent());
+        MetaProjectData metaProjectData = json.fromJson(MetaProjectData.class, projectFile.readString());
+        currentProjectRoot = projectFile.parent();
         createFolders(metaProjectData);
         currentProject = metaProjectData;
         editorUI.closeTab("home");
         editorUI.addTab(new ProjectHomeTab(metaProjectData));
-        assetDiscoverer.setFromProject(currentProject);
-        ExposedArray<String> lastProjects;
-        if( metaData.has("lastProjects")) {
-            lastProjects = metaData.get("lastProjects", ExposedArray.class);
+        assetDiscoverer.setRoot(currentProjectRoot);
+        Array<String> lastProjects;
+        if (metaData.has("lastProjects")) {
+            lastProjects = metaData.get("lastProjects", Array.class);
         } else {
-            lastProjects = new ExposedArray<>();
+            lastProjects = new Array<>();
         }
-        if(! lastProjects.contains(projectFile.path(), false)) {
+        if (!lastProjects.contains(projectFile.path(), false)) {
             lastProjects.add(projectFile.path());
             metaData.save("lastProjects", lastProjects);
         }
@@ -63,17 +64,17 @@ public class MetaProjectManager implements ProjectManager {
 
     @Override
     public void saveProject(MetaProjectData projectData) {
-        FileHandle root = projectData.root;
-        if(! root.exists()) {
+        FileHandle root = currentProjectRoot;
+        if (!root.exists()) {
             root.mkdirs();
         }
         FileHandle child = root.child(projectData.name);
         child.mkdirs();
-        projectData.setRoot(child);
+        currentProjectRoot = child;
 
         createFolders(projectData);
         child = child.child(MetaProjectData.PROJECT_FILE_NAME);
-        child.writeBytes(gson.toJson(projectData).getBytes(), false);
+        child.writeBytes(json.toJson(projectData).getBytes(), false);
         ToastTable toastTable = new ToastTable();
         toastTable.add(new VisLabel("Project created"));
     }
@@ -81,8 +82,8 @@ public class MetaProjectManager implements ProjectManager {
     @Override
     public boolean verifyProjectFile(FileHandle file) {
         try {
-            MetaProjectData metaProjectData = gson.fromJson(file.readString(), MetaProjectData.class);
-            if(metaProjectData.isValid()) {
+            MetaProjectData metaProjectData = json.fromJson(MetaProjectData.class, file.readString());
+            if (metaProjectData.isValid()) {
                 return true;
             }
         } catch (Exception e) {
@@ -90,9 +91,14 @@ public class MetaProjectManager implements ProjectManager {
         return false;
     }
 
+    @Override
+    public FileHandle getCurrentProjectRoot() {
+        return currentProjectRoot;
+    }
+
 
     private void createFolders(MetaProjectData projectData) {
-        projectData.root.child("assets").mkdirs();
-        projectData.root.child("scenes").mkdirs();
+        currentProjectRoot.child("assets").mkdirs();
+        currentProjectRoot.child("scenes").mkdirs();
     }
 }

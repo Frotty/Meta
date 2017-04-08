@@ -1,8 +1,6 @@
 package de.fatox.meta.modules;
 
 import com.badlogic.gdx.Screen;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import de.fatox.meta.Primitives;
 import de.fatox.meta.api.graphics.ShaderLibrary;
@@ -14,7 +12,6 @@ import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.lang.MetaLanguageBundle;
 import de.fatox.meta.screens.MetaEditorScreen;
 import de.fatox.meta.shader.MetaShaderLibrary;
-import io.gsonfire.GsonFireBuilder;
 
 public class MetaEditorModule {
 
@@ -40,30 +37,6 @@ public class MetaEditorModule {
     @Singleton
     public ProjectManager projectManager(MetaProjectManager projectManager) {
         return projectManager;
-    }
-
-    @Provides
-    @Singleton
-    public Gson gson() {
-        final GsonFireBuilder fireBuilder = new GsonFireBuilder();
-        fireBuilder.enableExposeMethodResult();
-        fireBuilder.enableExclusionByValue();
-//        fireBuilder.registerTypeSelector(GameObject.class, readElement -> {
-//            JsonElement t = readElement.getAsJsonObject().get("t");
-//            if (t == null) {
-//                return EmptyObject.class;
-//            }
-//            int typeId = Integer.parseInt(t.getAsString());
-//            if (typeId > 0) {
-//                Class<? extends GameObject> aClass = ObjectIds.get(typeId);
-//                return aClass;
-//            }
-//            return EmptyObject.class;
-//        });
-        GsonBuilder gsonBuilder = fireBuilder.createGsonBuilder();
-        gsonBuilder.excludeFieldsWithoutExposeAnnotation();
-        gsonBuilder.setPrettyPrinting();
-        return gsonBuilder.create();
     }
 
     @Provides

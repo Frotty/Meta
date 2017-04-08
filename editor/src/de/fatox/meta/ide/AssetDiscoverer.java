@@ -4,7 +4,6 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.windows.AssetDiscovererWindow;
@@ -28,12 +27,6 @@ public class AssetDiscoverer {
 
     public AssetDiscoverer() {
         Meta.inject(this);
-    }
-
-    public void setFromProject(MetaProjectData metaProjectData) {
-        root = metaProjectData.root;
-        currentFolder = root;
-        refresh();
     }
 
     public void openFolder(FileHandle fileHandle) {
@@ -82,5 +75,11 @@ public class AssetDiscoverer {
 
     public void addOpenListener(String extension, AssetOpenListener listener) {
         fileOpenListeners.put(extension, listener);
+    }
+
+    public void setRoot(FileHandle root) {
+        this.root = root;
+        currentFolder = root;
+        refresh();
     }
 }

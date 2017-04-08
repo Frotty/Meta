@@ -66,9 +66,9 @@ public class ProjectWizardDialog extends MetaDialog {
 
         setDialogListener(object -> {
             if ((boolean) object) {
-                MetaProjectData metaProjectData = new MetaProjectData(projectNameTF.getTextField().getText(), rootfile);
+                MetaProjectData metaProjectData = new MetaProjectData(projectNameTF.getTextField().getText());
                 projectManager.saveProject(metaProjectData);
-                projectManager.loadProject(metaProjectData.root);
+                projectManager.loadProject(projectManager.getCurrentProjectRoot());
             }
             close();
         });

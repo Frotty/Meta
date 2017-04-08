@@ -14,8 +14,8 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 public class FullscreenQuad {
     private Mesh quad;
 
-    public FullscreenQuad() {
-        quad = createFullscreenQuad();
+    public FullscreenQuad(float height) {
+        quad = createFullscreenQuad(height);
     }
 
     public void dispose() {
@@ -29,33 +29,14 @@ public class FullscreenQuad {
         quad.render(program, GL30.GL_TRIANGLE_FAN, 0, 4);
     }
 
-    private Mesh createFullscreenQuad() {
-        float[] verts = new float[20];
-        int i = 0;
-
-        verts[i++] = -1;
-        verts[i++] = -1;
-        verts[i++] = 0;
-        verts[i++] = 0f;
-        verts[i++] = 0f;
-
-        verts[i++] = 1f;
-        verts[i++] = -1;
-        verts[i++] = 0;
-        verts[i++] = 1f;
-        verts[i++] = 0f;
-
-        verts[i++] = 1f;
-        verts[i++] = 1f;
-        verts[i++] = 0;
-        verts[i++] = 1f;
-        verts[i++] = 1f;
-
-        verts[i++] = -1;
-        verts[i++] = 1f;
-        verts[i++] = 0;
-        verts[i++] = 0f;
-        verts[i++] = 1f;
+    private Mesh createFullscreenQuad(float height) {
+        float nheight = 1f -((1f -height) * 0.5f);
+        float[] verts = new float[]{
+            -1, -1, 0, 0, 0,
+             1, -1, 0, 1, 0,
+             1,  height, 0, 1, nheight,
+            -1,  height, 0, 0, nheight
+        };
 
         Mesh mesh = new Mesh(true, 4, 0,
                 new VertexAttribute(VertexAttributes.Usage.Position, 3, ShaderProgram.POSITION_ATTRIBUTE),

@@ -102,10 +102,10 @@ void main() {
     vec3 lightDir = normalize(ul);
     vec3 viewDir = normalize(camPos - position.xyz);
 
-    float fallof = max(0.0, 1.0f / (distFromLight / ((u_lightRadius*2.0f) - distFromLight)));
+    float fallof = max(0.0, 1.0f / (distFromLight / ((u_lightRadius) - distFromLight)));
     float term = 1.0f - pow(smooths(clamp(distFromLight / (u_lightRadius*2.0f), 0.0f, 1.0f)),4.0f);
     float lambert = clamp(dot(normal, lightDir), 0.0, 1.0);
-    float spec = specular(lightDir, viewDir, normal, 0.15, 0.17);
+    float spec = specular(lightDir, viewDir, normal, 0.55, 0.17);
     float diff = fallof*lambert;
     outColor = vec4(Tonemap_ACES(diff*u_lightColor*spec), 1.0);
 }

@@ -1,7 +1,6 @@
 package de.fatox.meta.api.dao;
 
-import com.badlogic.gdx.files.FileHandle;
-import com.google.gson.annotations.Expose;
+import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.util.StringUtil;
 
 /**
@@ -9,20 +8,17 @@ import de.fatox.meta.util.StringUtil;
  */
 public class MetaProjectData {
     public static final String PROJECT_FILE_NAME = "metaproject.json";
-    @Expose
-    public String name;
 
-    public FileHandle root;
+    public String name = "unknown";
+    public Array<MetaTabData> openTabs;
 
-    public MetaProjectData(String name, FileHandle root) {
+    public MetaProjectData() {
+    }
+
+    public MetaProjectData(String name) {
         this.name = name;
-        this.root = root;
+        openTabs = new Array<>();
     }
-
-    public void setRoot(FileHandle root) {
-        this.root = root;
-    }
-
 
     public boolean isValid() {
         return ! StringUtil.isBlank(name);

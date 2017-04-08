@@ -51,7 +51,7 @@ public class MetaSoundHandle {
         float audibleRange = (Gdx.graphics.getHeight() * 0.6f);
         float audibleRangeSquared = audibleRange * audibleRange;
         float distSquared = listenerPos.dst2(soundPos);
-        float volumeMod = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
+        float volumeMod = audioVideoData.masterVolume * audioVideoData.soundVolume;
         float volumeRemap =  volumeMod * definition.getVolume() * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
         float xPan = soundPos.x - listenerPos.x;
         float remappedXPan = MathUtils.clamp(xPan / (audibleRange - 200), -1, 1);

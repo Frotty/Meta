@@ -35,7 +35,7 @@ public class MRTFrameBuffer implements Disposable {
     /** height **/
     private final int height;
 
-    public MRTFrameBuffer(int width, int height, int numColorAttachments) {
+    public MRTFrameBuffer(int width, int height) {
         this.width = width;
         this.height = height;
         build();

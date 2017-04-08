@@ -12,4 +12,6 @@ public interface ProjectManager {
     void saveProject(MetaProjectData projectData);
 
     boolean verifyProjectFile(FileHandle file);
+
+    FileHandle getCurrentProjectRoot();
 }

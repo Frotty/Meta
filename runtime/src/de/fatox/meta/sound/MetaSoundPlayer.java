@@ -64,7 +64,7 @@ public class MetaSoundPlayer {
         }
         // Play or loop sound
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
-        float volume = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
+        float volume = audioVideoData.masterVolume * audioVideoData.soundVolume;
         long id = soundDefinition.isLooping() ? soundDefinition.getSound().loop(volume, 1, 0) : soundDefinition.getSound().play(volume, 1, 0);
 
         MetaSoundHandle soundHandle = new MetaSoundHandle(soundDefinition, id);

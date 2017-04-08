@@ -81,6 +81,10 @@ public class MetaUiManager implements UIManager {
         displayedWindows.removeAll(cachedWindows, true);
         contentTable.remove();
         contentTable.clear();
+        if(mainMenuBar != null) {
+            contentTable.row().height(26);
+            contentTable.add(mainMenuBar.getTable()).growX().top();
+        }
         uiRenderer.addActor(contentTable);
         restoreWindows();
     }
@@ -160,7 +164,6 @@ public class MetaUiManager implements UIManager {
 
     @Override
     public void setMainMenuBar(MenuBar menuBar) {
-
         if (menuBar != null) {
             contentTable.row().height(26);
             contentTable.add(menuBar.getTable()).growX().top();

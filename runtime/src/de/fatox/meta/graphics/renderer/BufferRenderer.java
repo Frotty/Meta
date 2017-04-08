@@ -39,8 +39,7 @@ public class BufferRenderer implements Renderer {
     private ModelCache modelCache = new ModelCache();
     private ModelBatch modelBatch;
 
-    private FullscreenQuad fsquad = new FullscreenQuad();
-
+    private FullscreenQuad fsquad = new FullscreenQuad(1);
 
     private MRTFrameBuffer mrtFrameBuffer;
     private FrameBuffer lightingBuffer;
@@ -48,6 +47,7 @@ public class BufferRenderer implements Renderer {
     private RenderContext renderContext;
 
     private Array<LightEntity> lights = new Array<>();
+    private FullscreenQuad compositeQuad;
 
     public BufferRenderer() {
         Meta.inject(this);
@@ -84,9 +84,7 @@ public class BufferRenderer implements Renderer {
         mrtFrameBuffer.end();
         renderContext.end();
         renderContext.begin();
-        lightingBuffer.begin();
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1);
-        Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT);
+
         ShaderInfo shaderInfo2 = shaderLibrary.getActiveShaders().get(1);
         LightShader shader = (LightShader) shaderInfo2.getShader();
         shader.begin(cam, renderContext);
@@ -100,17 +98,28 @@ public class BufferRenderer implements Renderer {
             shader.render(le.volumeSphere.getRenderable(new Renderable()));
         }
         shader.end();
-        lightingBuffer.end();
+
         renderContext.end();
         renderContext.begin();
+        lightingBuffer.begin();
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1);
+        Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT);
         FullscreenShader mrtSceneShader = (FullscreenShader) shaderLibrary.getOutputShader().getShader();
         mrtSceneShader.begin(cam, renderContext);
-        mrtSceneShader.getProgram().setUniformi("s_albedoTex", renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(0)));
+        int albedoBind = renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(0));
+        mrtSceneShader.getProgram().setUniformi("s_albedoTex", albedoBind);
         mrtSceneShader.getProgram().setUniformi("s_normalTex", normalBind);
         mrtSceneShader.getProgram().setUniformi("s_depthTex", depthBind);
-        mrtSceneShader.getProgram().setUniformi("s_lightTex", renderContext.textureBinder.bind(lightingBuffer.getColorBufferTexture()));
+//        mrtSceneShader.getProgram().setUniformi("s_lightTex", renderContext.textureBinder.bind(lightingBuffer.getColorBufferTexture()));
         fsquad.render(mrtSceneShader.getProgram());
         mrtSceneShader.end();
+        lightingBuffer.end();
+        FullscreenShader blurShader = (FullscreenShader) shaderLibrary.getActiveShaders().get(2).getShader();
+        blurShader.begin(cam, renderContext);
+        blurShader.getProgram().setUniformi("s_albedoTex", albedoBind);
+        blurShader.getProgram().setUniformi("s_inputTex", renderContext.textureBinder.bind(lightingBuffer.getColorBufferTexture()));
+        compositeQuad.render(blurShader.getProgram());
+        blurShader.end();
 
         renderContext.end();
         debugAll(x, y);
@@ -138,15 +147,17 @@ public class BufferRenderer implements Renderer {
             mrtFrameBuffer.dispose();
             lightingBuffer.dispose();
             shadowBuffer.dispose();
+            compositeQuad.dispose();
             cam.viewportWidth = width;
             cam.viewportHeight = height;
             cam.update();
         }
-        mrtFrameBuffer = new MRTFrameBuffer(width, height, 4);
+        mrtFrameBuffer = new MRTFrameBuffer(width, height);
         lightingBuffer = new FrameBuffer(Pixmap.Format.RGB888, width, height, false);
         shadowBuffer = new FrameBuffer(Pixmap.Format.RGB888, width, height, true);
         renderContext = new RenderContext(new DefaultTextureBinder(DefaultTextureBinder.ROUNDROBIN, 5));
         modelBatch = new ModelBatch(renderContext);
+        compositeQuad = new FullscreenQuad((float)(height-46) / (float)(Gdx.graphics.getHeight()));
         batch.getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 

@@ -33,7 +33,7 @@ public class MetaSceneManager implements SceneManager {
     @Override
     public MetaSceneData createNew(String name) {
         MetaSceneData metaSceneData = new MetaSceneData(name);
-        projectManager.getCurrentProject().root.child(FOLDER + name + "." + EXTENSION).writeBytes(json.toJson(metaSceneData).getBytes(), false);
+        projectManager.getCurrentProjectRoot().child(FOLDER + name + "." + EXTENSION).writeBytes(json.toJson(metaSceneData).getBytes(), false);
         metaEditorUI.addTab(new SceneTab(metaSceneData));
         return metaSceneData;
     }

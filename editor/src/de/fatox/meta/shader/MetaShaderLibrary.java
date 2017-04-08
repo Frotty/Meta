@@ -67,6 +67,33 @@ public class MetaShaderLibrary implements ShaderLibrary {
             }
         };
         activeShaders.add(testShader2);
+
+        Shader blurSahder = new BlurShader();
+        blurSahder.init();
+        ShaderInfo testShader3 = new ShaderInfo() {
+            RenderTarget[] tgts = new RenderTarget[]{new RenderTarget("outColor")};
+
+            @Override
+            public boolean isDepth() {
+                return false;
+            }
+
+            @Override
+            public RenderTarget[] getRenderTargets() {
+                return tgts;
+            }
+
+            @Override
+            public Shader getShader() {
+                return blurSahder;
+            }
+
+            @Override
+            public String getName() {
+                return "Test3";
+            }
+        };
+        activeShaders.add(testShader3);
     }
 
     @Override
