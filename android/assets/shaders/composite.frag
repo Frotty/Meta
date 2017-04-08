@@ -114,6 +114,7 @@ void main() {
 
     float randomPatternRotationAngle = rand(v_texCoord0) * PI2;
 
+    float ssDiskRadius = 1.0 / centerViewZ;
 
     float sum = 0.0;
     for (int l = 0; l < NUM_SAMPLES; ++l) {
