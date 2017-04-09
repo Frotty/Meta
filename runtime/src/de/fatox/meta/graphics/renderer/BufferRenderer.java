@@ -55,7 +55,7 @@ public class BufferRenderer implements Renderer {
         rebuild(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         for (int i = -1; i < 1; i++) {
             for (int j = -1; j < 1; j++) {
-                lights.add(new LightEntity(new Vector3(i* 15, 5, j * 15), 10, new Vector3(MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f),
+                lights.add(new LightEntity(new Vector3(i * 15, 5, j * 15), 10, new Vector3(MathUtils.random(0.1f, 0.9f), MathUtils.random(0.1f, 0.9f),
                         MathUtils.random(0.1f, 0.9f))));
             }
         }
@@ -157,7 +157,7 @@ public class BufferRenderer implements Renderer {
         shadowBuffer = new FrameBuffer(Pixmap.Format.RGB888, width, height, true);
         renderContext = new RenderContext(new DefaultTextureBinder(DefaultTextureBinder.ROUNDROBIN, 5));
         modelBatch = new ModelBatch(renderContext);
-        compositeQuad = new FullscreenQuad((float)(height-46) / (float)(Gdx.graphics.getHeight()));
+        compositeQuad = new FullscreenQuad(1f - ((1f - ((float) (height) / (float) (Gdx.graphics.getHeight()))) * 2f));
         batch.getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
