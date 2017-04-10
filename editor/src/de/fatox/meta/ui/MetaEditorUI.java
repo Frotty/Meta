@@ -23,6 +23,8 @@ public class MetaEditorUI {
     @Inject
     private UIManager uiManager;
 
+    public EditorMenuBar metaToolbar;
+
     private TabbedPane tabbedPane;
     private Table tabTable = new Table();
 
@@ -31,7 +33,7 @@ public class MetaEditorUI {
     }
 
     public void setup() {
-        EditorMenuBar metaToolbar = new EditorMenuBar();
+        metaToolbar = new EditorMenuBar();
         log.info(TAG, "Toolbar created");
         uiManager.setMainMenuBar(metaToolbar.menuBar);
 

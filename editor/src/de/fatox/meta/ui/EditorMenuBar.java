@@ -2,8 +2,8 @@ package de.fatox.meta.ui;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.Menu;
 import com.kotcrab.vis.ui.widget.MenuBar;
@@ -17,11 +17,10 @@ import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
-import de.fatox.meta.ui.components.MetaClickListener;
 import de.fatox.meta.ui.dialogs.OpenProjectDialog;
 import de.fatox.meta.ui.dialogs.ProjectWizardDialog;
 import de.fatox.meta.ui.dialogs.SceneWizardDialog;
-import de.fatox.meta.ui.windows.*;
+import de.fatox.meta.ui.windows.MetaConfirmDialog;
 
 public class EditorMenuBar {
     @Inject
@@ -37,6 +36,7 @@ public class EditorMenuBar {
     private UIManager uiManager;
 
     public final MenuBar menuBar;
+    private Menu windowsMenu;
 
     public EditorMenuBar() {
         Meta.inject(this);
@@ -49,6 +49,16 @@ public class EditorMenuBar {
         menuBar.getTable().add().growX();
         menuBar.getTable().row().height(1).left();
         menuBar.getTable().add(new Separator()).colspan(2).left().growX();
+    }
+
+    public void clear() {
+        windowsMenu.clear();
+    }
+
+    public void addAvailableWindow(Class<? extends Window> windowClass, Image icon, ChangeListener listener) {
+        MenuItem menuItem = new MenuItem(languageBundle.get(windowClass.getSimpleName()), icon);
+        menuItem.addListener(listener);
+        windowsMenu.addItem(menuItem);
     }
 
     private Menu createFileMenu() {
@@ -86,48 +96,9 @@ public class EditorMenuBar {
     }
 
     private Menu createWindowsMenu() {
-        Menu editMenu = new Menu(languageBundle.get("windowsmenu_title"));
-        MenuItem assetItem = new MenuItem("Asset Discoverer");
-        assetItem.addListener(new MetaClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                uiManager.showWindow(AssetDiscovererWindow.class);
-            }
-        });
-        MenuItem primitivesItem = new MenuItem("Primitives");
-        primitivesItem.addListener(new MetaClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                uiManager.showWindow(PrimitivesWindow.class);
-            }
-        });
-        MenuItem cameraItem = new MenuItem("Camera");
-        cameraItem.addListener(new MetaClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                uiManager.showWindow(CameraWindow.class);
-            }
-        });
-        MenuItem shaderMenu = new MenuItem("Shader Library");
-        shaderMenu.addListener(new MetaClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                uiManager.showWindow(ShaderLibraryWindow.class);
-            }
-        });
-        MenuItem shaderPipeMenu = new MenuItem("Shader Pipeline");
-        shaderPipeMenu.addListener(new MetaClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                uiManager.showWindow(ShaderComposerWindow.class);
-            }
-        });
-        editMenu.addItem(assetItem);
-        editMenu.addItem(cameraItem);
-        editMenu.addItem(primitivesItem);
-        editMenu.addItem(shaderMenu);
-        editMenu.addItem(shaderPipeMenu);
-        return editMenu;
+        windowsMenu = new Menu(languageBundle.get("windowsmenu_title"));
+        return windowsMenu;
     }
+
 
 }
