@@ -6,8 +6,13 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.api.graphics.ShaderInfo;
 import de.fatox.meta.api.graphics.ShaderLibrary;
+import de.fatox.meta.ide.ProjectManager;
+import de.fatox.meta.injection.Inject;
 
 public class MetaShaderLibrary implements ShaderLibrary {
+    @Inject
+    private ProjectManager projectManager;
+
     private ShaderInfo shaderInfo;
     private Array<ShaderInfo> activeShaders = new Array<>();
     private Array<MetaGLShader> metaShaders = new Array<>();
@@ -139,6 +144,7 @@ public class MetaShaderLibrary implements ShaderLibrary {
 
     @Override
     public void addShader(GLShaderHandle glShaderHandle) {
+        projectManager.save("meta/shaders/" + glShaderHandle.data.name + ".msh", glShaderHandle.data);
         MetaGLShader metaShader = new MetaGeoShader(glShaderHandle);
         metaShader.init();
         metaShaders.add(metaShader);

@@ -7,7 +7,6 @@ import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
-import de.fatox.meta.ui.components.AssetSelectButton;
 import de.fatox.meta.ui.components.MetaClickListener;
 import de.fatox.meta.ui.components.MetaTextButton;
 import de.fatox.meta.ui.dialogs.ShaderWizardDialog;
@@ -17,11 +16,11 @@ import de.fatox.meta.ui.dialogs.ShaderWizardDialog;
  */
 @Singleton
 public class ShaderLibraryWindow extends MetaWindow {
-    private final VisTable visTable;
-    private VisScrollPane scrollPane;
-
     @Inject
     private AssetProvider assetProvider;
+
+    private final VisTable visTable;
+    private VisScrollPane scrollPane;
 
     public ShaderLibraryWindow() {
         super("Shader Library", true, true);
@@ -38,11 +37,14 @@ public class ShaderLibraryWindow extends MetaWindow {
     }
 
     public void addShader(GLShaderHandle shader) {
-        MetaTextButton metaTextButton = new MetaTextButton("", 12);
-        VisTable visTable = new VisTable();
-        visTable.add(new VisLabel("Shader: " + shader.getName())).growX();
+        MetaTextButton metaTextButton = new MetaTextButton(shader.data.name, 12);
+        metaTextButton.row();
+        metaTextButton.add(new VisLabel("vert: " + shader.getVertexHandle().name()));
+        metaTextButton.row();
+        metaTextButton.add(new VisLabel("frag: " + shader.getFragmentHandle().name()));
+
+        visTable.add(metaTextButton).growX();
         visTable.row();
-        visTable.add(new AssetSelectButton("").getTable());
     }
 
     private void createToolbar() {

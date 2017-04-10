@@ -10,12 +10,14 @@ import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
+import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.components.AssetSelectButton;
 import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
+import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 import de.fatox.meta.util.StringUtil;
 
 /**
@@ -23,10 +25,13 @@ import de.fatox.meta.util.StringUtil;
  */
 @Singleton
 public class ShaderWizardDialog extends MetaDialog {
-    private final VisTextButton cancelBtn;
-    private final VisTextButton createBtn;
     @Inject
     private ShaderLibrary shaderLibrary;
+    @Inject
+    private ProjectManager projectManager;
+
+    private final VisTextButton cancelBtn;
+    private final VisTextButton createBtn;
 
     private MetaValidTextField shaderNameTF;
     private ButtonGroup<VisCheckBox> renderTargetGroup = new ButtonGroup<>();
@@ -60,11 +65,27 @@ public class ShaderWizardDialog extends MetaDialog {
         createBtn.setDisabled(true);
         setDefaultSize(300, 450);
         setupTable();
+        setDialogListener((Object object) -> {
+            if((boolean)object) {
+                GLShaderHandle glShaderHandle = new GLShaderHandle(shaderNameTF.getTextField().getText(), vertexSelect.getFile(), fragmentSelect.getFile());
+                String vertFile = projectManager.relativize(vertexSelect.getFile());
+                String fragFile = projectManager.relativize(fragmentSelect.getFile());
+                glShaderHandle.data.vertexFilePath = vertFile;
+                glShaderHandle.data.fragmentFilePath = fragFile;
+                shaderLibrary.addShader(glShaderHandle);
+
+                ShaderLibraryWindow window = uiManager.getWindow(ShaderLibraryWindow.class);
+                if(window != null) {
+                    window.addShader(glShaderHandle);
+                }
+            }
+            close();
+        });
     }
 
 
     private void checkButton() {
-        if(! StringUtil.isBlank(shaderNameTF.getTextField().getMessageText()) && vertexSelect.hasFile() && fragmentSelect.hasFile()) {
+        if(! StringUtil.isBlank(shaderNameTF.getTextField().getText()) && vertexSelect.hasFile() && fragmentSelect.hasFile()) {
             createBtn.setDisabled(false);
         } else {
             createBtn.setDisabled(true);
@@ -110,13 +131,6 @@ public class ShaderWizardDialog extends MetaDialog {
         renderTargetGroup.add(fullscreenButton);
 
         contentTable.add(visTable).top().growX();
-
-        setDialogListener((Object object) -> {
-            if((boolean)object) {
-                shaderLibrary.addShader(new GLShaderHandle(shaderNameTF.getTextField().getText(), vertexSelect.getFile(), fragmentSelect.getFile()));
-            }
-            close();
-        });
     }
 
 }

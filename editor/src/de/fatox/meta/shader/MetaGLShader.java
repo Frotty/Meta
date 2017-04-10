@@ -11,14 +11,12 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
-import de.fatox.meta.injection.Inject;
 
 /**
  * Created by Frotty on 29.06.2016.
  */
 public abstract class MetaGLShader implements Shader {
-    @Inject
-    private MetaErrorHandler metaErrorHandler;
+    private MetaErrorHandler metaErrorHandler = new MetaErrorHandler();
     protected GLShaderHandle shaderHandle;
     protected ShaderProgram shaderProgram;
     private Array<UniformDef> uniformDefs = new Array<>();

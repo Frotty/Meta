@@ -13,6 +13,9 @@ import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.tabs.ProjectHomeTab;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 /**
  * Created by Frotty on 04.06.2016.
  */
@@ -100,5 +103,23 @@ public class MetaProjectManager implements ProjectManager {
     private void createFolders(MetaProjectData projectData) {
         currentProjectRoot.child("assets").mkdirs();
         currentProjectRoot.child("scenes").mkdirs();
+    }
+
+    @Override
+    public <T> T get(String key, Class<T> type) {
+        return metaData.get(currentProjectRoot, key, type);
+    }
+
+    @Override
+    public void save(String key, Object obj) {
+        metaData.save(currentProjectRoot, key, obj);
+    }
+
+    @Override
+    public String relativize(FileHandle fh) {
+        Path pathAbsolute = Paths.get(currentProjectRoot.path());
+        Path pathBase = Paths.get(fh.path());
+        Path pathRelative = pathBase.relativize(pathAbsolute);
+        return pathRelative.toString();
     }
 }
