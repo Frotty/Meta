@@ -90,7 +90,7 @@ public class MetaUiManager implements UIManager {
     }
 
     private void restoreWindows() {
-        FileHandle[] list = metaData.getCachedRootHandle(currentScreenId).list();
+        FileHandle[] list = metaData.getCachedHandle(currentScreenId).list();
         outer:
         for (FileHandle fh : list) {
             if (fh.name().endsWith("Window")) {
@@ -109,6 +109,7 @@ public class MetaUiManager implements UIManager {
                         metaWindowData.set(showWindow(windowclass));
                     }
                 } catch (ReflectionException e) {
+                    fh.delete();
                     e.printStackTrace();
                 }
             }
@@ -234,7 +235,9 @@ public class MetaUiManager implements UIManager {
                 log.debug(TAG, "try instance");
                 theWindow = windowClass.newInstance();
 
-            } catch (InstantiationException | IllegalAccessException e) {
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
@@ -290,7 +293,7 @@ public class MetaUiManager implements UIManager {
 
     private void metaSaveWindow(String name, MetaWindowData windowData) {
         String id = currentScreenId + File.separator + name;
-        if (TimeUtils.timeSinceMillis(metaData.getCachedRootHandle(id).lastModified()) > 200) {
+        if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(id).lastModified()) > 200) {
             metaData.save(id, windowData);
         }
     }

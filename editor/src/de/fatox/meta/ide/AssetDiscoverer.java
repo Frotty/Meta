@@ -73,6 +73,10 @@ public class AssetDiscoverer {
         return currentFolder;
     }
 
+    public FileHandle getRoot() {
+        return root;
+    }
+
     public void addOpenListener(String extension, AssetOpenListener listener) {
         fileOpenListeners.put(extension, listener);
     }

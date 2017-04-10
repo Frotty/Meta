@@ -17,12 +17,12 @@ uniform mat4 u_invProjTrans;
 out vec4 outColor;
 
 // Amount of sample points
-const int NUM_SAMPLES = 7;
-const int NUM_SPIRAL = 5;
+const int NUM_SAMPLES = 10;
+const int NUM_SPIRAL = 7;
 
-const float u_intensity = 0.425;
+const float u_intensity = 0.125;
 const float u_bias = 0.01;
-const float u_rad = 1.0;
+const float u_rad = 0.025;
 const float PI2 = 6.2831;
 
 highp float rand(vec2 co) {
@@ -111,10 +111,12 @@ void main() {
         discard;
     }
     vec3 position = getPosition(v_texCoord0);
+    float randomPatternRotationAngle = 1.0;
+    vec2 texInt = vec2(v_texCoord0.xy * vec2(960.0, 600.0));
+    texInt = vec2(int(texInt.x), int(texInt.y));
+    randomPatternRotationAngle = (3.0 * texInt.x * texInt.y + texInt.x * texInt.y) * 10.0;
 
-    float randomPatternRotationAngle = rand(v_texCoord0) * PI2;
-
-    float ssDiskRadius = 1.0 / centerViewZ;
+    float ssDiskRadius = min(u_rad * centerViewZ, 0.2);
 
     float sum = 0.0;
     for (int l = 0; l < NUM_SAMPLES; ++l) {
@@ -126,5 +128,5 @@ void main() {
     float A = max(0.0, 1.0 - sum * u_intensity * (5.0 / float(NUM_SAMPLES)));
     vec3 albedo = texture(s_albedoTex, v_texCoord0.xy).rgb;
     vec3 light = texture(s_lightTex, v_texCoord0.xy).rgb;
-	outColor = vec4(vec3(A),1.);// vec4((albedo * 0.05 + albedo * light), 1.0);
+	outColor = vec4(Tonemap_ACES(vec3(A)),1.);// vec4((albedo * 0.05 + albedo * light), 1.0);
 }

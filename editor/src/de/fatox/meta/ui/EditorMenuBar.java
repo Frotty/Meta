@@ -119,7 +119,7 @@ public class EditorMenuBar {
         shaderPipeMenu.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                uiManager.showWindow(RenderBufferWindow.class);
+                uiManager.showWindow(ShaderComposerWindow.class);
             }
         });
         editMenu.addItem(assetItem);

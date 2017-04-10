@@ -3,12 +3,14 @@ package de.fatox.meta.ui.windows;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
+import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
@@ -25,6 +27,9 @@ public abstract class MetaWindow extends VisWindow {
     protected UIManager uiManager;
     @Inject
     protected AssetProvider assetProvider;
+    @Inject
+    protected MetaData metaData;
+
 
     protected Table contentTable = new VisTable();
 
@@ -35,6 +40,8 @@ public abstract class MetaWindow extends VisWindow {
     public MetaWindow(String title, boolean resizable, boolean closeButton) {
         super(title, resizable ? "resizable" : "default");
         Meta.inject(this);
+        getTitleTable().left().padLeft(2);
+        getTitleLabel().setAlignment(Align.left);
         if (closeButton) {
             addCloseButton();
         }
@@ -43,12 +50,11 @@ public abstract class MetaWindow extends VisWindow {
         getTitleTable().row().height(2);
         getTitleTable().add(new Separator()).growX().padTop(2).colspan(closeButton ? 2 : 1);
         getTitleTable().padTop(2);
-        getTitleTable().pack();
         if (resizable) {
             padBottom(6);
             setResizable(true);
         }
-        contentTable.top().padTop(4);
+        contentTable.top().pad(5, 1, 1, 1);
         add(contentTable).top().grow();
         row();
     }

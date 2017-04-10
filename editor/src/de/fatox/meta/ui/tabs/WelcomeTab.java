@@ -3,10 +3,10 @@ package de.fatox.meta.ui.tabs;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.LinkLabel;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
-import de.fatox.meta.api.dao.ExposedArray;
 import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.ide.ProjectManager;
@@ -39,9 +39,9 @@ public class WelcomeTab extends MetaTab {
         visTable.add(visLabel).pad(16);
 
         if(!metaData.has("lastProjects")) {
-            metaData.save("lastProjects", new ExposedArray<String>());
+            metaData.save("lastProjects", new Array<String>());
         }
-        ExposedArray<String> lastProjects = metaData.get("lastProjects", ExposedArray.class);
+        Array<String> lastProjects = metaData.get("lastProjects", Array.class);
         for (String lastProj : lastProjects) {
             visTable.row();
             LinkLabel linkLabel = new LinkLabel(lastProj.substring(0, lastProj.lastIndexOf("/")));

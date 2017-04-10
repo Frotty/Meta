@@ -9,40 +9,56 @@ import com.badlogic.gdx.utils.ObjectMap;
  * Created by Frotty on 10.03.2017.
  */
 public class MetaData {
-    public static final String DATA_FOLDER_NAME = "./.meta/";
+    public static final String GLOBAL_DATA_FOLDER_NAME = "./.meta/";
 
     private ObjectMap<String, FileHandle> fileHandleCache = new ObjectMap<>();
-    private FileHandle root = Gdx.files.absolute(DATA_FOLDER_NAME);
+    private FileHandle globalRoot = Gdx.files.absolute(GLOBAL_DATA_FOLDER_NAME);
     private Json json = new Json();
 
     public void save(String key, Object obj) {
+        save(globalRoot, key, obj);
+    }
+
+    public void save(FileHandle target, String key, Object obj) {
         String jsonString = json.toJson(obj);
 
-        FileHandle fileHandle = getCachedRootHandle(key);
+        FileHandle fileHandle = getCachedHandle(target, key);
 
         fileHandle.writeBytes(jsonString.getBytes(), false);
     }
 
     public <T> T get(String key, Class<T> type) {
-        FileHandle fileHandle = getCachedRootHandle(key);
-        if(fileHandle != null && fileHandle.exists()) {
+        return get(globalRoot, key, type);
+    }
+
+    public <T> T get(FileHandle target, String key, Class<T> type) {
+        FileHandle fileHandle = getCachedHandle(target, key);
+        if (fileHandle != null && fileHandle.exists()) {
             return json.fromJson(type, fileHandle.readString());
         }
         return null;
     }
 
-    public FileHandle getCachedRootHandle(String key) {
+    public FileHandle getCachedHandle(String key) {
+        return getCachedHandle(globalRoot, key);
+    }
+
+    public FileHandle getCachedHandle(FileHandle parent, String key) {
         FileHandle fileHandle;
-        if(fileHandleCache.containsKey(key)) {
+        if (fileHandleCache.containsKey(key)) {
             fileHandle = fileHandleCache.get(key);
         } else {
-            fileHandle = root.child(key);
+            fileHandle = parent.child(key);
             fileHandleCache.put(key, fileHandle);
         }
         return fileHandle;
     }
 
     public boolean has(String name) {
-        return fileHandleCache.containsKey(name) || root.child(name).exists();
+        return has(globalRoot, name);
+    }
+
+    public boolean has(FileHandle fileHandle, String name) {
+        return fileHandleCache.containsKey(name) || fileHandle.child(name).exists();
     }
 }

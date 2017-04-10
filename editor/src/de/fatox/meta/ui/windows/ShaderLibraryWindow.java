@@ -53,13 +53,14 @@ public class ShaderLibraryWindow extends MetaWindow {
                 uiManager.showDialog(ShaderWizardDialog.class);
             }
         });
+        visImageButton.getImage().setScaling(Scaling.fill);
+        visImageButton.getImage().setSize(24, 24);
 
         contentTable.row().size(26);
         contentTable.add(visImageButton).size(24).top().left();
         contentTable.row().height(1);
         contentTable.add(new Separator()).growX();
         contentTable.row();
-        visImageButton.getImage().setScaling(Scaling.fill);
-        visImageButton.getImage().setSize(24, 24);
+
     }
 }

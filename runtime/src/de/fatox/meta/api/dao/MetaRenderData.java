@@ -6,5 +6,13 @@ import com.badlogic.gdx.utils.Array;
  * Created by Frotty on 08.04.2017.
  */
 public class MetaRenderData {
-    Array<RenderBufferData> renderBuffers;
+    public String name;
+    public Array<RenderBufferData> renderBuffers;
+
+    public MetaRenderData(String name) {
+        this.name = name;
+        renderBuffers = new Array<>();
+    }
+
+
 }

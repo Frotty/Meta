@@ -14,4 +14,5 @@ public interface ProjectManager {
     boolean verifyProjectFile(FileHandle file);
 
     FileHandle getCurrentProjectRoot();
+
 }

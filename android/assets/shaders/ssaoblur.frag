@@ -23,5 +23,5 @@ void main() {
 	}
 
 	fragColor = fragColor / float(uBlurSize * uBlurSize);
-	fragColor = texture(s_albedoTex, v_texCoord0) * fragColor;
+	fragColor = texture(s_albedoTex, v_texCoord0) * fragColor * 0.125;
 }

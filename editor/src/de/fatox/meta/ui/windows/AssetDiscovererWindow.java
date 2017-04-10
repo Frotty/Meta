@@ -141,13 +141,15 @@ public class AssetDiscovererWindow extends MetaWindow {
 
     private void refreshFolderView() {
         adapter.clear();
-        adapter.add(new FolderModel(assetDiscoverer.getCurrentFolder().parent()) {
-            @Override
-            public String toString() {
-                return "../";
-            }
+        if (! assetDiscoverer.getCurrentFolder().path().equals(assetDiscoverer.getRoot().path())) {
+            adapter.add(new FolderModel(assetDiscoverer.getCurrentFolder().parent()) {
+                @Override
+                public String toString() {
+                    return "../";
+                }
 
-        });
+            });
+        }
         for (FileHandle child : assetDiscoverer.getCurrentChildFolders()) {
             adapter.add(new FolderModel(child));
         }

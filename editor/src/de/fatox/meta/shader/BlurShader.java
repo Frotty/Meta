@@ -47,6 +47,7 @@ public class BlurShader extends FullscreenShader {
     @Override
     public void begin(Camera camera, RenderContext context) {
         program.begin();
+        program.setUniformf("u_resolution", camera.viewportWidth, camera.viewportHeight);
     }
 
 

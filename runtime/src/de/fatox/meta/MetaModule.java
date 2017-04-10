@@ -17,6 +17,7 @@ import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.entity.MetaEntityManager;
 import de.fatox.meta.graphics.font.MetaFontProvider;
 import de.fatox.meta.graphics.renderer.BufferRenderer;
+import de.fatox.meta.graphics.renderer.ShaderComposer;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
@@ -127,6 +128,13 @@ public class MetaModule {
     @Named("default")
     public Json json() {
         return new Json();
+    }
+
+    @Provides
+    @Singleton
+    @Named("default")
+    public ShaderComposer renderComposer() {
+        return new ShaderComposer();
     }
 
 }
