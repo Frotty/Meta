@@ -11,11 +11,12 @@ import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.api.dao.RenderBufferData;
 import de.fatox.meta.api.graphics.ShaderLibrary;
-import de.fatox.meta.shader.MetaShaderComposer;
-import de.fatox.meta.shader.ShaderComposition;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
+import de.fatox.meta.shader.MetaShaderComposer;
+import de.fatox.meta.shader.ShaderComposition;
 import de.fatox.meta.ui.components.MetaClickListener;
+import de.fatox.meta.ui.components.MetaTextButton;
 import de.fatox.meta.ui.dialogs.ShaderCompositionWizard;
 
 /**
@@ -66,7 +67,7 @@ public class ShaderComposerWindow extends MetaWindow {
         contentTable.row().padTop(2);
         contentTable.add(bufferTable).colspan(3).grow();
 
-        for(ShaderComposition shaderComposition : shaderComposer.getCompositions()) {
+        for (ShaderComposition shaderComposition : shaderComposer.getCompositions()) {
             addComposition(shaderComposition);
         }
     }
@@ -84,8 +85,23 @@ public class ShaderComposerWindow extends MetaWindow {
         bufferTable.add(addButton).size(150, 100).left();
     }
 
+    private void loadBuffer(Array<RenderBufferData> buffers) {
+        int i = 0;
+        for(RenderBufferData bufferData : buffers) {
+            MetaTextButton button = new MetaTextButton("Channel " + i);
+            button.addListener(new MetaClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+
+                }
+            });
+            i++;
+            bufferTable.add(button).size(150, 100).left();
+        }
+    }
+
     public void addComposition(ShaderComposition shaderComposition) {
-        if(shaderComposition.data != null && shaderComposition.data.name != null) {
+        if (shaderComposition.data != null && shaderComposition.data.name != null) {
             Array<String> items = new Array<>(renderSelectbox.getItems());
             items.add(shaderComposition.data.name);
             renderSelectbox.setItems(items);
@@ -96,8 +112,9 @@ public class ShaderComposerWindow extends MetaWindow {
     }
 
     private void loadComposition(ShaderComposition shaderComposition) {
-        if(shaderComposition.data.renderBuffers.size > 0) {
+        if (shaderComposition.data.renderBuffers.size > 0) {
             // Load existing
+            loadBuffer(shaderComposition.data.renderBuffers);
         }
         // Add new buffer button
         setupNewBufferButton();

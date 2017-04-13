@@ -5,8 +5,8 @@ import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.api.dao.MetaProjectData;
-import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.components.TextWidget;
 import de.fatox.meta.ui.windows.AssetDiscovererWindow;
 import de.fatox.meta.ui.windows.ShaderLibraryWindow;
@@ -19,7 +19,7 @@ public class ProjectHomeTab extends MetaTab {
     private VisTable visTable = new VisTable();
 
     @Inject
-    private UIManager uiManager;
+    private MetaEditorUI editorUI;
 
     public ProjectHomeTab(MetaProjectData metaProjectData) {
         super(true, false);
@@ -52,7 +52,7 @@ public class ProjectHomeTab extends MetaTab {
     @Override
     public void onShow() {
         super.onShow();
-        uiManager.showWindow(AssetDiscovererWindow.class);
-        uiManager.showWindow(ShaderLibraryWindow.class);
+        editorUI.metaToolbar.addAvailableWindow(AssetDiscovererWindow.class, null);
+        editorUI.metaToolbar.addAvailableWindow(ShaderLibraryWindow.class, null);
     }
 }

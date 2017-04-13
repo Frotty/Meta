@@ -8,7 +8,6 @@ import com.kotcrab.vis.ui.widget.LinkLabel;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.api.dao.MetaData;
-import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.components.TextWidget;
@@ -22,8 +21,6 @@ public class WelcomeTab extends MetaTab {
     private MetaData metaData;
     @Inject
     private ProjectManager projectManager;
-    @Inject
-    private UIManager uiManager;
 
     public WelcomeTab() {
         super(false, false);
@@ -59,5 +56,10 @@ public class WelcomeTab extends MetaTab {
     @Override
     public Table getContentTable() {
         return visTable;
+    }
+
+    @Override
+    public void onShow() {
+        super.onShow();
     }
 }

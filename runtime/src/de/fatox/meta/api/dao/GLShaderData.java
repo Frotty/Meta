@@ -16,4 +16,5 @@ public class GLShaderData {
         this.vertexFilePath = vertPath;
         this.fragmentFilePath = fragPath;
     }
+
 }

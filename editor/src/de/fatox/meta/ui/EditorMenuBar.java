@@ -55,9 +55,14 @@ public class EditorMenuBar {
         windowsMenu.clear();
     }
 
-    public void addAvailableWindow(Class<? extends Window> windowClass, Image icon, ChangeListener listener) {
-        MenuItem menuItem = new MenuItem(languageBundle.get(windowClass.getSimpleName()), icon);
-        menuItem.addListener(listener);
+    public void addAvailableWindow(Class<? extends Window> windowClass, Image icon) {
+        MenuItem menuItem = new MenuItem(windowClass.getSimpleName().substring(0, windowClass.getSimpleName().indexOf("Window")), icon);
+        menuItem.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                uiManager.showWindow(windowClass);
+            }
+        });
         windowsMenu.addItem(menuItem);
     }
 
