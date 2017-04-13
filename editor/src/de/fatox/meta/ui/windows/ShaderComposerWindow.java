@@ -11,8 +11,8 @@ import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.api.dao.RenderBufferData;
 import de.fatox.meta.api.graphics.ShaderLibrary;
-import de.fatox.meta.graphics.renderer.ShaderComposer;
-import de.fatox.meta.graphics.renderer.ShaderComposition;
+import de.fatox.meta.shader.MetaShaderComposer;
+import de.fatox.meta.shader.ShaderComposition;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.components.MetaClickListener;
@@ -26,7 +26,7 @@ public class ShaderComposerWindow extends MetaWindow {
     @Inject
     private ShaderLibrary shaderLibrary;
     @Inject
-    private ShaderComposer shaderComposer;
+    private MetaShaderComposer shaderComposer;
 
     private VisSelectBox<String> renderSelectbox;
     private VisTable bufferTable;
@@ -65,6 +65,10 @@ public class ShaderComposerWindow extends MetaWindow {
         contentTable.add().growX();
         contentTable.row().padTop(2);
         contentTable.add(bufferTable).colspan(3).grow();
+
+        for(ShaderComposition shaderComposition : shaderComposer.getCompositions()) {
+            addComposition(shaderComposition);
+        }
     }
 
     private void setupNewBufferButton() {
@@ -81,7 +85,7 @@ public class ShaderComposerWindow extends MetaWindow {
     }
 
     public void addComposition(ShaderComposition shaderComposition) {
-        if(shaderComposition.data.name != null) {
+        if(shaderComposition.data != null && shaderComposition.data.name != null) {
             Array<String> items = new Array<>(renderSelectbox.getItems());
             items.add(shaderComposition.data.name);
             renderSelectbox.setItems(items);
@@ -92,11 +96,10 @@ public class ShaderComposerWindow extends MetaWindow {
     }
 
     private void loadComposition(ShaderComposition shaderComposition) {
-        if(shaderComposition.data.renderBuffers.size == 0) {
-            // Newly created composition
-            setupNewBufferButton();
-        } else {
+        if(shaderComposition.data.renderBuffers.size > 0) {
             // Load existing
         }
+        // Add new buffer button
+        setupNewBufferButton();
     }
 }

@@ -1,4 +1,4 @@
-package de.fatox.meta.graphics.renderer;
+package de.fatox.meta.shader;
 
 import de.fatox.meta.api.dao.MetaRenderData;
 
@@ -7,6 +7,10 @@ import de.fatox.meta.api.dao.MetaRenderData;
  */
 public class ShaderComposition {
     public MetaRenderData data;
+
+    public ShaderComposition(MetaRenderData data) {
+        this.data = data;
+    }
 
     public ShaderComposition(String name) {
         data = new MetaRenderData(name);

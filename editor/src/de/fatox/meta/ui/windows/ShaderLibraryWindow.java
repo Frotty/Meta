@@ -1,12 +1,15 @@
 package de.fatox.meta.ui.windows;
 
+import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.utils.Scaling;
 import com.kotcrab.vis.ui.widget.*;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.graphics.GLShaderHandle;
+import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
+import de.fatox.meta.shader.MetaGLShader;
 import de.fatox.meta.ui.components.MetaClickListener;
 import de.fatox.meta.ui.components.MetaTextButton;
 import de.fatox.meta.ui.dialogs.ShaderWizardDialog;
@@ -18,6 +21,8 @@ import de.fatox.meta.ui.dialogs.ShaderWizardDialog;
 public class ShaderLibraryWindow extends MetaWindow {
     @Inject
     private AssetProvider assetProvider;
+    @Inject
+    private ShaderLibrary shaderLibrary;
 
     private final VisTable visTable;
     private VisScrollPane scrollPane;
@@ -34,6 +39,10 @@ public class ShaderLibraryWindow extends MetaWindow {
         scrollPane = new VisScrollPane(visTable);
 
         contentTable.add(scrollPane).top().grow();
+        for(Shader shader : shaderLibrary.getActiveShaders()) {
+            MetaGLShader metaGLShader = (MetaGLShader) shader;
+            addShader(metaGLShader.shaderHandle);
+        }
     }
 
     public void addShader(GLShaderHandle shader) {

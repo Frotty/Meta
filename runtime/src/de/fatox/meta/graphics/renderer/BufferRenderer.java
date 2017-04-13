@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelCache;
 import com.badlogic.gdx.graphics.g3d.Renderable;
+import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
@@ -18,7 +19,6 @@ import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.entity.EntityManager;
 import de.fatox.meta.api.graphics.Renderer;
-import de.fatox.meta.api.graphics.ShaderInfo;
 import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.entity.LightEntity;
 import de.fatox.meta.entity.LightShader;
@@ -76,17 +76,17 @@ public class BufferRenderer implements Renderer {
         mrtFrameBuffer.begin();
         renderContext.begin();
         Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT | GL30.GL_DEPTH_BUFFER_BIT);
-        ShaderInfo shaderInfo = shaderLibrary.getActiveShaders().get(0);
+        Shader shaderInfo = shaderLibrary.getActiveShaders().get(0);
 
         modelBatch.begin(cam);
-        modelBatch.render(modelCache, shaderInfo.getShader());
+        modelBatch.render(modelCache, shaderInfo);
         modelBatch.end();
         mrtFrameBuffer.end();
         renderContext.end();
         renderContext.begin();
 
-        ShaderInfo shaderInfo2 = shaderLibrary.getActiveShaders().get(1);
-        LightShader shader = (LightShader) shaderInfo2.getShader();
+        Shader shaderInfo2 = shaderLibrary.getActiveShaders().get(1);
+        LightShader shader = (LightShader) shaderInfo2;
         shader.begin(cam, renderContext);
         shader.getProgram().setUniformf("u_inverseScreenSize", 1.0f / mrtFrameBuffer.getWidth(), 1.0f / mrtFrameBuffer.getHeight());
         int depthBind = renderContext.textureBinder.bind(mrtFrameBuffer.getColorBufferTexture(3));
@@ -114,7 +114,7 @@ public class BufferRenderer implements Renderer {
         fsquad.render(mrtSceneShader.getProgram());
         mrtSceneShader.end();
         lightingBuffer.end();
-        FullscreenShader blurShader = (FullscreenShader) shaderLibrary.getActiveShaders().get(2).getShader();
+        FullscreenShader blurShader = (FullscreenShader) shaderLibrary.getActiveShaders().get(2);
         blurShader.begin(cam, renderContext);
         blurShader.getProgram().setUniformi("s_albedoTex", albedoBind);
         blurShader.getProgram().setUniformi("s_inputTex", renderContext.textureBinder.bind(lightingBuffer.getColorBufferTexture()));

@@ -17,6 +17,12 @@ public class GLShaderHandle {
         this.fragmentHandle = fragmentHandle;
     }
 
+    public GLShaderHandle(GLShaderData data, FileHandle vertexHandle, FileHandle fragmentHandle) {
+        this.data = data;
+        this.vertexHandle = vertexHandle;
+        this.fragmentHandle = fragmentHandle;
+    }
+
     public FileHandle getVertexHandle() {
         return vertexHandle;
     }

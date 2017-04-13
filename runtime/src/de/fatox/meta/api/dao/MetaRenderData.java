@@ -9,6 +9,9 @@ public class MetaRenderData {
     public String name;
     public Array<RenderBufferData> renderBuffers;
 
+    public MetaRenderData() {
+    }
+
     public MetaRenderData(String name) {
         this.name = name;
         renderBuffers = new Array<>();

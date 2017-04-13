@@ -5,15 +5,17 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
-import de.fatox.meta.graphics.renderer.ShaderComposer;
-import de.fatox.meta.graphics.renderer.ShaderComposition;
+import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
+import de.fatox.meta.shader.MetaShaderComposer;
+import de.fatox.meta.shader.ShaderComposition;
 import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
-import de.fatox.meta.ui.windows.ShaderComposerWindow;
 import de.fatox.meta.util.StringUtil;
+
+import static de.fatox.meta.shader.MetaShaderComposer.META_COMP_SUFFIX;
 
 /**
  * Created by Frotty on 29.06.2016.
@@ -21,7 +23,9 @@ import de.fatox.meta.util.StringUtil;
 @Singleton
 public class ShaderCompositionWizard extends MetaDialog {
     @Inject
-    private ShaderComposer shaderComposer;
+    private MetaShaderComposer metaShaderComposer;
+    @Inject
+    private ProjectManager projectManager;
 
     private final VisTextButton cancelBtn;
     private final VisTextButton createBtn;
@@ -76,11 +80,12 @@ public class ShaderCompositionWizard extends MetaDialog {
             if (object != null) {
                 if ((boolean) object) {
                     ShaderComposition shaderComposition = new ShaderComposition(compNameTF.getTextField().getText());
-                    shaderComposer.addComposition(shaderComposition);
-                    ShaderComposerWindow window = uiManager.getWindow(ShaderComposerWindow.class);
-                    if(window != null) {
-                        window.addComposition(shaderComposition);
-                    }
+                    metaShaderComposer.addComposition(shaderComposition);
+//                    ShaderComposerWindow window = uiManager.getWindow(ShaderComposerWindow.class);
+//                    if(window != null) {
+//                        window.addComposition(shaderComposition);
+//                    }
+                    projectManager.save("meta/compositions/" + shaderComposition.data.name + META_COMP_SUFFIX, shaderComposition.data);
                 }
             }
             close();

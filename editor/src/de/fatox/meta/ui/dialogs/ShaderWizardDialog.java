@@ -20,6 +20,8 @@ import de.fatox.meta.ui.windows.MetaDialog;
 import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 import de.fatox.meta.util.StringUtil;
 
+import static de.fatox.meta.shader.MetaShaderLibrary.META_SHADER_SUFFIX;
+
 /**
  * Created by Frotty on 29.06.2016.
  */
@@ -72,6 +74,7 @@ public class ShaderWizardDialog extends MetaDialog {
                 String fragFile = projectManager.relativize(fragmentSelect.getFile());
                 glShaderHandle.data.vertexFilePath = vertFile;
                 glShaderHandle.data.fragmentFilePath = fragFile;
+                projectManager.save("meta/shaders/" + glShaderHandle.data.name + META_SHADER_SUFFIX, glShaderHandle.data);
                 shaderLibrary.addShader(glShaderHandle);
 
                 ShaderLibraryWindow window = uiManager.getWindow(ShaderLibraryWindow.class);

@@ -11,6 +11,7 @@ import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.lang.MetaLanguageBundle;
 import de.fatox.meta.screens.MetaEditorScreen;
+import de.fatox.meta.shader.MetaShaderComposer;
 import de.fatox.meta.shader.MetaShaderLibrary;
 
 public class MetaEditorModule {
@@ -37,6 +38,13 @@ public class MetaEditorModule {
     @Singleton
     public ProjectManager projectManager(MetaProjectManager projectManager) {
         return projectManager;
+    }
+
+    @Provides
+    @Singleton
+    @Named("default")
+    public MetaShaderComposer shaderComposer() {
+        return new MetaShaderComposer();
     }
 
     @Provides
@@ -73,5 +81,6 @@ public class MetaEditorModule {
     public FileChooser saveFileChooser() {
         return new FileChooser(FileChooser.Mode.SAVE);
     }
+
 
 }

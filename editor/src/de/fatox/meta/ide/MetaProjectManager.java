@@ -117,8 +117,8 @@ public class MetaProjectManager implements ProjectManager {
 
     @Override
     public String relativize(FileHandle fh) {
-        Path pathAbsolute = Paths.get(currentProjectRoot.path());
-        Path pathBase = Paths.get(fh.path());
+        Path pathAbsolute = Paths.get(fh.file().getAbsolutePath());
+        Path pathBase = Paths.get(currentProjectRoot.file().getAbsolutePath());
         Path pathRelative = pathBase.relativize(pathAbsolute);
         return pathRelative.toString();
     }
