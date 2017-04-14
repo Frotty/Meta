@@ -11,6 +11,7 @@ import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.shader.MetaGLShader;
 import de.fatox.meta.ui.components.MetaClickListener;
+import de.fatox.meta.ui.components.MetaLabel;
 import de.fatox.meta.ui.components.MetaTextButton;
 import de.fatox.meta.ui.dialogs.ShaderWizardDialog;
 
@@ -46,11 +47,11 @@ public class ShaderLibraryWindow extends MetaWindow {
     }
 
     public void addShader(GLShaderHandle shader) {
-        MetaTextButton metaTextButton = new MetaTextButton(shader.data.name, 12);
+        MetaTextButton metaTextButton = new MetaTextButton(shader.data.name, 16);
         metaTextButton.row();
-        metaTextButton.add(new VisLabel("vert: " + shader.getVertexHandle().name()));
+        metaTextButton.add(new MetaLabel(shader.getVertexHandle().name() + "/" + shader.getFragmentHandle().name(), 14));
         metaTextButton.row();
-        metaTextButton.add(new VisLabel("frag: " + shader.getFragmentHandle().name()));
+        metaTextButton.add(new MetaLabel("Targets: " + shader.targets.size, 14));
 
         visTable.add(metaTextButton).growX();
         visTable.row();

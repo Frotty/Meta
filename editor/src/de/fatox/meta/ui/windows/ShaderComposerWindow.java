@@ -16,6 +16,8 @@ import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.shader.MetaShaderComposer;
 import de.fatox.meta.shader.ShaderComposition;
 import de.fatox.meta.ui.components.MetaClickListener;
+import de.fatox.meta.ui.components.MetaLabel;
+import de.fatox.meta.ui.components.MetaPassButton;
 import de.fatox.meta.ui.components.MetaTextButton;
 import de.fatox.meta.ui.dialogs.ShaderCompositionWizard;
 
@@ -51,7 +53,6 @@ public class ShaderComposerWindow extends MetaWindow {
 
         bufferTable = new VisTable();
         bufferTable.top().left();
-
         renderSelectbox = new VisSelectBox<>();
         renderSelectbox.setItems(new Array<>());
         renderSelectbox.addListener(new ChangeListener() {
@@ -77,8 +78,10 @@ public class ShaderComposerWindow extends MetaWindow {
         addButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                RenderBufferData renderBufferData = new RenderBufferData();
-                shaderComposer.getComposition(renderSelectbox.getSelected()).data.renderBuffers.add(renderBufferData);
+                MetaPassButton newButton = new MetaPassButton("Pass_" + shaderComposer.getCompositions().size);
+                bufferTable.getCell(addButton).setActor(newButton).padRight(2);
+                bufferTable.add(new MetaLabel(">", 14)).center().padRight(2);
+                bufferTable.add(addButton).size(150, 100).left();
             }
         });
         addButton.getImage().setAlign(Align.center);

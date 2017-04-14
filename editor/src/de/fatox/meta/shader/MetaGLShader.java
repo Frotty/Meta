@@ -63,6 +63,11 @@ public abstract class MetaGLShader implements Shader {
         shaderProgram.dispose();
     }
 
+    @Override
+    public String toString() {
+        return "MSH: " + shaderHandle.data.name;
+    }
+
     private static final Matrix3 tempM3 = new Matrix3();
     private static final Matrix4 tempM4 = new Matrix4();
     private static final Vector3 tempV3 = new Vector3();

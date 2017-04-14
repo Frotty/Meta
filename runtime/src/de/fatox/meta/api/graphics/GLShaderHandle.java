@@ -70,5 +70,9 @@ public class GLShaderHandle {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        if(targets.size == 0) {
+            // add default gl out
+            targets.add(new RenderTargetData("vec4", "gl_FragColor"));
+        }
     }
 }
