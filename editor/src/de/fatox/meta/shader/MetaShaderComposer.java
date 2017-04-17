@@ -46,6 +46,7 @@ public class MetaShaderComposer {
     public void addComposition(ShaderComposition composition) {
         if(composition != null) {
             compositions.add(composition);
+            projectManager.save("meta/compositions/" + composition.data.name + META_COMP_SUFFIX, composition.data);
             ShaderComposerWindow window = uiManager.getWindow(ShaderComposerWindow.class);
             if(window != null) {
                 window.addComposition(composition);
@@ -65,5 +66,9 @@ public class MetaShaderComposer {
 
     public Array<ShaderComposition> getCompositions() {
         return compositions;
+    }
+
+    public void updateComp(ShaderComposition composition) {
+        projectManager.save("meta/compositions/" + composition.data.name + META_COMP_SUFFIX, composition);
     }
 }

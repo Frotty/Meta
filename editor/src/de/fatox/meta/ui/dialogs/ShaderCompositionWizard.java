@@ -85,7 +85,7 @@ public class ShaderCompositionWizard extends MetaDialog {
 //                    if(window != null) {
 //                        window.addComposition(shaderComposition);
 //                    }
-                    projectManager.save("meta/compositions/" + shaderComposition.data.name + META_COMP_SUFFIX, shaderComposition.data);
+
                 }
             }
             close();

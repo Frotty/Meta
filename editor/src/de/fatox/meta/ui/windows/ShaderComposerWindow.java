@@ -34,6 +34,7 @@ public class ShaderComposerWindow extends MetaWindow {
     private VisSelectBox<String> renderSelectbox;
     private VisTable bufferTable;
     private VisImageButton addButton;
+    private ShaderComposition currentComp;
 
     public ShaderComposerWindow() {
         super("Shader Composer", true, true);
@@ -78,14 +79,16 @@ public class ShaderComposerWindow extends MetaWindow {
         addButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                currentComp.data.renderBuffers.add(new RenderBufferData());
+                shaderComposer.updateComp(currentComp);
                 MetaPassButton newButton = new MetaPassButton("Pass_" + shaderComposer.getCompositions().size);
                 bufferTable.getCell(addButton).setActor(newButton).padRight(2);
                 bufferTable.add(new MetaLabel(">", 14)).center().padRight(2);
-                bufferTable.add(addButton).size(150, 100).left();
+                bufferTable.add(addButton).size(175, 100).left();
             }
         });
         addButton.getImage().setAlign(Align.center);
-        bufferTable.add(addButton).size(150, 100).left();
+        bufferTable.add(addButton).size(175, 100).left();
     }
 
     private void loadBuffer(Array<RenderBufferData> buffers) {
@@ -99,7 +102,7 @@ public class ShaderComposerWindow extends MetaWindow {
                 }
             });
             i++;
-            bufferTable.add(button).size(150, 100).left();
+            bufferTable.add(button).size(175, 100).left();
         }
     }
 
@@ -119,6 +122,7 @@ public class ShaderComposerWindow extends MetaWindow {
             // Load existing
             loadBuffer(shaderComposition.data.renderBuffers);
         }
+        currentComp = shaderComposition;
         // Add new buffer button
         setupNewBufferButton();
     }
