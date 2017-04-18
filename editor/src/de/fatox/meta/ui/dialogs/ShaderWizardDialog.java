@@ -7,12 +7,12 @@ import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import de.fatox.meta.api.graphics.GLShaderHandle;
-import de.fatox.meta.api.graphics.ShaderLibrary;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
+import de.fatox.meta.shader.MetaShaderLibrary;
 import de.fatox.meta.ui.components.AssetSelectButton;
 import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaValidTextField;
@@ -28,7 +28,7 @@ import static de.fatox.meta.shader.MetaShaderLibrary.META_SHADER_SUFFIX;
 @Singleton
 public class ShaderWizardDialog extends MetaDialog {
     @Inject
-    private ShaderLibrary shaderLibrary;
+    private MetaShaderLibrary shaderLibrary;
     @Inject
     private ProjectManager projectManager;
 

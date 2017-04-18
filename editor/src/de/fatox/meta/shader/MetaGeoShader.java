@@ -3,12 +3,12 @@ package de.fatox.meta.shader;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
-import de.fatox.meta.api.graphics.GLShaderHandle;
+import de.fatox.meta.api.graphics.*;
 
 /**
  * Created by Frotty on 29.06.2016.
  */
-public class MetaGeoShader extends MetaGLShader {
+public class MetaGeoShader extends de.fatox.meta.api.graphics.MetaGLShader {
     private Camera camera;
     private RenderContext context;
 
@@ -22,9 +22,6 @@ public class MetaGeoShader extends MetaGLShader {
         super.init();
         if(shaderProgram.isCompiled()) {
             String[] uniforms = shaderProgram.getUniforms();
-            for (String uniform : uniforms) {
-                addUniform(uniform);
-            }
         }
     }
 

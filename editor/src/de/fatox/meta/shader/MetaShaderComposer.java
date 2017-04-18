@@ -24,6 +24,8 @@ public class MetaShaderComposer {
 
     private Array<ShaderComposition> compositions = new Array<>(2);
 
+    private ShaderComposition currentComposition;
+
     public MetaShaderComposer() {
         Meta.inject(this);
         loadProjectCompositions();
@@ -51,6 +53,7 @@ public class MetaShaderComposer {
             if(window != null) {
                 window.addComposition(composition);
             }
+            currentComposition = composition;
         }
     }
 
@@ -69,6 +72,14 @@ public class MetaShaderComposer {
     }
 
     public void updateComp(ShaderComposition composition) {
-        projectManager.save("meta/compositions/" + composition.data.name + META_COMP_SUFFIX, composition);
+        projectManager.save("meta/compositions/" + composition.data.name + META_COMP_SUFFIX, composition.data);
+    }
+
+    public ShaderComposition getCurrentComposition() {
+        return currentComposition;
+    }
+
+    public void setCurrentComposition(ShaderComposition currentComposition) {
+        this.currentComposition = currentComposition;
     }
 }

@@ -1,4 +1,4 @@
-package de.fatox.meta.shader;
+package de.fatox.meta.api.graphics;
 
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.Shader;
@@ -6,9 +6,7 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
 
@@ -19,16 +17,12 @@ public abstract class MetaGLShader implements Shader {
     private MetaErrorHandler metaErrorHandler = new MetaErrorHandler();
     public GLShaderHandle shaderHandle;
     protected ShaderProgram shaderProgram;
-    private Array<UniformDef> uniformDefs = new Array<>();
 
     public MetaGLShader(GLShaderHandle shaderHandle) {
         Meta.inject(this);
         this.shaderHandle = shaderHandle;
     }
 
-    public void addUniform(String name) {
-        uniformDefs.add(new UniformDef(name, shaderProgram.getUniformLocation(name)));
-    }
 
     @Override
     public void init() {

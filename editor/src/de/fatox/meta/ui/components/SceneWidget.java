@@ -19,6 +19,7 @@ public class SceneWidget extends Widget {
 
     @Override
     public void layout() {
+        invalidate();
         renderer.rebuild((int) getWidth(), (int) getHeight());
     }
 

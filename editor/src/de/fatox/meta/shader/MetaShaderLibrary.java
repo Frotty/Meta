@@ -6,14 +6,12 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.GLShaderData;
-import de.fatox.meta.api.graphics.GLShaderHandle;
-import de.fatox.meta.api.graphics.ShaderInfo;
-import de.fatox.meta.api.graphics.ShaderLibrary;
+import de.fatox.meta.api.graphics.*;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 
-public class MetaShaderLibrary implements ShaderLibrary {
+public class MetaShaderLibrary {
     public static final String META_SHADER_SUFFIX = ".msh";
     @Inject
     private ProjectManager projectManager;
@@ -23,7 +21,7 @@ public class MetaShaderLibrary implements ShaderLibrary {
     private UIManager uiManager;
     private ShaderInfo shaderInfo;
     private Array<ShaderInfo> activeShaders = new Array<>();
-    private Array<Shader> metaShaders = new Array<>();
+    private Array<MetaGLShader> metaShaders = new Array<>();
 
     public MetaShaderLibrary() {
         Meta.inject(this);
@@ -129,17 +127,14 @@ public class MetaShaderLibrary implements ShaderLibrary {
         }
     }
 
-    @Override
     public Iterable<ShaderInfo> getLoadedShaders() {
         return null;
     }
 
-    @Override
-    public Array<Shader> getActiveShaders() {
+    public Array<MetaGLShader> getActiveShaders() {
         return metaShaders;
     }
 
-    @Override
     public ShaderInfo getOutputShader() {
         if (shaderInfo == null) {
             Shader shader = new CompositeShader();
@@ -170,9 +165,8 @@ public class MetaShaderLibrary implements ShaderLibrary {
         return shaderInfo;
     }
 
-    @Override
     public void addShader(GLShaderHandle glShaderHandle) {
-        MetaGLShader metaShader = new MetaGeoShader(glShaderHandle);
+        de.fatox.meta.api.graphics.MetaGLShader metaShader = new MetaGeoShader(glShaderHandle);
         metaShader.init();
         metaShaders.add(metaShader);
     }

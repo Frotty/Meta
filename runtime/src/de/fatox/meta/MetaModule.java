@@ -9,14 +9,12 @@ import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.entity.EntityManager;
 import de.fatox.meta.api.graphics.FontProvider;
-import de.fatox.meta.api.graphics.Renderer;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.entity.MetaEntityManager;
 import de.fatox.meta.graphics.font.MetaFontProvider;
-import de.fatox.meta.graphics.renderer.BufferRenderer;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
@@ -54,11 +52,12 @@ public class MetaModule {
         return new MetaInput();
     }
 
-    @Provides
-    @Singleton
-    public Renderer renderer(BufferRenderer renderer) {
-        return renderer;
-    }
+//    @Provides
+//    @Singleton
+//    @Named("default")
+//    public Renderer renderer(BufferRenderer renderer) {
+//        return renderer;
+//    }
 
     @Provides
     @Singleton

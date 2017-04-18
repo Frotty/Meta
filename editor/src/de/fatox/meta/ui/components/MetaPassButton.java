@@ -1,7 +1,6 @@
 package de.fatox.meta.ui.components;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
@@ -13,11 +12,13 @@ import com.kotcrab.vis.ui.widget.VisTextButton;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.dao.RenderBufferData;
-import de.fatox.meta.api.graphics.ShaderLibrary;
+import de.fatox.meta.api.graphics.MetaGLShader;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.shader.MetaShaderLibrary;
 import de.fatox.meta.util.GoldenRatio;
 
-import static de.fatox.meta.api.dao.RenderBufferData.IN.*;
+import static de.fatox.meta.api.dao.RenderBufferData.IN.FULLSCREEN;
+import static de.fatox.meta.api.dao.RenderBufferData.IN.GEOMETRY;
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -27,10 +28,10 @@ public class MetaPassButton extends Button {
     @Inject
     private AssetProvider assetProvider;
     @Inject
-    private ShaderLibrary shaderLibrary;
+    private MetaShaderLibrary shaderLibrary;
 
     private VisSelectBox<RenderBufferData.IN> inSelect = new VisSelectBox<>();
-    private VisSelectBox<Shader> shaderSelect = new VisSelectBox<>();
+    private VisSelectBox<MetaGLShader> shaderSelect = new VisSelectBox<>();
     private VisCheckBox depthCheckBox = new VisCheckBox("depth", false);
 
     public MetaPassButton(String text) {
