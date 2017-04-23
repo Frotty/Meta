@@ -17,7 +17,7 @@ public interface ProjectManager {
 
     <T> T get(String key, Class<T> type);
 
-    void save(String key, Object obj);
+    FileHandle save(String key, Object obj);
 
     String relativize(FileHandle fh);
 }

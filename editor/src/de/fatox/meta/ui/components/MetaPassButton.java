@@ -12,7 +12,7 @@ import com.kotcrab.vis.ui.widget.VisTextButton;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.dao.RenderBufferData;
-import de.fatox.meta.api.graphics.MetaGLShader;
+import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.shader.MetaShaderLibrary;
 import de.fatox.meta.util.GoldenRatio;
@@ -31,7 +31,7 @@ public class MetaPassButton extends Button {
     private MetaShaderLibrary shaderLibrary;
 
     private VisSelectBox<RenderBufferData.IN> inSelect = new VisSelectBox<>();
-    private VisSelectBox<MetaGLShader> shaderSelect = new VisSelectBox<>();
+    private VisSelectBox<GLShaderHandle> shaderSelect = new VisSelectBox<>();
     private VisCheckBox depthCheckBox = new VisCheckBox("depth", false);
 
     public MetaPassButton(String text) {
@@ -44,7 +44,7 @@ public class MetaPassButton extends Button {
         setColor(Color.GRAY);
         pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20);
         inSelect.setItems(GEOMETRY, FULLSCREEN);
-        shaderSelect.setItems(shaderLibrary.getActiveShaders());
+        shaderSelect.setItems(shaderLibrary.getLoadedShaders());
 
         nameLabel = new MetaLabel(text, size, Color.WHITE);
         nameLabel.setAlignment(Align.center);

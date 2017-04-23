@@ -7,7 +7,8 @@ import com.badlogic.gdx.math.Vector3;
  */
 public class MetaSceneData {
     public String name;
-    public Vector3 cameraPosition;
+    public Vector3 cameraPosition = Vector3.Y;
+    public boolean showGrid = true;
 
     public MetaSceneData() {
     }

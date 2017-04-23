@@ -1,31 +1,6 @@
-//package de.fatox.meta.graphics.renderer;
-//
-//import com.badlogic.gdx.Gdx;
-//import com.badlogic.gdx.graphics.GL30;
-//import com.badlogic.gdx.graphics.PerspectiveCamera;
-//import com.badlogic.gdx.graphics.Pixmap;
-//import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-//import com.badlogic.gdx.graphics.g3d.ModelBatch;
-//import com.badlogic.gdx.graphics.g3d.ModelCache;
-//import com.badlogic.gdx.graphics.g3d.Renderable;
-//import com.badlogic.gdx.graphics.g3d.Shader;
-//import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
-//import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
-//import com.badlogic.gdx.graphics.glutils.FrameBuffer;
-//import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-//import com.badlogic.gdx.math.MathUtils;
-//import com.badlogic.gdx.math.Vector3;
-//import com.badlogic.gdx.utils.Array;
-//import de.fatox.meta.Meta;
-//import de.fatox.meta.api.entity.EntityManager;
-//import de.fatox.meta.api.graphics.Renderer;
-//import de.fatox.meta.entity.LightEntity;
-//import de.fatox.meta.entity.LightShader;
-//import de.fatox.meta.entity.Meta3DEntity;
-//import de.fatox.meta.graphics.buffer.MRTFrameBuffer;
-//import de.fatox.meta.injection.Inject;
-//
-//public class BufferRenderer implements Renderer {
+package de.fatox.meta.graphics.renderer;
+
+public class BufferRenderer {
 //    @Inject
 //    private SpriteBatch batch;
 //    @Inject
@@ -160,4 +135,4 @@
 //        batch.getProjectionMatrix().setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 //    }
 //
-//}
+}

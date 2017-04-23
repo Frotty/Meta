@@ -111,8 +111,8 @@ public class MetaProjectManager implements ProjectManager {
     }
 
     @Override
-    public void save(String key, Object obj) {
-        metaData.save(currentProjectRoot, key, obj);
+    public FileHandle save(String key, Object obj) {
+        return metaData.save(currentProjectRoot, key, obj);
     }
 
     @Override

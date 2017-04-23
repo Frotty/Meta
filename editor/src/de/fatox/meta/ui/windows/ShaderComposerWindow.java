@@ -73,8 +73,8 @@ public class ShaderComposerWindow extends MetaWindow {
 
         if (shaderComposer.getCompositions().size > 0) {
             setupNewBufferButton();
-            for (ShaderComposition shaderComposition : shaderComposer.getCompositions()) {
-                addComposition(shaderComposition);
+            for (int i=0; i < shaderComposer.getCompositions().size; i++) {
+                addComposition(shaderComposer.getCompositions().get(i));
             }
         }
     }
@@ -84,7 +84,7 @@ public class ShaderComposerWindow extends MetaWindow {
         addButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                addBufferButton(new RenderBufferHandle(shaderLibrary.getActiveShaders().peek()));
+//                addBufferButton(new RenderBufferHandle(new RenderBufferData(), shaderLibrary.getLoadedShaders().peek()));
             }
         });
         addButton.getImage().setAlign(Align.center);

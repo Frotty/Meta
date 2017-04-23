@@ -6,6 +6,7 @@ import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import de.fatox.meta.api.dao.GLShaderData;
 import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
@@ -19,8 +20,6 @@ import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
 import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 import de.fatox.meta.util.StringUtil;
-
-import static de.fatox.meta.shader.MetaShaderLibrary.META_SHADER_SUFFIX;
 
 /**
  * Created by Frotty on 29.06.2016.
@@ -69,13 +68,10 @@ public class ShaderWizardDialog extends MetaDialog {
         setupTable();
         setDialogListener((Object object) -> {
             if((boolean)object) {
-                GLShaderHandle glShaderHandle = new GLShaderHandle(shaderNameTF.getTextField().getText(), vertexSelect.getFile(), fragmentSelect.getFile());
                 String vertFile = projectManager.relativize(vertexSelect.getFile());
                 String fragFile = projectManager.relativize(fragmentSelect.getFile());
-                glShaderHandle.data.vertexFilePath = vertFile;
-                glShaderHandle.data.fragmentFilePath = fragFile;
-                projectManager.save("meta/shaders/" + glShaderHandle.data.name + META_SHADER_SUFFIX, glShaderHandle.data);
-                shaderLibrary.addShader(glShaderHandle);
+                GLShaderData shaderData = new GLShaderData(shaderNameTF.getTextField().getText(), vertFile, fragFile);
+                GLShaderHandle glShaderHandle = shaderLibrary.newShader(shaderData);
 
                 ShaderLibraryWindow window = uiManager.getWindow(ShaderLibraryWindow.class);
                 if(window != null) {

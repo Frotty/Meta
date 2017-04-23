@@ -19,12 +19,13 @@ public class MetaData {
         save(globalRoot, key, obj);
     }
 
-    public void save(FileHandle target, String key, Object obj) {
+    public FileHandle save(FileHandle target, String key, Object obj) {
         String jsonString = json.toJson(obj);
 
         FileHandle fileHandle = getCachedHandle(target, key);
 
         fileHandle.writeBytes(jsonString.getBytes(), false);
+        return fileHandle;
     }
 
     public <T> T get(String key, Class<T> type) {

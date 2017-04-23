@@ -17,11 +17,11 @@ public class Primitives {
     private Model boxLines;
     private Model sphereLines;
     private Model sphereFilled;
-
+    private Model lineGrid;
     private final long defaultAttr = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal
             | VertexAttributes.Usage.ColorUnpacked | VertexAttributes.Usage.TextureCoordinates;
-    private final Material defaultMaterial = new Material();
 
+    private final Material defaultMaterial = new Material();
     @Inject
     private ModelBuilder modelBuilder;
 
@@ -78,5 +78,12 @@ public class Primitives {
             sphereFilled = modelBuilder.createSphere(1, 1, 1, 32, 32, defaultMaterial, defaultAttr);
         }
         return sphereFilled;
+    }
+
+    public Model getLinegrid() {
+        if (lineGrid == null) {
+            lineGrid = modelBuilder.createLineGrid(16, 16, 2, 2, defaultMaterial, defaultAttr);
+        }
+        return lineGrid;
     }
 }

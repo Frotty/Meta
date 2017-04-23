@@ -35,10 +35,10 @@ public class MRTFrameBuffer implements Disposable {
     /** height **/
     private final int height;
 
-    public MRTFrameBuffer(int width, int height) {
+    public MRTFrameBuffer(int width, int height, int textureCount, boolean hasDepth) {
         this.width = width;
         this.height = height;
-        build();
+        build(textureCount, hasDepth);
 
         addManagedFrameBuffer(Gdx.app, this);
     }
@@ -65,7 +65,7 @@ public class MRTFrameBuffer implements Disposable {
         colorTexture.dispose();
     }
 
-    private void build() {
+    private void build(int numTextures, boolean hasDepth) {
         GL20 gl = Gdx.gl20;
 
         // iOS uses a different framebuffer handle! (not necessarily 0)
@@ -81,42 +81,28 @@ public class MRTFrameBuffer implements Disposable {
             }
         }
 
-        colorTextures = new Array<>();
+        this.colorTextures = new Array<>();
 
         framebufferHandle = gl.glGenFramebuffer();
         gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, framebufferHandle);
 
-        //rgba
-        Texture diffuse = createColorTexture(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest, GL30.GL_RGBA8,
-                GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE);
-        //rgb
-        Texture normal = createColorTexture(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest, GL30.GL_RGB8,
-                GL30.GL_RGB, GL30.GL_UNSIGNED_BYTE);
-        //rgb
-        Texture material = createColorTexture(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest, GL30.GL_RGB8,
-                GL30.GL_RGB, GL30.GL_UNSIGNED_BYTE);
-        Texture depth = createDepthTexture();
+        for (int i = 0; i < numTextures; i++) {
+            Texture tex = createColorTexture(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest, GL30.GL_RGBA8, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE);
+            this.colorTextures.add(tex);
+            gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + i, GL30.GL_TEXTURE_2D, tex.getTextureObjectHandle(), 0);
+        }
+        if (hasDepth) {
+            Texture depthTexture = createDepthTexture();
+            this.colorTextures.add(depthTexture);
+            gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL20.GL_DEPTH_ATTACHMENT, GL20.GL_TEXTURE_2D, depthTexture.getTextureObjectHandle(), 0);
+        }
 
-        colorTextures.add(diffuse);
-        colorTextures.add(normal);
-        colorTextures.add(material);
-        colorTextures.add(depth);
-
-        gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL30.GL_TEXTURE_2D,
-                diffuse.getTextureObjectHandle(), 0);
-        gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT1, GL30.GL_TEXTURE_2D,
-                normal.getTextureObjectHandle(), 0);
-        gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT2, GL30.GL_TEXTURE_2D,
-                material.getTextureObjectHandle(), 0);
-        gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL20.GL_DEPTH_ATTACHMENT, GL20.GL_TEXTURE_2D,
-                depth.getTextureObjectHandle(), 0);
-
-        IntBuffer buffer = BufferUtils.newIntBuffer(3);
-        buffer.put(GL30.GL_COLOR_ATTACHMENT0);
-        buffer.put(GL30.GL_COLOR_ATTACHMENT1);
-        buffer.put(GL30.GL_COLOR_ATTACHMENT2);
+        IntBuffer buffer = BufferUtils.newIntBuffer(numTextures);
+        for (int i = 0; i < numTextures; i++) {
+            buffer.put(GL30.GL_COLOR_ATTACHMENT0 + i);
+        }
         buffer.position(0);
-        Gdx.gl30.glDrawBuffers(3, buffer);
+        Gdx.gl30.glDrawBuffers(numTextures, buffer);
 
         gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, 0);
         gl.glBindTexture(GL20.GL_TEXTURE_2D, 0);
@@ -126,7 +112,7 @@ public class MRTFrameBuffer implements Disposable {
         gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, defaultFramebufferHandle);
 
         if (result != GL20.GL_FRAMEBUFFER_COMPLETE) {
-            for (Texture colorTexture : colorTextures)
+            for (Texture colorTexture : this.colorTextures)
                 disposeColorTexture(colorTexture);
 
             gl.glDeleteFramebuffer(framebufferHandle);

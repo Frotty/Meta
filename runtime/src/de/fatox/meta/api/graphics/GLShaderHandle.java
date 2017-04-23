@@ -16,22 +16,17 @@ import java.util.regex.Pattern;
 public class GLShaderHandle {
     public GLShaderData data;
     public Array<RenderTargetData> targets = new Array<>();
+    private FileHandle shaderHandle;
     private FileHandle vertexHandle;
     private FileHandle fragmentHandle;
 
     private static final Pattern outPattern = Pattern.compile("(.*)(out)(\\s)+(vec[2-4])(\\s)+(\\w+)(;)");
 
-    public GLShaderHandle(String name, FileHandle vertexHandle, FileHandle fragmentHandle) {
-        this.data = new GLShaderData(name, vertexHandle.path(), fragmentHandle.path());
+    public GLShaderHandle(FileHandle metaShaderHandle, FileHandle vertexHandle, FileHandle fragmentHandle, GLShaderData shaderData) {
+        this.shaderHandle = metaShaderHandle;
         this.vertexHandle = vertexHandle;
         this.fragmentHandle = fragmentHandle;
-        fetchRendertargets();
-    }
-
-    public GLShaderHandle(GLShaderData data, FileHandle vertexHandle, FileHandle fragmentHandle) {
-        this.data = data;
-        this.vertexHandle = vertexHandle;
-        this.fragmentHandle = fragmentHandle;
+        this.data = shaderData;
         fetchRendertargets();
     }
 
