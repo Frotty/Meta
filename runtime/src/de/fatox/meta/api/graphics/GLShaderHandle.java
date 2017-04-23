@@ -70,4 +70,9 @@ public class GLShaderHandle {
             targets.add(new RenderTargetData("vec4", "gl_FragColor"));
         }
     }
+
+    @Override
+    public String toString() {
+        return data.name;
+    }
 }

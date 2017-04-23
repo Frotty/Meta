@@ -9,6 +9,7 @@ import com.badlogic.gdx.utils.Scaling;
 import com.kotcrab.vis.ui.widget.VisImageButton;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
+import de.fatox.meta.api.dao.RenderBufferData;
 import de.fatox.meta.api.graphics.RenderBufferHandle;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
@@ -17,7 +18,7 @@ import de.fatox.meta.shader.MetaShaderLibrary;
 import de.fatox.meta.shader.ShaderComposition;
 import de.fatox.meta.ui.components.MetaClickListener;
 import de.fatox.meta.ui.components.MetaLabel;
-import de.fatox.meta.ui.components.MetaPassButton;
+import de.fatox.meta.ui.components.RenderBufferButton;
 import de.fatox.meta.ui.dialogs.ShaderCompositionWizard;
 
 /**
@@ -71,8 +72,8 @@ public class ShaderComposerWindow extends MetaWindow {
         contentTable.row().padTop(2);
         contentTable.add(bufferTable).colspan(3).grow();
 
-        if (shaderComposer.getCompositions().size > 0) {
-            setupNewBufferButton();
+        setupNewBufferButton();
+        if (shaderComposer != null && shaderComposer.getCompositions() != null &&  shaderComposer.getCompositions().size > 0) {
             for (int i=0; i < shaderComposer.getCompositions().size; i++) {
                 addComposition(shaderComposer.getCompositions().get(i));
             }
@@ -84,17 +85,16 @@ public class ShaderComposerWindow extends MetaWindow {
         addButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-//                addBufferButton(new RenderBufferHandle(new RenderBufferData(), shaderLibrary.getLoadedShaders().peek()));
+                onAddBuffer();
             }
         });
         addButton.getImage().setAlign(Align.center);
         bufferTable.add(addButton).size(175, 100).left();
     }
 
-    private void addBufferButton(RenderBufferHandle bufferHandle) {
-        shaderComposer.getCurrentComposition().addBufferHandle(bufferHandle);
-        shaderComposer.updateComp(shaderComposer.getCurrentComposition());
-        MetaPassButton newButton = new MetaPassButton("Pass_" + shaderComposer.getCompositions().size);
+    private void onAddBuffer() {
+        RenderBufferHandle bufferHandle = shaderComposer.addRenderBuffer(new RenderBufferData());
+        RenderBufferButton newButton = new RenderBufferButton(bufferHandle);
         bufferTable.getCell(addButton).setActor(newButton).padRight(2);
         bufferTable.add(new MetaLabel(">", 14)).center().padRight(2);
         bufferTable.add(addButton).size(175, 100).left();
@@ -102,7 +102,7 @@ public class ShaderComposerWindow extends MetaWindow {
 
     private void loadBuffers(Array<RenderBufferHandle> buffers) {
         for (RenderBufferHandle buffer : buffers) {
-            MetaPassButton newButton = new MetaPassButton("Pass_" + shaderComposer.getCompositions().size);
+            RenderBufferButton newButton = new RenderBufferButton(buffer);
             bufferTable.getCell(addButton).setActor(newButton).padRight(2);
             bufferTable.add(new MetaLabel(">", 14)).center().padRight(2);
             bufferTable.add(addButton).size(175, 100).left();

@@ -1,6 +1,8 @@
 package de.fatox.meta.shader;
 
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.GdxRuntimeException;
+import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaRenderData;
 import de.fatox.meta.api.graphics.RenderBufferHandle;
 import de.fatox.meta.injection.Inject;
@@ -14,23 +16,23 @@ public class ShaderComposition {
     public MetaRenderData data;
     private Array<RenderBufferHandle> bufferHandles = new Array<>();
 
-    public ShaderComposition() {
+    public ShaderComposition(MetaRenderData data) {
+        Meta.inject(this);
+        this.data = data;
         for (int i = 0; i < data.renderBuffers.size; i++) {
-            shaderLibrary.getShader(data.renderBuffers.items[i].metaShaderPath);
-//            bufferHandles.add(new RenderBufferHandle(data.renderBuffers.items[i], ));
-
+            MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.renderBuffers.get(i).metaShaderPath));
+            bufferHandles.add(new RenderBufferHandle(data.renderBuffers.get(i), metaGeoShader));
         }
     }
 
     public void addBufferHandle(RenderBufferHandle bufferHandle) {
         if(! bufferHandles.contains(bufferHandle, true)) {
             bufferHandles.add(bufferHandle);
+            if(bufferHandle.data == null) {
+                throw new GdxRuntimeException("bufferHandle has no data attached");
+            }
             data.renderBuffers.add(bufferHandle.data);
         }
-    }
-
-    public ShaderComposition(MetaRenderData data) {
-        this.data = data;
     }
 
     public ShaderComposition(String name) {

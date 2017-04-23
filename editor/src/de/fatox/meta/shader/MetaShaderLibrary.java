@@ -12,8 +12,8 @@ import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 
 public class MetaShaderLibrary {
-    public static final String META_SHADER_SUFFIX = ".msh";
-    public static final String INTERNAL_SHADER_PATH = "meta/shaders";
+    private static final String META_SHADER_SUFFIX = ".msh";
+    private static final String INTERNAL_SHADER_PATH = "meta/shaders";
     @Inject
     private ProjectManager projectManager;
     @Inject
@@ -49,6 +49,21 @@ public class MetaShaderLibrary {
     }
 
 
+    public Array<GLShaderHandle> getLoadedShaders() {
+        return metaShaders;
+    }
+
+    public MetaGLShader getMetaShader(GLShaderHandle shaderHandle) {
+        return null;
+    }
+
+    public GLShaderHandle getShaderHandle(String metaShaderPath) {
+        if (loadedShaders.containsKey(metaShaderPath)) {
+            return loadedShaders.get(metaShaderPath);
+        }
+        return null;
+    }
+
     private void loadProjectShaders() {
         if (projectManager.getCurrentProject() != null) {
             FileHandle shaderFolder = projectManager.getCurrentProjectRoot().child(INTERNAL_SHADER_PATH);
@@ -59,17 +74,5 @@ public class MetaShaderLibrary {
             }
         }
     }
-
-    public Array<GLShaderHandle> getLoadedShaders() {
-        return metaShaders;
-    }
-
-    public GLShaderHandle getShader(String metaShaderPath) {
-        if(loadedShaders.containsKey(metaShaderPath)) {
-            return loadedShaders.get(metaShaderPath);
-        }
-        return null;
-    }
-
 
 }

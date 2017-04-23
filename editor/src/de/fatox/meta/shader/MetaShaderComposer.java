@@ -1,10 +1,13 @@
 package de.fatox.meta.shader;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaRenderData;
+import de.fatox.meta.api.dao.RenderBufferData;
+import de.fatox.meta.api.graphics.RenderBufferHandle;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
@@ -21,6 +24,8 @@ public class MetaShaderComposer {
     private Json json;
     @Inject
     private UIManager uiManager;
+    @Inject
+    private MetaShaderLibrary shaderLibrary;
 
     private Array<ShaderComposition> compositions = new Array<>(2);
 
@@ -28,7 +33,7 @@ public class MetaShaderComposer {
 
     public MetaShaderComposer() {
         Meta.inject(this);
-        loadProjectCompositions();
+        Gdx.app.postRunnable(() -> loadProjectCompositions());
     }
 
     public void loadProjectCompositions() {
@@ -48,13 +53,17 @@ public class MetaShaderComposer {
     public void addComposition(ShaderComposition composition) {
         if(composition != null) {
             compositions.add(composition);
-            projectManager.save("meta/compositions/" + composition.data.name + META_COMP_SUFFIX, composition.data);
+            saveComposition(composition);
             ShaderComposerWindow window = uiManager.getWindow(ShaderComposerWindow.class);
             if(window != null) {
                 window.addComposition(composition);
             }
             currentComposition = composition;
         }
+    }
+
+    private FileHandle saveComposition(ShaderComposition composition) {
+        return projectManager.save("meta/compositions/" + composition.data.name + META_COMP_SUFFIX, composition.data);
     }
 
     public ShaderComposition getComposition(String compName) {
@@ -71,15 +80,18 @@ public class MetaShaderComposer {
         return compositions;
     }
 
-    public void updateComp(ShaderComposition composition) {
-        projectManager.save("meta/compositions/" + composition.data.name + META_COMP_SUFFIX, composition.data);
-    }
-
     public ShaderComposition getCurrentComposition() {
         return currentComposition;
     }
 
     public void setCurrentComposition(ShaderComposition currentComposition) {
         this.currentComposition = currentComposition;
+    }
+
+    public RenderBufferHandle addRenderBuffer(RenderBufferData data) {
+        RenderBufferHandle bufferHandle = new RenderBufferHandle(data, null);
+        currentComposition.addBufferHandle(bufferHandle);
+        saveComposition(currentComposition);
+        return bufferHandle;
     }
 }

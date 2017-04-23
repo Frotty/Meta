@@ -25,18 +25,6 @@ public class MetaEditorModule {
 
     @Provides
     @Singleton
-    public SceneManager sceneManager(MetaSceneManager sceneManager) {
-        return sceneManager;
-    }
-
-    @Provides
-    @Singleton
-    public AssetDiscoverer assetManager() {
-        return new AssetDiscoverer();
-    }
-
-    @Provides
-    @Singleton
     public ProjectManager projectManager(MetaProjectManager projectManager) {
         return projectManager;
     }
@@ -46,6 +34,18 @@ public class MetaEditorModule {
     @Named("default")
     public MetaShaderComposer shaderComposer() {
         return new MetaShaderComposer();
+    }
+
+    @Provides
+    @Singleton
+    public SceneManager sceneManager(MetaSceneManager sceneManager) {
+        return sceneManager;
+    }
+
+    @Provides
+    @Singleton
+    public AssetDiscoverer assetManager() {
+        return new AssetDiscoverer();
     }
 
     @Provides
@@ -88,6 +88,4 @@ public class MetaEditorModule {
     public Renderer renderer(EditorSceneRenderer renderer) {
         return renderer;
     }
-
-
 }

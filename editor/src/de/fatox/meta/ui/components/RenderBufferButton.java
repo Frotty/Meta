@@ -13,6 +13,7 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.dao.RenderBufferData;
 import de.fatox.meta.api.graphics.GLShaderHandle;
+import de.fatox.meta.api.graphics.RenderBufferHandle;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.shader.MetaShaderLibrary;
 import de.fatox.meta.util.GoldenRatio;
@@ -23,7 +24,7 @@ import static de.fatox.meta.api.dao.RenderBufferData.IN.GEOMETRY;
 /**
  * Created by Frotty on 04.06.2016.
  */
-public class MetaPassButton extends Button {
+public class RenderBufferButton extends Button {
     private final MetaLabel nameLabel;
     @Inject
     private AssetProvider assetProvider;
@@ -34,11 +35,11 @@ public class MetaPassButton extends Button {
     private VisSelectBox<GLShaderHandle> shaderSelect = new VisSelectBox<>();
     private VisCheckBox depthCheckBox = new VisCheckBox("depth", false);
 
-    public MetaPassButton(String text) {
-        this(text, 12);
+    public RenderBufferButton(RenderBufferHandle handle) {
+        this("Pass", 11);
     }
 
-    public MetaPassButton(String text, int size) {
+    public RenderBufferButton(String text, int size) {
         super(VisUI.getSkin().get(VisTextButton.VisTextButtonStyle.class));
         Meta.inject(this);
         setColor(Color.GRAY);
