@@ -53,7 +53,7 @@ public class MetaShaderLibrary {
         return metaShaders;
     }
 
-    public MetaGLShader getMetaShader(GLShaderHandle shaderHandle) {
+    public MetaGLShader getDefaultShaderPath(GLShaderHandle shaderHandle) {
         return null;
     }
 
@@ -75,4 +75,7 @@ public class MetaShaderLibrary {
         }
     }
 
+    public String getDefaultShaderPath() {
+        return projectManager.relativize(loadedShaders.values().next().getShaderHandle());
+    }
 }

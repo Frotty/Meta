@@ -75,4 +75,8 @@ public class GLShaderHandle {
     public String toString() {
         return data.name;
     }
+
+    public FileHandle getShaderHandle() {
+        return shaderHandle;
+    }
 }

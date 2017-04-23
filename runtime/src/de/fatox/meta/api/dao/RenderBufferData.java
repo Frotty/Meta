@@ -15,4 +15,8 @@ public class RenderBufferData {
     public RenderBufferData() {
     }
 
+    public RenderBufferData(String metaShaderPath) {
+        this.metaShaderPath = metaShaderPath;
+    }
+
 }
