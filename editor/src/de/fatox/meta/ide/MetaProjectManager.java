@@ -1,6 +1,7 @@
 package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.scenes.scene2d.EventListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
 import com.kotcrab.vis.ui.widget.VisLabel;
@@ -10,6 +11,7 @@ import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.tabs.ProjectHomeTab;
 
@@ -19,6 +21,7 @@ import java.nio.file.Paths;
 /**
  * Created by Frotty on 04.06.2016.
  */
+@Singleton
 public class MetaProjectManager implements ProjectManager {
     @Inject
     private Json json;
@@ -33,6 +36,8 @@ public class MetaProjectManager implements ProjectManager {
 
     private MetaProjectData currentProject;
     private FileHandle currentProjectRoot;
+
+    private Array<EventListener> onLoadListeners = new Array<>();
 
     public MetaProjectManager() {
         Meta.inject(this);
@@ -49,8 +54,6 @@ public class MetaProjectManager implements ProjectManager {
         currentProjectRoot = projectFile.parent();
         createFolders(metaProjectData);
         currentProject = metaProjectData;
-        editorUI.closeTab("home");
-        editorUI.addTab(new ProjectHomeTab(metaProjectData));
         assetDiscoverer.setRoot(currentProjectRoot);
         Array<String> lastProjects;
         if (metaData.has("lastProjects")) {
@@ -62,6 +65,11 @@ public class MetaProjectManager implements ProjectManager {
             lastProjects.add(projectFile.path());
             metaData.save("lastProjects", lastProjects);
         }
+        for (EventListener listener : onLoadListeners) {
+            listener.handle(null);
+        }
+        editorUI.closeTab("home");
+        editorUI.addTab(new ProjectHomeTab(metaProjectData));
         return metaProjectData;
     }
 
@@ -121,5 +129,10 @@ public class MetaProjectManager implements ProjectManager {
         Path pathBase = Paths.get(currentProjectRoot.file().getAbsolutePath());
         Path pathRelative = pathBase.relativize(pathAbsolute);
         return pathRelative.toString();
+    }
+
+    @Override
+    public void addOnLoadListener(EventListener listener) {
+        onLoadListeners.add(listener);
     }
 }

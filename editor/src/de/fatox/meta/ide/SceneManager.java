@@ -2,13 +2,14 @@ package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
 import de.fatox.meta.api.dao.MetaSceneData;
+import de.fatox.meta.shader.MetaSceneHandle;
 
 /**
  * Created by Frotty on 15.06.2016.
  */
 public interface SceneManager {
 
-    MetaSceneData createNew(String name);
+    MetaSceneHandle createNew(String name);
 
     void loadScene(FileHandle projectFile);
 

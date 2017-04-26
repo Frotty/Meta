@@ -1,5 +1,6 @@
 package de.fatox.meta.shader;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
@@ -10,7 +11,9 @@ import de.fatox.meta.api.graphics.*;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Singleton;
 
+@Singleton
 public class MetaShaderLibrary {
     private static final String META_SHADER_SUFFIX = ".msh";
     private static final String INTERNAL_SHADER_PATH = "meta/shaders";
@@ -26,7 +29,11 @@ public class MetaShaderLibrary {
 
     public MetaShaderLibrary() {
         Meta.inject(this);
-        loadProjectShaders();
+        projectManager.addOnLoadListener((evt) -> {
+            loadProjectShaders();
+            return false;
+        });
+        Gdx.app.postRunnable(() -> loadProjectShaders());
     }
 
     public GLShaderHandle loadShader(FileHandle shaderHandle) {
@@ -64,7 +71,7 @@ public class MetaShaderLibrary {
         return null;
     }
 
-    private void loadProjectShaders() {
+    public void loadProjectShaders() {
         if (projectManager.getCurrentProject() != null) {
             FileHandle shaderFolder = projectManager.getCurrentProjectRoot().child(INTERNAL_SHADER_PATH);
             if (shaderFolder.exists()) {

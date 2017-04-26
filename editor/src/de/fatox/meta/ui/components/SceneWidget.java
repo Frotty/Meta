@@ -2,19 +2,18 @@ package de.fatox.meta.ui.components;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.ui.Widget;
-import de.fatox.meta.Meta;
 import de.fatox.meta.api.graphics.Renderer;
-import de.fatox.meta.injection.Inject;
+import de.fatox.meta.shader.EditorSceneRenderer;
+import de.fatox.meta.shader.MetaSceneHandle;
 
 /**
  * Created by Frotty on 16.06.2016.
  */
 public class SceneWidget extends Widget {
-    @Inject
     private Renderer renderer;
 
-    public SceneWidget() {
-        Meta.inject(this);
+    public SceneWidget(MetaSceneHandle sceneHandle) {
+        renderer = new EditorSceneRenderer(sceneHandle);
     }
 
     @Override

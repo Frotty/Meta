@@ -5,6 +5,9 @@ import com.badlogic.gdx.utils.Json;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaSceneData;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.shader.MetaSceneHandle;
+import de.fatox.meta.shader.MetaShaderComposer;
+import de.fatox.meta.shader.ShaderComposition;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.tabs.SceneTab;
 
@@ -23,6 +26,8 @@ public class MetaSceneManager implements SceneManager {
     @Inject
     private AssetDiscoverer assetDiscoverer;
     @Inject
+    private MetaShaderComposer shaderComposer;
+    @Inject
     private Json json;
 
     public MetaSceneManager() {
@@ -31,11 +36,13 @@ public class MetaSceneManager implements SceneManager {
     }
 
     @Override
-    public MetaSceneData createNew(String name) {
-        MetaSceneData metaSceneData = new MetaSceneData(name);
+    public MetaSceneHandle createNew(String name) {
+        ShaderComposition currentComposition = shaderComposer.getCurrentComposition();
+        MetaSceneData metaSceneData = new MetaSceneData(name, currentComposition.getCompositionHandle().path());
         projectManager.getCurrentProjectRoot().child(FOLDER + name + "." + EXTENSION).writeBytes(json.toJson(metaSceneData).getBytes(), false);
-        metaEditorUI.addTab(new SceneTab(metaSceneData));
-        return metaSceneData;
+        MetaSceneHandle metaSceneHandle = new MetaSceneHandle(metaSceneData, shaderComposer.getCurrentComposition());
+        metaEditorUI.addTab(new SceneTab(metaSceneHandle));
+        return metaSceneHandle;
     }
 
     @Override
@@ -43,7 +50,11 @@ public class MetaSceneManager implements SceneManager {
         if(metaEditorUI.hasTab(projectFile.name())) {
             metaEditorUI.focusTab(projectFile.name());
         }
-        metaEditorUI.addTab(new SceneTab(json.fromJson(MetaSceneData.class, projectFile.readString())));
+        MetaSceneData metaSceneData = json.fromJson(MetaSceneData.class, projectFile.readString());
+        ShaderComposition composition = shaderComposer.getComposition(metaSceneData.compositionPath);
+        if(composition != null) {
+            metaEditorUI.addTab(new SceneTab(new MetaSceneHandle(metaSceneData, composition)));
+        }
     }
 
     @Override

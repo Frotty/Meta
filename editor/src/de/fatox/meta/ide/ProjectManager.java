@@ -1,6 +1,7 @@
 package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.scenes.scene2d.EventListener;
 import de.fatox.meta.api.dao.MetaProjectData;
 
 public interface ProjectManager {
@@ -20,4 +21,6 @@ public interface ProjectManager {
     FileHandle save(String key, Object obj);
 
     String relativize(FileHandle fh);
+
+    void addOnLoadListener(EventListener listener);
 }

@@ -49,11 +49,13 @@ public class EditorSceneRenderer implements Renderer{
 
     private ShaderComposition lastComposition;
 
-
-
-    public EditorSceneRenderer() {
+    public EditorSceneRenderer(MetaSceneHandle sceneHandle) {
         Meta.inject(this);
         grid = new Meta3DEntity(Vector3.Zero, primitives.getLinegrid());
+        modelCache.begin();
+        modelCache.add(grid.actorModel);
+        modelCache.end();
+        this.sceneHandle = sceneHandle;
     }
 
     @Override

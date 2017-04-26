@@ -79,8 +79,7 @@ public class ShaderCompositionWizard extends MetaDialog {
         setDialogListener((Object object) -> {
             if (object != null) {
                 if ((boolean) object) {
-                    ShaderComposition shaderComposition = new ShaderComposition(compNameTF.getTextField().getText());
-                    metaShaderComposer.addComposition(shaderComposition);
+                    metaShaderComposer.newShaderComposition(compNameTF.getTextField().getText());
 //                    ShaderComposerWindow window = uiManager.getWindow(ShaderComposerWindow.class);
 //                    if(window != null) {
 //                        window.addComposition(shaderComposition);

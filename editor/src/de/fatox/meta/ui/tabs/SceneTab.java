@@ -4,18 +4,18 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.kotcrab.vis.ui.widget.VisTable;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaSceneData;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.camera.ArcCamControl;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.input.MetaInput;
+import de.fatox.meta.shader.MetaSceneHandle;
 import de.fatox.meta.ui.components.SceneWidget;
 
 /**
  * Created by Frotty on 13.06.2016.
  */
 public class SceneTab extends MetaTab {
-    private MetaSceneData sceneData;
+    private MetaSceneHandle metaSceneHandle;
     private Table table;
     @Inject
     private PerspectiveCamera perspectiveCamera;
@@ -25,16 +25,16 @@ public class SceneTab extends MetaTab {
     @Inject
     private MetaInput metaInput;
 
-    public SceneTab(MetaSceneData sceneData) {
+    public SceneTab(MetaSceneHandle sceneHandle) {
         Meta.inject(this);
-        this.sceneData = sceneData;
+        this.metaSceneHandle = sceneHandle;
         table = new VisTable();
-        table.add(new SceneWidget()).grow();
+        table.add(new SceneWidget(metaSceneHandle)).grow();
     }
 
     @Override
     public String getTabTitle() {
-        return sceneData.name + " scene";
+        return metaSceneHandle.data.name + " scene";
     }
 
     @Override

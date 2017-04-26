@@ -1,5 +1,6 @@
 package de.fatox.meta.shader;
 
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import de.fatox.meta.Meta;
@@ -15,10 +16,12 @@ public class ShaderComposition {
     private MetaShaderLibrary shaderLibrary;
     public MetaRenderData data;
     private Array<RenderBufferHandle> bufferHandles = new Array<>();
+    private FileHandle compositionHandle;
 
-    public ShaderComposition(MetaRenderData data) {
+    public ShaderComposition(FileHandle compHandle, MetaRenderData metaRenderData) {
         Meta.inject(this);
-        this.data = data;
+        this.compositionHandle = compHandle;
+        this.data = metaRenderData;
         for (int i = 0; i < data.renderBuffers.size; i++) {
             MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.renderBuffers.get(i).metaShaderPath));
             bufferHandles.add(new RenderBufferHandle(data.renderBuffers.get(i), metaGeoShader));
@@ -35,11 +38,11 @@ public class ShaderComposition {
         }
     }
 
-    public ShaderComposition(String name) {
-        data = new MetaRenderData(name);
-    }
-
     public Array<RenderBufferHandle> getBufferHandles() {
         return bufferHandles;
+    }
+
+    public FileHandle getCompositionHandle() {
+        return compositionHandle;
     }
 }

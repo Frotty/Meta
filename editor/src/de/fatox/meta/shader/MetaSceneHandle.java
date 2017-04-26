@@ -13,6 +13,10 @@ public class MetaSceneHandle {
     public EntityManager<Meta3DEntity> entityManager = new MetaEntityManager();
     private ShaderComposition shaderComposition;
 
+    public MetaSceneHandle(MetaSceneData sceneData, ShaderComposition shaderComposition) {
+        this.data = sceneData;
+    }
+
     public ShaderComposition getShaderComposition() {
         return shaderComposition;
     }

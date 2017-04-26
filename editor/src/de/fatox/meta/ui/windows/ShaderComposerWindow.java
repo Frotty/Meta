@@ -59,7 +59,7 @@ public class ShaderComposerWindow extends MetaWindow {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 ShaderComposition selectedComp = shaderComposer.getComposition(renderSelectbox.getSelected());
-                if(shaderComposer.getCurrentComposition() != selectedComp) {
+                if(selectedComp != null && shaderComposer.getCurrentComposition() != selectedComp) {
                     shaderComposer.setCurrentComposition(selectedComp);
                     loadComposition(selectedComp);
                 }
@@ -120,6 +120,7 @@ public class ShaderComposerWindow extends MetaWindow {
     }
 
     private void loadComposition(ShaderComposition shaderComposition) {
+        bufferTable.clear();
         if (shaderComposition.data.renderBuffers.size > 0) {
             // Load existing
             loadBuffers(shaderComposition.getBufferHandles());
