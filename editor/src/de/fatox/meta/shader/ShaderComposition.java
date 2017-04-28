@@ -24,6 +24,7 @@ public class ShaderComposition {
         this.data = metaRenderData;
         for (int i = 0; i < data.renderBuffers.size; i++) {
             MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.renderBuffers.get(i).metaShaderPath));
+            metaGeoShader.init();
             bufferHandles.add(new RenderBufferHandle(data.renderBuffers.get(i), metaGeoShader));
         }
     }

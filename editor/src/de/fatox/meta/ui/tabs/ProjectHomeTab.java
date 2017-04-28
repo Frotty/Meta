@@ -9,6 +9,7 @@ import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.components.TextWidget;
 import de.fatox.meta.ui.windows.AssetDiscovererWindow;
+import de.fatox.meta.ui.windows.ShaderComposerWindow;
 import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 
 /**
@@ -24,6 +25,7 @@ public class ProjectHomeTab extends MetaTab {
     public ProjectHomeTab(MetaProjectData metaProjectData) {
         super(true, false);
         this.projectData = metaProjectData;
+        setupTable();
     }
 
     private void setupTable() {
@@ -52,7 +54,9 @@ public class ProjectHomeTab extends MetaTab {
     @Override
     public void onShow() {
         super.onShow();
+        editorUI.metaToolbar.clear();
         editorUI.metaToolbar.addAvailableWindow(AssetDiscovererWindow.class, null);
         editorUI.metaToolbar.addAvailableWindow(ShaderLibraryWindow.class, null);
+        editorUI.metaToolbar.addAvailableWindow(ShaderComposerWindow.class, null);
     }
 }

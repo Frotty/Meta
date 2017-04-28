@@ -39,6 +39,7 @@ public class MetaUiManager implements UIManager {
     @Inject
     private MetaInput metaInput;
 
+
     private Array<Window> displayedWindows = new Array<>();
     private Array<Window> cachedWindows = new Array<>();
     private MenuBar mainMenuBar;

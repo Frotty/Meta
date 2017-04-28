@@ -9,7 +9,11 @@ import de.fatox.meta.camera.ArcCamControl;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.input.MetaInput;
 import de.fatox.meta.shader.MetaSceneHandle;
+import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.components.SceneWidget;
+import de.fatox.meta.ui.windows.AssetDiscovererWindow;
+import de.fatox.meta.ui.windows.ShaderComposerWindow;
+import de.fatox.meta.ui.windows.ShaderLibraryWindow;
 
 /**
  * Created by Frotty on 13.06.2016.
@@ -24,6 +28,8 @@ public class SceneTab extends MetaTab {
     private ArcCamControl camControl = new ArcCamControl();
     @Inject
     private MetaInput metaInput;
+    @Inject
+    private MetaEditorUI editorUI;
 
     public SceneTab(MetaSceneHandle sceneHandle) {
         Meta.inject(this);
@@ -45,6 +51,10 @@ public class SceneTab extends MetaTab {
     @Override
     public void onShow() {
         metaInput.addAdapterForScreen(camControl);
+        editorUI.metaToolbar.clear();
+        editorUI.metaToolbar.addAvailableWindow(AssetDiscovererWindow.class, null);
+        editorUI.metaToolbar.addAvailableWindow(ShaderLibraryWindow.class, null);
+        editorUI.metaToolbar.addAvailableWindow(ShaderComposerWindow.class, null);
     }
 
     @Override

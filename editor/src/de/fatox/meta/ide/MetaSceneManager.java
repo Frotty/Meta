@@ -38,7 +38,7 @@ public class MetaSceneManager implements SceneManager {
     @Override
     public MetaSceneHandle createNew(String name) {
         ShaderComposition currentComposition = shaderComposer.getCurrentComposition();
-        MetaSceneData metaSceneData = new MetaSceneData(name, currentComposition.getCompositionHandle().path());
+        MetaSceneData metaSceneData = new MetaSceneData(name, projectManager.relativize(currentComposition.getCompositionHandle()));
         FileHandle sceneFile = projectManager.getCurrentProjectRoot().child(FOLDER + name + "." + EXTENSION);
         sceneFile.writeBytes(json.toJson(metaSceneData).getBytes(), false);
         MetaSceneHandle metaSceneHandle = new MetaSceneHandle(metaSceneData, shaderComposer.getCurrentComposition(), sceneFile);
