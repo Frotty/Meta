@@ -1,6 +1,7 @@
 package de.fatox.meta.shader;
 
 import com.badlogic.gdx.graphics.PerspectiveCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelCache;
@@ -22,7 +23,7 @@ import de.fatox.meta.injection.Inject;
 /**
  * Created by Frotty on 17.04.2017.
  */
-public class EditorSceneRenderer implements Renderer{
+public class EditorSceneRenderer implements Renderer {
     @Inject
     private SpriteBatch batch;
     @Inject
@@ -60,13 +61,13 @@ public class EditorSceneRenderer implements Renderer{
 
     @Override
     public void render(float x, float y) {
-        if(sceneHandle.getShaderComposition() != null) {
+        if (sceneHandle.getShaderComposition() != null) {
             Array<RenderBufferHandle> bufferHandles = sceneHandle.getShaderComposition().getBufferHandles();
             renderContext.begin();
 
-            for(RenderBufferHandle bufferHandle : bufferHandles) {
+            for (RenderBufferHandle bufferHandle : bufferHandles) {
                 bufferHandle.begin();
-                if(bufferHandle.data.inType == RenderBufferData.IN.GEOMETRY) {
+                if (bufferHandle.data.inType == RenderBufferData.IN.GEOMETRY) {
                     modelBatch.begin(cam);
                     modelBatch.render(modelCache, bufferHandle.metaShader);
                     modelBatch.end();
@@ -76,17 +77,36 @@ public class EditorSceneRenderer implements Renderer{
 
             renderContext.end();
 
-            if(sceneHandle.data.showGrid) {
+            if (sceneHandle.data.showGrid) {
 
             }
+            debugAll(x, y, bufferHandles);
         }
+    }
+
+    private void debugAll(float x, float y, Array<RenderBufferHandle> bufferHandles) {
+        batch.disableBlending();
+        batch.begin();
+        float debugScreens = bufferHandles.size;
+        int count = 0;
+        for (RenderBufferHandle bufferHandle : bufferHandles) {
+            float height = bufferHandle.getHeight();
+            float width = bufferHandle.getWidth();
+            Array<Texture> colorTextures = bufferHandle.getColorTextures();
+            for (Texture texture : colorTextures) {
+                batch.draw(texture, x + (width / debugScreens) * count, y, width / debugScreens, height / debugScreens / 2, 0f, 0f, 1f, 1f);
+                count++;
+            }
+
+        }
+        batch.end();
     }
 
     @Override
     public void rebuild(int width, int height) {
         ShaderComposition currentComposition = sceneHandle.getShaderComposition();
-        if(currentComposition != null) {
-            if(currentComposition == lastComposition) {
+        if (currentComposition != null) {
+            if (currentComposition == lastComposition) {
                 resize(width, height);
             } else {
                 create(width, height);
@@ -104,7 +124,7 @@ public class EditorSceneRenderer implements Renderer{
         resizeCam(width, height);
 
         ShaderComposition composition = shaderComposer.getCurrentComposition();
-        for(RenderBufferHandle bufferHandle : composition.getBufferHandles()) {
+        for (RenderBufferHandle bufferHandle : composition.getBufferHandles()) {
             bufferHandle.rebuild(width, height);
         }
     }
@@ -118,7 +138,7 @@ public class EditorSceneRenderer implements Renderer{
     @Override
     public void rebuildCache() {
         modelCache.begin();
-        for(Meta3DEntity entity : sceneHandle.entityManager.getStaticEntities()) {
+        for (Meta3DEntity entity : sceneHandle.entityManager.getStaticEntities()) {
             modelCache.add(entity.actorModel);
         }
         modelCache.end();

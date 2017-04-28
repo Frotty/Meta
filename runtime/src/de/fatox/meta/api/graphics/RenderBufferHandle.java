@@ -1,7 +1,9 @@
 package de.fatox.meta.api.graphics;
 
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.api.dao.RenderBufferData;
 import de.fatox.meta.graphics.buffer.MRTFrameBuffer;
 
@@ -50,4 +52,33 @@ public class RenderBufferHandle {
         }
     }
 
+    public float getHeight() {
+        if(mrtFrameBuffer != null) {
+            return mrtFrameBuffer.getHeight();
+        } else if(frameBuffer != null) {
+            return frameBuffer.getHeight();
+        }
+        return 0;
+    }
+
+    public float getWidth() {
+        if(mrtFrameBuffer != null) {
+            return mrtFrameBuffer.getWidth();
+        } else if(frameBuffer != null) {
+            return frameBuffer.getWidth();
+        }
+        return 0;
+    }
+
+    private Array<Texture> singleArray = new Array<>(1);
+
+    public Array<Texture> getColorTextures() {
+        if(mrtFrameBuffer != null) {
+            return mrtFrameBuffer.getColorBufferTextures();
+        } else if(frameBuffer != null) {
+            singleArray.set(0, frameBuffer.getColorBufferTexture());
+            return singleArray;
+        }
+        return null;
+    }
 }

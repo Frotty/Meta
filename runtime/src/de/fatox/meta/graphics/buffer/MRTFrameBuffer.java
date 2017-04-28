@@ -223,4 +223,8 @@ public class MRTFrameBuffer implements Disposable {
     public static String getManagedStatus() {
         return getManagedStatus(new StringBuilder()).toString();
     }
+
+    public Array<Texture> getColorBufferTextures() {
+        return colorTextures;
+    }
 }
