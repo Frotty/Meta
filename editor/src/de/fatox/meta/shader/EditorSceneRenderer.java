@@ -60,25 +60,26 @@ public class EditorSceneRenderer implements Renderer{
 
     @Override
     public void render(float x, float y) {
-        Array<RenderBufferHandle> bufferHandles = sceneHandle.getShaderComposition().getBufferHandles();
-        renderContext.begin();
+        if(sceneHandle.getShaderComposition() != null) {
+            Array<RenderBufferHandle> bufferHandles = sceneHandle.getShaderComposition().getBufferHandles();
+            renderContext.begin();
 
-        for(RenderBufferHandle bufferHandle : bufferHandles) {
-            bufferHandle.begin();
-            if(bufferHandle.data.inType == RenderBufferData.IN.GEOMETRY) {
-                modelBatch.begin(cam);
-                modelBatch.render(modelCache, bufferHandle.metaShader);
-                modelBatch.end();
+            for(RenderBufferHandle bufferHandle : bufferHandles) {
+                bufferHandle.begin();
+                if(bufferHandle.data.inType == RenderBufferData.IN.GEOMETRY) {
+                    modelBatch.begin(cam);
+                    modelBatch.render(modelCache, bufferHandle.metaShader);
+                    modelBatch.end();
+                }
+                bufferHandle.end();
             }
-            bufferHandle.end();
+
+            renderContext.end();
+
+            if(sceneHandle.data.showGrid) {
+
+            }
         }
-
-        renderContext.end();
-
-        if(sceneHandle.data.showGrid) {
-
-        }
-
     }
 
     @Override

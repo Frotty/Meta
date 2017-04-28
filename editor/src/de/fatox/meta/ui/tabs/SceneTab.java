@@ -34,7 +34,7 @@ public class SceneTab extends MetaTab {
 
     @Override
     public String getTabTitle() {
-        return metaSceneHandle.data.name + " scene";
+        return metaSceneHandle.getSceneFile().name();
     }
 
     @Override

@@ -53,6 +53,7 @@ public class AssetDiscovererWindow extends MetaWindow {
         super("Asset Discoverer", true, true);
         setSize(500, 200);
         setup();
+        refreshFolderView();
     }
 
     @Override

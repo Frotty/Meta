@@ -39,22 +39,22 @@ public class MetaSceneManager implements SceneManager {
     public MetaSceneHandle createNew(String name) {
         ShaderComposition currentComposition = shaderComposer.getCurrentComposition();
         MetaSceneData metaSceneData = new MetaSceneData(name, currentComposition.getCompositionHandle().path());
-        projectManager.getCurrentProjectRoot().child(FOLDER + name + "." + EXTENSION).writeBytes(json.toJson(metaSceneData).getBytes(), false);
-        MetaSceneHandle metaSceneHandle = new MetaSceneHandle(metaSceneData, shaderComposer.getCurrentComposition());
+        FileHandle sceneFile = projectManager.getCurrentProjectRoot().child(FOLDER + name + "." + EXTENSION);
+        sceneFile.writeBytes(json.toJson(metaSceneData).getBytes(), false);
+        MetaSceneHandle metaSceneHandle = new MetaSceneHandle(metaSceneData, shaderComposer.getCurrentComposition(), sceneFile);
         metaEditorUI.addTab(new SceneTab(metaSceneHandle));
         return metaSceneHandle;
     }
 
     @Override
-    public void loadScene(FileHandle projectFile) {
-        if(metaEditorUI.hasTab(projectFile.name())) {
-            metaEditorUI.focusTab(projectFile.name());
+    public void loadScene(FileHandle sceneFile) {
+        if(metaEditorUI.hasTab(sceneFile.name())) {
+            metaEditorUI.focusTab(sceneFile.name());
+            return;
         }
-        MetaSceneData metaSceneData = json.fromJson(MetaSceneData.class, projectFile.readString());
+        MetaSceneData metaSceneData = json.fromJson(MetaSceneData.class, sceneFile.readString());
         ShaderComposition composition = shaderComposer.getComposition(metaSceneData.compositionPath);
-        if(composition != null) {
-            metaEditorUI.addTab(new SceneTab(new MetaSceneHandle(metaSceneData, composition)));
-        }
+        metaEditorUI.addTab(new SceneTab(new MetaSceneHandle(metaSceneData, composition, sceneFile)));
     }
 
     @Override
