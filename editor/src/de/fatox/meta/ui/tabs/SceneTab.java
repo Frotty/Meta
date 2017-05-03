@@ -19,17 +19,18 @@ import de.fatox.meta.ui.windows.ShaderLibraryWindow;
  * Created by Frotty on 13.06.2016.
  */
 public class SceneTab extends MetaTab {
-    private MetaSceneHandle metaSceneHandle;
-    private Table table;
     @Inject
     private PerspectiveCamera perspectiveCamera;
     @Inject
     private UIRenderer uiRenderer;
-    private ArcCamControl camControl = new ArcCamControl();
     @Inject
     private MetaInput metaInput;
     @Inject
     private MetaEditorUI editorUI;
+
+    private ArcCamControl camControl = new ArcCamControl();
+    private MetaSceneHandle metaSceneHandle;
+    private Table table;
 
     public SceneTab(MetaSceneHandle sceneHandle) {
         Meta.inject(this);
@@ -60,5 +61,9 @@ public class SceneTab extends MetaTab {
     @Override
     public void onHide() {
         metaInput.removeAdapterFromScreen(camControl);
+    }
+
+    public MetaSceneHandle getSceneHandle() {
+        return metaSceneHandle;
     }
 }

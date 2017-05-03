@@ -80,6 +80,10 @@ public class MetaEditorUI {
         return null;
     }
 
+    public Tab getCurrentTab() {
+        return tabbedPane.getActiveTab();
+    }
+
     public void focusTab(String name) {
         if (hasTab(name)) {
             tabbedPane.switchTab(getTab(name));
