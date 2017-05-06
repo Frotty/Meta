@@ -22,11 +22,16 @@ public class ShaderComposition {
         Meta.inject(this);
         this.compositionHandle = compHandle;
         this.data = metaRenderData;
+        loadExisting();
+    }
+
+    private void loadExisting() {
         for (int i = 0; i < data.renderBuffers.size; i++) {
             MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.renderBuffers.get(i).metaShaderPath));
             metaGeoShader.init();
             bufferHandles.add(new RenderBufferHandle(data.renderBuffers.get(i), metaGeoShader));
         }
+        System.out.println("Loaded <" + bufferHandles.size + "> buffers");
     }
 
     public void addBufferHandle(RenderBufferHandle bufferHandle) {
@@ -45,5 +50,10 @@ public class ShaderComposition {
 
     public FileHandle getCompositionHandle() {
         return compositionHandle;
+    }
+
+    @Override
+    public String toString() {
+        return data.name;
     }
 }

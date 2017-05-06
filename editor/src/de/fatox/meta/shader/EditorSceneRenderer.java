@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g3d.ModelCache;
 import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
 import de.fatox.meta.Primitives;
@@ -15,10 +16,12 @@ import de.fatox.meta.api.dao.MetaData;
 import de.fatox.meta.api.dao.RenderBufferData;
 import de.fatox.meta.api.graphics.RenderBufferHandle;
 import de.fatox.meta.api.graphics.Renderer;
+import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.graphics.renderer.FullscreenQuad;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
+import de.fatox.meta.ui.components.MetaLabel;
 
 /**
  * Created by Frotty on 17.04.2017.
@@ -36,6 +39,8 @@ public class EditorSceneRenderer implements Renderer {
     private Primitives primitives;
     @Inject
     private MetaData metaData;
+    @Inject
+    private UIManager uiManager;
     private final Meta3DEntity grid;
 
     private MetaSceneHandle sceneHandle;
@@ -61,11 +66,16 @@ public class EditorSceneRenderer implements Renderer {
 
     @Override
     public void render(float x, float y) {
-        if (sceneHandle.getShaderComposition() != null) {
+        if (sceneHandle.getShaderComposition() == null) {
+            Table table = new Table();
+            table.add(new MetaLabel("No composition selected", 20)).pad(128).center();
+            uiManager.addTable(table, true, true);
+        } else {
             Array<RenderBufferHandle> bufferHandles = sceneHandle.getShaderComposition().getBufferHandles();
-            renderContext.begin();
+
 
             for (RenderBufferHandle bufferHandle : bufferHandles) {
+                renderContext.begin();
                 bufferHandle.begin();
                 if (bufferHandle.data.inType == RenderBufferData.IN.GEOMETRY) {
                     modelBatch.begin(cam);
@@ -73,9 +83,9 @@ public class EditorSceneRenderer implements Renderer {
                     modelBatch.end();
                 }
                 bufferHandle.end();
+                renderContext.end();
             }
 
-            renderContext.end();
 
             if (sceneHandle.data.showGrid) {
 
@@ -87,14 +97,20 @@ public class EditorSceneRenderer implements Renderer {
     private void debugAll(float x, float y, Array<RenderBufferHandle> bufferHandles) {
         batch.disableBlending();
         batch.begin();
-        float debugScreens = bufferHandles.size;
+        float debugScreens = 0;
+        for (RenderBufferHandle bufferHandle : bufferHandles) {
+            for (Texture ignored : bufferHandle.getColorTextures()) {
+                debugScreens++;
+            }
+
+        }
         int count = 0;
         for (RenderBufferHandle bufferHandle : bufferHandles) {
             float height = bufferHandle.getHeight();
             float width = bufferHandle.getWidth();
             Array<Texture> colorTextures = bufferHandle.getColorTextures();
             for (Texture texture : colorTextures) {
-                batch.draw(texture, x + (width / debugScreens) * count, y, width / debugScreens, height / debugScreens / 2, 0f, 0f, 1f, 1f);
+                batch.draw(texture, x + (width / debugScreens) * count, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
                 count++;
             }
 
