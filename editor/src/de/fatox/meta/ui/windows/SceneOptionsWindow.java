@@ -1,8 +1,11 @@
 package de.fatox.meta.ui.windows;
 
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
+import de.fatox.meta.ide.SceneManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.shader.MetaSceneHandle;
@@ -20,6 +23,8 @@ public class SceneOptionsWindow extends MetaWindow {
     private MetaEditorUI editorUI;
     @Inject
     private MetaShaderComposer shaderComposer;
+    @Inject
+    private SceneManager sceneManager;
 
     private VisSelectBox<ShaderComposition> compositionSelectBox;
 
@@ -35,8 +40,16 @@ public class SceneOptionsWindow extends MetaWindow {
         contentTable.add(compositionSelectBox).growX();
         contentTable.row();
 
-
         loadInitial();
+
+        compositionSelectBox.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                SceneTab sceneTab = (SceneTab) editorUI.getCurrentTab();
+                sceneTab.getSceneHandle().setShaderComposition(compositionSelectBox.getSelected());
+                sceneManager.saveScene(sceneTab.getSceneHandle().data);
+            }
+        });
     }
 
     private void loadInitial() {

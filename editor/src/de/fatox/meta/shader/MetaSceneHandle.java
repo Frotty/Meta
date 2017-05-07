@@ -8,6 +8,7 @@ import de.fatox.meta.api.dao.MetaSceneData;
 import de.fatox.meta.api.entity.EntityManager;
 import de.fatox.meta.entity.Meta3DEntity;
 import de.fatox.meta.entity.MetaEntityManager;
+import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 
 /**
@@ -21,6 +22,8 @@ public class MetaSceneHandle {
     private ShaderComposition shaderComposition;
     @Inject
     private Primitives primitives;
+    @Inject
+    private ProjectManager projectManager;
 
     public MetaSceneHandle(MetaSceneData sceneData, ShaderComposition shaderComposition, FileHandle fileHandle) {
         Meta.inject(this);
@@ -36,5 +39,10 @@ public class MetaSceneHandle {
 
     public FileHandle getSceneFile() {
         return sceneFile;
+    }
+
+    public void setShaderComposition(ShaderComposition shaderComposition) {
+        this.shaderComposition = shaderComposition;
+        data.compositionPath = projectManager.relativize(shaderComposition.getCompositionHandle());
     }
 }

@@ -8,6 +8,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import com.kotcrab.vis.ui.widget.*;
 import de.fatox.meta.api.AssetProvider;
+import de.fatox.meta.api.dao.AssetDiscovererData;
 import de.fatox.meta.ide.AssetDiscoverer;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
@@ -20,10 +21,13 @@ import de.fatox.meta.ui.components.MetaIconTextButton;
  */
 @Singleton
 public class AssetDiscovererWindow extends MetaWindow {
+    private static String TAG = "adwSettings";
+
     @Inject
     private AssetProvider assetProvider;
     @Inject
     private AssetDiscoverer assetDiscoverer;
+
     private FolderListAdapter<FolderModel> adapter;
     private ScrollPane filePane;
     private ListView view;
@@ -33,6 +37,8 @@ public class AssetDiscovererWindow extends MetaWindow {
 
     private boolean selectionMode = false;
     private SelectListener listener;
+
+    private AssetDiscovererData data;
 
     private class FolderModel {
 
@@ -53,7 +59,17 @@ public class AssetDiscovererWindow extends MetaWindow {
         super("Asset Discoverer", true, true);
         setSize(500, 200);
         setup();
+
+        loadLastFolder();
+
         refreshFolderView();
+    }
+
+    private void loadLastFolder() {
+        if(uiManager.metaHas(TAG)) {
+            data = uiManager.metaGet(TAG, AssetDiscovererData.class);
+            assetDiscoverer.setRoot(data.getLastFolder());
+        }
     }
 
     @Override

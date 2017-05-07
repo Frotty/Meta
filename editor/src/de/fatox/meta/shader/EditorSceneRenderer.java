@@ -52,7 +52,6 @@ public class EditorSceneRenderer implements Renderer {
     private FullscreenQuad compositeQuad = new FullscreenQuad(1);
 
     private RenderContext renderContext;
-
     private ShaderComposition lastComposition;
 
     public EditorSceneRenderer(MetaSceneHandle sceneHandle) {
@@ -66,6 +65,7 @@ public class EditorSceneRenderer implements Renderer {
 
     @Override
     public void render(float x, float y) {
+        if(renderContext == null) return;
         if (sceneHandle.getShaderComposition() == null) {
             Table table = new Table();
             table.add(new MetaLabel("No composition selected", 20)).pad(128).center();
@@ -73,10 +73,11 @@ public class EditorSceneRenderer implements Renderer {
         } else {
             Array<RenderBufferHandle> bufferHandles = sceneHandle.getShaderComposition().getBufferHandles();
 
-
             for (RenderBufferHandle bufferHandle : bufferHandles) {
                 renderContext.begin();
                 bufferHandle.begin();
+
+
                 if (bufferHandle.data.inType == RenderBufferData.IN.GEOMETRY) {
                     modelBatch.begin(cam);
                     modelBatch.render(modelCache, bufferHandle.metaShader);
@@ -85,8 +86,12 @@ public class EditorSceneRenderer implements Renderer {
                 bufferHandle.end();
                 renderContext.end();
             }
+            renderContext.begin();
+            modelBatch.begin(cam);
+            modelBatch.render(modelCache, sceneHandle.getShaderComposition().getOutputBuffer().metaShader);
+            modelBatch.end();
 
-
+            renderContext.end();
             if (sceneHandle.data.showGrid) {
 
             }
@@ -97,7 +102,7 @@ public class EditorSceneRenderer implements Renderer {
     private void debugAll(float x, float y, Array<RenderBufferHandle> bufferHandles) {
         batch.disableBlending();
         batch.begin();
-        float debugScreens = 0;
+        float debugScreens = 1;
         for (RenderBufferHandle bufferHandle : bufferHandles) {
             for (Texture ignored : bufferHandle.getColorTextures()) {
                 debugScreens++;
@@ -110,7 +115,7 @@ public class EditorSceneRenderer implements Renderer {
             float width = bufferHandle.getWidth();
             Array<Texture> colorTextures = bufferHandle.getColorTextures();
             for (Texture texture : colorTextures) {
-                batch.draw(texture, x + (width / debugScreens) * count, y, width / debugScreens, height / debugScreens, 0f, 0f, 1f, 1f);
+                batch.draw(texture, x + (width / debugScreens) * count * 0.75f, y, width / debugScreens * 0.75f, height / debugScreens * 0.75f, 0f, 0f, 1f, 1f);
                 count++;
             }
 
@@ -125,6 +130,7 @@ public class EditorSceneRenderer implements Renderer {
             if (currentComposition == lastComposition) {
                 resize(width, height);
             } else {
+                lastComposition = currentComposition;
                 create(width, height);
             }
         }

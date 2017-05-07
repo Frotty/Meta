@@ -68,7 +68,7 @@ public class MetaUiManager implements UIManager {
         for (Window window : displayedWindows) {
             String name = window.getClass().getName();
             if (metaHas(name)) {
-                MetaWindowData metaWindowData = metaGetWindow(name);
+                MetaWindowData metaWindowData = metaGet(name, MetaWindowData.class);
                 if (metaWindowData.displayed) {
                     // There exists saved window metadata
                     metaWindowData.set(window);
@@ -97,7 +97,7 @@ public class MetaUiManager implements UIManager {
             if (fh.name().endsWith("Window")) {
                 try {
                     Class windowclass = ClassReflection.forName(fh.name());
-                    MetaWindowData metaWindowData = metaGetWindow(windowclass.getName());
+                    MetaWindowData metaWindowData = metaGet(windowclass.getName(), MetaWindowData.class);
                     for (Window displayedWindow : displayedWindows) {
                         if (displayedWindow.getClass() == windowclass) {
                             if(! metaWindowData.displayed) {
@@ -142,15 +142,15 @@ public class MetaUiManager implements UIManager {
 
         if (metaHas(windowClass.getName())) {
             // There exists metadata for this window.
-            MetaWindowData windowData = metaGetWindow(windowClass.getName());
+            MetaWindowData windowData = metaGet(windowClass.getName(), MetaWindowData.class);
             windowData.set(window);
             if(!windowData.displayed) {
                 windowData.displayed = true;
-                metaSaveWindow(windowClass.getName(), windowData);
+                metaSave(windowClass.getName(), windowData);
             }
         } else {
             // First time the window has been shown on this screen
-            metaSaveWindow(windowClass.getName(), new MetaWindowData(window));
+            metaSave(windowClass.getName(), new MetaWindowData(window));
         }
         return window;
     }
@@ -186,10 +186,10 @@ public class MetaUiManager implements UIManager {
         Window displayedWindow = getDisplayedInstance(window);
         if (displayedWindow != null) {
             displayedWindows.removeValue(window, true);
-            MetaWindowData metaWindowData = metaGetWindow(window.getClass().getName());
+            MetaWindowData metaWindowData = metaGet(window.getClass().getName(), MetaWindowData.class);
             if (metaWindowData != null) {
                 metaWindowData.displayed = false;
-                metaSaveWindow(displayedWindow.getClass().getName(), metaWindowData);
+                metaSave(displayedWindow.getClass().getName(), metaWindowData);
             }
             cacheWindow(window, false);
         }
@@ -199,9 +199,9 @@ public class MetaUiManager implements UIManager {
     public void updateWindow(Window window) {
         String name = window.getClass().getName();
         if (metaHas(name)) {
-            MetaWindowData metaWindowData = metaGetWindow(name);
+            MetaWindowData metaWindowData = metaGet(name, MetaWindowData.class);
             metaWindowData.setFrom(window);
-            metaSaveWindow(name, metaWindowData);
+            metaSave(name, metaWindowData);
         }
     }
 
@@ -284,15 +284,15 @@ public class MetaUiManager implements UIManager {
         }
     }
 
-    private boolean metaHas(String name) {
+    public boolean metaHas(String name) {
         return metaData.has(currentScreenId + File.separator + name);
     }
 
-    private MetaWindowData metaGetWindow(String name) {
-        return metaData.get(currentScreenId + File.separator + name, MetaWindowData.class);
+    public <T> T metaGet(String name, Class<T> c) {
+        return metaData.get(currentScreenId + File.separator + name, c);
     }
 
-    private void metaSaveWindow(String name, MetaWindowData windowData) {
+    public void metaSave(String name, Object windowData) {
         String id = currentScreenId + File.separator + name;
         if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(id).lastModified()) > 200) {
             metaData.save(id, windowData);

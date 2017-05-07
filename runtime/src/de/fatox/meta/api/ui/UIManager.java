@@ -37,4 +37,10 @@ public interface UIManager {
     void updateWindow(Window window);
 
     void bringWindowsToFront();
+
+    boolean metaHas(String name);
+
+    <T> T metaGet(String name, Class<T> c);
+
+    void metaSave(String name, Object windowData);
 }

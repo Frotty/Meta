@@ -14,8 +14,11 @@ import de.fatox.meta.injection.Inject;
 public class ShaderComposition {
     @Inject
     private MetaShaderLibrary shaderLibrary;
+
     public MetaRenderData data;
+
     private Array<RenderBufferHandle> bufferHandles = new Array<>();
+    private RenderBufferHandle outputBuffer;
     private FileHandle compositionHandle;
 
     public ShaderComposition(FileHandle compHandle, MetaRenderData metaRenderData) {
@@ -26,20 +29,26 @@ public class ShaderComposition {
     }
 
     private void loadExisting() {
-        for (int i = 0; i < data.renderBuffers.size; i++) {
+        for (int i = 0; i < data.renderBuffers.size-1; i++) {
             MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.renderBuffers.get(i).metaShaderPath));
             metaGeoShader.init();
             bufferHandles.add(new RenderBufferHandle(data.renderBuffers.get(i), metaGeoShader));
         }
+        MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.renderBuffers.get(data.renderBuffers.size-1).metaShaderPath));
+        metaGeoShader.init();
+        outputBuffer = new RenderBufferHandle(data.renderBuffers.get(data.renderBuffers.size-1), metaGeoShader);
         System.out.println("Loaded <" + bufferHandles.size + "> buffers");
     }
 
     public void addBufferHandle(RenderBufferHandle bufferHandle) {
-        if(! bufferHandles.contains(bufferHandle, true)) {
-            bufferHandles.add(bufferHandle);
+        if(! bufferHandles.contains(bufferHandle, true) && outputBuffer != bufferHandle) {
+            if(outputBuffer != null) {
+                bufferHandles.add(outputBuffer);
+            }
             if(bufferHandle.data == null) {
                 throw new GdxRuntimeException("bufferHandle has no data attached");
             }
+            outputBuffer = bufferHandle;
             data.renderBuffers.add(bufferHandle.data);
         }
     }
@@ -55,5 +64,9 @@ public class ShaderComposition {
     @Override
     public String toString() {
         return data.name;
+    }
+
+    public RenderBufferHandle getOutputBuffer() {
+        return outputBuffer;
     }
 }

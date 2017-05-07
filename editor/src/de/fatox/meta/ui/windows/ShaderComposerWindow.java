@@ -102,10 +102,14 @@ public class ShaderComposerWindow extends MetaWindow {
     private void loadBuffers(Array<RenderBufferHandle> buffers) {
         bufferTable.clear();
         for (RenderBufferHandle buffer : buffers) {
-            RenderBufferButton newButton = new RenderBufferButton(buffer);
-            bufferTable.add(newButton).padRight(2);
-            bufferTable.add(new MetaLabel(">", 14)).center().padRight(2);
+            loadBuffer(buffer);
         }
+    }
+
+    private void loadBuffer(RenderBufferHandle buffer) {
+        RenderBufferButton newButton = new RenderBufferButton(buffer);
+        bufferTable.add(newButton).padRight(2);
+        bufferTable.add(new MetaLabel(">", 14)).center().padRight(2);
     }
 
     public void addComposition(ShaderComposition shaderComposition) {
@@ -124,6 +128,7 @@ public class ShaderComposerWindow extends MetaWindow {
         if (shaderComposition.data.renderBuffers.size > 0) {
             // Load existing
             loadBuffers(shaderComposition.getBufferHandles());
+            loadBuffer(shaderComposition.getOutputBuffer());
         }
         setupNewBufferButton();
     }

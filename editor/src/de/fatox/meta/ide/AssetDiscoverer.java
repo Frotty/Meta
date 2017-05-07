@@ -14,6 +14,8 @@ import de.fatox.meta.ui.windows.AssetDiscovererWindow;
 public class AssetDiscoverer {
     @Inject
     private UIManager uiManager;
+    @Inject
+    private ProjectManager projectManager;
 
     private FileHandle root;
 
@@ -79,6 +81,11 @@ public class AssetDiscoverer {
 
     public void addOpenListener(String extension, AssetOpenListener listener) {
         fileOpenListeners.put(extension, listener);
+    }
+
+    public void setRoot(String path) {
+        currentFolder = projectManager.getCurrentProjectRoot().child(path);
+        refresh();
     }
 
     public void setRoot(FileHandle root) {
