@@ -58,17 +58,17 @@ public class AssetDiscovererWindow extends MetaWindow {
     public AssetDiscovererWindow() {
         super("Asset Discoverer", true, true);
         setSize(500, 200);
-        setup();
-
         loadLastFolder();
 
-        refreshFolderView();
+        setup();
+        refresh();
     }
 
     private void loadLastFolder() {
+        assetDiscoverer.setRoot("");
         if(uiManager.metaHas(TAG)) {
             data = uiManager.metaGet(TAG, AssetDiscovererData.class);
-            assetDiscoverer.setRoot(data.getLastFolder());
+            assetDiscoverer.openChild(data.getLastFolder());
         }
     }
 

@@ -84,7 +84,12 @@ public class AssetDiscoverer {
     }
 
     public void setRoot(String path) {
-        currentFolder = projectManager.getCurrentProjectRoot().child(path);
+        if(path.length() <= 0) {
+            currentFolder = projectManager.getCurrentProjectRoot();
+        } else {
+            currentFolder = projectManager.getCurrentProjectRoot().child(path);
+        }
+        this.root = currentFolder;
         refresh();
     }
 

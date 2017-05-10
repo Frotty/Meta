@@ -30,8 +30,6 @@ public class MetaProjectManager implements ProjectManager {
     @Inject
     private MetaEditorUI editorUI;
     @Inject
-    private AssetDiscoverer assetDiscoverer;
-    @Inject
     private MetaData metaData;
 
     private MetaProjectData currentProject;
@@ -54,7 +52,6 @@ public class MetaProjectManager implements ProjectManager {
         currentProjectRoot = projectFile.parent();
         createFolders(metaProjectData);
         currentProject = metaProjectData;
-        assetDiscoverer.setRoot(currentProjectRoot);
         Array<String> lastProjects;
         if (metaData.has("lastProjects")) {
             lastProjects = metaData.get("lastProjects", Array.class);
