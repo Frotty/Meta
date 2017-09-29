@@ -36,7 +36,7 @@ public class MetaMusicPlayer {
             @Override
             public void run() {
                 MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
-                float volume = audioVideoData.masterVolume * audioVideoData.soundVolume;
+                float volume = audioVideoData.masterVolume * audioVideoData.musicVolume;
                 if (!musicEnabled || volume <= startVolume) {
                     if (currentMusic != null) {
                         currentMusic.setVolume(0);
