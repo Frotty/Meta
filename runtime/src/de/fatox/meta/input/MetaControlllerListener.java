@@ -46,50 +46,6 @@ public class MetaControlllerListener implements ControllerListener {
 
     @Override
     public boolean axisMoved(Controller controller, int axisCode, float value) {
-//        if (value > deadzone) {
-//            log.debug("axis", "through deadzone");
-//            if (axisCode == 0) {
-//                log.debug("axis", "right");
-//                if (pressedKeys.contains(Input.Keys.LEFT)) {
-//                    pressedKeys.removeValue(Input.Keys.LEFT);
-//                    metaInput.keyUp(Input.Keys.LEFT);
-//                }
-//                if (!pressedKeys.contains(Input.Keys.RIGHT)) {
-//                    pressedKeys.add(Input.Keys.RIGHT);
-//                    metaInput.keyDown(Input.Keys.RIGHT);
-//                }
-//            } else if (axisCode == 1) {
-//                if (pressedKeys.contains(Input.Keys.DOWN)) {
-//                    pressedKeys.removeValue(Input.Keys.DOWN);
-//                    metaInput.keyUp(Input.Keys.DOWN);
-//                }
-//                if (!pressedKeys.contains(Input.Keys.UP)) {
-//                    pressedKeys.add(Input.Keys.UP);
-//                    metaInput.keyDown(Input.Keys.UP);
-//                }
-//            }
-//        } else if (value < -deadzone) {
-//            log.debug("axis", "through deadzone");
-//            if (axisCode == 0) {
-//                if (pressedKeys.contains(Input.Keys.RIGHT)) {
-//                    pressedKeys.removeValue(Input.Keys.RIGHT);
-//                    metaInput.keyUp(Input.Keys.RIGHT);
-//                }
-//                if (!pressedKeys.contains(Input.Keys.LEFT)) {
-//                    pressedKeys.add(Input.Keys.LEFT);
-//                    metaInput.keyDown(Input.Keys.LEFT);
-//                }
-//            } else if (axisCode == 1) {
-//                if (pressedKeys.contains(Input.Keys.UP)) {
-//                    pressedKeys.removeValue(Input.Keys.UP);
-//                    metaInput.keyUp(Input.Keys.UP);
-//                }
-//                if (!pressedKeys.contains(Input.Keys.DOWN)) {
-//                    pressedKeys.add(Input.Keys.DOWN);
-//                    metaInput.keyDown(Input.Keys.DOWN);
-//                }
-//            }
-//        }
         checkVert(controller);
         checkHor(controller);
 

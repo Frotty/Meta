@@ -66,7 +66,7 @@ public class AssetDiscoverer {
     }
 
     public void openFile(FileHandle fileHandle) {
-        if(fileOpenListeners.containsKey(fileHandle.extension())) {
+        if (fileOpenListeners.containsKey(fileHandle.extension())) {
             fileOpenListeners.get(fileHandle.extension()).onOpen(fileHandle);
         }
     }
@@ -84,7 +84,7 @@ public class AssetDiscoverer {
     }
 
     public void setRoot(String path) {
-        if(path.length() <= 0) {
+        if (path.length() <= 0) {
             currentFolder = projectManager.getCurrentProjectRoot();
         } else {
             currentFolder = projectManager.getCurrentProjectRoot().child(path);
