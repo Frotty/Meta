@@ -2,6 +2,7 @@ package de.fatox.meta.input;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.controllers.Controllers;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
 import de.fatox.meta.camera.ArcCamControl;
@@ -16,6 +17,7 @@ public class MetaInput implements InputProcessor {
 
     public MetaInput() {
         Gdx.input.setInputProcessor(this);
+        Controllers.addListener(new MetaControlllerListener(this));
     }
 
     public void changeScreen() {
