@@ -69,6 +69,8 @@ project(":android") {
 
 project(":runtime") {
     apply plugin: "java"
+    apply plugin: 'me.tatarka.retrolambda'
+
     dependencies {
         compile "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
     }
