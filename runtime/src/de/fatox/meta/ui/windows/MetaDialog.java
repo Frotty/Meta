@@ -3,11 +3,11 @@ package de.fatox.meta.ui.windows;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisImageButton;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
-import com.kotcrab.vis.ui.widget.VisTextButton;
 import de.fatox.meta.ui.components.MetaClickListener;
 
 /**
@@ -43,7 +43,7 @@ public abstract class MetaDialog extends MetaWindow {
         add(buttonTable).bottom().growX();
     }
 
-    public VisTextButton addButton(VisTextButton button, int align, Object result) {
+    public <T extends Button> T addButton(Button button, int align, Object result) {
         button.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -57,14 +57,14 @@ public abstract class MetaDialog extends MetaWindow {
         }
         buttonCount++;
         buttonTable.add(button).align(align);
-        return button;
+        return (T) button;
     }
 
     public void show() {
         // Set color invisible for fade in to work
         centerWindow();
         setColor(1, 1, 1, 0);
-        addAction(Actions.alpha(0.9f, 1f));
+        addAction(Actions.alpha(0.925f, 1f));
     }
 
     public void setDialogListener(DialogListener dialogListener) {

@@ -17,7 +17,7 @@ public class MetaControlllerListener implements ControllerListener {
     private MetaInput metaInput;
     private int currentDownKey = -1;
 
-    private float deadzone = 0.375f;
+    private float deadzone = 0.395f;
 
     public MetaControlllerListener(MetaInput metaInput) {
         this.metaInput = metaInput;
@@ -48,8 +48,6 @@ public class MetaControlllerListener implements ControllerListener {
     public boolean axisMoved(Controller controller, int axisCode, float value) {
         checkVert(controller);
         checkHor(controller);
-
-
         return false;
     }
 

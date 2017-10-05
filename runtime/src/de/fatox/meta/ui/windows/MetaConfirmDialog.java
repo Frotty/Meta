@@ -32,6 +32,6 @@ public class MetaConfirmDialog extends MetaWindow {
         setColor(1, 1, 1, 0);
         setPosition(Math.round((stage.getWidth() - getWidth()) / 2), Math.round((stage.getHeight() - getHeight()) / 2));
         stage.addActor(this);
-        addAction(alpha(0.85f, 0.5f));
+        addAction(alpha(0.925f, 0.5f));
     }
 }

@@ -18,6 +18,7 @@ import de.fatox.meta.api.graphics.FontProvider;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
+import de.fatox.meta.injection.Named;
 import de.fatox.meta.input.MetaInput;
 
 public class MetaUIRenderer implements UIRenderer {
@@ -29,23 +30,31 @@ public class MetaUIRenderer implements UIRenderer {
     private MetaInput metaInput;
     @Inject
     private FontProvider fontProvider;
+    @Inject
+    @Named("uiskin")
+    private String uiSkinPath;
 
     private Stage stage;
 
     public MetaUIRenderer() {
         Meta.inject(this);
         log.debug(TAG, "Injected MetaUi");
-        VisUI.load();
+        if (uiSkinPath != null) {
+            VisUI.load(Gdx.files.internal(uiSkinPath));
+        } else {
+            VisUI.load();
+        }
 
         FileChooser.setDefaultPrefsName("de.fatox.meta");
         log.debug(TAG, "Loaded VisUi");
         VisUI.setDefaultTitleAlign(Align.center);
         stage = new Stage(new ScreenViewport());
         stage.getRoot().addCaptureListener(new InputListener() {
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 if (!((event.getTarget() instanceof TextField) || (event.getTarget() instanceof ScrollPane))) stage.setScrollFocus(null);
                 return false;
-            }});
+            }
+        });
         metaInput.addGlobalAdapter(stage);
     }
 
@@ -54,7 +63,7 @@ public class MetaUIRenderer implements UIRenderer {
     public void addActor(Actor actor) {
         try {
             stage.addActor(actor);
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

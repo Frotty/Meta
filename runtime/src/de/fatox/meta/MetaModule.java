@@ -24,6 +24,7 @@ import de.fatox.meta.sound.MetaSoundPlayer;
 import de.fatox.meta.task.MetaTaskManager;
 import de.fatox.meta.ui.MetaUIRenderer;
 import de.fatox.meta.ui.MetaUiManager;
+import de.fatox.meta.ui.UiControlHelper;
 
 @Singleton
 public class MetaModule {
@@ -128,5 +129,10 @@ public class MetaModule {
         return new Json();
     }
 
-
+    @Provides
+    @Singleton
+    @Named("default")
+    public UiControlHelper uiControlHelp() {
+        return new UiControlHelper();
+    }
 }

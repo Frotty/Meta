@@ -81,9 +81,10 @@ public class MetaEditorModule {
         return new FileChooser(FileChooser.Mode.SAVE);
     }
 
-//    @Provides
-//    @Singleton
-//    public Renderer renderer(EditorSceneRenderer renderer) {
-//        return renderer;
-//    }
+    @Provides
+    @Singleton
+    @Named("uiskin")
+    public String uiSkinPath() {
+        return null;
+    }
 }
