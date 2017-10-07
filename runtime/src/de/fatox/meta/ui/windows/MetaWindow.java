@@ -1,10 +1,16 @@
 package de.fatox.meta.ui.windows;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.Separator;
+import com.kotcrab.vis.ui.widget.VisImageButton;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
@@ -30,7 +36,6 @@ public abstract class MetaWindow extends VisWindow {
     @Inject
     protected MetaData metaData;
 
-
     protected Table contentTable = new VisTable();
 
     public MetaWindow(String title) {
@@ -43,7 +48,7 @@ public abstract class MetaWindow extends VisWindow {
         getTitleTable().left().padLeft(2);
         getTitleLabel().setAlignment(Align.left);
         if (closeButton) {
-            addCloseButton();
+            addExitButton();
         }
         // Separator
         getTitleTable().top();
@@ -57,6 +62,31 @@ public abstract class MetaWindow extends VisWindow {
         contentTable.top().pad(5, 1, 1, 1);
         add(contentTable).top().grow();
         row();
+    }
+
+    private void addExitButton() {
+        Label titleLabel = getTitleLabel();
+        Table titleTable = getTitleTable();
+
+        VisImageButton closeButton = new VisImageButton("close-window");
+        closeButton.setColor(1,1,1,0.2f);
+        titleTable.add(closeButton).padRight(-getPadRight() + 0.7f);
+        closeButton.addListener(new ChangeListener() {
+            @Override
+            public void changed (ChangeEvent event, Actor actor) {
+                close();
+            }
+        });
+        closeButton.addListener(new ClickListener() {
+            @Override
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                event.cancel();
+                return true;
+            }
+        });
+
+        if (titleLabel.getLabelAlign() == Align.center && titleTable.getChildren().size == 2)
+            titleTable.getCell(titleLabel).padLeft(closeButton.getWidth() * 2);
     }
 
     public void setDefaultSize(float width, float height) {

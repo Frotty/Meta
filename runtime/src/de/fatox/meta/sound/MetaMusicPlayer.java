@@ -14,6 +14,7 @@ import de.fatox.meta.injection.Inject;
  * Created by Frotty on 09.11.2016.
  */
 public class MetaMusicPlayer {
+    private final Timer.Task task;
     @Inject
     private MetaData metaData;
 
@@ -32,7 +33,7 @@ public class MetaMusicPlayer {
 
     public MetaMusicPlayer() {
         Meta.inject(this);
-        Timer.schedule(new Timer.Task() {
+        task = Timer.schedule(new Timer.Task() {
             @Override
             public void run() {
                 MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
@@ -132,6 +133,20 @@ public class MetaMusicPlayer {
             nextMusic = null;
             currentMusic.stop();
             currentMusic = null;
+        }
+    }
+
+    private float vol = 1f;
+    public void silenceMusic(boolean musicEnabled) {
+        if (currentMusic != null) {
+            if(musicEnabled) {
+                currentMusic.setVolume(vol);
+                Timer.schedule(task, 0, 0.1f);
+            } else {
+                vol = currentMusic.getVolume();
+                currentMusic.setVolume(0);
+                task.cancel();
+            }
         }
     }
 }
