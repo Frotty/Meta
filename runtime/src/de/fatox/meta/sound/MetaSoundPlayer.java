@@ -122,14 +122,14 @@ public class MetaSoundPlayer {
         return metaSoundHandle;
     }
 
-    public void updateDynamicSounds() {
+    public void updateDynamicSounds(Vector2 listenerPos) {
         Iterator<MetaSoundHandle> iterator = dynamicHandles.iterator();
         while (iterator.hasNext()) {
             MetaSoundHandle soundHandle = iterator.next();
             if (soundHandle.isDone() || !soundHandle.isPlaying()) {
                 stopSound(soundHandle);
             } else {
-                soundHandle.calculateVolPitchPan();
+                soundHandle.calculateVolPitchPan(listenerPos);
             }
         }
     }

@@ -15,7 +15,6 @@ import de.fatox.meta.injection.Log;
 
 public class MetaSoundHandle {
     private static final String TAG = "SoundHandle";
-    private final MetaAudioVideoData audioVideoData;
     @Inject
     @Log
     private Logger log;
@@ -24,10 +23,10 @@ public class MetaSoundHandle {
     @Inject
     private MetaData metaData;
 
+    private final MetaAudioVideoData audioVideoData;
     private final MetaSoundDefinition definition;
     private final long handleId;
     // For 2d positioning
-    private Vector2 listenerPos;
     private Vector2 soundPos;
 
     private long startTime;
@@ -47,7 +46,7 @@ public class MetaSoundHandle {
         audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
     }
 
-    public void calculateVolPitchPan() {
+    public void calculateVolPitchPan(Vector2 listenerPos) {
         float audibleRange = (Gdx.graphics.getHeight() * 0.4f);
         float audibleRangeSquared = audibleRange * audibleRange;
         float distSquared = listenerPos.dst2(soundPos);
@@ -63,9 +62,8 @@ public class MetaSoundHandle {
     }
 
     public void setSoundPosition(Vector2 listenerPos, Vector2 soundPos) {
-        this.listenerPos = listenerPos;
         this.soundPos = soundPos;
-        calculateVolPitchPan();
+        calculateVolPitchPan(listenerPos);
     }
 
     public void stop() {

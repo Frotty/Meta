@@ -14,11 +14,11 @@ import de.fatox.meta.injection.Inject;
  * Created by Frotty on 09.11.2016.
  */
 public class MetaMusicPlayer {
-    private final Timer.Task task;
     @Inject
     private MetaData metaData;
 
-    public float startVolume = 0.01f;
+    private final Timer.Task task;
+    private float startVolume = 0.01f;
     private boolean musicEnabled = true;
 
     private Music currentMusic = null;
@@ -28,59 +28,62 @@ public class MetaMusicPlayer {
     private Array<Music> activePool = new Array<>();
     private ObjectMap<String, Music> musicCache = new ObjectMap<>();
 
-    private boolean enablePool = true;
-
-
     public MetaMusicPlayer() {
         Meta.inject(this);
+        // Start Timer to update music
         task = Timer.schedule(new Timer.Task() {
             @Override
             public void run() {
-                MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
-                float volume = audioVideoData.masterVolume * audioVideoData.musicVolume;
-                if (!musicEnabled || volume <= startVolume) {
-                    if (currentMusic != null) {
-                        currentMusic.setVolume(0);
-                    }
-                    return;
-                }
-                if (currentMusic == null || !currentMusic.isPlaying()) {
-                    if (nextMusic == null) {
-                        if (enablePool) {
-                            nextFromPool();
-                        } else {
-                            return;
-                        }
-                    } else {
-                        startMusic(nextMusic);
-                    }
-
-                }
-
-                if (currentMusic.getVolume() < startVolume) {
-                    currentMusic.stop();
-                    if (nextMusic != null) {
-                        currentMusic = nextMusic;
-                        nextMusic = null;
-                        currentMusic.play();
-                        currentMusic.setVolume(startVolume);
-                    }
-                } else {
-
-                    if (nextMusic != null && currentMusic.isPlaying()) {
-                        currentMusic.setVolume(currentMusic.getVolume() * 0.4f);
-                    } else if (currentMusic.getVolume() >= startVolume && currentMusic.getVolume() < volume) {
-                        currentMusic.setVolume(currentMusic.getVolume() * 3f);
-                    }
-                    if (currentMusic.getVolume() > volume) {
-                        currentMusic.setVolume(volume);
-                    }
-                }
-
+                updateMusic();
             }
         }, 0, 0.1f);
     }
 
+    private void updateMusic() {
+        MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
+        float volume = audioVideoData.masterVolume * audioVideoData.musicVolume;
+        if (!musicEnabled || volume <= startVolume) {
+            if (currentMusic != null) {
+                currentMusic.setVolume(0);
+            }
+            return;
+        }
+        if (currentMusic == null || !currentMusic.isPlaying()) {
+            if (nextMusic == null) {
+                nextFromPool();
+            } else {
+                startMusic(nextMusic);
+            }
+        }
+
+        if (currentMusic.getVolume() < startVolume) {
+            finishMusic();
+        } else {
+            fadeInOut(volume);
+            if (currentMusic.getVolume() > volume) {
+                currentMusic.setVolume(volume);
+            }
+        }
+    }
+
+    private void finishMusic() {
+        currentMusic.stop();
+        // Check if there is a track queued
+        if (nextMusic != null) {
+            currentMusic = nextMusic;
+            nextMusic = null;
+            currentMusic.play();
+            currentMusic.setVolume(startVolume);
+        }
+    }
+
+    private void fadeInOut(float volume) {
+        if (nextMusic != null && currentMusic.isPlaying()) {
+            currentMusic.setVolume(currentMusic.getVolume() * 0.4f);
+        } else if (currentMusic.getVolume() >= startVolume && currentMusic.getVolume() < volume) {
+            currentMusic.setVolume(currentMusic.getVolume() * 3f);
+        }
+    }
 
     public void playMusic(String musicPath) {
         Music music = getMusic(musicPath);
@@ -137,9 +140,10 @@ public class MetaMusicPlayer {
     }
 
     private float vol = 1f;
+
     public void silenceMusic(boolean musicEnabled) {
         if (currentMusic != null) {
-            if(musicEnabled) {
+            if (musicEnabled) {
                 currentMusic.setVolume(vol);
                 Timer.schedule(task, 0, 0.1f);
             } else {
