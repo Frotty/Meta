@@ -113,11 +113,11 @@ public class ShaderComposerWindow extends MetaWindow {
     }
 
     public void addComposition(ShaderComposition shaderComposition) {
-        if (shaderComposition.data != null && shaderComposition.data.name != null) {
+        if (shaderComposition.data != null && shaderComposition.data.getName() != null) {
             Array<String> items = new Array<>(renderSelectbox.getItems());
-            items.add(shaderComposition.data.name);
+            items.add(shaderComposition.data.getName());
             renderSelectbox.setItems(items);
-            renderSelectbox.setSelected(shaderComposition.data.name);
+            renderSelectbox.setSelected(shaderComposition.data.getName());
 
             loadComposition(shaderComposition);
         }
@@ -125,7 +125,7 @@ public class ShaderComposerWindow extends MetaWindow {
 
     private void loadComposition(ShaderComposition shaderComposition) {
         bufferTable.clear();
-        if (shaderComposition.data.renderBuffers.size > 0) {
+        if (shaderComposition.data.getRenderBuffers().size > 0) {
             // Load existing
             loadBuffers(shaderComposition.getBufferHandles());
             loadBuffer(shaderComposition.getOutputBuffer());

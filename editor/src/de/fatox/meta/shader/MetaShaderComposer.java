@@ -5,7 +5,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaRenderData;
+import de.fatox.meta.api.dao.MetaShaderCompData;
 import de.fatox.meta.api.dao.RenderBufferData;
 import de.fatox.meta.api.graphics.RenderBufferHandle;
 import de.fatox.meta.api.ui.UIManager;
@@ -42,7 +42,7 @@ public class MetaShaderComposer {
             loadProjectCompositions();
             return false;
         });
-        Gdx.app.postRunnable(() -> loadProjectCompositions());
+        Gdx.app.postRunnable(this::loadProjectCompositions);
     }
 
     public void loadProjectCompositions() {
@@ -50,7 +50,7 @@ public class MetaShaderComposer {
             FileHandle compositionFolder = projectManager.getCurrentProjectRoot().child("meta/compositions/");
             if (compositionFolder.exists()) {
                 for (FileHandle metaComp : compositionFolder.list(pathname -> pathname.getName().endsWith(META_COMP_SUFFIX))) {
-                    MetaRenderData compositionData = json.fromJson(MetaRenderData.class, metaComp.readString());
+                    MetaShaderCompData compositionData = json.fromJson(MetaShaderCompData.class, metaComp.readString());
                     if (compositionData != null) {
                         addComposition(new ShaderComposition(metaComp, compositionData));
                     }
@@ -72,7 +72,7 @@ public class MetaShaderComposer {
     }
 
     private FileHandle saveComposition(ShaderComposition composition) {
-        return projectManager.save("meta/compositions/" + composition.data.name + META_COMP_SUFFIX, composition.data);
+        return projectManager.save("meta/compositions/" + composition.data.getName() + META_COMP_SUFFIX, composition.data);
     }
 
     public ShaderComposition getComposition(String compositionPath) {
@@ -110,8 +110,8 @@ public class MetaShaderComposer {
 
     public void newShaderComposition(String name) {
         FileHandle fileHandle = projectManager.getCurrentProjectRoot().child(META_COMP_PATH + name + META_COMP_SUFFIX);
-        MetaRenderData metaRenderData = new MetaRenderData(name);
-        ShaderComposition shaderComposition = new ShaderComposition(fileHandle, metaRenderData);
+        MetaShaderCompData metaShaderCompData = new MetaShaderCompData(name);
+        ShaderComposition shaderComposition = new ShaderComposition(fileHandle, metaShaderCompData);
         addComposition(shaderComposition);
     }
 }

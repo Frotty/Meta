@@ -37,6 +37,9 @@ public class RenderBufferButton extends Button {
 
     public RenderBufferButton(RenderBufferHandle handle) {
         this("Pass", 11);
+        inSelect.setSelected(handle.data.getInType());
+        shaderSelect.setSelected(handle.metaShader.shaderHandle);
+        depthCheckBox.setChecked(handle.data.getHasDpeth());
     }
 
     public RenderBufferButton(String text, int size) {

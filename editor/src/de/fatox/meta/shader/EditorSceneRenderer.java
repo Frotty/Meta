@@ -74,7 +74,7 @@ public class EditorSceneRenderer implements Renderer {
                 bufferHandle.begin();
 
 
-                if (bufferHandle.data.inType == RenderBufferData.IN.GEOMETRY) {
+                if (bufferHandle.data.getInType() == RenderBufferData.IN.GEOMETRY) {
                     modelBatch.begin(cam);
                     modelBatch.render(modelCache, bufferHandle.metaShader);
                     modelBatch.end();

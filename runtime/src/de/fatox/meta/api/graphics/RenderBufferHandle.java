@@ -29,10 +29,10 @@ public class RenderBufferHandle {
         int targetsNum = metaShader.shaderHandle.targets.size;
         if (targetsNum > 1) {
             // MRT Shader
-            mrtFrameBuffer = new MRTFrameBuffer(width, height, targetsNum, data.hasDpeth);
+            mrtFrameBuffer = new MRTFrameBuffer(width, height, targetsNum, data.getHasDpeth());
         } else {
             // Regular Framebuffer
-            frameBuffer = new FrameBuffer(Pixmap.Format.RGB888, width, height, data.hasDpeth);
+            frameBuffer = new FrameBuffer(Pixmap.Format.RGB888, width, height, data.getHasDpeth());
         }
     }
 
