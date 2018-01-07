@@ -43,6 +43,7 @@ public class MetaUiManager implements UIManager {
     private Array<Window> displayedWindows = new Array<>();
     private Array<Window> cachedWindows = new Array<>();
     private MenuBar mainMenuBar;
+
     private Table contentTable = new Table();
     private String currentScreenId = "(none)";
 

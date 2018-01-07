@@ -11,10 +11,7 @@ import de.fatox.meta.input.MetaInput;
 import de.fatox.meta.shader.MetaSceneHandle;
 import de.fatox.meta.ui.MetaEditorUI;
 import de.fatox.meta.ui.components.SceneWidget;
-import de.fatox.meta.ui.windows.AssetDiscovererWindow;
-import de.fatox.meta.ui.windows.SceneOptionsWindow;
-import de.fatox.meta.ui.windows.ShaderComposerWindow;
-import de.fatox.meta.ui.windows.ShaderLibraryWindow;
+import de.fatox.meta.ui.windows.*;
 
 /**
  * Created by Frotty on 13.06.2016.
@@ -58,6 +55,7 @@ public class SceneTab extends MetaTab {
         editorUI.metaToolbar.addAvailableWindow(ShaderLibraryWindow.class, null);
         editorUI.metaToolbar.addAvailableWindow(ShaderComposerWindow.class, null);
         editorUI.metaToolbar.addAvailableWindow(SceneOptionsWindow.class, null);
+        editorUI.metaToolbar.addAvailableWindow(PrimitivesWindow.class, null);
     }
 
     @Override

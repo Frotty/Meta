@@ -3,6 +3,7 @@ package de.fatox.meta.modules;
 import com.badlogic.gdx.Screen;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import de.fatox.meta.Primitives;
+import de.fatox.meta.api.graphics.Renderer;
 import de.fatox.meta.api.lang.LanguageBundle;
 import de.fatox.meta.ide.*;
 import de.fatox.meta.injection.Named;
@@ -10,10 +11,17 @@ import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.lang.MetaLanguageBundle;
 import de.fatox.meta.screens.MetaEditorScreen;
+import de.fatox.meta.shader.EditorSceneRenderer;
 import de.fatox.meta.shader.MetaShaderComposer;
 import de.fatox.meta.shader.MetaShaderLibrary;
 
 public class MetaEditorModule {
+
+    @Provides
+    @Singleton
+    public Renderer renderer() {
+        return new EditorSceneRenderer();
+    }
 
     @Provides
     @Singleton

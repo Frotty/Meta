@@ -41,6 +41,7 @@ public class MetaControlllerListener implements ControllerListener {
 
     @Override
     public boolean buttonUp(Controller controller, int buttonCode) {
+        System.out.println(buttonCode);
         return false;
     }
 
@@ -120,4 +121,5 @@ public class MetaControlllerListener implements ControllerListener {
     public boolean accelerometerMoved(Controller controller, int accelerometerCode, Vector3 value) {
         return false;
     }
+
 }

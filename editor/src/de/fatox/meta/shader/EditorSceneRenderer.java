@@ -54,13 +54,9 @@ public class EditorSceneRenderer implements Renderer {
     private RenderContext renderContext;
     private ShaderComposition lastComposition;
 
-    public EditorSceneRenderer(MetaSceneHandle sceneHandle) {
+    public EditorSceneRenderer() {
         Meta.inject(this);
         grid = new Meta3DEntity(Vector3.Zero, primitives.getLinegrid());
-        modelCache.begin();
-        modelCache.add(grid.actorModel);
-        modelCache.end();
-        this.sceneHandle = sceneHandle;
     }
 
     @Override
@@ -92,9 +88,6 @@ public class EditorSceneRenderer implements Renderer {
             modelBatch.end();
 
             renderContext.end();
-            if (sceneHandle.data.showGrid) {
-
-            }
             debugAll(x, y, bufferHandles);
         }
     }
@@ -160,9 +153,18 @@ public class EditorSceneRenderer implements Renderer {
     @Override
     public void rebuildCache() {
         modelCache.begin();
+        if (sceneHandle.data.showGrid) {
+            modelCache.add(grid.actorModel);
+        }
         for (Meta3DEntity entity : sceneHandle.entityManager.getStaticEntities()) {
             modelCache.add(entity.actorModel);
         }
         modelCache.end();
+    }
+
+
+    public void setSceneHandle(MetaSceneHandle sceneHandle) {
+        this.sceneHandle = sceneHandle;
+        rebuildCache();
     }
 }

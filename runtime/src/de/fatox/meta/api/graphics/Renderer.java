@@ -6,4 +6,5 @@ public interface Renderer {
     void rebuild(int width, int height);
 
     void rebuildCache();
+
 }
