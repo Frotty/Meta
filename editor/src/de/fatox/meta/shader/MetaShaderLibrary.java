@@ -7,7 +7,8 @@ import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.GLShaderData;
-import de.fatox.meta.api.graphics.*;
+import de.fatox.meta.api.graphics.GLShaderHandle;
+import de.fatox.meta.api.graphics.MetaGLShader;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
@@ -33,7 +34,7 @@ public class MetaShaderLibrary {
             loadProjectShaders();
             return false;
         });
-        Gdx.app.postRunnable(() -> loadProjectShaders());
+        Gdx.app.postRunnable(this::loadProjectShaders);
     }
 
     public GLShaderHandle loadShader(FileHandle shaderHandle) {
