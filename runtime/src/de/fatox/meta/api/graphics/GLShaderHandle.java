@@ -36,7 +36,7 @@ public class GLShaderHandle {
 
     public void setVertexHandle(FileHandle vertexHandle) {
         this.vertexHandle = vertexHandle;
-        data.vertexFilePath = vertexHandle.path();
+        data.setVertexFilePath(vertexHandle.path());
     }
 
     public FileHandle getFragmentHandle() {
@@ -45,7 +45,7 @@ public class GLShaderHandle {
 
     public void setFragmentHandle(FileHandle fragmentHandle) {
         this.fragmentHandle = fragmentHandle;
-        data.fragmentFilePath = fragmentHandle.path();
+        data.setFragmentFilePath(fragmentHandle.path());
     }
 
     private void fetchRendertargets() {
@@ -73,7 +73,7 @@ public class GLShaderHandle {
 
     @Override
     public String toString() {
-        return data.name;
+        return data.getName();
     }
 
     public FileHandle getShaderHandle() {

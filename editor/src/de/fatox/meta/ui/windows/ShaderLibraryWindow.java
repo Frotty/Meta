@@ -47,7 +47,7 @@ public class ShaderLibraryWindow extends MetaWindow {
     }
 
     public void addShader(GLShaderHandle shader) {
-        MetaTextButton metaTextButton = new MetaTextButton(shader.data.name + ".msh", 16);
+        MetaTextButton metaTextButton = new MetaTextButton(shader.data.getName() + ".msh", 16);
         metaTextButton.row();
         metaTextButton.add(new MetaLabel(shader.getVertexHandle().name() + "/" + shader.getFragmentHandle().name(), 14));
         metaTextButton.row();

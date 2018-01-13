@@ -59,7 +59,7 @@ public abstract class MetaGLShader implements Shader {
 
     @Override
     public String toString() {
-        return "MSH: " + shaderHandle.data.name;
+        return "MSH: " + shaderHandle.data.getName();
     }
 
     private static final Matrix3 tempM3 = new Matrix3();

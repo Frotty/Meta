@@ -82,8 +82,8 @@ public class MetaEditorScreen extends ScreenAdapter {
             uiManager.resize(width, height);
             if (!Gdx.graphics.isFullscreen()) {
                 MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
-                audioVideoData.width = width;
-                audioVideoData.height = height;
+                audioVideoData.setWidth(width);
+                audioVideoData.setHeight(height);
                 metaData.save("audioVideoData", audioVideoData);
             }
         }

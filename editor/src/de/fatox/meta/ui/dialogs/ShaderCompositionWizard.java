@@ -9,13 +9,10 @@ import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.shader.MetaShaderComposer;
-import de.fatox.meta.shader.ShaderComposition;
 import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
 import de.fatox.meta.util.StringUtil;
-
-import static de.fatox.meta.shader.MetaShaderComposer.META_COMP_SUFFIX;
 
 /**
  * Created by Frotty on 29.06.2016.

@@ -40,8 +40,8 @@ public class MetaShaderLibrary {
     public GLShaderHandle loadShader(FileHandle shaderHandle) {
         GLShaderData shaderData = json.fromJson(GLShaderData.class, shaderHandle.readString());
         FileHandle projRoot = projectManager.getCurrentProjectRoot();
-        FileHandle vertHandle = projRoot.child(shaderData.vertexFilePath);
-        FileHandle fragHandle = projRoot.child(shaderData.fragmentFilePath);
+        FileHandle vertHandle = projRoot.child(shaderData.getVertexFilePath());
+        FileHandle fragHandle = projRoot.child(shaderData.getFragmentFilePath());
         if (vertHandle.exists() && !vertHandle.isDirectory() && fragHandle.exists() && !fragHandle.isDirectory()) {
             GLShaderHandle handle = new GLShaderHandle(shaderHandle, vertHandle, fragHandle, shaderData);
             metaShaders.add(handle);
@@ -52,7 +52,7 @@ public class MetaShaderLibrary {
     }
 
     public GLShaderHandle newShader(GLShaderData data) {
-        FileHandle newShaderHandle = projectManager.save(INTERNAL_SHADER_PATH + data.name + META_SHADER_SUFFIX, data);
+        FileHandle newShaderHandle = projectManager.save(INTERNAL_SHADER_PATH + data.getName() + META_SHADER_SUFFIX, data);
         return loadShader(newShaderHandle);
     }
 

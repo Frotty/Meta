@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
@@ -15,6 +16,7 @@ import de.fatox.meta.api.dao.RenderBufferData.IN.GEOMETRY
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.util.GoldenRatio
 
@@ -27,15 +29,21 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<V
     private val assetProvider: AssetProvider? = null
     @Inject
     private val shaderLibrary: MetaShaderLibrary? = null
+    @Inject
+    private val shaderComposer: MetaShaderComposer? = null
 
     private val inSelect = VisSelectBox<RenderBufferData.IN>()
     private val shaderSelect = VisSelectBox<GLShaderHandle>()
     private val depthCheckBox = VisCheckBox("depth", false)
 
-    val text: CharSequence
+    var text: CharSequence
         get() = nameLabel.text
+        set(text:CharSequence) = nameLabel.setText(text)
+
+    private lateinit var handle: RenderBufferHandle
 
     constructor(handle: RenderBufferHandle) : this("Pass", 11) {
+        this.handle = handle
         inSelect.selected = handle.data.inType
         shaderSelect.selected = handle.metaShader.shaderHandle
         depthCheckBox.isChecked = handle.data.hasDpeth
@@ -80,6 +88,11 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<V
         moveLeftBtn.image.setScaling(Scaling.fill)
         table.add(moveLeftBtn).size(24f)
         val deleteBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.delete.png"))
+        deleteBtn.addListener(object : MetaClickListener() {
+            override fun clicked(event: InputEvent, x: Float, y: Float) {
+                shaderComposer?.currentComposition?.removeBufferHandle(handle);
+            }
+        })
         deleteBtn.image.setScaling(Scaling.fill)
         table.add(deleteBtn).size(24f)
         val moveRightBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.chevron.right.png"))
@@ -89,11 +102,6 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<V
         add(table).growX().center().colspan(2)
         pack()
 
-    }
-
-
-    fun setText(text: String) {
-        nameLabel.setText(text)
     }
 
 

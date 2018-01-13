@@ -7,6 +7,7 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaShaderCompData;
 import de.fatox.meta.api.graphics.RenderBufferHandle;
 import de.fatox.meta.injection.Inject;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Created by Frotty on 10.04.2017.
@@ -29,23 +30,24 @@ public class ShaderComposition {
     }
 
     private void loadExisting() {
-        for (int i = 0; i < data.getRenderBuffers().size-1; i++) {
+        for (int i = 0; i < data.getRenderBuffers().size - 1; i++) {
             MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.getRenderBuffers().get(i).getMetaShaderPath()));
             metaGeoShader.init();
             bufferHandles.add(new RenderBufferHandle(data.getRenderBuffers().get(i), metaGeoShader));
         }
-        MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.getRenderBuffers().get(data.getRenderBuffers().size - 1).getMetaShaderPath()));
+        MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.getRenderBuffers().get(data.getRenderBuffers().size - 1)
+                .getMetaShaderPath()));
         metaGeoShader.init();
-        outputBuffer = new RenderBufferHandle(data.getRenderBuffers().get(data.getRenderBuffers().size-1), metaGeoShader);
+        outputBuffer = new RenderBufferHandle(data.getRenderBuffers().get(data.getRenderBuffers().size - 1), metaGeoShader);
         System.out.println("Loaded <" + bufferHandles.size + "> buffers");
     }
 
     public void addBufferHandle(RenderBufferHandle bufferHandle) {
-        if(! bufferHandles.contains(bufferHandle, true) && outputBuffer != bufferHandle) {
-            if(outputBuffer != null) {
+        if (!bufferHandles.contains(bufferHandle, true) && outputBuffer != bufferHandle) {
+            if (outputBuffer != null) {
                 bufferHandles.add(outputBuffer);
             }
-            if(bufferHandle.data == null) {
+            if (bufferHandle.data == null) {
                 throw new GdxRuntimeException("bufferHandle has no data attached");
             }
             outputBuffer = bufferHandle;
@@ -68,5 +70,14 @@ public class ShaderComposition {
 
     public RenderBufferHandle getOutputBuffer() {
         return outputBuffer;
+    }
+
+    public void removeBufferHandle(@NotNull RenderBufferHandle handle) {
+        bufferHandles.removeValue(handle, true);
+        data.getRenderBuffers().removeValue(handle.data, true);
+        if (outputBuffer == handle) {
+            outputBuffer = bufferHandles.size > 0 ? bufferHandles.pop() : null;
+        }
+
     }
 }
