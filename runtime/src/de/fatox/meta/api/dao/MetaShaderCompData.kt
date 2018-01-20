@@ -7,10 +7,9 @@ import com.badlogic.gdx.utils.Array
  * A shader composition has multiple Buffers which each have their own shaders.
  * The order and execution of the buffer defines their composition.
  */
-data class MetaShaderCompData(var name: String) {
+data class MetaShaderCompData(var name: String = "Unnamed ShaderComp") {
     val renderBuffers: Array<RenderBufferData> = Array()
 
-    constructor() : this("")
 }
 
 

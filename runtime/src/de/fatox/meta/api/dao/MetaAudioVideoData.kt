@@ -32,5 +32,4 @@ data class MetaAudioVideoData(var profile: String = "default") {
 
     }
 
-    constructor() : this("")
 }

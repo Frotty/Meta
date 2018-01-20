@@ -6,7 +6,7 @@ import de.fatox.meta.util.StringUtil
 /**
  * Created by Frotty on 02.06.2016.
  */
-class MetaProjectData(var name: String = "unknown") {
+data class MetaProjectData(var name: String = "unknown") {
 
     var openTabs: Array<MetaTabData> = Array()
 
