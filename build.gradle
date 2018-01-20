@@ -106,3 +106,7 @@ project(":example") {
         compile 'com.github.inwc3:wc3libs:ee8410301c'
     }
 }
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.3'
+}
