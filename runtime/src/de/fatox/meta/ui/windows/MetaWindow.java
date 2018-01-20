@@ -16,7 +16,7 @@ import com.kotcrab.vis.ui.widget.VisWindow;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;

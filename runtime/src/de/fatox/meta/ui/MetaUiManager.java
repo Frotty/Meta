@@ -11,7 +11,7 @@ import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
@@ -70,7 +70,7 @@ public class MetaUiManager implements UIManager {
             String name = window.getClass().getName();
             if (metaHas(name)) {
                 MetaWindowData metaWindowData = metaGet(name, MetaWindowData.class);
-                if (metaWindowData.displayed) {
+                if (metaWindowData.getDisplayed()) {
                     // There exists saved window metadata
                     metaWindowData.set(window);
                 } else {
@@ -101,13 +101,13 @@ public class MetaUiManager implements UIManager {
                     MetaWindowData metaWindowData = metaGet(windowclass.getName(), MetaWindowData.class);
                     for (Window displayedWindow : displayedWindows) {
                         if (displayedWindow.getClass() == windowclass) {
-                            if(! metaWindowData.displayed) {
+                            if(!metaWindowData.getDisplayed()) {
                                 cacheWindow(displayedWindow, true);
                             }
                             continue outer;
                         }
                     }
-                    if (metaWindowData.displayed) {
+                    if (metaWindowData.getDisplayed()) {
                         metaWindowData.set(showWindow(windowclass));
                     }
                 } catch (ReflectionException e) {
@@ -145,8 +145,8 @@ public class MetaUiManager implements UIManager {
             // There exists metadata for this window.
             MetaWindowData windowData = metaGet(windowClass.getName(), MetaWindowData.class);
             windowData.set(window);
-            if(!windowData.displayed) {
-                windowData.displayed = true;
+            if(!windowData.getDisplayed()) {
+                windowData.setDisplayed(true);
                 metaSave(windowClass.getName(), windowData);
             }
         } else {
@@ -189,7 +189,7 @@ public class MetaUiManager implements UIManager {
             displayedWindows.removeValue(window, true);
             MetaWindowData metaWindowData = metaGet(window.getClass().getName(), MetaWindowData.class);
             if (metaWindowData != null) {
-                metaWindowData.displayed = false;
+                metaWindowData.setDisplayed(false);
                 metaSave(displayedWindow.getClass().getName(), metaWindowData);
             }
             cacheWindow(window, false);

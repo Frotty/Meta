@@ -43,6 +43,6 @@ public class MetaSceneHandle {
 
     public void setShaderComposition(ShaderComposition shaderComposition) {
         this.shaderComposition = shaderComposition;
-        data.compositionPath = projectManager.relativize(shaderComposition.getCompositionHandle());
+        data.setCompositionPath(projectManager.relativize(shaderComposition.getCompositionHandle()));
     }
 }

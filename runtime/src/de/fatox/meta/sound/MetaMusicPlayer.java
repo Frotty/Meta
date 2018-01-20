@@ -7,7 +7,7 @@ import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.Timer;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaAudioVideoData;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.injection.Inject;
 
 /**

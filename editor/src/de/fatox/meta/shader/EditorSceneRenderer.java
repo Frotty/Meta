@@ -12,7 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
 import de.fatox.meta.Primitives;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.api.dao.RenderBufferData;
 import de.fatox.meta.api.graphics.RenderBufferHandle;
 import de.fatox.meta.api.graphics.Renderer;
@@ -153,7 +153,7 @@ public class EditorSceneRenderer implements Renderer {
     @Override
     public void rebuildCache() {
         modelCache.begin();
-        if (sceneHandle.data.showGrid) {
+        if (sceneHandle.data.getShowGrid()) {
             modelCache.add(grid.actorModel);
         }
         for (Meta3DEntity entity : sceneHandle.entityManager.getStaticEntities()) {

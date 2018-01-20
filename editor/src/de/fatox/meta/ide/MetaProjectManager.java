@@ -7,7 +7,7 @@ import com.badlogic.gdx.utils.Json;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.api.dao.MetaProjectData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
@@ -76,12 +76,12 @@ public class MetaProjectManager implements ProjectManager {
         if (!root.exists()) {
             root.mkdirs();
         }
-        FileHandle child = root.child(projectData.name);
+        FileHandle child = root.child(projectData.getName());
         child.mkdirs();
         currentProjectRoot = child;
 
         createFolders(projectData);
-        child = child.child(MetaProjectData.PROJECT_FILE_NAME);
+        child = child.child(MetaProjectData.Companion.getPROJECT_FILE_NAME());
         child.writeBytes(json.toJson(projectData).getBytes(), false);
         ToastTable toastTable = new ToastTable();
         toastTable.add(new VisLabel("Project created"));

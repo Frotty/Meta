@@ -1,4 +1,4 @@
-package de.fatox.meta.api.dao;
+package de.fatox.meta.assets;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;

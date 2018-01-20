@@ -54,7 +54,7 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<V
         color = Color.GRAY
         pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20)
         inSelect.setItems(GEOMETRY, FULLSCREEN)
-        shaderSelect.items = shaderLibrary!!.loadedShaders
+        shaderSelect.items = shaderLibrary!!.getLoadedShaders()
 
         nameLabel = MetaLabel(text, size, Color.WHITE)
         nameLabel.setAlignment(Align.center)

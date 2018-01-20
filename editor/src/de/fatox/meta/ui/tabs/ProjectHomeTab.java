@@ -31,7 +31,7 @@ public class ProjectHomeTab extends MetaTab {
     private void setupTable() {
         visTable.top();
         visTable.row().height(128);
-        visTable.add(new TextWidget(projectData.name));
+        visTable.add(new TextWidget(projectData.getName()));
         visTable.row().height(64);
         visTable.add();
         visTable.row();
@@ -43,7 +43,7 @@ public class ProjectHomeTab extends MetaTab {
 
     @Override
     public String getTabTitle() {
-        return "home@" + projectData.name;
+        return "home@" + projectData.getName();
     }
 
     @Override

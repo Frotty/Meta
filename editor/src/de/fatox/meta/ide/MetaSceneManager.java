@@ -1,6 +1,7 @@
 package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Json;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaSceneData;
@@ -38,7 +39,7 @@ public class MetaSceneManager implements SceneManager {
     @Override
     public MetaSceneHandle createNew(String name) {
         ShaderComposition currentComposition = shaderComposer.getCurrentComposition();
-        MetaSceneData metaSceneData = new MetaSceneData(name, projectManager.relativize(currentComposition.getCompositionHandle()));
+        MetaSceneData metaSceneData = new MetaSceneData(name, projectManager.relativize(currentComposition.getCompositionHandle()), Vector3.Y, true);
         FileHandle sceneFile = projectManager.getCurrentProjectRoot().child(FOLDER + name + "." + EXTENSION);
         sceneFile.writeBytes(json.toJson(metaSceneData).getBytes(), false);
         MetaSceneHandle metaSceneHandle = new MetaSceneHandle(metaSceneData, shaderComposer.getCurrentComposition(), sceneFile);
@@ -48,12 +49,12 @@ public class MetaSceneManager implements SceneManager {
 
     @Override
     public void loadScene(FileHandle sceneFile) {
-        if(metaEditorUI.hasTab(sceneFile.name())) {
+        if (metaEditorUI.hasTab(sceneFile.name())) {
             metaEditorUI.focusTab(sceneFile.name());
             return;
         }
         MetaSceneData metaSceneData = json.fromJson(MetaSceneData.class, sceneFile.readString());
-        ShaderComposition composition = shaderComposer.getComposition(metaSceneData.compositionPath);
+        ShaderComposition composition = shaderComposer.getComposition(metaSceneData.getCompositionPath());
         metaEditorUI.addTab(new SceneTab(new MetaSceneHandle(metaSceneData, composition, sceneFile)));
     }
 

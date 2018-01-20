@@ -1,7 +1,7 @@
 package de.fatox.meta.modules;
 
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaData;
+import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.injection.Provides;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.MetaEditorUI;
