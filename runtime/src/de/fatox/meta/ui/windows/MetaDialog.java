@@ -34,7 +34,7 @@ public abstract class MetaDialog extends MetaWindow {
                 });
             }
         }
-        contentTable.top().padTop(4);
+        getContentTable().top().padTop(4);
         statusLabel.setAlignment(Align.center);
         statusLabel.setWrap(true);
 

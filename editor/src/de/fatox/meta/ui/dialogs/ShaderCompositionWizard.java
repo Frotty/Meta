@@ -71,7 +71,7 @@ public class ShaderCompositionWizard extends MetaDialog {
         visTable.add(compNameTF.getTextField()).growX();
         visTable.row();
 
-        contentTable.add(visTable).top().growX();
+        getContentTable().add(visTable).top().growX();
 
         setDialogListener((Object object) -> {
             if (object != null) {

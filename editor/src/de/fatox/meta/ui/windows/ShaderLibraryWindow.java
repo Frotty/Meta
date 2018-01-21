@@ -40,7 +40,7 @@ public class ShaderLibraryWindow extends MetaWindow {
         visTable.defaults().pad(4);
         scrollPane = new VisScrollPane(visTable);
 
-        contentTable.add(scrollPane).top().grow();
+        getContentTable().add(scrollPane).top().grow();
         for(GLShaderHandle shader : shaderLibrary.getLoadedShaders()) {
             addShader(shader);
         }
@@ -62,17 +62,17 @@ public class ShaderLibraryWindow extends MetaWindow {
         visImageButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                uiManager.showDialog(ShaderWizardDialog.class);
+                getUiManager().showDialog(ShaderWizardDialog.class);
             }
         });
         visImageButton.getImage().setScaling(Scaling.fill);
         visImageButton.getImage().setSize(24, 24);
 
-        contentTable.row().size(26);
-        contentTable.add(visImageButton).size(24).top().left();
-        contentTable.row().height(1);
-        contentTable.add(new Separator()).growX();
-        contentTable.row();
+        getContentTable().row().size(26);
+        getContentTable().add(visImageButton).size(24).top().left();
+        getContentTable().row().height(1);
+        getContentTable().add(new Separator()).growX();
+        getContentTable().row();
 
     }
 }

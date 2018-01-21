@@ -24,11 +24,11 @@ class PrimitivesWindow : MetaWindow("Primitives", true, true) {
     private val boxButton: MetaIconTextButton
 
     @Inject
-    private val metaEditorUI: MetaEditorUI? = null
+    private lateinit var metaEditorUI: MetaEditorUI
     @Inject
-    private val primitives: Primitives? = null
+    private lateinit var primitives: Primitives
     @Inject
-    private val renderer: Renderer? = null
+    private lateinit var renderer: Renderer
 
     init {
         this.boxButton = MetaIconTextButton("Box", assetProvider.getDrawable("ui/appbar.box.png"))
@@ -36,16 +36,16 @@ class PrimitivesWindow : MetaWindow("Primitives", true, true) {
             override fun clicked(event: InputEvent, x: Float, y: Float) {
                 for (i in 0..99) {
                     val entity = Meta3DEntity(Vector3(MathUtils.random(-10, 10).toFloat(), MathUtils.random(-0.5f, 5.0f), MathUtils.random(-10, 10).toFloat()),
-                            primitives!!.sphereFilled)
+                            primitives.sphereFilled)
 
-                    val currentTab = metaEditorUI!!.currentTab
+                    val currentTab = metaEditorUI.currentTab
                     (currentTab as? SceneTab)?.sceneHandle?.entityManager?.addStaticEntity(entity)
                     entity.actorModel.transform.scl(4f)
                     entity.actorModel.transform.rotate(MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0, 360).toFloat())
                     entity.actorModel.materials.get(0).set(ColorAttribute.createDiffuse(MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), 1f))
                     entity.actorModel.materials.get(0).set(TextureAttribute.createNormal(assetProvider.get("models/crates_n.png", Texture::class.java)))
                 }
-                renderer!!.rebuildCache()
+                renderer.rebuildCache()
             }
         })
 

@@ -74,9 +74,9 @@ public class EditorSceneRenderer implements Renderer {
                 bufferHandle.begin();
 
 
-                if (bufferHandle.data.getInType() == RenderBufferData.IN.GEOMETRY) {
+                if (bufferHandle.getData().getInType() == RenderBufferData.IN.GEOMETRY) {
                     modelBatch.begin(cam);
-                    modelBatch.render(modelCache, bufferHandle.metaShader);
+                    modelBatch.render(modelCache, bufferHandle.getMetaShader());
                     modelBatch.end();
                 }
                 bufferHandle.end();
@@ -84,7 +84,7 @@ public class EditorSceneRenderer implements Renderer {
             }
             renderContext.begin();
             modelBatch.begin(cam);
-            modelBatch.render(modelCache, sceneHandle.getShaderComposition().getOutputBuffer().metaShader);
+            modelBatch.render(modelCache, sceneHandle.getShaderComposition().getOutputBuffer().getMetaShader());
             modelBatch.end();
 
             renderContext.end();

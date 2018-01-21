@@ -47,11 +47,11 @@ public class ShaderComposition {
             if (outputBuffer != null) {
                 bufferHandles.add(outputBuffer);
             }
-            if (bufferHandle.data == null) {
+            if (bufferHandle.getData() == null) {
                 throw new GdxRuntimeException("bufferHandle has no data attached");
             }
             outputBuffer = bufferHandle;
-            data.getRenderBuffers().add(bufferHandle.data);
+            data.getRenderBuffers().add(bufferHandle.getData());
         }
     }
 
@@ -74,7 +74,7 @@ public class ShaderComposition {
 
     public void removeBufferHandle(@NotNull RenderBufferHandle handle) {
         bufferHandles.removeValue(handle, true);
-        data.getRenderBuffers().removeValue(handle.data, true);
+        data.getRenderBuffers().removeValue(handle.getData(), true);
         if (outputBuffer == handle) {
             outputBuffer = bufferHandles.size > 0 ? bufferHandles.pop() : null;
         }

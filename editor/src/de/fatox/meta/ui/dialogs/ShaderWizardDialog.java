@@ -73,7 +73,7 @@ public class ShaderWizardDialog extends MetaDialog {
                 GLShaderData shaderData = new GLShaderData(shaderNameTF.getTextField().getText(), vertFile, fragFile);
                 GLShaderHandle glShaderHandle = shaderLibrary.newShader(shaderData);
 
-                ShaderLibraryWindow window = uiManager.getWindow(ShaderLibraryWindow.class);
+                ShaderLibraryWindow window = getUiManager().getWindow(ShaderLibraryWindow.class);
                 if(window != null) {
                     window.addShader(glShaderHandle);
                 }
@@ -129,7 +129,7 @@ public class ShaderWizardDialog extends MetaDialog {
         renderTargetGroup.add(geometryButton);
         renderTargetGroup.add(fullscreenButton);
 
-        contentTable.add(visTable).top().growX();
+        getContentTable().add(visTable).top().growX();
     }
 
 }

@@ -66,8 +66,8 @@ public class AssetDiscovererWindow extends MetaWindow {
 
     private void loadLastFolder() {
         assetDiscoverer.setRoot("");
-        if(uiManager.metaHas(TAG)) {
-            data = uiManager.metaGet(TAG, AssetDiscovererData.class);
+        if(getUiManager().metaHas(TAG)) {
+            data = getUiManager().metaGet(TAG, AssetDiscovererData.class);
             assetDiscoverer.openChild(data.getLastFolder());
         }
     }
@@ -82,13 +82,13 @@ public class AssetDiscovererWindow extends MetaWindow {
         view = new ListView<>(adapter);
         view.getMainTable().defaults().pad(2);
         view.setItemClickListener(item -> assetDiscoverer.openFolder(((FolderModel) item).fileHandle));
-        contentTable.top().left();
-        contentTable.row().left().top().height(24);
-        contentTable.add(toolbarTable).growX();
-        contentTable.row().height(1);
-        contentTable.add(new Separator()).growX();
-        contentTable.row();
-        contentTable.add(fileViewTable).left().grow();
+        getContentTable().top().left();
+        getContentTable().row().left().top().height(24);
+        getContentTable().add(toolbarTable).growX();
+        getContentTable().row().height(1);
+        getContentTable().add(new Separator()).growX();
+        getContentTable().row();
+        getContentTable().add(fileViewTable).left().grow();
         createToolbarBar();
         createFileView();
     }

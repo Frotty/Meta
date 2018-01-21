@@ -35,10 +35,10 @@ public class SceneOptionsWindow extends MetaWindow {
 
     private void setup() {
         compositionSelectBox = new VisSelectBox<>();
-        contentTable.add(new VisLabel("Scene Composition:"));
-        contentTable.row();
-        contentTable.add(compositionSelectBox).growX();
-        contentTable.row();
+        getContentTable().add(new VisLabel("Scene Composition:"));
+        getContentTable().row();
+        getContentTable().add(compositionSelectBox).growX();
+        getContentTable().row();
 
         loadInitial();
 

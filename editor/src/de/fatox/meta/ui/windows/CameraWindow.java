@@ -33,22 +33,22 @@ public class CameraWindow extends MetaWindow {
         yUpField = new VisTextField("0.0");
         zUpField = new VisTextField("0.0");
 
-        contentTable.add(new MetaLabel("Position:", 14)).colspan(6).center().row();
-        contentTable.add(new MetaLabel("x:", 12));
-        contentTable.add(xPosField).width(64).pad(2);
-        contentTable.add(new MetaLabel("y:", 12));
-        contentTable.add(yPosField).width(64).pad(2);
-        contentTable.add(new MetaLabel("z:", 12));
-        contentTable.add(zPosField).width(64).pad(2);
-        contentTable.row();
+        getContentTable().add(new MetaLabel("Position:", 14)).colspan(6).center().row();
+        getContentTable().add(new MetaLabel("x:", 12));
+        getContentTable().add(xPosField).width(64).pad(2);
+        getContentTable().add(new MetaLabel("y:", 12));
+        getContentTable().add(yPosField).width(64).pad(2);
+        getContentTable().add(new MetaLabel("z:", 12));
+        getContentTable().add(zPosField).width(64).pad(2);
+        getContentTable().row();
 
-        contentTable.add(new MetaLabel("Up:", 14)).colspan(6).center().row();
-        contentTable.add(new MetaLabel("x:", 12));
-        contentTable.add(xUpField).width(64).pad(2);
-        contentTable.add(new MetaLabel("y:", 12));
-        contentTable.add(yUpField).width(64).pad(2);
-        contentTable.add(new MetaLabel("z:", 12));
-        contentTable.add(zUpField).width(64).pad(2);
+        getContentTable().add(new MetaLabel("Up:", 14)).colspan(6).center().row();
+        getContentTable().add(new MetaLabel("x:", 12));
+        getContentTable().add(xUpField).width(64).pad(2);
+        getContentTable().add(new MetaLabel("y:", 12));
+        getContentTable().add(yUpField).width(64).pad(2);
+        getContentTable().add(new MetaLabel("z:", 12));
+        getContentTable().add(zUpField).width(64).pad(2);
     }
 
 

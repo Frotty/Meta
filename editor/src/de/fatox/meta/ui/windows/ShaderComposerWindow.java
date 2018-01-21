@@ -41,11 +41,11 @@ public class ShaderComposerWindow extends MetaWindow {
     }
 
     private void setupEmpty() {
-        VisImageButton visImageButton = new VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"));
+        VisImageButton visImageButton = new VisImageButton(getAssetProvider().getDrawable("ui/appbar.page.add.png"));
         visImageButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                uiManager.showDialog(ShaderCompositionWizard.class);
+                getUiManager().showDialog(ShaderCompositionWizard.class);
             }
         });
         visImageButton.getImage().setScaling(Scaling.fill);
@@ -65,12 +65,12 @@ public class ShaderComposerWindow extends MetaWindow {
                 }
             }
         });
-        contentTable.left();
-        contentTable.add(visImageButton).size(24).top().left().padRight(2);
-        contentTable.add(renderSelectbox).width(256).left();
-        contentTable.add().growX();
-        contentTable.row().padTop(2);
-        contentTable.add(bufferTable).colspan(3).grow();
+        getContentTable().left();
+        getContentTable().add(visImageButton).size(24).top().left().padRight(2);
+        getContentTable().add(renderSelectbox).width(256).left();
+        getContentTable().add().growX();
+        getContentTable().row().padTop(2);
+        getContentTable().add(bufferTable).colspan(3).grow();
 
         if (shaderComposer != null && shaderComposer.getCompositions() != null &&  shaderComposer.getCompositions().size > 0) {
             for (int i=0; i < shaderComposer.getCompositions().size; i++) {
@@ -80,7 +80,7 @@ public class ShaderComposerWindow extends MetaWindow {
     }
 
     private void setupNewBufferButton() {
-        addButton = new VisImageButton(assetProvider.getDrawable("ui/appbar.layer.add.png"));
+        addButton = new VisImageButton(getAssetProvider().getDrawable("ui/appbar.layer.add.png"));
         addButton.addListener(new MetaClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {

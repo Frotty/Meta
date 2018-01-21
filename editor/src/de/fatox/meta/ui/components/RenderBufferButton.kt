@@ -45,7 +45,7 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<V
     constructor(handle: RenderBufferHandle) : this("Pass", 11) {
         this.handle = handle
         inSelect.selected = handle.data.inType
-        shaderSelect.selected = handle.metaShader.shaderHandle
+        shaderSelect.selected = handle.metaShader?.shaderHandle
         depthCheckBox.isChecked = handle.data.hasDpeth
     }
 

@@ -52,7 +52,7 @@ public class SceneWizardDialog extends MetaDialog {
         visTable.add(sceneNameTF.getDescription()).growX();
         visTable.add(sceneNameTF.getTextField()).growX();
         visTable.row();
-        contentTable.add(visTable).top().growX();
+        getContentTable().add(visTable).top().growX();
         createBtn.setDisabled(true);
 
         setDialogListener((Object object) -> {

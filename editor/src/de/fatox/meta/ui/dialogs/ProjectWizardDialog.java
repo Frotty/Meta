@@ -61,7 +61,7 @@ public class ProjectWizardDialog extends MetaDialog {
         visTable.row();
         visTable.add(checkboxLabel).growX();
         visTable.add(checkbox).growX();
-        contentTable.add(visTable).top().growX();
+        getContentTable().add(visTable).top().growX();
         createBtn.setDisabled(true);
 
         setDialogListener(object -> {

@@ -51,7 +51,7 @@ public class OpenProjectDialog extends MetaDialog {
         visTable.add(folderLabel).growX();
         visTable.add(folderButton).growX();
         visTable.row();
-        contentTable.add(visTable).top().growX();
+        getContentTable().add(visTable).top().growX();
 
         setDialogListener(object -> {
             if (object != null && (boolean) object) {
