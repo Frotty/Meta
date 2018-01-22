@@ -96,6 +96,5 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
         table.add(moveRightBtn).size(24f)
 
         add(table).growX().center().colspan(2)
-        pack()
     }
 }

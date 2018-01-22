@@ -23,6 +23,8 @@ import de.fatox.meta.ide.ProjectManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.ui.components.MetaLabel;
 
+import java.util.Objects;
+
 /**
  * Created by Frotty on 17.04.2017.
  */
@@ -88,16 +90,16 @@ public class EditorSceneRenderer implements Renderer {
             modelBatch.end();
 
             renderContext.end();
-            debugAll(x, y, bufferHandles);
+            debugAll(x, y, bufferHandles, sceneHandle.getShaderComposition().getOutputBuffer());
         }
     }
 
-    private void debugAll(float x, float y, Array<RenderBufferHandle> bufferHandles) {
+    private void debugAll(float x, float y, Array<RenderBufferHandle> bufferHandles, RenderBufferHandle outputBuffer) {
         batch.disableBlending();
         batch.begin();
         float debugScreens = 1;
         for (RenderBufferHandle bufferHandle : bufferHandles) {
-            for (Texture ignored : bufferHandle.getColorTextures()) {
+            for (Texture ignored : Objects.requireNonNull(bufferHandle.getColorTextures())) {
                 debugScreens++;
             }
 

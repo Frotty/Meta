@@ -91,7 +91,7 @@ public class ShaderComposerWindow extends MetaWindow {
             }
         });
         addButton.getImage().setAlign(Align.center);
-        bufferTable.add(addButton).size(175, 100).left();
+        bufferTable.add(addButton).size(175, 128).left();
     }
 
     private void onAddBuffer() {
@@ -100,6 +100,7 @@ public class ShaderComposerWindow extends MetaWindow {
         bufferTable.getCell(addButton).setActor(newButton).padRight(2);
         bufferTable.add(new MetaLabel(">", 14)).center().padRight(2);
         bufferTable.add(addButton).size(175, 100).left();
+        bufferTable.pack();
     }
 
     private void onRemoveBuffer() {
@@ -117,6 +118,7 @@ public class ShaderComposerWindow extends MetaWindow {
         RenderBufferButton newButton = new RenderBufferButton(buffer);
         bufferTable.add(newButton).padRight(2);
         bufferTable.add(new MetaLabel(">", 14)).center().padRight(2);
+        bufferTable.pack();
     }
 
     public void addComposition(ShaderComposition shaderComposition) {
@@ -135,7 +137,6 @@ public class ShaderComposerWindow extends MetaWindow {
         if (shaderComposition.data.getRenderBuffers().size > 0) {
             // Load existing
             loadBuffers(shaderComposition.getBufferHandles());
-            loadBuffer(shaderComposition.getOutputBuffer());
         }
         setupNewBufferButton();
     }

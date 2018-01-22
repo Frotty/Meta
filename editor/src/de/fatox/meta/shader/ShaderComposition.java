@@ -2,7 +2,6 @@ package de.fatox.meta.shader;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.GdxRuntimeException;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaShaderCompData;
 import de.fatox.meta.api.graphics.RenderBufferHandle;
@@ -39,18 +38,14 @@ public class ShaderComposition {
                 .getMetaShaderPath()));
         metaGeoShader.init();
         outputBuffer = new RenderBufferHandle(data.getRenderBuffers().get(data.getRenderBuffers().size - 1), metaGeoShader);
+        bufferHandles.add(outputBuffer);
         System.out.println("Loaded <" + bufferHandles.size + "> buffers");
     }
 
     public void addBufferHandle(RenderBufferHandle bufferHandle) {
         if (!bufferHandles.contains(bufferHandle, true) && outputBuffer != bufferHandle) {
-            if (outputBuffer != null) {
-                bufferHandles.add(outputBuffer);
-            }
-            if (bufferHandle.getData() == null) {
-                throw new GdxRuntimeException("bufferHandle has no data attached");
-            }
             outputBuffer = bufferHandle;
+            bufferHandles.add(outputBuffer);
             data.getRenderBuffers().add(bufferHandle.getData());
         }
     }
