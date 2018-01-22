@@ -21,6 +21,8 @@ import de.fatox.meta.ui.components.MetaLabel;
 import de.fatox.meta.ui.components.RenderBufferButton;
 import de.fatox.meta.ui.dialogs.ShaderCompositionWizard;
 
+import java.util.Objects;
+
 /**
  * Created by Frotty on 29.07.2016.
  */
@@ -38,6 +40,7 @@ public class ShaderComposerWindow extends MetaWindow {
     public ShaderComposerWindow() {
         super("Shader Composer", true, true);
         setupEmpty();
+        shaderComposer.addListener(this::onRemoveBuffer);
     }
 
     private void setupEmpty() {
@@ -72,7 +75,7 @@ public class ShaderComposerWindow extends MetaWindow {
         getContentTable().row().padTop(2);
         getContentTable().add(bufferTable).colspan(3).grow();
 
-        if (shaderComposer != null && shaderComposer.getCompositions() != null &&  shaderComposer.getCompositions().size > 0) {
+        if (shaderComposer != null && shaderComposer.getCompositions().size > 0) {
             for (int i=0; i < shaderComposer.getCompositions().size; i++) {
                 addComposition(shaderComposer.getCompositions().get(i));
             }
@@ -99,6 +102,10 @@ public class ShaderComposerWindow extends MetaWindow {
         bufferTable.add(addButton).size(175, 100).left();
     }
 
+    private void onRemoveBuffer() {
+        loadComposition(Objects.requireNonNull(shaderComposer.getCurrentComposition()));
+    }
+
     private void loadBuffers(Array<RenderBufferHandle> buffers) {
         bufferTable.clear();
         for (RenderBufferHandle buffer : buffers) {
@@ -113,7 +120,7 @@ public class ShaderComposerWindow extends MetaWindow {
     }
 
     public void addComposition(ShaderComposition shaderComposition) {
-        if (shaderComposition.data != null && shaderComposition.data.getName() != null) {
+        if (shaderComposition.data != null) {
             Array<String> items = new Array<>(renderSelectbox.getItems());
             items.add(shaderComposition.data.getName());
             renderSelectbox.setItems(items);

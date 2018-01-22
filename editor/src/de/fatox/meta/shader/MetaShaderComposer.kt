@@ -92,8 +92,8 @@ class MetaShaderComposer : MetaNotifier() {
     fun addRenderBuffer(data: RenderBufferData): RenderBufferHandle {
         val bufferHandle = RenderBufferHandle(data, null)
         currentComposition?.let {
-            saveComposition(it)
             currentComposition?.addBufferHandle(bufferHandle)
+            saveComposition(it)
         }
         return bufferHandle
     }
@@ -108,6 +108,14 @@ class MetaShaderComposer : MetaNotifier() {
     companion object {
         val META_COMP_SUFFIX = ".mco"
         val META_COMP_PATH = "meta\\compositions\\"
+    }
+
+    fun removeBufferHandle(handle: RenderBufferHandle) {
+        currentComposition?.let {
+            it.removeBufferHandle(handle)
+            saveComposition(it)
+            notifyListeners()
+        }
     }
 
 }

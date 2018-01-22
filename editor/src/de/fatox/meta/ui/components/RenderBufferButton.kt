@@ -21,24 +21,21 @@ import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.util.GoldenRatio
 
 /**
- * Created by Frotty on 04.06.2016.
+ * A Button displayed in the shader composer representing one shaderpass
+ * They can be moved left & right and be deleted.
  */
-class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<VisTextButton.VisTextButtonStyle>(VisTextButton.VisTextButtonStyle::class.java)) {
-    private val nameLabel: MetaLabel
+class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(VisTextButton.VisTextButtonStyle::class.java)) {
     @Inject
-    private val assetProvider: AssetProvider? = null
+    private lateinit var assetProvider: AssetProvider
     @Inject
-    private val shaderLibrary: MetaShaderLibrary? = null
+    private lateinit var shaderLibrary: MetaShaderLibrary
     @Inject
-    private val shaderComposer: MetaShaderComposer? = null
+    private lateinit var shaderComposer: MetaShaderComposer
 
+    private val nameLabel: MetaLabel = MetaLabel(text, size, Color.WHITE)
     private val inSelect = VisSelectBox<RenderBufferData.IN>()
     private val shaderSelect = VisSelectBox<GLShaderHandle>()
     private val depthCheckBox = VisCheckBox("depth", false)
-
-    var text: CharSequence
-        get() = nameLabel.text
-        set(text:CharSequence) = nameLabel.setText(text)
 
     private lateinit var handle: RenderBufferHandle
 
@@ -54,16 +51,16 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<V
         color = Color.GRAY
         pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20)
         inSelect.setItems(GEOMETRY, FULLSCREEN)
-        shaderSelect.items = shaderLibrary!!.getLoadedShaders()
+        shaderSelect.items = shaderLibrary.getLoadedShaders()
 
-        nameLabel = MetaLabel(text, size, Color.WHITE)
+        nameLabel
         nameLabel.setAlignment(Align.center)
         top()
         clear()
         add(nameLabel).colspan(2).center().growX()
-        row().padTop(2f)
+        row().padBottom(2f)
 
-        val codeImage = VisImage(assetProvider!!.getDrawable("ui/appbar.page.code.png"))
+        val codeImage = VisImage(assetProvider.getDrawable("ui/appbar.page.code.png"))
         codeImage.setScaling(Scaling.fit)
         add(codeImage).size(24f).padRight(2f).left()
         add(shaderSelect).growX()
@@ -81,7 +78,6 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<V
         add(depthCheckBox).growX()
         row().padTop(2f)
 
-
         val table = Table()
         table.center()
         val moveLeftBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.chevron.left.png"))
@@ -90,7 +86,7 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<V
         val deleteBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.delete.png"))
         deleteBtn.addListener(object : MetaClickListener() {
             override fun clicked(event: InputEvent, x: Float, y: Float) {
-                shaderComposer?.currentComposition?.removeBufferHandle(handle);
+                shaderComposer.removeBufferHandle(handle)
             }
         })
         deleteBtn.image.setScaling(Scaling.fill)
@@ -101,8 +97,5 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get<V
 
         add(table).growX().center().colspan(2)
         pack()
-
     }
-
-
 }

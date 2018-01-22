@@ -78,6 +78,5 @@ public class ShaderComposition {
         if (outputBuffer == handle) {
             outputBuffer = bufferHandles.size > 0 ? bufferHandles.pop() : null;
         }
-
     }
 }
