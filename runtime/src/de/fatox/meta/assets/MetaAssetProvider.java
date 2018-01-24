@@ -1,5 +1,6 @@
 package de.fatox.meta.assets;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.TextureLoader;
 import com.badlogic.gdx.files.FileHandle;
@@ -70,6 +71,12 @@ public class MetaAssetProvider implements AssetProvider {
 
     public <T> T get(String name, Class<T> type) {
         return get(name, type, -1);
+    }
+
+    @Override
+    public FileHandle get(String fileName) {
+        //TODO
+        return Gdx.files.internal(fileName);
     }
 
     @Override

@@ -16,7 +16,7 @@ public class Meta3DEntity implements Entity<Vector3> {
     public final Vector3 center = new Vector3();
     public final Vector3 dimensions = new Vector3();
     public float radius;
-    public float scale = 1;
+    public float scale = 1f;
     public ModelInstance actorModel;
 
     private final static BoundingBox bounds = new BoundingBox();
@@ -25,9 +25,10 @@ public class Meta3DEntity implements Entity<Vector3> {
     @Inject
     private AssetProvider assetProvider;
 
-    public Meta3DEntity(Vector3 pos, Model modelBase) {
+    public Meta3DEntity(Vector3 pos, Model modelBase, float scale) {
         Meta.inject(this);
         this.actorModel = new ModelInstance(modelBase, pos);
+        this.scale = scale;
         calculateBounds();
     }
 

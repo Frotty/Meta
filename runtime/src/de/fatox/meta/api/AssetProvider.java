@@ -12,6 +12,8 @@ public interface AssetProvider {
 
     <T> T get (String fileName, Class<T> type);
 
+    FileHandle get (String fileName);
+
     Drawable getDrawable(String name);
 
     void finish();

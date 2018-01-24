@@ -4,6 +4,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.dao.MetaShaderCompData;
+import de.fatox.meta.api.dao.RenderBufferData;
 import de.fatox.meta.api.graphics.RenderBufferHandle;
 import de.fatox.meta.injection.Inject;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +19,6 @@ public class ShaderComposition {
     public MetaShaderCompData data;
 
     private Array<RenderBufferHandle> bufferHandles = new Array<>();
-    private RenderBufferHandle outputBuffer;
     private FileHandle compositionHandle;
 
     public ShaderComposition(FileHandle compHandle, MetaShaderCompData metaShaderCompData) {
@@ -29,23 +29,25 @@ public class ShaderComposition {
     }
 
     private void loadExisting() {
-        for (int i = 0; i < data.getRenderBuffers().size - 1; i++) {
-            MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.getRenderBuffers().get(i).getMetaShaderPath()));
-            metaGeoShader.init();
-            bufferHandles.add(new RenderBufferHandle(data.getRenderBuffers().get(i), metaGeoShader));
+        for (int i = 0; i < data.getRenderBuffers().size; i++) {
+            RenderBufferData renderBufferData = data.getRenderBuffers().get(i);
+            switch (renderBufferData.getInType()) {
+                case GEOMETRY:
+                    MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(renderBufferData.getMetaShaderPath()));
+                    metaGeoShader.init();
+                    bufferHandles.add(new RenderBufferHandle(renderBufferData, metaGeoShader));
+                    break;
+                case FULLSCREEN:
+                    // TODO
+                    break;
+            }
         }
-        MetaGeoShader metaGeoShader = new MetaGeoShader(shaderLibrary.getShaderHandle(data.getRenderBuffers().get(data.getRenderBuffers().size - 1)
-                .getMetaShaderPath()));
-        metaGeoShader.init();
-        outputBuffer = new RenderBufferHandle(data.getRenderBuffers().get(data.getRenderBuffers().size - 1), metaGeoShader);
-        bufferHandles.add(outputBuffer);
         System.out.println("Loaded <" + bufferHandles.size + "> buffers");
     }
 
     public void addBufferHandle(RenderBufferHandle bufferHandle) {
-        if (!bufferHandles.contains(bufferHandle, true) && outputBuffer != bufferHandle) {
-            outputBuffer = bufferHandle;
-            bufferHandles.add(outputBuffer);
+        if (!bufferHandles.contains(bufferHandle, true)) {
+            bufferHandles.add(bufferHandle);
             data.getRenderBuffers().add(bufferHandle.getData());
         }
     }
@@ -64,14 +66,11 @@ public class ShaderComposition {
     }
 
     public RenderBufferHandle getOutputBuffer() {
-        return outputBuffer;
+        return bufferHandles.peek();
     }
 
     public void removeBufferHandle(@NotNull RenderBufferHandle handle) {
         bufferHandles.removeValue(handle, true);
         data.getRenderBuffers().removeValue(handle.getData(), true);
-        if (outputBuffer == handle) {
-            outputBuffer = bufferHandles.size > 0 ? bufferHandles.pop() : null;
-        }
     }
 }

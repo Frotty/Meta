@@ -6,7 +6,7 @@ Conceptual 3D Rendering engine build ontop of libGDX
 The editor can be used manage your workspace inclusing assets, shaders, plugins, etc.
 Use the world editor to create (2d and [soon]) 3d scenes and export them to json.
 (Very early screenshot)
-![WIP Screen](https://i.imgur.com/BP5ACCC.png)
+![WIP Screen](https://i.imgur.com/cwOhhYn.png)
 
 ## Runtime
 The runtime contains core components of the meta engine that can be used for any 2d or 3d game.

@@ -64,7 +64,6 @@ class MetaShaderComposer : MetaNotifier() {
     fun addComposition(composition: ShaderComposition?) {
         if (composition != null) {
             compositions.add(composition)
-            saveComposition(composition)
             val window = uiManager.getWindow(ShaderComposerWindow::class.java)
             window?.addComposition(composition)
             currentComposition = composition
@@ -103,6 +102,7 @@ class MetaShaderComposer : MetaNotifier() {
         val metaShaderCompData = MetaShaderCompData(name)
         val shaderComposition = ShaderComposition(fileHandle, metaShaderCompData)
         addComposition(shaderComposition)
+        saveComposition(shaderComposition)
     }
 
     companion object {

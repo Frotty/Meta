@@ -18,7 +18,7 @@ public class Primitives {
     private Model sphereLines;
     private Model sphereFilled;
     private Model lineGrid;
-    private final long defaultAttr = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal
+    public static final long defaultAttr = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal
             | VertexAttributes.Usage.ColorUnpacked | VertexAttributes.Usage.TextureCoordinates;
 
     private final Material defaultMaterial = new Material();

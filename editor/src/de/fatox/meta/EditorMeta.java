@@ -1,7 +1,9 @@
 package de.fatox.meta;
 
+import com.badlogic.gdx.Gdx;
 import de.fatox.meta.api.dao.MetaAudioVideoData;
 import de.fatox.meta.assets.MetaData;
+import de.fatox.meta.graphics.model.MDXConverter;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.modules.MetaEditorModule;
 import de.fatox.meta.modules.MetaUIModule;
@@ -15,6 +17,7 @@ public class EditorMeta extends Meta {
         super();
         addModule(new MetaEditorModule());
         addModule(new MetaUIModule());
+
     }
 
     @Override
@@ -26,6 +29,9 @@ public class EditorMeta extends Meta {
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
         audioVideoData.apply();
         changeScreen(new MetaEditorScreen());
+
+        String convert = MDXConverter.INSTANCE.convert(Gdx.files.internal("models/tcBox.mdx"));
+        System.out.println(convert);
     }
 
 }

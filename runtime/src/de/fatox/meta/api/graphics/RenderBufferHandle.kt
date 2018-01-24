@@ -11,22 +11,22 @@ import de.fatox.meta.graphics.buffer.MRTFrameBuffer
  * Created by Frotty on 18.04.2017.
  */
 class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShader?) {
-
     private var mrtFrameBuffer: MRTFrameBuffer? = null
     private var frameBuffer: FrameBuffer? = null
 
 
     fun rebuild(width: Int, height: Int) {
+        println("rebuilt")
         mrtFrameBuffer?.dispose()
         frameBuffer?.dispose()
 
         val targetsNum = metaShader?.shaderHandle?.targets?.size
         if (targetsNum!! > 1) {
             // MRT Shader
-            mrtFrameBuffer = MRTFrameBuffer(width, height, targetsNum, data.hasDpeth)
+            mrtFrameBuffer = MRTFrameBuffer(width, height, targetsNum, data.hasDepth)
         } else {
             // Regular Framebuffer
-            frameBuffer = FrameBuffer(Pixmap.Format.RGB888, width, height, data.hasDpeth)
+            frameBuffer = FrameBuffer(Pixmap.Format.RGB888, width, height, data.hasDepth)
         }
     }
 

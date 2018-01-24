@@ -1,9 +1,7 @@
 package de.fatox.meta.shader;
 
-import com.badlogic.gdx.graphics.Camera;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.Renderable;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
@@ -38,7 +36,6 @@ public class MetaGeoShader extends de.fatox.meta.api.graphics.MetaGLShader {
     @Inject
     private AssetProvider assetProvider;
 
-
     public MetaGeoShader(GLShaderHandle shaderHandle) {
         super(shaderHandle);
     }
@@ -68,6 +65,7 @@ public class MetaGeoShader extends de.fatox.meta.api.graphics.MetaGLShader {
         shaderProgram.begin();
         shaderProgram.setUniformMatrix(u_projTrans, camera.combined);
         shaderProgram.setUniformf(u_camPos, camera.position);
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         setCameraUniforms();
     }
 

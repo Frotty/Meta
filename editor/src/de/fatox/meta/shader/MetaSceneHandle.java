@@ -30,7 +30,7 @@ public class MetaSceneHandle {
         this.data = sceneData;
         this.shaderComposition = shaderComposition;
         this.sceneFile = fileHandle;
-        entityManager.addEntity(new Meta3DEntity(Vector3.Zero, primitives.getLinegrid()));
+        entityManager.addEntity(new Meta3DEntity(Vector3.Zero, primitives.getLinegrid(), 1f));
     }
 
     public ShaderComposition getShaderComposition() {

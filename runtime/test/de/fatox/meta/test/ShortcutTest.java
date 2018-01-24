@@ -1,19 +1,16 @@
 package de.fatox.meta.test;
 
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.IntMap;
 import de.fatox.meta.Meta;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.input.Hotkey;
-import de.fatox.meta.input.KeyListener;
 import de.fatox.meta.input.MetaInput;
 import org.junit.Test;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
 
-public class ShortcutTest extends MetaTest{
+public class ShortcutTest extends MetaTest {
     @Inject
     private MetaInput metaInput;
 
@@ -32,7 +29,6 @@ public class ShortcutTest extends MetaTest{
     @Test
     public void testSimple() throws AWTException {
         new TestShortcutClass();
-        IntMap<Array<KeyListener>> keyListenerMap = metaInput.getKeyListenerMap();
 
         Robot robot = new Robot();
         robot.keyPress(KeyEvent.VK_CONTROL);

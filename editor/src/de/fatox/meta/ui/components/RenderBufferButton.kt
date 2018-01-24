@@ -43,7 +43,7 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
         this.handle = handle
         inSelect.selected = handle.data.inType
         shaderSelect.selected = handle.metaShader?.shaderHandle
-        depthCheckBox.isChecked = handle.data.hasDpeth
+        depthCheckBox.isChecked = handle.data.hasDepth
     }
 
     init {

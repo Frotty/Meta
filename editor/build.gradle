@@ -7,7 +7,7 @@ sourceCompatibility = 1.8
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 sourceSets.main.java.srcDirs = [ "src/" ]
-
+sourceSets.test.java.srcDirs = [ "test/" ]
 buildscript {
     ext.kotlin_version = '1.2.20'
     repositories {
