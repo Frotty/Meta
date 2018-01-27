@@ -7,9 +7,7 @@ import com.badlogic.gdx.graphics.g3d.RenderableProvider;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.entity.Entity;
-import de.fatox.meta.injection.Inject;
 
 public class Meta3DEntity implements Entity<Vector3> {
     public final Vector3 position = new Vector3();
@@ -21,9 +19,6 @@ public class Meta3DEntity implements Entity<Vector3> {
 
     private final static BoundingBox bounds = new BoundingBox();
     private static Vector3 tempPos = new Vector3();
-
-    @Inject
-    private AssetProvider assetProvider;
 
     public Meta3DEntity(Vector3 pos, Model modelBase, float scale) {
         Meta.inject(this);

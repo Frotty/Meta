@@ -48,7 +48,7 @@ class EditorSceneRenderer : Renderer {
 
     private var sceneHandle: MetaSceneHandle? = null
 
-    private val modelCache = ModelCache()
+    private val staticModelCache = ModelCache()
     private var modelBatch: ModelBatch? = null
 
     private val fsquad = FullscreenQuad(1f)
@@ -77,9 +77,14 @@ class EditorSceneRenderer : Renderer {
 
                 if (bufferHandle.data.inType === RenderBufferData.IN.GEOMETRY) {
                     modelBatch!!.begin(cam)
-                    modelBatch!!.render(modelCache, bufferHandle.metaShader)
+                    modelBatch!!.render(staticModelCache, bufferHandle.metaShader)
                     modelBatch!!.end()
+                } else {
+                    bufferHandle.metaShader?.begin(cam, renderContext)
+                    fsquad.render(bufferHandle.metaShader?.shaderProgram)
+                    bufferHandle.metaShader?.end()
                 }
+
                 bufferHandle.end()
                 renderContext!!.end()
             }
@@ -87,7 +92,7 @@ class EditorSceneRenderer : Renderer {
             renderContext!!.begin()
 
             modelBatch!!.begin(cam)
-            modelBatch!!.render(modelCache, sceneHandle!!.shaderComposition.outputBuffer.metaShader)
+            modelBatch!!.render(staticModelCache, sceneHandle!!.shaderComposition.outputBuffer.metaShader)
             modelBatch!!.end()
             renderContext!!.end()
 
@@ -154,14 +159,14 @@ class EditorSceneRenderer : Renderer {
     }
 
     override fun rebuildCache() {
-        modelCache.begin()
+        staticModelCache.begin()
         if (sceneHandle!!.data.showGrid) {
-            modelCache.add(grid.actorModel)
+            staticModelCache.add(grid.actorModel)
         }
         for (entity in sceneHandle!!.entityManager.staticEntities) {
-            modelCache.add(entity.actorModel)
+            staticModelCache.add(entity.actorModel)
         }
-        modelCache.end()
+        staticModelCache.end()
     }
 
 

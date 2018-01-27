@@ -64,7 +64,6 @@ public class Metastasis {
         }
         for (Object[] f : injectFields.get(target.getClass())) {
             Field field = (Field) f[0];
-            boolean provider = (boolean) f[1];
             Key key = (Key) f[2];
             Key key2 = Key.of(field.getType(), "default");
             try {

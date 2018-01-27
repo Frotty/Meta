@@ -16,6 +16,11 @@ import de.fatox.meta.error.MetaErrorHandler;
 public abstract class MetaGLShader implements Shader {
     private MetaErrorHandler metaErrorHandler = new MetaErrorHandler();
     public GLShaderHandle shaderHandle;
+
+    public ShaderProgram getShaderProgram() {
+        return shaderProgram;
+    }
+
     protected ShaderProgram shaderProgram;
 
     public MetaGLShader(GLShaderHandle shaderHandle) {
