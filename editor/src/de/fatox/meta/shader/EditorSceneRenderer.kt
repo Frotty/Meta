@@ -59,7 +59,7 @@ class EditorSceneRenderer : Renderer {
 
     init {
         Meta.inject(this)
-        grid = Meta3DEntity(Vector3.Zero, primitives!!.linegrid, 1f)
+        grid = Meta3DEntity(Vector3.Zero, primitives!!.terraingrid, 1f)
     }
 
     override fun render(x: Float, y: Float) {

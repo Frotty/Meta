@@ -1,7 +1,6 @@
 package de.fatox.meta.shader;
 
 import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.math.Vector3;
 import de.fatox.meta.Meta;
 import de.fatox.meta.Primitives;
 import de.fatox.meta.api.dao.MetaSceneData;
@@ -30,7 +29,6 @@ public class MetaSceneHandle {
         this.data = sceneData;
         this.shaderComposition = shaderComposition;
         this.sceneFile = fileHandle;
-        entityManager.addEntity(new Meta3DEntity(Vector3.Zero, primitives.getLinegrid(), 1f));
     }
 
     public ShaderComposition getShaderComposition() {

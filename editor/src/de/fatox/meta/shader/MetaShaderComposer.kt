@@ -49,6 +49,7 @@ class MetaShaderComposer : MetaNotifier() {
 
     fun loadProjectCompositions() {
         if (projectManager.currentProject != null) {
+            compositions.clear()
             val compositionFolder = projectManager.currentProjectRoot.child("meta/compositions/")
             if (compositionFolder.exists()) {
                 for (metaComp in compositionFolder.list { pathname -> pathname.name.endsWith(META_COMP_SUFFIX) }) {
@@ -94,6 +95,7 @@ class MetaShaderComposer : MetaNotifier() {
             currentComposition?.addBufferHandle(bufferHandle)
             saveComposition(it)
         }
+        notifyListeners()
         return bufferHandle
     }
 
@@ -103,6 +105,7 @@ class MetaShaderComposer : MetaNotifier() {
         val shaderComposition = ShaderComposition(fileHandle, metaShaderCompData)
         addComposition(shaderComposition)
         saveComposition(shaderComposition)
+        notifyListeners()
     }
 
     companion object {

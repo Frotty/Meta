@@ -51,8 +51,9 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
         }
 
     private val singleArray = Array<Texture>(1)
+    private val emptyArray = Array<Texture>()
 
-    val colorTextures: Array<Texture>?
+    val colorTextures: Array<Texture>
         get() {
             if (mrtFrameBuffer != null) {
                 return mrtFrameBuffer!!.colorBufferTextures
@@ -60,7 +61,7 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
                 singleArray.set(0, frameBuffer!!.colorBufferTexture)
                 return singleArray
             }
-            return null
+            return emptyArray
         }
 
 

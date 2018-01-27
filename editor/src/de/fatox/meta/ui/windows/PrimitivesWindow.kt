@@ -1,9 +1,6 @@
 package de.fatox.meta.ui.windows
 
-import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g3d.Model
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.scenes.scene2d.InputEvent
@@ -36,7 +33,7 @@ class PrimitivesWindow : MetaWindow("Primitives", true, true) {
         this.boxButton = MetaIconTextButton("Box", assetProvider.getDrawable("ui/appbar.box.png"))
         boxButton.addListener(object : MetaClickListener() {
             override fun clicked(event: InputEvent, x: Float, y: Float) {
-                for (i in 0..15) {
+                for (i in 0..105) {
                     val entity = Meta3DEntity(Vector3(MathUtils.random(-10, 10).toFloat(), MathUtils.random(-0.5f, 5.0f), MathUtils.random(-10, 10).toFloat()),
                             assetProvider.get("models/box.g3dj", Model::class.java), MathUtils.random(0.001f, 0.01f))
 
@@ -45,9 +42,7 @@ class PrimitivesWindow : MetaWindow("Primitives", true, true) {
                     entity.actorModel.transform.scl(4f)
                     entity.actorModel.transform.rotate(MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0, 360).toFloat())
 
-                    entity.actorModel.materials.get(0).set(ColorAttribute.createDiffuse(MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), 1f))
-                    entity.actorModel.materials.get(0).set(TextureAttribute.createDiffuse(assetProvider.get("models/crates_d.png", Texture::class.java)))
-                    entity.actorModel.materials.get(0).set(TextureAttribute.createNormal(assetProvider.get("models/crates_n.png", Texture::class.java)))
+//                    entity.actorModel.materials.get(0).set(ColorAttribute.createDiffuse(MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), 1f))
                 }
                 renderer.rebuildCache()
             }

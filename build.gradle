@@ -73,7 +73,7 @@ project(":runtime") {
 
     dependencies {
         compile "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
-        compile 'com.github.inwc3:wc3libs:5f80211d61'
+        compile 'com.github.inwc3:wc3libs:f101a29623'
 
         testCompile "junit:junit:4.11"
         testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"

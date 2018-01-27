@@ -1,10 +1,14 @@
 package de.fatox.meta;
 
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
+import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.injection.Inject;
 
 /**
@@ -18,15 +22,19 @@ public class Primitives {
     private Model sphereLines;
     private Model sphereFilled;
     private Model lineGrid;
+    private Model terrainGrid;
     public static final long defaultAttr = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal
             | VertexAttributes.Usage.ColorUnpacked | VertexAttributes.Usage.TextureCoordinates;
 
     private final Material defaultMaterial = new Material();
     @Inject
+    private AssetProvider assetProvider;
+    @Inject
     private ModelBuilder modelBuilder;
 
     public Primitives() {
         Meta.inject(this);
+        defaultMaterial.set(TextureAttribute.createDiffuse(assetProvider.get("textures/defaultTex.png", Texture.class)));
     }
 
     public Model getPlaneLines() {
@@ -85,5 +93,29 @@ public class Primitives {
             lineGrid = modelBuilder.createLineGrid(16, 16, 2, 2, defaultMaterial, defaultAttr);
         }
         return lineGrid;
+    }
+
+    public Model getTerraingrid() {
+        if (terrainGrid == null) {
+            modelBuilder.begin();
+            MeshPartBuilder partBuilder = modelBuilder.part("quads", GL20.GL_TRIANGLES, defaultAttr, defaultMaterial);
+            int xDivisions = 16;
+            float xSize = 2;
+            int zDivisions = 16;
+            float zSize = 2;
+            float xlength = xDivisions * xSize, zlength = zDivisions * zSize, hxlength = xlength / 2, hzlength = zlength / 2;
+            float x1 = -hxlength, y1 = 0, z1 = hzlength;
+            for (int i = 0; i <= xDivisions; ++i) {
+                z1 = hzlength;
+                for (int j = 0; j <= zDivisions; ++j) {
+                    partBuilder.rect(x1, 0f, z1, x1 + xSize, 0f, z1, x1 + xSize, 0f, z1 + zSize, x1, 0f, z1 + zSize, 0f, 1f, 0f);
+                    z1 -= zSize;
+                }
+                x1 += xSize;
+            }
+
+            terrainGrid = modelBuilder.end();
+        }
+        return terrainGrid;
     }
 }
