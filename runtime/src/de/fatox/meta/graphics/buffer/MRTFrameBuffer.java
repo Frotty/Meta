@@ -78,7 +78,7 @@ public class MRTFrameBuffer implements Disposable {
 
     /** Unbinds the framebuffer, all drawing will be performed to the normal framebuffer from here on. */
     public void end() {
-        end(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        end(0, 0, frameBuffer.getWidth(), frameBuffer.getHeight());
     }
 
     /**

@@ -47,7 +47,7 @@ public class MetaEditorUI {
                 Table content = tab.getContentTable();
 
                 tabTable.clearChildren();
-                tabTable.add(content).expand().fill();
+                tabTable.add(content).grow();
                 uiManager.bringWindowsToFront();
             }
 

@@ -27,7 +27,6 @@ class SceneWidget(sceneHandle: MetaSceneHandle) : Widget() {
 
     override fun draw(batch: Batch?, parentAlpha: Float) {
         batch!!.end()
-//        validate()
         renderer.render(x, y)
         batch.begin()
     }

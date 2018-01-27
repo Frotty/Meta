@@ -121,11 +121,12 @@ public class MetaUiManager implements UIManager {
     @Override
     public void addTable(Table table, boolean gx, boolean gy) {
         contentTable.row();
-        Cell<Table> add = contentTable.add(table).top();
+        Cell<Table> add = contentTable.add(table);
         if (gx)
             add.growX();
         if (gy)
             add.growY();
+        contentTable.pack();
     }
 
     /**
