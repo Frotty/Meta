@@ -47,7 +47,7 @@ public class SceneOptionsWindow extends MetaWindow {
             public void changed(ChangeEvent event, Actor actor) {
                 SceneTab sceneTab = (SceneTab) editorUI.getCurrentTab();
                 sceneTab.getSceneHandle().setShaderComposition(compositionSelectBox.getSelected());
-                sceneManager.saveScene(sceneTab.getSceneHandle().data);
+                sceneManager.saveScene(sceneTab.getSceneHandle().getData());
             }
         });
     }

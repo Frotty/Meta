@@ -17,7 +17,7 @@ class SceneWidget(sceneHandle: MetaSceneHandle) : Widget() {
 
     init {
         Meta.inject(this)
-        (renderer as EditorSceneRenderer).setSceneHandle(sceneHandle)
+        (renderer as EditorSceneRenderer).sceneHandle = sceneHandle
     }
 
     override fun layout() {

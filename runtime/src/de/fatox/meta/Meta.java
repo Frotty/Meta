@@ -34,13 +34,11 @@ public class Meta extends Game {
                 e.printStackTrace();
             }
             StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            exception.printStackTrace(pw);
+            exception.printStackTrace(new PrintWriter(sw));
             JTextArea jTextField = new JTextArea();
             jTextField.setText("Please report this crash with the following info:\n" + sw.toString());
             jTextField.setEditable(false);
             JOptionPane.showMessageDialog(null, jTextField, "Uncaught Exception", JOptionPane.ERROR_MESSAGE);
-            // do something else useful here
         });
         metaInstance = this;
         setupMetastasis();
@@ -80,11 +78,11 @@ public class Meta extends Game {
         }
     }
 
-    private final void setupMetastasis() {
+    private void setupMetastasis() {
         metastasis = new Metastasis();
     }
 
-    public static final void inject(Object object) {
+    public static void inject(Object object) {
         getInstance().metastasis.injectFields(object);
     }
 

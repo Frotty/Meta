@@ -43,14 +43,14 @@ public class MetaGeoShader extends de.fatox.meta.api.graphics.MetaGLShader {
     @Override
     public void init() {
         super.init();
-        u_projTrans = shaderProgram.getUniformLocation("u_projViewTrans");
-        u_worldTrans = shaderProgram.getUniformLocation("u_worldTrans");
-        u_normalTrans = shaderProgram.getUniformLocation("u_normalTrans");
-        u_mvpTrans = shaderProgram.getUniformLocation("u_mvpTrans");
-        u_diffuseColor = shaderProgram.getUniformLocation("u_diffuseColor");
-        s_diffuseTex = shaderProgram.getUniformLocation("s_diffuseTex");
-        s_normalTex = shaderProgram.getUniformLocation("s_normalTex");
-        u_camPos = shaderProgram.getUniformLocation("u_camPos");
+        u_projTrans = getShaderProgram().getUniformLocation("u_projViewTrans");
+        u_worldTrans = getShaderProgram().getUniformLocation("u_worldTrans");
+        u_normalTrans = getShaderProgram().getUniformLocation("u_normalTrans");
+        u_mvpTrans = getShaderProgram().getUniformLocation("u_mvpTrans");
+        u_diffuseColor = getShaderProgram().getUniformLocation("u_diffuseColor");
+        s_diffuseTex = getShaderProgram().getUniformLocation("s_diffuseTex");
+        s_normalTex = getShaderProgram().getUniformLocation("s_normalTex");
+        u_camPos = getShaderProgram().getUniformLocation("u_camPos");
 
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGB888);
         pixmap.drawPixel(0, 0, Color.WHITE.toIntBits());
@@ -62,9 +62,9 @@ public class MetaGeoShader extends de.fatox.meta.api.graphics.MetaGLShader {
     public void begin(Camera camera, RenderContext context) {
         this.camera = camera;
         this.context = context;
-        shaderProgram.begin();
-        shaderProgram.setUniformMatrix(u_projTrans, camera.combined);
-        shaderProgram.setUniformf(u_camPos, camera.position);
+        getShaderProgram().begin();
+        getShaderProgram().setUniformMatrix(u_projTrans, camera.combined);
+        getShaderProgram().setUniformf(u_camPos, camera.position);
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         setCameraUniforms();
     }
@@ -81,34 +81,34 @@ public class MetaGeoShader extends de.fatox.meta.api.graphics.MetaGLShader {
         // Diffuse-
         TextureAttribute diffuseTex = (TextureAttribute) renderable.material.get(TextureAttribute.Diffuse);
         if (diffuseTex != null) {
-            shaderProgram.setUniformi(s_diffuseTex, context.textureBinder.bind((diffuseTex).textureDescription.texture));
+            getShaderProgram().setUniformi(s_diffuseTex, context.textureBinder.bind((diffuseTex).textureDescription.texture));
         } else {
-            shaderProgram.setUniformi(s_diffuseTex, context.textureBinder.bind(whiteTex));
+            getShaderProgram().setUniformi(s_diffuseTex, context.textureBinder.bind(whiteTex));
         }
         // Normal Map (for different lighting on a plane)
         TextureAttribute normalTex = (TextureAttribute) renderable.material.get(TextureAttribute.Normal);
         if (normalTex != null) {
-            shaderProgram.setUniformi(s_normalTex, context.textureBinder.bind((normalTex).textureDescription.texture));
+            getShaderProgram().setUniformi(s_normalTex, context.textureBinder.bind((normalTex).textureDescription.texture));
         } else {
-            shaderProgram.setUniformi(s_normalTex, context.textureBinder.bind(emptyNormals));
+            getShaderProgram().setUniformi(s_normalTex, context.textureBinder.bind(emptyNormals));
         }
 
         ColorAttribute col = (ColorAttribute) renderable.material.get(ColorAttribute.Diffuse);
         if (col != null) {
-            shaderProgram.setUniformf(u_diffuseColor, col.color.r, col.color.g, col.color.b);
+            getShaderProgram().setUniformf(u_diffuseColor, col.color.r, col.color.g, col.color.b);
         } else {
             tempV.set(1, 1, 1);
-            shaderProgram.setUniformf(u_diffuseColor, tempV);
+            getShaderProgram().setUniformf(u_diffuseColor, tempV);
         }
 
-        renderable.meshPart.render(shaderProgram);
+        renderable.meshPart.render(getShaderProgram());
     }
 
     private void setRenderableUniforms(Renderable renderable) {
-        shaderProgram.setUniformMatrix(u_worldTrans, renderable.worldTransform);
+        getShaderProgram().setUniformMatrix(u_worldTrans, renderable.worldTransform);
         tmpM3.set(renderable.worldTransform).inv().transpose();
-        shaderProgram.setUniformMatrix(u_normalTrans, tmpM3);
+        getShaderProgram().setUniformMatrix(u_normalTrans, tmpM3);
         tempM4.set(camera.combined).mul(renderable.worldTransform);
-        shaderProgram.setUniformMatrix(u_mvpTrans, tempM4);
+        getShaderProgram().setUniformMatrix(u_mvpTrans, tempM4);
     }
 }

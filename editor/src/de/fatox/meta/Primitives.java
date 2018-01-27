@@ -104,11 +104,11 @@ public class Primitives {
             int zDivisions = 16;
             float zSize = 2;
             float xlength = xDivisions * xSize, zlength = zDivisions * zSize, hxlength = xlength / 2, hzlength = zlength / 2;
-            float x1 = -hxlength, y1 = 0, z1 = hzlength;
+            float x1 = -hxlength, z1;
             for (int i = 0; i <= xDivisions; ++i) {
                 z1 = hzlength;
                 for (int j = 0; j <= zDivisions; ++j) {
-                    partBuilder.rect(x1, 0f, z1, x1 + xSize, 0f, z1, x1 + xSize, 0f, z1 + zSize, x1, 0f, z1 + zSize, 0f, 1f, 0f);
+                    partBuilder.rect(x1, 0f, z1, x1, 0f, z1 + zSize, x1 + xSize, 0f, z1 + zSize, x1 + xSize, 0f, z1, 0f, 1f, 0f);
                     z1 -= zSize;
                 }
                 x1 += xSize;

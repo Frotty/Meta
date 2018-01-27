@@ -11,10 +11,10 @@ import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
-import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.api.dao.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
+import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 import de.fatox.meta.injection.Singleton;
@@ -83,9 +83,10 @@ public class MetaUiManager implements UIManager {
         displayedWindows.removeAll(cachedWindows, true);
         contentTable.remove();
         contentTable.clear();
-        if(mainMenuBar != null) {
+        if (mainMenuBar != null) {
             contentTable.row().height(26);
             contentTable.add(mainMenuBar.getTable()).growX().top();
+            mainMenuBar.getTable().toFront();
         }
         uiRenderer.addActor(contentTable);
         restoreWindows();
@@ -101,7 +102,7 @@ public class MetaUiManager implements UIManager {
                     MetaWindowData metaWindowData = metaGet(windowclass.getName(), MetaWindowData.class);
                     for (Window displayedWindow : displayedWindows) {
                         if (displayedWindow.getClass() == windowclass) {
-                            if(!metaWindowData.getDisplayed()) {
+                            if (!metaWindowData.getDisplayed()) {
                                 cacheWindow(displayedWindow, true);
                             }
                             continue outer;
@@ -126,7 +127,6 @@ public class MetaUiManager implements UIManager {
             add.growX();
         if (gy)
             add.growY();
-        contentTable.pack();
     }
 
     /**
@@ -146,7 +146,7 @@ public class MetaUiManager implements UIManager {
             // There exists metadata for this window.
             MetaWindowData windowData = metaGet(windowClass.getName(), MetaWindowData.class);
             windowData.set(window);
-            if(!windowData.getDisplayed()) {
+            if (!windowData.getDisplayed()) {
                 windowData.setDisplayed(true);
                 metaSave(windowClass.getName(), windowData);
             }
@@ -212,6 +212,7 @@ public class MetaUiManager implements UIManager {
         for (Window window : displayedWindows) {
             window.toFront();
         }
+        mainMenuBar.getTable().toFront();
     }
 
 
@@ -238,9 +239,7 @@ public class MetaUiManager implements UIManager {
                 log.debug(TAG, "try instance");
                 theWindow = windowClass.newInstance();
 
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
+            } catch (InstantiationException | IllegalAccessException e) {
                 e.printStackTrace();
             }
         }

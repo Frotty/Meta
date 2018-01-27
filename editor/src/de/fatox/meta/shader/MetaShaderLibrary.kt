@@ -13,15 +13,16 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.Inject
 import de.fatox.meta.injection.Singleton
+import de.fatox.meta.listener.MetaNotifier
 
 @Singleton
-class MetaShaderLibrary {
+class MetaShaderLibrary : MetaNotifier() {
     @Inject
     private lateinit var projectManager: ProjectManager
     @Inject
-    private lateinit var  json: Json
+    private lateinit var json: Json
     @Inject
-    private lateinit var  uiManager: UIManager
+    private lateinit var uiManager: UIManager
 
     private val loadedShaders = ObjectMap<String, GLShaderHandle>()
     private val metaShaders = Array<GLShaderHandle>()
@@ -54,7 +55,9 @@ class MetaShaderLibrary {
 
     fun newShader(data: GLShaderData): GLShaderHandle? {
         val newShaderHandle = projectManager.save(INTERNAL_SHADER_PATH + data.name + META_SHADER_SUFFIX, data)
-        return loadShader(newShaderHandle)
+        val loadShader = loadShader(newShaderHandle)
+        notifyListeners()
+        return loadShader
     }
 
 
@@ -74,6 +77,9 @@ class MetaShaderLibrary {
 
     fun loadProjectShaders() {
         if (projectManager.currentProject != null) {
+            loadedShaders.clear()
+            metaShaders.clear()
+            
             val shaderFolder = projectManager.currentProjectRoot.child(INTERNAL_SHADER_PATH)
             if (shaderFolder.exists()) {
                 for (metaShaderDef in shaderFolder.list { pathname -> pathname.name.endsWith(META_SHADER_SUFFIX) }) {
@@ -81,6 +87,7 @@ class MetaShaderLibrary {
                 }
             }
         }
+        notifyListeners()
     }
 
     companion object {

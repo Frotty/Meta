@@ -45,9 +45,10 @@ public class MetaEditorUI {
                 uiManager.changeScreen(tab.getClass().getName());
                 apply();
                 Table content = tab.getContentTable();
-
                 tabTable.clearChildren();
                 tabTable.add(content).grow();
+                tabTable.toFront();
+                content.toBack();
                 uiManager.bringWindowsToFront();
             }
 
