@@ -8,8 +8,6 @@ import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.Meta
 import de.fatox.meta.api.dao.GLShaderData
 import de.fatox.meta.api.graphics.GLShaderHandle
-import de.fatox.meta.api.graphics.MetaGLShader
-import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.Inject
 import de.fatox.meta.injection.Singleton
@@ -21,8 +19,6 @@ class MetaShaderLibrary : MetaNotifier() {
     private lateinit var projectManager: ProjectManager
     @Inject
     private lateinit var json: Json
-    @Inject
-    private lateinit var uiManager: UIManager
 
     private val loadedShaders = ObjectMap<String, GLShaderHandle>()
     private val metaShaders = Array<GLShaderHandle>()
@@ -65,10 +61,6 @@ class MetaShaderLibrary : MetaNotifier() {
         return metaShaders
     }
 
-    fun getDefaultShaderPath(shaderHandle: GLShaderHandle): MetaGLShader? {
-        return null
-    }
-
     fun getShaderHandle(metaShaderPath: String): GLShaderHandle? {
         return if (loadedShaders.containsKey(metaShaderPath)) {
             loadedShaders.get(metaShaderPath)
@@ -79,7 +71,7 @@ class MetaShaderLibrary : MetaNotifier() {
         if (projectManager.currentProject != null) {
             loadedShaders.clear()
             metaShaders.clear()
-            
+
             val shaderFolder = projectManager.currentProjectRoot.child(INTERNAL_SHADER_PATH)
             if (shaderFolder.exists()) {
                 for (metaShaderDef in shaderFolder.list { pathname -> pathname.name.endsWith(META_SHADER_SUFFIX) }) {

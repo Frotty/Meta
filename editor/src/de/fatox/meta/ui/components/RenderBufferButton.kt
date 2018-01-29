@@ -41,17 +41,20 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
 
     constructor(handle: RenderBufferHandle) : this("Pass", 11) {
         this.handle = handle
-        inSelect.selected = handle.data.inType
-        shaderSelect.selected = handle.metaShader?.shaderHandle
-        depthCheckBox.isChecked = handle.data.hasDepth
-    }
-
-    init {
         Meta.inject(this)
+
         color = Color.GRAY
         pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20)
         inSelect.setItems(GEOMETRY, FULLSCREEN)
+        inSelect.addListener({
+            shaderComposer.setType(handle, inSelect.selected)
+            return@addListener true
+        })
         shaderSelect.items = shaderLibrary.getLoadedShaders()
+        shaderSelect.addListener({
+            shaderComposer.changeShader(handle, shaderSelect.selected)
+            return@addListener true
+        })
 
         nameLabel
         nameLabel.setAlignment(Align.center)
@@ -62,27 +65,35 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
 
         val codeImage = VisImage(assetProvider.getDrawable("ui/appbar.page.code.png"))
         codeImage.setScaling(Scaling.fit)
-        add(codeImage).size(24f).padRight(2f).left()
+        add(codeImage).size(26f).padRight(2f).left()
         add(shaderSelect).growX()
         row().padTop(2f)
 
         val boxImage = VisImage(assetProvider.getDrawable("ui/appbar.box.png"))
         boxImage.setScaling(Scaling.fit)
-        add(boxImage).size(24f).padRight(2f).left()
+        add(boxImage).size(26f).padRight(2f).left()
         add<VisSelectBox<RenderBufferData.IN>>(inSelect).growX()
         row().padTop(2f)
 
         val dImage = VisImage(assetProvider.getDrawable("ui/appbar.grade.d.png"))
         dImage.setScaling(Scaling.fit)
-        add(dImage).size(24f).padRight(2f).left()
+        add(dImage).size(26f).padRight(2f).left()
         add(depthCheckBox).growX()
         row().padTop(2f)
 
+        inSelect.selected = handle.data.inType
+        shaderSelect.selected = handle.metaShader?.shaderHandle
+        depthCheckBox.isChecked = handle.data.hasDepth
+
+        setupFooter()
+    }
+
+    private fun setupFooter() {
         val table = Table()
         table.center()
         val moveLeftBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.chevron.left.png"))
         moveLeftBtn.image.setScaling(Scaling.fill)
-        table.add(moveLeftBtn).size(24f)
+        table.add(moveLeftBtn).size(26f)
         val deleteBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.delete.png"))
         deleteBtn.addListener(object : MetaClickListener() {
             override fun clicked(event: InputEvent, x: Float, y: Float) {
@@ -90,10 +101,10 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
             }
         })
         deleteBtn.image.setScaling(Scaling.fill)
-        table.add(deleteBtn).size(24f)
+        table.add(deleteBtn).size(26f)
         val moveRightBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.chevron.right.png"))
         moveRightBtn.image.setScaling(Scaling.fill)
-        table.add(moveRightBtn).size(24f)
+        table.add(moveRightBtn).size(26f)
 
         add(table).growX().center().colspan(2)
     }

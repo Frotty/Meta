@@ -7,6 +7,7 @@ import com.badlogic.gdx.utils.Json
 import de.fatox.meta.Meta
 import de.fatox.meta.api.dao.MetaShaderCompData
 import de.fatox.meta.api.dao.RenderBufferData
+import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.ide.ProjectManager
@@ -89,6 +90,15 @@ class MetaShaderComposer : MetaNotifier() {
         return null
     }
 
+    fun setType(handle: RenderBufferHandle, intype: RenderBufferData.IN) {
+        if (handle.data.inType != intype) {
+            currentComposition?.let {
+                it.setType(handle, intype)
+                saveComposition(it)
+            }
+        }
+    }
+
     fun addRenderBuffer(data: RenderBufferData): RenderBufferHandle {
         val bufferHandle = RenderBufferHandle(data, null)
         currentComposition?.let {
@@ -120,5 +130,15 @@ class MetaShaderComposer : MetaNotifier() {
             notifyListeners()
         }
     }
+
+    fun changeShader(handle: RenderBufferHandle, selected: GLShaderHandle?) {
+        if (shaderLibrary.getShaderHandle(handle.data.metaShaderPath) != selected) {
+            currentComposition?.let {
+                it.setShader(handle, selected)
+                saveComposition(it)
+            }
+        }
+    }
+
 
 }

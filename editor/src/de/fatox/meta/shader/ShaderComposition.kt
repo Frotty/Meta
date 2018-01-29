@@ -5,6 +5,8 @@ import com.badlogic.gdx.utils.Array
 import de.fatox.meta.Meta
 import de.fatox.meta.api.dao.MetaShaderCompData
 import de.fatox.meta.api.dao.RenderBufferData
+import de.fatox.meta.api.graphics.GLShaderHandle
+import de.fatox.meta.api.graphics.MetaGLShader
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.injection.Inject
 
@@ -28,20 +30,30 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
     private fun loadExisting() {
         for (i in 0 until data.renderBuffers.size) {
             val renderBufferData = data.renderBuffers.get(i)
-            when (renderBufferData.inType) {
-                RenderBufferData.IN.GEOMETRY -> {
-                    val metaGeoShader = MetaGeoShader(shaderLibrary!!.getShaderHandle(renderBufferData.metaShaderPath))
-                    metaGeoShader.init()
-                    bufferHandles.add(RenderBufferHandle(renderBufferData, metaGeoShader))
-                }
-                RenderBufferData.IN.FULLSCREEN -> {
-                    val metaFSShader = MetaFullscreenShader(shaderLibrary!!.getShaderHandle(renderBufferData.metaShaderPath)!!)
-                    metaFSShader.init()
-                    bufferHandles.add(RenderBufferHandle(renderBufferData, metaFSShader))
-                }
-            }// TODO
+            bufferHandles.add(RenderBufferHandle(renderBufferData, assignShader(renderBufferData)))
         }
         println("Loaded <" + bufferHandles.size + "> buffers")
+    }
+
+    private fun assignShader(renderBufferData: RenderBufferData): MetaGLShader {
+        return when (renderBufferData.inType) {
+            RenderBufferData.IN.GEOMETRY -> {
+                val metaGeoShader = MetaGeoShader(shaderLibrary!!.getShaderHandle(renderBufferData.metaShaderPath))
+                metaGeoShader.init()
+                metaGeoShader
+            }
+            RenderBufferData.IN.FULLSCREEN -> {
+                val metaFSShader = MetaFullscreenShader(shaderLibrary!!.getShaderHandle(renderBufferData.metaShaderPath)!!)
+                metaFSShader.init()
+                metaFSShader
+            }
+        }
+    }
+
+    fun setType(handle: RenderBufferHandle, intype: RenderBufferData.IN) {
+        handle.data.inType = intype
+        handle.metaShader?.dispose()
+        handle.metaShader = assignShader(handle.data)
     }
 
     fun addBufferHandle(bufferHandle: RenderBufferHandle) {
@@ -58,5 +70,8 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
     fun removeBufferHandle(handle: RenderBufferHandle) {
         bufferHandles.removeValue(handle, true)
         data.renderBuffers.removeValue(handle.data, true)
+    }
+
+    fun setShader(handle: RenderBufferHandle, selected: GLShaderHandle?) {
     }
 }

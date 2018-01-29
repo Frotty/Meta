@@ -41,6 +41,9 @@ public class ShaderComposerWindow extends MetaWindow {
         super("Shader Composer", true, true);
         setupEmpty();
         shaderComposer.addListener(this::onRemoveBuffer);
+        shaderLibrary.addListener(() -> {
+            loadComposition(Objects.requireNonNull(shaderComposer.getCurrentComposition()));
+        });
     }
 
     private void setupEmpty() {
@@ -62,7 +65,7 @@ public class ShaderComposerWindow extends MetaWindow {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 ShaderComposition selectedComp = shaderComposer.getComposition(renderSelectbox.getSelected());
-                if(selectedComp != null && shaderComposer.getCurrentComposition() != selectedComp) {
+                if (selectedComp != null && shaderComposer.getCurrentComposition() != selectedComp) {
                     shaderComposer.setCurrentComposition(selectedComp);
                     loadComposition(selectedComp);
                 }
@@ -76,7 +79,7 @@ public class ShaderComposerWindow extends MetaWindow {
         getContentTable().add(bufferTable).colspan(3).grow();
 
         if (shaderComposer != null && shaderComposer.getCompositions().size > 0) {
-            for (int i=0; i < shaderComposer.getCompositions().size; i++) {
+            for (int i = 0; i < shaderComposer.getCompositions().size; i++) {
                 addComposition(shaderComposer.getCompositions().get(i));
             }
         }
@@ -118,18 +121,15 @@ public class ShaderComposerWindow extends MetaWindow {
         RenderBufferButton newButton = new RenderBufferButton(buffer);
         bufferTable.add(newButton).padRight(2);
         bufferTable.add(new MetaLabel(">", 14)).center().padRight(2);
-        bufferTable.pack();
     }
 
     public void addComposition(ShaderComposition shaderComposition) {
-        if (shaderComposition.getData() != null) {
-            Array<String> items = new Array<>(renderSelectbox.getItems());
-            items.add(shaderComposition.getData().getName());
-            renderSelectbox.setItems(items);
-            renderSelectbox.setSelected(shaderComposition.getData().getName());
+        Array<String> items = new Array<>(renderSelectbox.getItems());
+        items.add(shaderComposition.getData().getName());
+        renderSelectbox.setItems(items);
+        renderSelectbox.setSelected(shaderComposition.getData().getName());
 
-            loadComposition(shaderComposition);
-        }
+        loadComposition(shaderComposition);
     }
 
     private void loadComposition(ShaderComposition shaderComposition) {
