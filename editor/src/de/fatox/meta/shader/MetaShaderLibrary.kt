@@ -29,10 +29,21 @@ class MetaShaderLibrary : MetaNotifier() {
     init {
         Meta.inject(this)
         projectManager.addOnLoadListener { evt ->
+            loadDefaultShader()
             loadProjectShaders()
             false
         }
         Gdx.app.postRunnable { this.loadProjectShaders() }
+    }
+
+    private fun loadDefaultShader() {
+        if (projectManager.currentProject != null) {
+            loadedShaders.clear()
+            metaShaders.clear()
+
+            loadShader(Gdx.files.internal("shaders/Default.msh"))
+        }
+        notifyListeners()
     }
 
     fun loadShader(shaderHandle: FileHandle): GLShaderHandle? {
@@ -59,6 +70,10 @@ class MetaShaderLibrary : MetaNotifier() {
 
     fun getLoadedShaders(): Array<GLShaderHandle> {
         return metaShaders
+    }
+
+    fun getFirstShader(): GLShaderHandle {
+        return metaShaders.first()
     }
 
     fun getShaderHandle(metaShaderPath: String): GLShaderHandle? {

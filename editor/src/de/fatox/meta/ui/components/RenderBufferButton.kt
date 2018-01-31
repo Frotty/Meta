@@ -36,11 +36,12 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
     private val inSelect = VisSelectBox<RenderBufferData.IN>()
     private val shaderSelect = VisSelectBox<GLShaderHandle>()
     private val depthCheckBox = VisCheckBox("depth", false)
+    lateinit var handle: RenderBufferHandle
+    var prevHandle: RenderBufferHandle? = null
 
-    private lateinit var handle: RenderBufferHandle
-
-    constructor(handle: RenderBufferHandle) : this("Pass", 11) {
+    constructor(handle: RenderBufferHandle, prevHandle: RenderBufferHandle?) : this("Pass", 11) {
         this.handle = handle
+        this.prevHandle = prevHandle
         Meta.inject(this)
 
         color = Color.GRAY
@@ -85,7 +86,13 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
         shaderSelect.selected = handle.metaShader?.shaderHandle
         depthCheckBox.isChecked = handle.data.hasDepth
 
+        setupUniforms()
+
         setupFooter()
+    }
+
+    private fun setupUniforms() {
+
     }
 
     private fun setupFooter() {

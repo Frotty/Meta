@@ -11,7 +11,7 @@ import de.fatox.meta.graphics.buffer.MRTFrameBuffer
 /**
  * Created by Frotty on 18.04.2017.
  */
-class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShader?) {
+class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShader) {
     private var mrtFrameBuffer: MRTFrameBuffer? = null
     private var frameBuffer: FrameBuffer? = null
 
@@ -21,8 +21,8 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
         mrtFrameBuffer?.dispose()
         frameBuffer?.dispose()
 
-        val targetsNum = metaShader?.shaderHandle?.targets?.size
-        if (targetsNum!! > 1) {
+        val targetsNum = metaShader.shaderHandle.targets.size
+        if (targetsNum > 1) {
             // MRT Shader
             mrtFrameBuffer = MRTFrameBuffer(width, height, targetsNum, data.hasDepth)
         } else {

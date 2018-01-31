@@ -100,7 +100,7 @@ class MetaShaderComposer : MetaNotifier() {
     }
 
     fun addRenderBuffer(data: RenderBufferData): RenderBufferHandle {
-        val bufferHandle = RenderBufferHandle(data, null)
+        val bufferHandle = RenderBufferHandle(data, MetaGeoShader(shaderLibrary.getFirstShader()))
         currentComposition?.let {
             currentComposition?.addBufferHandle(bufferHandle)
             saveComposition(it)
