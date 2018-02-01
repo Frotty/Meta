@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.Meta
 import de.fatox.meta.Primitives
-import de.fatox.meta.api.dao.RenderBufferData
+import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.graphics.Renderer
 import de.fatox.meta.api.ui.UIManager

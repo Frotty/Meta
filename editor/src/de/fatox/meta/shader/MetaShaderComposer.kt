@@ -5,8 +5,8 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
 import de.fatox.meta.Meta
-import de.fatox.meta.api.dao.MetaShaderCompData
-import de.fatox.meta.api.dao.RenderBufferData
+import de.fatox.meta.api.model.MetaShaderCompData
+import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.ui.UIManager
@@ -135,6 +135,15 @@ class MetaShaderComposer : MetaNotifier() {
         if (shaderLibrary.getShaderHandle(handle.data.metaShaderPath) != selected) {
             currentComposition?.let {
                 it.setShader(handle, selected)
+                saveComposition(it)
+            }
+        }
+    }
+
+    fun changeDepth(handle: RenderBufferHandle, selected: Boolean) {
+        if (handle.data.hasDepth != selected) {
+            currentComposition?.let {
+                handle.data.hasDepth = selected
                 saveComposition(it)
             }
         }

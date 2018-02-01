@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.Scaling
 import com.kotcrab.vis.ui.widget.VisImageButton
 import com.kotcrab.vis.ui.widget.VisSelectBox
 import com.kotcrab.vis.ui.widget.VisTable
-import de.fatox.meta.api.dao.RenderBufferData
+import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.injection.Inject
 import de.fatox.meta.injection.Singleton

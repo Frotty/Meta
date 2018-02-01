@@ -3,8 +3,8 @@ package de.fatox.meta.shader
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.Meta
-import de.fatox.meta.api.dao.MetaShaderCompData
-import de.fatox.meta.api.dao.RenderBufferData
+import de.fatox.meta.api.model.MetaShaderCompData
+import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.MetaGLShader
 import de.fatox.meta.api.graphics.RenderBufferHandle
@@ -15,7 +15,7 @@ import de.fatox.meta.injection.Inject
  */
 class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderCompData) {
     @Inject
-    private val shaderLibrary: MetaShaderLibrary? = null
+    private lateinit var shaderLibrary: MetaShaderLibrary
 
     val bufferHandles = Array<RenderBufferHandle>()
 
@@ -36,14 +36,19 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
     }
 
     private fun assignShader(renderBufferData: RenderBufferData): MetaGLShader {
+        var metaShaderHandle = shaderLibrary.getShaderHandle(renderBufferData.metaShaderPath)
+        if (metaShaderHandle == null) {
+            metaShaderHandle = shaderLibrary.getFirstShader()
+        }
         return when (renderBufferData.inType) {
             RenderBufferData.IN.GEOMETRY -> {
-                val metaGeoShader = MetaGeoShader(shaderLibrary!!.getShaderHandle(renderBufferData.metaShaderPath))
+                val metaGeoShader = MetaGeoShader(metaShaderHandle)
                 metaGeoShader.init()
                 metaGeoShader
             }
             RenderBufferData.IN.FULLSCREEN -> {
-                val metaFSShader = MetaFullscreenShader(shaderLibrary!!.getShaderHandle(renderBufferData.metaShaderPath)!!)
+                val shaderHandle = metaShaderHandle!!
+                val metaFSShader = MetaFullscreenShader(shaderHandle)
                 metaFSShader.init()
                 metaFSShader
             }

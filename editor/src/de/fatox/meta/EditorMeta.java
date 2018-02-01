@@ -1,7 +1,7 @@
 package de.fatox.meta;
 
 import com.badlogic.gdx.Gdx;
-import de.fatox.meta.api.dao.MetaAudioVideoData;
+import de.fatox.meta.api.model.MetaAudioVideoData;
 import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.graphics.model.MDXConverter;
 import de.fatox.meta.injection.Inject;

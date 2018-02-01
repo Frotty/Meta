@@ -1,4 +1,4 @@
-package de.fatox.meta.api.dao
+package de.fatox.meta.api.model
 
 /**
  * Holds the data of a single Buffer inside a shader composition

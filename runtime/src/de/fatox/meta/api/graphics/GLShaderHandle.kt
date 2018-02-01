@@ -2,8 +2,8 @@ package de.fatox.meta.api.graphics
 
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
-import de.fatox.meta.api.dao.GLShaderData
-import de.fatox.meta.api.dao.RenderTargetData
+import de.fatox.meta.api.model.GLShaderData
+import de.fatox.meta.api.model.RenderTargetData
 import java.io.BufferedReader
 import java.io.IOException
 import java.util.regex.Pattern

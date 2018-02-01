@@ -1,4 +1,4 @@
-package de.fatox.meta.api.dao
+package de.fatox.meta.api.model
 
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.util.StringUtil

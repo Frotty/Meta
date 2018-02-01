@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.utils.Array
-import de.fatox.meta.api.dao.RenderBufferData
+import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.graphics.buffer.MRTFrameBuffer
 
 /**
@@ -52,6 +52,7 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
         }
 
     private val singleArray = Array<Texture>(1)
+    init {singleArray.size = 1}
     private val emptyArray = Array<Texture>()
 
     val colorTextures: Array<Texture>

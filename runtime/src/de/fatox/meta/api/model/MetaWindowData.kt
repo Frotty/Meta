@@ -1,4 +1,4 @@
-package de.fatox.meta.api.dao
+package de.fatox.meta.api.model
 
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import de.fatox.meta.ui.windows.MetaDialog

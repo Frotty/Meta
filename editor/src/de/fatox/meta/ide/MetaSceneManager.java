@@ -4,7 +4,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Json;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.dao.MetaSceneData;
+import de.fatox.meta.api.model.MetaSceneData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.shader.MetaSceneHandle;
 import de.fatox.meta.shader.MetaShaderComposer;

@@ -6,7 +6,7 @@ import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
-import de.fatox.meta.api.dao.GLShaderData;
+import de.fatox.meta.api.model.GLShaderData;
 import de.fatox.meta.api.graphics.GLShaderHandle;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;

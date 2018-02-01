@@ -6,8 +6,8 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.Meta
-import de.fatox.meta.api.dao.GLShaderData
 import de.fatox.meta.api.graphics.GLShaderHandle
+import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.Inject
 import de.fatox.meta.injection.Singleton
@@ -29,6 +29,8 @@ class MetaShaderLibrary : MetaNotifier() {
     init {
         Meta.inject(this)
         projectManager.addOnLoadListener { evt ->
+            loadedShaders.clear()
+            metaShaders.clear()
             loadDefaultShader()
             loadProjectShaders()
             false
@@ -37,16 +39,13 @@ class MetaShaderLibrary : MetaNotifier() {
     }
 
     private fun loadDefaultShader() {
-        if (projectManager.currentProject != null) {
-            loadedShaders.clear()
-            metaShaders.clear()
-
-            loadShader(Gdx.files.internal("shaders/Default.msh"))
-        }
+        val internal = Gdx.files.internal("shaders/Default.msh")
+        val loadShader = loadShader(internal, false)
+        loadedShaders.put("shaders/Default.msh", loadShader)
         notifyListeners()
     }
 
-    fun loadShader(shaderHandle: FileHandle): GLShaderHandle? {
+    fun loadShader(shaderHandle: FileHandle, projectFile: Boolean): GLShaderHandle? {
         val shaderData = json.fromJson(GLShaderData::class.java, shaderHandle.readString())
         val projRoot = projectManager.currentProjectRoot
         val vertHandle = projRoot.child(shaderData.vertexFilePath)
@@ -54,15 +53,15 @@ class MetaShaderLibrary : MetaNotifier() {
         if (vertHandle.exists() && !vertHandle.isDirectory && fragHandle.exists() && !fragHandle.isDirectory) {
             val handle = GLShaderHandle(shaderHandle, vertHandle, fragHandle, shaderData)
             metaShaders.add(handle)
-            loadedShaders.put(projectManager.relativize(shaderHandle), handle)
+            loadedShaders.put(if (projectFile) projectManager.relativize(shaderHandle) else shaderHandle.path(), handle)
             return handle
         }
         return null
     }
 
     fun newShader(data: GLShaderData): GLShaderHandle? {
-        val newShaderHandle = projectManager.save(INTERNAL_SHADER_PATH + data.name + META_SHADER_SUFFIX, data)
-        val loadShader = loadShader(newShaderHandle)
+        val newShaderHandle = projectManager.save(INTERNAL_SHADER_PATH + "/" + data.name + META_SHADER_SUFFIX, data)
+        val loadShader = loadShader(newShaderHandle, true)
         notifyListeners()
         return loadShader
     }
@@ -84,13 +83,10 @@ class MetaShaderLibrary : MetaNotifier() {
 
     fun loadProjectShaders() {
         if (projectManager.currentProject != null) {
-            loadedShaders.clear()
-            metaShaders.clear()
-
             val shaderFolder = projectManager.currentProjectRoot.child(INTERNAL_SHADER_PATH)
             if (shaderFolder.exists()) {
                 for (metaShaderDef in shaderFolder.list { pathname -> pathname.name.endsWith(META_SHADER_SUFFIX) }) {
-                    loadShader(metaShaderDef)
+                    loadShader(metaShaderDef, true)
                 }
             }
         }
@@ -98,7 +94,7 @@ class MetaShaderLibrary : MetaNotifier() {
     }
 
     companion object {
-        private val META_SHADER_SUFFIX = ".msh"
-        private val INTERNAL_SHADER_PATH = "meta/shaders"
+        private const val META_SHADER_SUFFIX = ".msh"
+        private const val INTERNAL_SHADER_PATH = "meta/shaders"
     }
 }

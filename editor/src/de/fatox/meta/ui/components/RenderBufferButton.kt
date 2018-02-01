@@ -10,9 +10,9 @@ import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.*
 import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.api.dao.RenderBufferData
-import de.fatox.meta.api.dao.RenderBufferData.IN.FULLSCREEN
-import de.fatox.meta.api.dao.RenderBufferData.IN.GEOMETRY
+import de.fatox.meta.api.model.RenderBufferData
+import de.fatox.meta.api.model.RenderBufferData.IN.FULLSCREEN
+import de.fatox.meta.api.model.RenderBufferData.IN.GEOMETRY
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.injection.Inject
@@ -54,6 +54,11 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
         shaderSelect.items = shaderLibrary.getLoadedShaders()
         shaderSelect.addListener({
             shaderComposer.changeShader(handle, shaderSelect.selected)
+            return@addListener true
+        })
+
+        depthCheckBox.addListener({
+            shaderComposer.changeDepth(handle, depthCheckBox.isChecked)
             return@addListener true
         })
 

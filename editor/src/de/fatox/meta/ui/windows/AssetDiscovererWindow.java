@@ -8,7 +8,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Scaling;
 import com.kotcrab.vis.ui.widget.*;
 import de.fatox.meta.api.AssetProvider;
-import de.fatox.meta.api.dao.AssetDiscovererData;
+import de.fatox.meta.api.model.AssetDiscovererData;
 import de.fatox.meta.ide.AssetDiscoverer;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;

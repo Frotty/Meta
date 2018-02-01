@@ -8,7 +8,7 @@ import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.toast.ToastTable;
 import de.fatox.meta.Meta;
 import de.fatox.meta.assets.MetaData;
-import de.fatox.meta.api.dao.MetaProjectData;
+import de.fatox.meta.api.model.MetaProjectData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Singleton;

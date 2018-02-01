@@ -2,7 +2,7 @@ package de.fatox.meta.ide;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.EventListener;
-import de.fatox.meta.api.dao.MetaProjectData;
+import de.fatox.meta.api.model.MetaProjectData;
 
 public interface ProjectManager {
 

@@ -1,4 +1,4 @@
-package de.fatox.meta.api.dao
+package de.fatox.meta.api.model
 
 /**
  * Created by Frotty on 13.04.2017.
