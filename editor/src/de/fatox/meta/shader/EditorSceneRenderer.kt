@@ -13,9 +13,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.Meta
 import de.fatox.meta.Primitives
-import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.graphics.Renderer
+import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.graphics.renderer.FullscreenQuad
@@ -76,15 +76,15 @@ class EditorSceneRenderer : Renderer {
                         modelBatch.render(staticModelCache, bufferHandle.metaShader)
                         modelBatch.end()
                     } else {
-                        bufferHandle.metaShader?.begin(cam, renderContext)
-                        fsquad.render(bufferHandle.metaShader?.shaderProgram)
-                        bufferHandle.metaShader?.end()
+                        bufferHandle.metaShader.begin(cam, renderContext)
+                        fsquad.render(bufferHandle.metaShader.shaderProgram)
+                        bufferHandle.metaShader.end()
                     }
 
                     bufferHandle.end(x, y)
                     renderContext.end()
                 }
-
+                Gdx.gl20.glViewport(x.toInt(), y.toInt(), cam.viewportWidth.toInt(), cam.viewportHeight.toInt())
                 renderContext.begin()
 
                 modelBatch.begin(cam)
@@ -93,6 +93,7 @@ class EditorSceneRenderer : Renderer {
                 renderContext.end()
 
                 debugAll(x, y, bufferHandles)
+                Gdx.gl20.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
             }
         }
 
@@ -103,7 +104,7 @@ class EditorSceneRenderer : Renderer {
         batch.begin()
         var debugScreens = 1f
         bufferHandles.forEach({
-            debugScreens += it.colorTextures.size
+            debugScreens += if (it.colorTextures.size == 0) 1 else it.colorTextures.size
         })
 
         var count = 0
@@ -149,7 +150,7 @@ class EditorSceneRenderer : Renderer {
     private fun resizeCam(width: Int, height: Int) {
         cam.viewportWidth = width.toFloat()
         cam.viewportHeight = height.toFloat()
-        cam.update()
+        cam.update(true)
     }
 
     override fun rebuildCache() {

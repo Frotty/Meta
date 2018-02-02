@@ -35,6 +35,8 @@ public class SceneTab extends MetaTab {
         this.metaSceneHandle = sceneHandle;
         table = new VisTable();
         table.add(new SceneWidget(metaSceneHandle)).grow();
+        table.invalidate();
+        table.debugAll();
     }
 
     @Override

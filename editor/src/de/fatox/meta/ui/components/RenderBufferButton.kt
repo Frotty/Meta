@@ -1,20 +1,22 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
 import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.*
 import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.graphics.GLShaderHandle
+import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.model.RenderBufferData.IN.FULLSCREEN
 import de.fatox.meta.api.model.RenderBufferData.IN.GEOMETRY
-import de.fatox.meta.api.graphics.GLShaderHandle
-import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.injection.Inject
 import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
@@ -47,19 +49,22 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
         color = Color.GRAY
         pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20)
         inSelect.setItems(GEOMETRY, FULLSCREEN)
-        inSelect.addListener({
-            shaderComposer.setType(handle, inSelect.selected)
-            return@addListener true
+        inSelect.addListener(object : ChangeListener() {
+            override fun changed(event: ChangeEvent, actor: Actor) {
+                shaderComposer.setType(handle, inSelect.selected)
+            }
         })
         shaderSelect.items = shaderLibrary.getLoadedShaders()
-        shaderSelect.addListener({
-            shaderComposer.changeShader(handle, shaderSelect.selected)
-            return@addListener true
+        shaderSelect.addListener(object : ChangeListener() {
+            override fun changed(event: ChangeEvent, actor: Actor) {
+                shaderComposer.changeShader(handle, shaderSelect.selected)
+            }
         })
 
-        depthCheckBox.addListener({
-            shaderComposer.changeDepth(handle, depthCheckBox.isChecked)
-            return@addListener true
+        depthCheckBox.addListener(object : ChangeListener() {
+            override fun changed(event: ChangeEvent, actor: Actor) {
+                shaderComposer.changeDepth(handle, depthCheckBox.isChecked)
+            }
         })
 
         nameLabel
@@ -88,7 +93,7 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
         row().padTop(2f)
 
         inSelect.selected = handle.data.inType
-        shaderSelect.selected = handle.metaShader?.shaderHandle
+        shaderSelect.selected = handle.metaShader.shaderHandle
         depthCheckBox.isChecked = handle.data.hasDepth
 
         setupUniforms()

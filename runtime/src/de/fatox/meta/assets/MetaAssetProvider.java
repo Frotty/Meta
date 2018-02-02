@@ -44,7 +44,7 @@ public class MetaAssetProvider implements AssetProvider {
     public <T> void load(String name, Class<T> type) {
         if (type == Model.class) {
             assetManager.load(name, Model.class, defaultModelParam);
-        } if (type == Texture.class) {
+        } else if (type == Texture.class && !name.contains("ui")) {
             assetManager.load(name, Texture.class, defaultTexParam);
         } else {
             assetManager.load(name, type);

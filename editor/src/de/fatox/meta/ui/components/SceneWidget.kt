@@ -21,7 +21,6 @@ class SceneWidget(sceneHandle: MetaSceneHandle) : Widget() {
     }
 
     override fun layout() {
-        invalidate()
         renderer.rebuild(width.toInt(), height.toInt())
     }
 

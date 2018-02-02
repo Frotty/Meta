@@ -127,6 +127,7 @@ public class MetaUiManager implements UIManager {
             add.growX();
         if (gy)
             add.growY();
+        contentTable.invalidate();
     }
 
     /**

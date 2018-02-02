@@ -3,11 +3,12 @@ package de.fatox.meta.shader
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.Meta
-import de.fatox.meta.api.model.MetaShaderCompData
-import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.MetaGLShader
 import de.fatox.meta.api.graphics.RenderBufferHandle
+import de.fatox.meta.api.model.MetaShaderCompData
+import de.fatox.meta.api.model.RenderBufferData
+import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.Inject
 
 /**
@@ -16,6 +17,8 @@ import de.fatox.meta.injection.Inject
 class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderCompData) {
     @Inject
     private lateinit var shaderLibrary: MetaShaderLibrary
+    @Inject
+    private lateinit var projectManager: ProjectManager
 
     val bufferHandles = Array<RenderBufferHandle>()
 
@@ -57,7 +60,7 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
 
     fun setType(handle: RenderBufferHandle, intype: RenderBufferData.IN) {
         handle.data.inType = intype
-        handle.metaShader?.dispose()
+        handle.metaShader.dispose()
         handle.metaShader = assignShader(handle.data)
     }
 
@@ -77,6 +80,9 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
         data.renderBuffers.removeValue(handle.data, true)
     }
 
-    fun setShader(handle: RenderBufferHandle, selected: GLShaderHandle?) {
+    fun setShader(handle: RenderBufferHandle, selected: GLShaderHandle) {
+        handle.data.metaShaderPath = projectManager.relativize(selected.shaderHandle)
+        handle.metaShader.dispose()
+        handle.metaShader = assignShader(handle.data)
     }
 }
