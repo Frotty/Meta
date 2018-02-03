@@ -67,9 +67,8 @@ class EditorSceneRenderer : Renderer {
                 uiManager.addTable(table, true, true)
             } else {
                 val bufferHandles = sceneHandle?.shaderComposition?.bufferHandles
-                var i = 0
-
-                for (bufferHandle in bufferHandles!!) {
+                Gdx.gl20.glViewport(x.toInt(), y.toInt(), cam.viewportWidth.toInt(), cam.viewportHeight.toInt())
+                for ((i, bufferHandle) in bufferHandles!!.withIndex()) {
                     renderContext.begin()
                     bufferHandle.begin()
                     Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
@@ -88,24 +87,31 @@ class EditorSceneRenderer : Renderer {
                     renderContext.end()
                     var j = 0
                     bufferHandle.colorTextures.forEach({
-                        UniformAssignments.customAssignments.put("s_pass${i}_$j", { program, cam, context, renderable ->
-                            if(program.hasUniform("s_pass${i}_$j")) {
-                                program.setUniformi("s_pass${i}_$j", context.textureBinder.bind(it))
-                            }
+                        val name = "s_pass${i}_$j"
+                        UniformAssignments.customAssignments.put(name, { prog, cam, context, renderable ->
+                            prog.setUniformi(name, context.textureBinder.bind(it))
                         })
                         j++
                     })
 
-                    i++
                 }
-                UniformAssignments.customAssignments.clear()
-                Gdx.gl20.glViewport(x.toInt(), y.toInt(), cam.viewportWidth.toInt(), cam.viewportHeight.toInt())
+
+
+
                 renderContext.begin()
 
-                modelBatch.begin(cam)
-                modelBatch.render(staticModelCache, sceneHandle?.shaderComposition?.outputBuffer?.metaShader)
-                modelBatch.end()
+                if (sceneHandle?.shaderComposition?.outputBuffer?.data?.inType === RenderBufferData.IN.GEOMETRY) {
+                    modelBatch.begin(cam)
+                    modelBatch.render(staticModelCache, sceneHandle?.shaderComposition?.outputBuffer?.metaShader)
+                    modelBatch.end()
+                } else {
+                    sceneHandle?.shaderComposition?.outputBuffer?.metaShader?.begin(cam, renderContext)
+                    fsquad.render(sceneHandle?.shaderComposition?.outputBuffer?.metaShader?.shaderProgram)
+                    sceneHandle?.shaderComposition?.outputBuffer?.metaShader?.end()
+                }
+
                 renderContext.end()
+                UniformAssignments.customAssignments.clear()
 
                 debugAll(x, y, bufferHandles)
                 Gdx.gl20.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)

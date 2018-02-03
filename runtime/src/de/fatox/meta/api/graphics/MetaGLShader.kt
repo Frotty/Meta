@@ -23,9 +23,10 @@ abstract class MetaGLShader(var shaderHandle: GLShaderHandle) : Shader {
         if (!shaderProgram.isCompiled) {
             metaErrorHandler.add(object : MetaError("Shader compilation failed", "") {
                 override fun gotoError() {
-                    // TODO
+
                 }
             })
+            throw RuntimeException()
         }
     }
 
