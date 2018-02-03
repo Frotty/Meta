@@ -91,7 +91,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
             }
         })
         addButton!!.image.setAlign(Align.center)
-        bufferTable!!.add<VisImageButton>(addButton).size(175f, 128f).left()
+        bufferTable!!.add<VisImageButton>(addButton).size(175f, 168f).left()
     }
 
     private fun onAddBuffer() {
@@ -113,6 +113,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
         val newButton = RenderBufferButton(buffer, if (handles.size > 0) handles.peek() else null)
         bufferTable!!.add<RenderBufferButton>(newButton).padRight(2f)
         bufferTable!!.add(MetaLabel(">", 14)).center().padRight(2f)
+
     }
 
     fun addComposition(shaderComposition: ShaderComposition) {

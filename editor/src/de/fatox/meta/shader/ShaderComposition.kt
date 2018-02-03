@@ -50,8 +50,7 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
                 metaGeoShader
             }
             RenderBufferData.IN.FULLSCREEN -> {
-                val shaderHandle = metaShaderHandle!!
-                val metaFSShader = MetaFullscreenShader(shaderHandle)
+                val metaFSShader = MetaFullscreenShader(metaShaderHandle)
                 metaFSShader.init()
                 metaFSShader
             }

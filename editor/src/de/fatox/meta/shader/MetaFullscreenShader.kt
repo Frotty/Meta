@@ -24,7 +24,6 @@ class MetaFullscreenShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHa
     }
 
     override fun render(renderable: Renderable?) {
-
     }
 
     override fun compareTo(other: Shader): Int {
@@ -37,9 +36,7 @@ class MetaFullscreenShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHa
 
     override fun begin(camera: Camera, context: RenderContext) {
         shaderProgram.begin()
-        shaderProgram.uniforms.forEach {
-
-        }
+        UniformAssignments.assignCustomUniforms(shaderProgram, camera, context, null)
         shaderProgram.setUniformf(u_nearDistance, camera.near)
         shaderProgram.setUniformf(u_farDistance, camera.far)
 //        shaderProgram?.setUniformMatrix("u_invProjTrans", camera.invProjectionView)

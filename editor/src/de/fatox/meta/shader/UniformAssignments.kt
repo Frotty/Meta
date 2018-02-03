@@ -2,6 +2,7 @@ package de.fatox.meta.shader
 
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.graphics.g3d.Renderable
+import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.Matrix3
 import com.badlogic.gdx.math.Matrix4
@@ -9,8 +10,17 @@ import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.ObjectMap
 
 object UniformAssignments {
-    private val beginAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera) -> Unit>()
-    private val renderableAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera, renderable: Renderable) -> Unit>()
+    val beginAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera) -> Unit>()
+    val renderableAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera, renderable: Renderable) -> Unit>()
+    val customAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable?) -> Unit>()
+
+    fun assignCustomUniforms(program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable?) {
+        customAssignments.forEach {
+            if (program.hasUniform(it.key)) {
+                it.value.invoke(program, cam, context, renderable)
+            }
+        }
+    }
 
     fun assignCameraUniforms(program: ShaderProgram, cam: Camera) {
         beginAssignments.forEach {
@@ -35,8 +45,8 @@ object UniformAssignments {
 
         renderableAssignments.put("u_worldTrans", { program, _, renderable -> program.setUniformMatrix("u_worldTrans", renderable.worldTransform) })
         renderableAssignments.put("u_normalTrans", { program, _, renderable ->
-                tmpM3.set(renderable.worldTransform).inv().transpose()
-                program.setUniformMatrix("u_normalTrans", tmpM3)
+            tmpM3.set(renderable.worldTransform).inv().transpose()
+            program.setUniformMatrix("u_normalTrans", tmpM3)
         })
 
         renderableAssignments.put("u_mvpTrans", { program, camera, renderable ->

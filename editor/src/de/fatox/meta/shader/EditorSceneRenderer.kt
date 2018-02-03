@@ -59,6 +59,7 @@ class EditorSceneRenderer : Renderer {
     }
 
     override fun render(x: Float, y: Float) {
+
         if (sceneHandle != null) {
             if (sceneHandle?.shaderComposition == null) {
                 val table = Table()
@@ -66,6 +67,8 @@ class EditorSceneRenderer : Renderer {
                 uiManager.addTable(table, true, true)
             } else {
                 val bufferHandles = sceneHandle?.shaderComposition?.bufferHandles
+                var i = 0
+
                 for (bufferHandle in bufferHandles!!) {
                     renderContext.begin()
                     bufferHandle.begin()
@@ -83,7 +86,19 @@ class EditorSceneRenderer : Renderer {
 
                     bufferHandle.end(x, y)
                     renderContext.end()
+                    var j = 0
+                    bufferHandle.colorTextures.forEach({
+                        UniformAssignments.customAssignments.put("s_pass${i}_$j", { program, cam, context, renderable ->
+                            if(program.hasUniform("s_pass${i}_$j")) {
+                                program.setUniformi("s_pass${i}_$j", context.textureBinder.bind(it))
+                            }
+                        })
+                        j++
+                    })
+
+                    i++
                 }
+                UniformAssignments.customAssignments.clear()
                 Gdx.gl20.glViewport(x.toInt(), y.toInt(), cam.viewportWidth.toInt(), cam.viewportHeight.toInt())
                 renderContext.begin()
 
