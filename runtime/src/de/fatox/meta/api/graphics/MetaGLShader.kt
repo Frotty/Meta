@@ -16,15 +16,11 @@ import de.fatox.meta.error.MetaErrorHandler
 abstract class MetaGLShader(var shaderHandle: GLShaderHandle) : Shader {
     private val metaErrorHandler = MetaErrorHandler()
 
-    var shaderProgram: ShaderProgram? = null
+    var shaderProgram: ShaderProgram = ShaderProgram(shaderHandle.vertexHandle, shaderHandle.fragmentHandle)
 
     init {
         Meta.inject(this)
-    }
-
-    override fun init() {
-        shaderProgram = ShaderProgram(shaderHandle.vertexHandle, shaderHandle.fragmentHandle)
-        if (!shaderProgram?.isCompiled!!) {
+        if (!shaderProgram.isCompiled) {
             metaErrorHandler.add(object : MetaError("Shader compilation failed", "") {
                 override fun gotoError() {
                     // TODO
@@ -38,15 +34,15 @@ abstract class MetaGLShader(var shaderHandle: GLShaderHandle) : Shader {
     }
 
     override fun canRender(instance: Renderable): Boolean {
-        return shaderProgram != null
+        return true
     }
 
     override fun end() {
-        shaderProgram?.end()
+        shaderProgram.end()
     }
 
     override fun dispose() {
-        shaderProgram?.dispose()
+        shaderProgram.dispose()
     }
 
     override fun toString(): String {

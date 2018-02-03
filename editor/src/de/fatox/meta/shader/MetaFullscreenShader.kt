@@ -10,6 +10,8 @@ import de.fatox.meta.api.graphics.MetaGLShader
 
 /**
  * Created by Frotty on 20.05.2016.
+ *
+ * Fullscreen Shader (for fullscreen option, renders to fsquad)
  */
 class MetaFullscreenShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHandle) {
     private val s_albedoTex: Int = 0
@@ -19,7 +21,6 @@ class MetaFullscreenShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHa
     private val temp = Matrix4()
 
     override fun init() {
-        super.init()
         //        s_albedoTex = program.getUniformLocation("s_albedoTex");
     }
 
@@ -36,19 +37,19 @@ class MetaFullscreenShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHa
     }
 
     override fun begin(camera: Camera, context: RenderContext) {
-        shaderProgram?.begin()
-        shaderProgram?.setUniformf(u_nearDistance, camera.near)
-        shaderProgram?.setUniformf(u_farDistance, camera.far)
+        shaderProgram.begin()
+        shaderProgram.setUniformf(u_nearDistance, camera.near)
+        shaderProgram.setUniformf(u_farDistance, camera.far)
 //        shaderProgram?.setUniformMatrix("u_invProjTrans", camera.invProjectionView)
 //        shaderProgram?.setUniformMatrix("u_projTrans", camera.projection)
     }
 
 
     override fun end() {
-        shaderProgram!!.end()
+        shaderProgram.end()
     }
 
     override fun dispose() {
-        shaderProgram?.dispose()
+        shaderProgram.dispose()
     }
 }

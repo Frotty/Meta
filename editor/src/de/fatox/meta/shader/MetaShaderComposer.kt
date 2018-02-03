@@ -41,7 +41,7 @@ class MetaShaderComposer : MetaNotifier() {
 
     init {
         Meta.inject(this)
-        projectManager.addOnLoadListener { evt ->
+        projectManager.addOnLoadListener {
             loadProjectCompositions()
             false
         }
