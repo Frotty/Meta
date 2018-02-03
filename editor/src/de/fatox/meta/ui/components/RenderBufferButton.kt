@@ -96,13 +96,21 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
         shaderSelect.selected = handle.metaShader.shaderHandle
         depthCheckBox.isChecked = handle.data.hasDepth
 
+        row()
+
         setupUniforms()
 
         setupFooter()
     }
 
     private fun setupUniforms() {
+        val table = Table()
+        table.center()
+        table.add(VisLabel("Uniforms"))
+        table.row()
 
+        add(table).colspan(2)
+        row()
     }
 
     private fun setupFooter() {
