@@ -52,7 +52,7 @@
 			"textures": [
 				{
 					"id": "texmap0", 
-					"filename": "white.png",
+					"filename": "crates_d.png",
 					"type": "DIFFUSE"
 				}
 			]
