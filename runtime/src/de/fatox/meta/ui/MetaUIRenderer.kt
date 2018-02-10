@@ -18,6 +18,7 @@ import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.Inject
 import de.fatox.meta.injection.Log
+import de.fatox.meta.injection.Named
 import de.fatox.meta.input.MetaInput
 
 class MetaUIRenderer : UIRenderer {
@@ -28,13 +29,20 @@ class MetaUIRenderer : UIRenderer {
     private lateinit var metaInput: MetaInput
     @Inject
     private lateinit var fontProvider: FontProvider
+    @Inject
+    @Named("visuiSkin")
+    private lateinit var skinFile: String
 
     private val stage: Stage
 
     init {
         Meta.inject(this)
         log.debug(TAG, "Injected MetaUi")
-        VisUI.load()
+        if(skinFile != "") {
+            VisUI.load(skinFile)
+        } else {
+            VisUI.load()
+        }
         FileChooser.setDefaultPrefsName("de.fatox.meta")
         log.debug(TAG, "Loaded VisUi")
         VisUI.setDefaultTitleAlign(Align.center)
