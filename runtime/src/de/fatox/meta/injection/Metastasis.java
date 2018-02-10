@@ -65,12 +65,15 @@ public class Metastasis {
         for (Object[] f : injectFields.get(target.getClass())) {
             Field field = (Field) f[0];
             Key key = (Key) f[2];
-            Key key2 = Key.of(field.getType(), "default");
+            Key key2 = Key.of(field.getType(), field.getName());
+            Key key3 = Key.of(field.getType(), "default");
             try {
                 if (providers.containsKey(key)) {
                     field.set(target, providers.get(key).get());
                 } else if (providers.containsKey(key2)) {
                     field.set(target, providers.get(key2).get());
+                } else if (providers.containsKey(key3)) {
+                    field.set(target, providers.get(key3).get());
                 } else {
                     throw new MetastasisException(String.format("Can't inject field %s in %s because there is no provider defined for the type", field
                             .getName(), target.getClass().getName()));

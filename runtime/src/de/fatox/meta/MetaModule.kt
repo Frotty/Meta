@@ -30,6 +30,12 @@ import de.fatox.meta.ui.UiControlHelper
 class MetaModule {
 
     @Provides
+    @Named("visuiSkin")
+    fun visuiSkin(): String {
+        return ""
+    }
+
+    @Provides
     @Singleton
     fun metaSoundPlayer(): MetaSoundPlayer {
         return MetaSoundPlayer()

@@ -31,15 +31,15 @@ class MetaUIRenderer : UIRenderer {
     private lateinit var fontProvider: FontProvider
     @Inject
     @Named("visuiSkin")
-    private lateinit var skinFile: String
+    private lateinit var visuiSkin: String
 
     private val stage: Stage
 
     init {
         Meta.inject(this)
         log.debug(TAG, "Injected MetaUi")
-        if(skinFile != "") {
-            VisUI.load(skinFile)
+        if(visuiSkin != "") {
+            VisUI.load(visuiSkin)
         } else {
             VisUI.load()
         }
