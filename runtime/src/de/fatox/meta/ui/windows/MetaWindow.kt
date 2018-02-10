@@ -33,7 +33,8 @@ abstract class MetaWindow @JvmOverloads constructor(title: String, resizable: Bo
     protected lateinit var assetProvider: AssetProvider
     @Inject
     protected lateinit var metaData: MetaData
-    protected var contentTable: Table = VisTable()
+
+    var contentTable: Table = VisTable()
 
     private var startDrag = false
 

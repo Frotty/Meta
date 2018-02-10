@@ -24,7 +24,7 @@ class UiControlHelper {
 
     private var selectedActor: Actor? = null
     private val selectedColor = Color.WHITE.cpy()
-    private val activated = true
+    var activated = true
 
     private var targets = Array<Actor>()
 
