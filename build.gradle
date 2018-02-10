@@ -15,7 +15,7 @@ allprojects {
     version = '1.0'
     ext {
         appName = "Meta"
-        gdxVersion = '1.9.8'
+        gdxVersion = '1.9.9-SNAPSHOT'
         roboVMVersion = '1.12.0'
         aiVersion = '1.8.0'
         visuiVersion = '1.4.1-SNAPSHOT'
@@ -36,8 +36,10 @@ project(":desktop") {
         compile project(":runtime")
         compile "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+        compile "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
         compile "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-controllers-platform:$gdxVersion:natives-desktop"
+        testCompile "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
         testCompile "junit:junit:4.11"
 
     }

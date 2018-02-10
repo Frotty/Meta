@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
+import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.Separator
 import com.kotcrab.vis.ui.widget.VisImageButton
 import com.kotcrab.vis.ui.widget.VisTable
@@ -109,6 +110,13 @@ abstract class MetaWindow @JvmOverloads constructor(title: String, resizable: Bo
         super.setVisible(visible)
         setColor(1f, 1f, 1f, 0f)
         addAction(Actions.alpha(0.9f, 0.75f))
+    }
+
+    override fun setResizable(isResizable: Boolean) {
+        super.setResizable(isResizable)
+        if(VisUI.getSkin().has("resizeable", WindowStyle::class.java)) {
+            style = VisUI.getSkin().get(if (isResizable) "resizeable" else "default", WindowStyle::class.java)
+        }
     }
 
     public override fun close() {

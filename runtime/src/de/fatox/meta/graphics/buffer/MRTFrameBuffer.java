@@ -1,16 +1,12 @@
 package de.fatox.meta.graphics.buffer;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.GLFrameBuffer;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.Disposable;
-
-import java.nio.IntBuffer;
 
 public class MRTFrameBuffer implements Disposable {
     private FrameBuffer frameBuffer;
@@ -27,8 +23,6 @@ public class MRTFrameBuffer implements Disposable {
     }
 
     private void build(int numTextures, boolean hasDepth) {
-        GL20 gl = Gdx.gl20;
-
         GLFrameBuffer.FrameBufferBuilder frameBufferBuilder = new GLFrameBuffer.FrameBufferBuilder(width, height);
         for (int i = 0; i < numTextures; i++) {
             frameBufferBuilder.addColorTextureAttachment(GL30.GL_RGBA8, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE);
@@ -37,16 +31,6 @@ public class MRTFrameBuffer implements Disposable {
             frameBufferBuilder.addDepthTextureAttachment(GL30.GL_DEPTH_COMPONENT32F, GL30.GL_FLOAT);
         }
         frameBuffer = frameBufferBuilder.build();
-        IntBuffer buffer = BufferUtils.newIntBuffer(numTextures);
-        for (int i = 0; i < numTextures; i++) {
-            buffer.put(GL30.GL_COLOR_ATTACHMENT0 + i);
-        }
-        buffer.position(0);
-        Gdx.gl30.glDrawBuffers(numTextures, buffer);
-
-        gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, 0);
-        gl.glBindTexture(GL20.GL_TEXTURE_2D, 0);
-
     }
 
     /** Releases all resources associated with the FrameBuffer. */
