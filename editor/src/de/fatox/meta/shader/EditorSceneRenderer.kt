@@ -97,7 +97,7 @@ class EditorSceneRenderer : Renderer {
                 }
 
                 renderContext.begin()
-                Gdx.gl20.glViewport(0,0, cam.viewportWidth.toInt(), cam.viewportHeight.toInt())
+                Gdx.gl20.glViewport(0, 0, cam.viewportWidth.toInt(), cam.viewportHeight.toInt())
                 if (sceneHandle?.shaderComposition?.outputBuffer?.data?.inType === RenderBufferData.IN.GEOMETRY) {
                     modelBatch.begin(cam)
                     modelBatch.render(staticModelCache, sceneHandle?.shaderComposition?.outputBuffer?.metaShader)
@@ -127,12 +127,13 @@ class EditorSceneRenderer : Renderer {
         })
 
         var count = 0
+
         for (bufferHandle in bufferHandles) {
             val height = bufferHandle.height
             val width = bufferHandle.width
             val colorTextures = bufferHandle.colorTextures
             for (texture in colorTextures) {
-                val fl = 3.75f
+                val fl = 0.75f
                 batch.draw(texture, x + width / debugScreens * count.toFloat() * fl, y, width / debugScreens * fl, height / debugScreens * fl, 0f, 0f, 1f, 1f)
                 count++
             }

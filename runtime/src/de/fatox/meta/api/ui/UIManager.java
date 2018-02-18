@@ -2,6 +2,7 @@ package de.fatox.meta.api.ui;
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
+import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import de.fatox.meta.ui.windows.MetaDialog;
 
@@ -30,7 +31,7 @@ public interface UIManager {
 
     void setMainMenuBar(MenuBar menuBar);
 
-    <T extends Window> T  getWindow(Class<? extends T> windowClass);
+    <T extends Window> T getWindow(Class<? extends T> windowClass);
 
     void closeWindow(Window window);
 
@@ -43,4 +44,6 @@ public interface UIManager {
     <T> T metaGet(String name, Class<T> c);
 
     void metaSave(String name, Object windowData);
+
+    Array<Window> getCurrentlyActiveWindows();
 }

@@ -300,4 +300,13 @@ public class MetaUiManager implements UIManager {
             metaData.save(id, windowData);
         }
     }
+
+    Array<Window> copy = new Array<>();
+
+    @Override
+    public Array<Window> getCurrentlyActiveWindows() {
+        copy.clear();
+        copy.addAll(displayedWindows);
+        return copy;
+    }
 }

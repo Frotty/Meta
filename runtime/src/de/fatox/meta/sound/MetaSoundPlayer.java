@@ -11,9 +11,9 @@ import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.model.MetaAudioVideoData;
-import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.assets.MetaAssetProvider;
+import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Log;
 
@@ -65,6 +65,7 @@ public class MetaSoundPlayer {
         // Play or loop sound
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
         float volume = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
+        System.out.println("volume: " + volume);
         long id = soundDefinition.isLooping() ? soundDefinition.getSound().loop(volume, 1, 0) : soundDefinition.getSound().play(volume, 1, 0);
 
         MetaSoundHandle soundHandle = new MetaSoundHandle(soundDefinition, id);
