@@ -30,9 +30,9 @@ public class MetaSoundHandle {
     private Vector2 soundPos;
 
     private long startTime;
+
     private boolean done = false;
     private boolean playing = true;
-
 
     public MetaSoundHandle(MetaSoundDefinition definition, long id) {
         this.definition = definition;
@@ -44,6 +44,10 @@ public class MetaSoundHandle {
         }
         Meta.inject(this);
         audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
+    }
+
+    public long getStartTime() {
+        return startTime;
     }
 
     public void calculateVolPitchPan(Vector2 listenerPos) {

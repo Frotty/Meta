@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
+import com.badlogic.gdx.utils.TimeUtils;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.model.MetaAudioVideoData;
@@ -53,7 +54,7 @@ public class MetaSoundPlayer {
 
         Array<MetaSoundHandle> handleList = playingHandles.get(soundDefinition);
         cleanupHandles(handleList);
-        if (handleList.size >= soundDefinition.maxInstances) {
+        if (handleList.first().getStartTime() + 250 >= TimeUtils.millis()) {
             return null;
         }
 
