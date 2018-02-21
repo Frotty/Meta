@@ -55,13 +55,14 @@ public class MetaMusicPlayer {
                 startMusic(nextMusic);
             }
         }
-
-        if (currentMusic.getVolume() < startVolume) {
-            finishMusic();
-        } else {
-            fadeInOut(volume);
-            if (currentMusic.getVolume() > volume) {
-                currentMusic.setVolume(volume);
+        if(currentMusic != null) {
+            if (currentMusic.getVolume() < startVolume) {
+                finishMusic();
+            } else {
+                fadeInOut(volume);
+                if (currentMusic.getVolume() > volume) {
+                    currentMusic.setVolume(volume);
+                }
             }
         }
     }

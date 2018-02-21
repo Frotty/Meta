@@ -16,10 +16,12 @@ public class MetaData {
     static class CacheObj<T> {
         T obj;
         long created = TimeUtils.millis();
+
         public CacheObj(T obj) {
             this.obj = obj;
         }
     }
+
     public static final String GLOBAL_DATA_FOLDER_NAME = "./.meta/";
 
     private ObjectMap<String, FileHandle> fileHandleCache = new ObjectMap<>();
@@ -37,6 +39,9 @@ public class MetaData {
         FileHandle fileHandle = getCachedHandle(target, key);
 
         fileHandle.writeBytes(jsonString.getBytes(), false);
+        CacheObj cacheObj = jsonCache.get(key);
+        cacheObj.created = TimeUtils.millis();
+        cacheObj.obj = obj;
         return fileHandle;
     }
 
@@ -59,8 +64,10 @@ public class MetaData {
         T jsonHandle;
         if (jsonCache.containsKey(key)) {
             CacheObj<T> cacheObj = (CacheObj<T>) jsonCache.get(key);
-            if (cacheObj.created < getCachedHandle(parent, key).lastModified()) {
+            long lastModified = getCachedHandle(parent, key).lastModified();
+            if (cacheObj.created < lastModified) {
                 cacheObj.obj = json.fromJson(type, getCachedHandle(parent, key));
+                cacheObj.created = lastModified;
             }
             jsonHandle = cacheObj.obj;
         } else {
