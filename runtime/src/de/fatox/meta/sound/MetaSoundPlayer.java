@@ -54,7 +54,7 @@ public class MetaSoundPlayer {
 
         Array<MetaSoundHandle> handleList = playingHandles.get(soundDefinition);
         cleanupHandles(handleList);
-        if (handleList.first().getStartTime() + 250 >= TimeUtils.millis()) {
+        if (handleList.size > 0 && handleList.first().getStartTime() + 250 >= TimeUtils.millis()) {
             return null;
         }
 
