@@ -54,7 +54,7 @@ public class MetaSoundPlayer {
 
         Array<MetaSoundHandle> handleList = playingHandles.get(soundDefinition);
         cleanupHandles(handleList);
-        if (handleList.size > 0 && handleList.size < soundDefinition.maxInstances && handleList.first().getStartTime() + 350 >= TimeUtils.millis()) {
+        if (handleList.size >= soundDefinition.maxInstances || (handleList.size > 0 && handleList.first().getStartTime() + 250 >= TimeUtils.millis())) {
             return null;
         }
 
@@ -66,7 +66,6 @@ public class MetaSoundPlayer {
         // Play or loop sound
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
         float volume = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
-        System.out.println("volume: " + volume);
         long id = soundDefinition.isLooping() ? soundDefinition.getSound().loop(volume, 1, 0) : soundDefinition.getSound().play(volume, 1, 0);
 
         MetaSoundHandle soundHandle = new MetaSoundHandle(soundDefinition, id);

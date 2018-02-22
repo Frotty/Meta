@@ -61,7 +61,7 @@ public class MetaEditorScreen extends ScreenAdapter {
         uiRenderer.update();
         clearFrame();
         uiRenderer.draw();
-        fpsLogger.log();
+//        fpsLogger.log();
     }
 
     private void clearFrame() {

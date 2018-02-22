@@ -40,8 +40,10 @@ public class MetaData {
 
         fileHandle.writeBytes(jsonString.getBytes(), false);
         CacheObj cacheObj = jsonCache.get(key);
-        cacheObj.created = TimeUtils.millis();
-        cacheObj.obj = obj;
+        if (cacheObj != null) {
+            cacheObj.created = TimeUtils.millis();
+            cacheObj.obj = obj;
+        }
         return fileHandle;
     }
 
