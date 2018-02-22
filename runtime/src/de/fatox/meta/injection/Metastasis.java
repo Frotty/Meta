@@ -67,7 +67,7 @@ public class Metastasis {
             Key key = (Key) f[2];
             Named annotation = field.getAnnotation(Named.class);
             Key key2 = Key.of(field.getType(), field.getName());
-            if(annotation != null) {
+            if (annotation != null) {
                 key2 = Key.of(field.getType(), annotation);
             }
             Key key3 = Key.of(field.getType(), "default");
@@ -79,8 +79,8 @@ public class Metastasis {
                 } else if (providers.containsKey(key3)) {
                     field.set(target, providers.get(key3).get());
                 } else {
-                    throw new MetastasisException(String.format("Can't inject field %s in %s because there is no provider defined for the type", field
-                            .getName(), target.getClass().getName()));
+                    throw new MetastasisException(String.format("Can't inject field %s in %s because there is no provider defined for the type <%s>", field
+                            .getName(), target.getClass().getName(), field.getType().getName()));
                 }
             } catch (Exception e) {
                 e.printStackTrace();

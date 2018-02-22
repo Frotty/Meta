@@ -28,6 +28,8 @@ import de.fatox.meta.ui.UiControlHelper
 
 @Singleton
 class MetaModule {
+    constructor()
+
 
     @Provides
     @Named("default")
@@ -43,14 +45,14 @@ class MetaModule {
 
     @Provides
     @Singleton
-    fun uiRenderer(metaUIRenderer: MetaUIRenderer): UIRenderer {
-        return metaUIRenderer
+    fun uiRenderer(): UIRenderer {
+        return MetaUIRenderer()
     }
 
     @Provides
     @Singleton
-    fun uiManager(metaUiManager: MetaUiManager): UIManager {
-        return metaUiManager
+    fun uiManager(): UIManager {
+        return MetaUiManager()
     }
 
     @Provides
