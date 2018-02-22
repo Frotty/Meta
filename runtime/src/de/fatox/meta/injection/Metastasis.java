@@ -65,7 +65,11 @@ public class Metastasis {
         for (Object[] f : injectFields.get(target.getClass())) {
             Field field = (Field) f[0];
             Key key = (Key) f[2];
+            Named annotation = field.getAnnotation(Named.class);
             Key key2 = Key.of(field.getType(), field.getName());
+            if(annotation != null) {
+                key2 = Key.of(field.getType(), annotation);
+            }
             Key key3 = Key.of(field.getType(), "default");
             try {
                 if (providers.containsKey(key)) {

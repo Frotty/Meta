@@ -39,7 +39,9 @@ project(":desktop") {
         compile "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
         compile "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-controllers-platform:$gdxVersion:natives-desktop"
-        testCompile "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
+        testCompile("com.badlogicgames.gdx:gdx-tools:$gdxVersion") {
+            exclude  group: "com.badlogicgames.gdx" , module: "gdx-backend-lwjgl"
+        }
         testCompile "junit:junit:4.11"
 
     }
