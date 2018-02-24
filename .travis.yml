@@ -18,4 +18,4 @@ before_install:
   - export JAVA_HOME=$JAVA8_HOME
 
 script:
-  - ./gradlew desktop:clean desktop:assemble
+  - ./gradlew desktop:clean desktop:test
