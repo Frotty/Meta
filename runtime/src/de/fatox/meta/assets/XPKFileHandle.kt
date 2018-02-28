@@ -5,7 +5,7 @@ import com.badlogic.gdx.utils.GdxRuntimeException
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 
-class XPKFileHandle(var input: ByteArray, val fileType: XPKTypes) : FileHandle() {
+class XPKFileHandle(var input: ByteArray, val fileType: XPKTypes, val name: String) : FileHandle() {
 
     override fun read(): InputStream {
         try {
@@ -16,5 +16,21 @@ class XPKFileHandle(var input: ByteArray, val fileType: XPKTypes) : FileHandle()
             throw GdxRuntimeException("Error reading file: $file ($type)", ex)
         }
 
+    }
+
+    override fun name(): String {
+        return name
+    }
+
+    override fun path(): String {
+        return name
+    }
+
+    override fun pathWithoutExtension(): String {
+        return name.substring(0, name.lastIndexOf(".") - 1)
+    }
+
+    override fun length(): Long {
+        return input.size.toLong()
     }
 }

@@ -21,7 +21,7 @@ constructor() : FontProvider {
     private lateinit var log: Logger
     private val bitmapFontMap = IntMap<BitmapFont>()
     private val generator: FreeTypeFontGenerator by lazy {
-        FreeTypeFontGenerator(assetProvider.get("fonts/Montserrat.ttf", FileHandle::class.java))
+        FreeTypeFontGenerator(assetProvider.get("Montserrat.ttf", FileHandle::class.java))
     }
     @Inject
     private lateinit var assetProvider: AssetProvider

@@ -30,17 +30,14 @@ object XPKLoader {
         val array = Array<XPKFileHandle>()
         val sevenZFile = SevenZFile(fileHandle.file())
         val detectFileType = detectFileType(fileHandle.name().substring(fileHandle.name().length - 1))
-        sevenZFile.entries.forEach({
+        var it = sevenZFile.nextEntry
+        do {
             val content = ByteArray(it.size.toInt())
-            var offset = 512
-            var pos = 0
-            while (pos < content.size) {
-                sevenZFile.read(content, 0, offset);
-                pos += offset
-            }
-            val xpkFileHandle = XPKFileHandle(content, detectFileType)
+            sevenZFile.read(content, 0, it.size.toInt())
+            val xpkFileHandle = XPKFileHandle(content, detectFileType, it.name)
             array.add(xpkFileHandle)
-        })
+            it = sevenZFile.nextEntry
+        } while (it != null)
         return array
     }
 

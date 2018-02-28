@@ -1,5 +1,7 @@
 package de.fatox.meta;
 
+import com.badlogic.gdx.Gdx;
+import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.model.MetaAudioVideoData;
 import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.injection.Inject;
@@ -11,6 +13,9 @@ public class EditorMeta extends Meta {
     @Inject
     private MetaData metaData;
 
+    @Inject
+    private AssetProvider assetProvider;
+
     public EditorMeta() {
         super();
         addModule(new MetaEditorModule());
@@ -21,7 +26,8 @@ public class EditorMeta extends Meta {
     @Override
     public void create() {
         inject(this);
-        if(!metaData.has("audioVideoData")) {
+        assetProvider.loadAssetsFromFolder(Gdx.files.internal("data/"));
+        if (!metaData.has("audioVideoData")) {
             metaData.save("audioVideoData", new MetaAudioVideoData());
         }
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);

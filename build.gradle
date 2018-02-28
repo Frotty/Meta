@@ -40,7 +40,7 @@ project(":desktop") {
         compile "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-controllers-platform:$gdxVersion:natives-desktop"
         testCompile("com.badlogicgames.gdx:gdx-tools:$gdxVersion") {
-            exclude  group: "com.badlogicgames.gdx" , module: "gdx-backend-lwjgl"
+            exclude group: "com.badlogicgames.gdx", module: "gdx-backend-lwjgl"
         }
         testCompile "junit:junit:4.11"
 
@@ -78,6 +78,7 @@ project(":runtime") {
         compile "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
         compile group: 'org.apache.commons', name: 'commons-compress', version: '1.16.1'
+        compile group: 'org.tukaani', name: 'xz', version: '1.8'
         testCompile 'com.github.inwc3:wc3libs:f101a29623'
         testCompile "junit:junit:4.11"
         testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
