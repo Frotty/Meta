@@ -20,8 +20,9 @@ constructor() : FontProvider {
     @Log
     private lateinit var log: Logger
     private val bitmapFontMap = IntMap<BitmapFont>()
-    private val generator: FreeTypeFontGenerator
-
+    private val generator: FreeTypeFontGenerator by lazy {
+        FreeTypeFontGenerator(assetProvider.get("fonts/Montserrat.ttf", FileHandle::class.java))
+    }
     @Inject
     private lateinit var assetProvider: AssetProvider
     @Inject
@@ -29,8 +30,6 @@ constructor() : FontProvider {
 
     init {
         Meta.inject(this)
-        log.debug("MetaFontProvider", "init")
-        generator = FreeTypeFontGenerator(assetProvider.get("fonts/Montserrat.ttf", FileHandle::class.java))
     }
 
     override fun getFont(size: Int): BitmapFont {
