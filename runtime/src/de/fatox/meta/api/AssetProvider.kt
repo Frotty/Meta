@@ -4,7 +4,7 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 
 interface AssetProvider {
-    fun addAssetFolder(folder: FileHandle): Boolean
+    fun loadAssetsFromFolder(folder: FileHandle): Boolean
 
     fun <T> load(name: String, type: Class<T>)
 

@@ -1,6 +1,7 @@
 package de.fatox.meta.assets;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.assets.AssetDescriptor;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.ModelLoader;
 import com.badlogic.gdx.assets.loaders.TextureLoader;
@@ -15,15 +16,17 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.IntMap;
+import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.api.AssetProvider;
 
 public class MetaAssetProvider implements AssetProvider {
     private static TextureLoader.TextureParameter defaultTexParam = new TextureLoader.TextureParameter();
     private static ModelLoader.ModelParameters defaultModelParam = new ModelLoader.ModelParameters();
     private AssetManager assetManager = new AssetManager();
-    private Array<FileHandle> assetFolders = new Array<>();
     private Array<TextureAtlas> atlasCache = new Array<>();
     private IntMap<Array<? extends TextureRegion>> animCache = new IntMap<>();
+
+    private ObjectMap<String, XPKFileHandle> packFileCache = new ObjectMap<>();
 
     static {
         defaultTexParam.genMipMaps = true;
@@ -32,9 +35,16 @@ public class MetaAssetProvider implements AssetProvider {
     }
 
     @Override
-    public boolean addAssetFolder(FileHandle folder) {
+    public boolean loadAssetsFromFolder(FileHandle folder) {
         if (folder.isDirectory()) {
-            assetFolders.add(folder);
+            for (FileHandle itrHandle : folder.list()) {
+                if (itrHandle.extension().equalsIgnoreCase(XPKLoader.EXTENSION)) {
+                    Array<XPKFileHandle> list = XPKLoader.INSTANCE.getList(itrHandle);
+                    list.forEach(it -> {
+                        packFileCache.put(it.name(), it);
+                    });
+                }
+            }
             return true;
         }
         return false;
@@ -42,36 +52,47 @@ public class MetaAssetProvider implements AssetProvider {
 
     @Override
     public <T> void load(String name, Class<T> type) {
-        if (type == Model.class) {
-            assetManager.load(name, Model.class, defaultModelParam);
-        } else if (type == Texture.class && !name.contains("ui")) {
-            assetManager.load(name, Texture.class, defaultTexParam);
+        loadIntern(new AssetDescriptor(name, type));
+    }
+
+    private <T> void loadIntern(AssetDescriptor<T> descr) {
+        if (descr.type == Model.class) {
+            assetManager.load(descr.fileName, Model.class, defaultModelParam);
+        } else if (descr.type == Texture.class && !descr.fileName.contains("ui")) {
+            assetManager.load(descr.fileName, Texture.class, defaultTexParam);
         } else {
-            assetManager.load(name, type);
+            assetManager.load(descr.fileName, descr.type);
         }
 
         assetManager.finishLoading();
-        if (type == Model.class) {
-            Model model = assetManager.get(name, Model.class);
+        if (descr.type == Model.class) {
+            Model model = assetManager.get(descr.fileName, Model.class);
             TextureAttribute attribute = (TextureAttribute) model.materials.first().get(TextureAttribute.Diffuse);
             attribute.textureDescription.texture.bind();
             Gdx.gl30.glTexParameterf(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_MAX_ANISOTROPY_EXT, 16);
         }
 
-        if (type == Texture.class) {
-            Texture texture = assetManager.get(name, Texture.class);
+        if (descr.type == Texture.class) {
+            Texture texture = assetManager.get(descr.fileName, Texture.class);
             texture.bind();
             Gdx.gl30.glTexParameterf(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_MAX_ANISOTROPY_EXT, 16);
         }
 
-        if (type == TextureAtlas.class) {
-            atlasCache.add(assetManager.get(name, TextureAtlas.class));
+        if (descr.type == TextureAtlas.class) {
+            atlasCache.add(assetManager.get(descr.fileName, TextureAtlas.class));
         }
     }
 
 
     @Override
     public <T> T get(String name, Class<T> type, int index) {
+        if (type == FileHandle.class) {
+            if (packFileCache.containsKey(name)) {
+                return (T) packFileCache.get(name);
+            } else {
+                return (T) Gdx.files.internal(name);
+            }
+        }
         if (assetManager.isLoaded(name, type)) {
             return assetManager.get(name, type);
         } else if (type == TextureRegion.class) {
@@ -93,6 +114,11 @@ public class MetaAssetProvider implements AssetProvider {
             }
 
 
+        } else if (packFileCache.containsKey(name)) {
+            XPKFileHandle xpkFileHandle = packFileCache.get(name);
+            AssetDescriptor assetDescriptor = new AssetDescriptor(xpkFileHandle, xpkFileHandle.getFileType().getCb());
+            loadIntern(assetDescriptor);
+            return get(name, type);
         } else {
             load(name, type);
             return get(name, type);
@@ -106,9 +132,9 @@ public class MetaAssetProvider implements AssetProvider {
 
     @Override
     public FileHandle get(String fileName) {
-        //TODO
-        return Gdx.files.internal(fileName);
+        return null;
     }
+
 
     @Override
     public Drawable getDrawable(String name) {
