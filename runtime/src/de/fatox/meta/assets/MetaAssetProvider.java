@@ -52,14 +52,9 @@ public class MetaAssetProvider implements AssetProvider {
 
     @Override
     public <T> void load(String name, Class<T> type) {
-        if (!packFileCache.containsKey(name)) {
-            loadIntern(new AssetDescriptor(name, type));
-        } else if (type == TextureAtlas.class) {
-            atlasCache.add(get(name, TextureAtlas.class));
-        }
+        loadIntern(new AssetDescriptor(name, type));
     }
 
-}
 
     private <T> void loadIntern(AssetDescriptor<T> descr) {
         if (descr.type == Model.class) {
@@ -67,7 +62,7 @@ public class MetaAssetProvider implements AssetProvider {
         } else if (descr.type == Texture.class && !descr.fileName.contains("ui")) {
             assetManager.load(descr.fileName, Texture.class, defaultTexParam);
         } else {
-            assetManager.load(descr.fileName, descr.type);
+            assetManager.load(descr);
         }
 
         assetManager.finishLoading();
