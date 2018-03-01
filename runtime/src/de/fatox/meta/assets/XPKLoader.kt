@@ -34,7 +34,7 @@ object XPKLoader {
         do {
             val content = ByteArray(it.size.toInt())
             sevenZFile.read(content, 0, it.size.toInt())
-            val xpkFileHandle = XPKFileHandle(content, detectFileType, it.name)
+            val xpkFileHandle = XPKFileHandle(array, content, detectFileType, it.name)
             array.add(xpkFileHandle)
             it = sevenZFile.nextEntry
         } while (it != null)

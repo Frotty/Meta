@@ -47,7 +47,7 @@ public class MetaEditorModule {
     @Named("default")
     public MetaShaderLibrary shaderLibrary() {
         return new MetaShaderLibrary();
-}
+    }
 
     @Provides
     @Singleton
@@ -91,8 +91,8 @@ public class MetaEditorModule {
 
     @Provides
     @Singleton
-    @Named("uiskin")
+    @Named("visuiSkin")
     public String uiSkinPath() {
-        return null;
+        return "visui\\uiskin.json";
     }
 }

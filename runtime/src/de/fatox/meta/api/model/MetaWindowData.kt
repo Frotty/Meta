@@ -6,13 +6,13 @@ import de.fatox.meta.ui.windows.MetaDialog
 /**
  * Created by Frotty on 28.06.2016.
  */
-data class MetaWindowData (var name: String? = null,
-                           var x: Float = 0f,
-                           var y: Float = 0f,
-                           var width: Float = 0f,
-                           var height: Float = 0f,
-                           var displayed: Boolean = false,
-                           var dialog: Boolean = false) {
+data class MetaWindowData(var name: String? = null,
+                          var x: Float = 0f,
+                          var y: Float = 0f,
+                          var width: Float = 0f,
+                          var height: Float = 0f,
+                          var displayed: Boolean = false,
+                          var dialog: Boolean = false) {
 
 
     constructor(metaWindow: Window) : this() {
@@ -33,5 +33,6 @@ data class MetaWindowData (var name: String? = null,
     fun set(metaWindow: Window) {
         metaWindow.setPosition(x, y)
         metaWindow.setSize(width, height)
+        metaWindow.invalidateHierarchy()
     }
 }

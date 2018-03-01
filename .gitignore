@@ -43,3 +43,4 @@ android/libs/x86_64/libgdx.so
 android/assets/metadata.json
 
 **/.meta/**
+*.xpk
