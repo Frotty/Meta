@@ -52,8 +52,14 @@ public class MetaAssetProvider implements AssetProvider {
 
     @Override
     public <T> void load(String name, Class<T> type) {
-        loadIntern(new AssetDescriptor(name, type));
+        if (!packFileCache.containsKey(name)) {
+            loadIntern(new AssetDescriptor(name, type));
+        } else if (type == TextureAtlas.class) {
+            atlasCache.add(get(name, TextureAtlas.class));
+        }
     }
+
+}
 
     private <T> void loadIntern(AssetDescriptor<T> descr) {
         if (descr.type == Model.class) {
