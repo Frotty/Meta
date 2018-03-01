@@ -42,7 +42,7 @@ public class EditorMeta extends Meta {
         metaMusicPlayer = new MetaMusicPlayer();
         assetProvider.load("roxpack.atlas", TextureAtlas.class);
         metaMusicPlayer.addMusicToPool("Safro_Dreamscape.mp3");
-        metaSoundPlayer.playSound("sound\\unid_exploded.wav");
+        metaSoundPlayer.playSound("sound/unid_exploded.wav");
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
         audioVideoData.apply();
         changeScreen(new MetaEditorScreen());

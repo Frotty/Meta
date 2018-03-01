@@ -29,7 +29,7 @@ public class MetaSoundDefinition {
     }
 
     public MetaSoundDefinition(String soundName, int maxInstances) {
-        this.soundName = soundName;
+        this.soundName = soundName.replaceAll("/", "\\\\");
         this.maxInstances = maxInstances;
         Meta.inject(this);
     }
