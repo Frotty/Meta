@@ -116,7 +116,7 @@ public class MetaAssetProvider implements AssetProvider {
 
         } else if (packFileCache.containsKey(name)) {
             XPKFileHandle xpkFileHandle = packFileCache.get(name);
-            AssetDescriptor assetDescriptor = new AssetDescriptor(xpkFileHandle, xpkFileHandle.getFileType().getCb());
+            AssetDescriptor assetDescriptor = new AssetDescriptor(xpkFileHandle, type);
             loadIntern(assetDescriptor);
             return get(name, type);
         } else {
