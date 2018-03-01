@@ -1,11 +1,11 @@
 package de.fatox.meta.sound;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.Timer;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.model.MetaAudioVideoData;
 import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.injection.Inject;
@@ -14,10 +14,11 @@ import de.fatox.meta.injection.Inject;
  * Created by Frotty on 09.11.2016.
  */
 public class MetaMusicPlayer {
-    @Inject
     private MetaData metaData;
+    @Inject
+    private AssetProvider assetProvider;
 
-    private final Timer.Task task;
+    private Timer.Task task;
     private float startVolume = 0.01f;
     private boolean musicEnabled = true;
 
@@ -30,6 +31,9 @@ public class MetaMusicPlayer {
 
     public MetaMusicPlayer() {
         Meta.inject(this);
+    }
+
+    private void start() {
         // Start Timer to update music
         task = Timer.schedule(new Timer.Task() {
             @Override
@@ -55,7 +59,7 @@ public class MetaMusicPlayer {
                 startMusic(nextMusic);
             }
         }
-        if(currentMusic != null) {
+        if (currentMusic != null) {
             if (currentMusic.getVolume() < startVolume) {
                 finishMusic();
             } else {
@@ -103,7 +107,8 @@ public class MetaMusicPlayer {
 
     private Music getMusic(String musicPath) {
         if (!musicCache.containsKey(musicPath)) {
-            musicCache.put(musicPath, Gdx.audio.newMusic(Gdx.files.internal(musicPath)));
+            Music music = assetProvider.get(musicPath, Music.class);
+            musicCache.put(musicPath, music);
         }
         return musicCache.get(musicPath);
     }

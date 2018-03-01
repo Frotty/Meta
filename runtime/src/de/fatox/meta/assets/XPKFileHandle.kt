@@ -43,6 +43,10 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, va
         return name
     }
 
+    override fun extension(): String {
+        return name.substring(name.lastIndexOf(".") + 1)
+    }
+
     override fun nameWithoutExtension(): String {
         return fileName.substring(0, fileName.lastIndexOf("."))
     }

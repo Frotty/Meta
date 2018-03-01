@@ -9,6 +9,7 @@ import de.fatox.meta.injection.Inject;
 import de.fatox.meta.modules.MetaEditorModule;
 import de.fatox.meta.modules.MetaUIModule;
 import de.fatox.meta.screens.MetaEditorScreen;
+import de.fatox.meta.sound.MetaMusicPlayer;
 
 public class EditorMeta extends Meta {
     @Inject
@@ -17,11 +18,12 @@ public class EditorMeta extends Meta {
     @Inject
     private AssetProvider assetProvider;
 
+    private MetaMusicPlayer metaMusicPlayer = new MetaMusicPlayer();
+
     public EditorMeta() {
         super();
         addModule(new MetaEditorModule());
         addModule(new MetaUIModule());
-
     }
 
     @Override
@@ -32,6 +34,7 @@ public class EditorMeta extends Meta {
             metaData.save("audioVideoData", new MetaAudioVideoData());
         }
         assetProvider.load("roxpack.atlas", TextureAtlas.class);
+        metaMusicPlayer.addMusicToPool("Safro_Dreamscape.mp3");
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
         audioVideoData.apply();
         changeScreen(new MetaEditorScreen());
