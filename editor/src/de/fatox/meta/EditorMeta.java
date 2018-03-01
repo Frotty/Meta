@@ -10,6 +10,7 @@ import de.fatox.meta.modules.MetaEditorModule;
 import de.fatox.meta.modules.MetaUIModule;
 import de.fatox.meta.screens.MetaEditorScreen;
 import de.fatox.meta.sound.MetaMusicPlayer;
+import de.fatox.meta.sound.MetaSoundPlayer;
 
 public class EditorMeta extends Meta {
     @Inject
@@ -18,7 +19,10 @@ public class EditorMeta extends Meta {
     @Inject
     private AssetProvider assetProvider;
 
-    private MetaMusicPlayer metaMusicPlayer = new MetaMusicPlayer();
+    private MetaMusicPlayer metaMusicPlayer;
+
+    private MetaSoundPlayer metaSoundPlayer;
+
 
     public EditorMeta() {
         super();
@@ -29,12 +33,16 @@ public class EditorMeta extends Meta {
     @Override
     public void create() {
         inject(this);
+
         assetProvider.loadAssetsFromFolder(Gdx.files.internal("data/"));
         if (!metaData.has("audioVideoData")) {
             metaData.save("audioVideoData", new MetaAudioVideoData());
         }
+        metaSoundPlayer = new MetaSoundPlayer();
+        metaMusicPlayer = new MetaMusicPlayer();
         assetProvider.load("roxpack.atlas", TextureAtlas.class);
         metaMusicPlayer.addMusicToPool("Safro_Dreamscape.mp3");
+        metaSoundPlayer.playSound("sound\\unid_exploded.wav");
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
         audioVideoData.apply();
         changeScreen(new MetaEditorScreen());

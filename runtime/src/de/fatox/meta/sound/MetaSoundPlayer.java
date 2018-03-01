@@ -2,6 +2,7 @@ package de.fatox.meta.sound;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
@@ -60,7 +61,7 @@ public class MetaSoundPlayer {
 
         if (soundDefinition.getSound() == null) {
             // Load sound if it is played for the first time
-            Sound sound = metaAssetProvider.get(soundDefinition.soundName, Sound.class);
+            Sound sound = Gdx.audio.newSound(metaAssetProvider.get(soundDefinition.soundName, FileHandle.class));
             soundDefinition.setSound(sound);
         }
         // Play or loop sound

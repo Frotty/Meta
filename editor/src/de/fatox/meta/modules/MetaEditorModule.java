@@ -1,10 +1,12 @@
 package de.fatox.meta.modules;
 
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import de.fatox.meta.Primitives;
 import de.fatox.meta.api.graphics.Renderer;
 import de.fatox.meta.api.lang.LanguageBundle;
+import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.ide.*;
 import de.fatox.meta.injection.Named;
 import de.fatox.meta.injection.Provides;
@@ -57,6 +59,13 @@ public class MetaEditorModule {
 
     @Provides
     @Singleton
+    @Named("default")
+    public MetaAssetProvider metaAssetProvider() {
+        return new MetaAssetProvider();
+    }
+
+    @Provides
+    @Singleton
     public AssetDiscoverer assetManager() {
         return new AssetDiscoverer();
     }
@@ -95,4 +104,11 @@ public class MetaEditorModule {
     public String uiSkinPath() {
         return "visui\\uiskin.json";
     }
+
+    @Provides
+    @Singleton
+    public ShapeRenderer shapeRenderer() {
+        return null;
+    }
+
 }
