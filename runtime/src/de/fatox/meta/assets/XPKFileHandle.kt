@@ -15,7 +15,11 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, va
     }
 
     override fun parent(): FileHandle {
-        return this
+        var name = ""
+        if (path != this.name) {
+            name = path
+        }
+        return XPKFileHandle(siblings, ByteArray(0), XPKTypes.INVALID, name)
     }
 
     override fun sibling(name: String?): FileHandle? {
@@ -44,7 +48,7 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, va
     }
 
     override fun path(): String {
-        return name
+        return path
     }
 
     override fun pathWithoutExtension(): String {
@@ -55,8 +59,11 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, va
         return input.size.toLong()
     }
 
-    override fun child(name: String?): FileHandle? {
-        val search = path + "\\" + name
+    override fun child(name: String): FileHandle? {
+        var search = name
+        if (path != name && !path.isBlank()) {
+            search = path + "\\" + name
+        }
         return siblings.find {
             it.name.replace("/", "\\") == search
         } ?: XPKFileHandle(siblings, byteArrayOf(), XPKTypes.INVALID, search)
@@ -64,5 +71,9 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, va
 
     override fun toString(): String {
         return name.replace("\\", "/")
+    }
+
+    override fun readBytes(): ByteArray {
+        return input
     }
 }

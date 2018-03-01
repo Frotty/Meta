@@ -3,6 +3,7 @@ package de.fatox.meta.assets;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetDescriptor;
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.FileHandleResolver;
 import com.badlogic.gdx.assets.loaders.ModelLoader;
 import com.badlogic.gdx.assets.loaders.TextureLoader;
 import com.badlogic.gdx.files.FileHandle;
@@ -20,9 +21,17 @@ import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.api.AssetProvider;
 
 public class MetaAssetProvider implements AssetProvider {
+    class MetaFileHandleResolver implements FileHandleResolver {
+
+        @Override
+        public FileHandle resolve(String fileName) {
+            return packFileCache.containsKey(fileName) ? packFileCache.get(fileName) : Gdx.files.internal(fileName);
+        }
+    }
+
     private static TextureLoader.TextureParameter defaultTexParam = new TextureLoader.TextureParameter();
     private static ModelLoader.ModelParameters defaultModelParam = new ModelLoader.ModelParameters();
-    private AssetManager assetManager = new AssetManager();
+    private AssetManager assetManager = new AssetManager(new MetaFileHandleResolver());
     private Array<TextureAtlas> atlasCache = new Array<>();
     private IntMap<Array<? extends TextureRegion>> animCache = new IntMap<>();
 

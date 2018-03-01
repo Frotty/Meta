@@ -1,6 +1,7 @@
 package de.fatox.meta;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.model.MetaAudioVideoData;
 import de.fatox.meta.assets.MetaData;
@@ -30,6 +31,7 @@ public class EditorMeta extends Meta {
         if (!metaData.has("audioVideoData")) {
             metaData.save("audioVideoData", new MetaAudioVideoData());
         }
+        assetProvider.load("roxpack.atlas", TextureAtlas.class);
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
         audioVideoData.apply();
         changeScreen(new MetaEditorScreen());
