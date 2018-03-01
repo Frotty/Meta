@@ -1,6 +1,7 @@
 package de.fatox.meta.ui
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
@@ -13,8 +14,8 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.file.FileChooser
 import de.fatox.meta.Meta
+import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.Logger
-import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.Inject
 import de.fatox.meta.injection.Log
@@ -28,7 +29,7 @@ class MetaUIRenderer : UIRenderer {
     @Inject
     private lateinit var metaInput: MetaInput
     @Inject
-    private lateinit var fontProvider: FontProvider
+    private lateinit var assetProvider: AssetProvider
     @Inject
     @Named("visuiSkin")
     private lateinit var visuiSkin: String
@@ -38,8 +39,8 @@ class MetaUIRenderer : UIRenderer {
     init {
         Meta.inject(this)
         log.debug(TAG, "Injected MetaUi")
-        if(visuiSkin != "") {
-            VisUI.load(visuiSkin)
+        if (visuiSkin != "") {
+            VisUI.load(assetProvider[visuiSkin, FileHandle::class.java])
         } else {
             VisUI.load()
         }

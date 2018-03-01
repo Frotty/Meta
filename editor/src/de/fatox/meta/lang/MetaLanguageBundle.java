@@ -23,14 +23,12 @@ public class MetaLanguageBundle implements LanguageBundle {
 
 
     public MetaLanguageBundle() {
-        System.out.println("test1");
         Meta.inject(this);
         loadBundle(AvailableLanguages.EN);
     }
 
     @Override
     public void loadBundle(AvailableLanguages lang) {
-        System.out.println("test3");
         FileHandle baseFileHandle = Gdx.files.internal("lang/MetagineBundle");
         Locale locale = new Locale(lang.toString().toLowerCase(), lang.toString(), "");
         try {
@@ -38,7 +36,6 @@ public class MetaLanguageBundle implements LanguageBundle {
         } catch (Exception e) {
             log.error("MetaLanguageBundle", e.getLocalizedMessage());
         }
-        System.out.println("test4");
         log.debug("MetaLanguageBundle", "Loaded: " + lang);
         log.debug("MetaLanguageBundle", "Current Locale: " + currentBundle.getLocale());
     }
