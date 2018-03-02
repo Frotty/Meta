@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.utils.Array;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
 import de.fatox.meta.api.model.MetaAudioVideoData;
@@ -17,6 +18,7 @@ import de.fatox.meta.injection.Inject;
 import static de.fatox.meta.Meta.changeScreen;
 
 public class SplashScreen extends ScreenAdapter {
+    private final Array<FileHandle> assetFolders;
     @Inject
     private MetaData metaData;
     boolean b = false;
@@ -25,6 +27,10 @@ public class SplashScreen extends ScreenAdapter {
     @Inject
     private SpriteBatch spriteBatch;
     private Sprite sprite;
+
+    public SplashScreen(Array<FileHandle> assetFolders) {
+        this.assetFolders = assetFolders;
+    }
 
     @Override
     public void show() {
@@ -46,7 +52,9 @@ public class SplashScreen extends ScreenAdapter {
         sprite.draw(spriteBatch);
         spriteBatch.end();
         if (b) {
-            assetProvider.loadAssetsFromFolder(Gdx.files.internal("data/"));
+            assetFolders.forEach(it -> {
+                assetProvider.loadAssetsFromFolder(it);
+            });
             if (!metaData.has("audioVideoData")) {
                 metaData.save("audioVideoData", new MetaAudioVideoData());
             }
