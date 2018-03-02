@@ -3,12 +3,14 @@ package de.fatox.meta.assets
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.GdxRuntimeException
+import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 
-class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, val fileType: XPKTypes, val name: String) : FileHandle() {
+class XPKFileHandle(val siblings: Array<XPKFileHandle>, var length: Int, val sevenZFile: FileHandle, val entry: SevenZArchiveEntry, val name: String) : FileHandle() {
     val path: String = name.substring(0, name.lastIndexOf("\\").takeIf { it >= 0 } ?: name.length)
     val fileName: String = name.substring((name.lastIndexOf("\\").takeIf { it >= 0 } ?: -1) + 1)
+    var array: ByteArray? = null
 
     override fun exists(): Boolean {
         return true
@@ -19,7 +21,7 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, va
         if (path != this.name) {
             name = path
         }
-        return XPKFileHandle(siblings, ByteArray(0), XPKTypes.INVALID, name)
+        return XPKFileHandle(siblings, 0, sevenZFile, entry, name)
     }
 
     override fun sibling(name: String?): FileHandle? {
@@ -30,7 +32,7 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, va
 
     override fun read(): InputStream {
         try {
-            return ByteArrayInputStream(input)
+            return ByteArrayInputStream(readBytes())
         } catch (ex: Exception) {
             if (file().isDirectory)
                 throw GdxRuntimeException("Cannot open a stream to a directory: $file ($type)", ex)
@@ -60,7 +62,7 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, va
     }
 
     override fun length(): Long {
-        return input.size.toLong()
+        return length.toLong()
     }
 
     override fun child(name: String): FileHandle? {
@@ -70,14 +72,17 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var input: ByteArray, va
         }
         return siblings.find {
             it.name.replace("/", "\\") == search
-        } ?: XPKFileHandle(siblings, byteArrayOf(), XPKTypes.INVALID, search)
+        } ?: XPKFileHandle(siblings, 0, sevenZFile, entry, search)
     }
 
     override fun toString(): String {
         return name.replace("\\", "/")
     }
 
-    override fun readBytes(): ByteArray {
-        return input
+    override fun readBytes(): ByteArray? {
+        if (array == null) {
+            array = XPKLoader.loadEntry(sevenZFile, entry)
+        }
+        return array
     }
 }

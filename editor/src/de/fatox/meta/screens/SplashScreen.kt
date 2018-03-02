@@ -7,19 +7,13 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import de.fatox.meta.Meta
-import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.Inject
 
 class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
     @Inject
-    private val metaData: MetaData? = null
-    internal var b = false
-    @Inject
-    private val assetProvider: AssetProvider? = null
-    @Inject
     private val spriteBatch: SpriteBatch? = null
     private var sprite: Sprite? = null
+    private var i = 0
 
     override fun show() {
         Meta.inject(this)
@@ -38,29 +32,9 @@ class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
         spriteBatch!!.begin()
         sprite!!.draw(spriteBatch)
         spriteBatch.end()
-        if (b) {
+        if (i == 1) {
             cb.invoke()
         }
-        b = true
-    }
-
-    override fun resize(width: Int, height: Int) {
-
-    }
-
-    override fun pause() {
-
-    }
-
-    override fun resume() {
-
-    }
-
-    override fun hide() {
-
-    }
-
-    override fun dispose() {
-
+        i++
     }
 }

@@ -26,7 +26,12 @@ public class MetaData {
 
     private ObjectMap<String, FileHandle> fileHandleCache = new ObjectMap<>();
     private ObjectMap<String, CacheObj<? extends Object>> jsonCache = new ObjectMap<>();
-    private FileHandle globalRoot = Gdx.files.absolute(GLOBAL_DATA_FOLDER_NAME);
+    private static FileHandle globalRoot = Gdx.files.absolute(GLOBAL_DATA_FOLDER_NAME);
+
+    static {
+        globalRoot.mkdirs();
+    }
+
     private Json json = new Json();
 
     public void save(String key, Object obj) {
