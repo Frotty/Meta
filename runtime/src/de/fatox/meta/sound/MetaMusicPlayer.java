@@ -14,6 +14,7 @@ import de.fatox.meta.injection.Inject;
  * Created by Frotty on 09.11.2016.
  */
 public class MetaMusicPlayer {
+    @Inject
     private MetaData metaData;
     @Inject
     private AssetProvider assetProvider;
