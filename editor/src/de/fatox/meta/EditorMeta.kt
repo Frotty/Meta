@@ -30,9 +30,6 @@ class EditorMeta : Meta() {
         array.add(Gdx.files.internal("data/"))
         Meta.changeScreen(SplashScreen({
             array.forEach { it -> assetProvider.loadAssetsFromFolder(it) }
-            if (!metaData.has("audioVideoData")) {
-                metaData.save("audioVideoData", MetaAudioVideoData())
-            }
             val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
             changeScreen(MetaEditorScreen())
             audioVideoData.apply()

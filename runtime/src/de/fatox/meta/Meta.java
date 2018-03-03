@@ -54,7 +54,7 @@ public class Meta extends Game {
     }
 
     public static boolean canChangeScreen() {
-        return (TimeUtils.millis() > metaInstance.lastChange + 250);
+        return (TimeUtils.millis() > metaInstance.lastChange + 150);
     }
 
     public static void newLastScreen() {

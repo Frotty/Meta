@@ -5,6 +5,8 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.TimeUtils;
+import com.badlogic.gdx.utils.reflect.ClassReflection;
+import com.badlogic.gdx.utils.reflect.ReflectionException;
 
 /**
  * Created by Frotty on 10.03.2017.
@@ -77,7 +79,15 @@ public class MetaData {
             }
             jsonHandle = cacheObj.obj;
         } else {
-            jsonHandle = json.fromJson(type, getCachedHandle(parent, key));
+            FileHandle cachedHandle = getCachedHandle(parent, key);
+            if (!cachedHandle.exists()) {
+                try {
+                    cachedHandle.writeBytes(json.toJson(ClassReflection.newInstance(type)).getBytes(), false);
+                } catch (ReflectionException e) {
+                    e.printStackTrace();
+                }
+            }
+            jsonHandle = json.fromJson(type, cachedHandle);
             jsonCache.put(key, new CacheObj<>(jsonHandle));
         }
         return jsonHandle;
@@ -101,17 +111,12 @@ public class MetaData {
             fileHandle = fileHandleCache.get(key);
         } else {
             fileHandle = parent.child(key);
-//            if (!fileHandle.exists()) {
-//                fileHandle = Gdx.files.internal(GLOBAL_DATA_FOLDER_NAME + key);
-//                if (!fileHandle.exists()) {
-//                    new MetaError("metadata not found", "yea") {
-//                        @Override
-//                        public void gotoError() {
-//
-//                        }
-//                    };
-//                }
-//            }
+            if (!fileHandle.exists()) {
+                FileHandle fileHandle2 = Gdx.files.internal(GLOBAL_DATA_FOLDER_NAME + key);
+                if (fileHandle2.exists()) {
+                    fileHandle = fileHandle2;
+                }
+            }
             fileHandleCache.put(key, fileHandle);
         }
         return fileHandle;
