@@ -33,7 +33,7 @@ public class MetaMusicPlayer {
         Meta.inject(this);
     }
 
-    private void start() {
+    public void start() {
         // Start Timer to update music
         task = Timer.schedule(new Timer.Task() {
             @Override
