@@ -61,7 +61,11 @@ public class MetaAssetProvider implements AssetProvider {
 
     @Override
     public <T> void load(String name, Class<T> type) {
-        loadIntern(new AssetDescriptor(name, type));
+        if (packFileCache.containsKey(name)) {
+            loadIntern(new AssetDescriptor(packFileCache.get(name), type));
+        } else {
+            loadIntern(new AssetDescriptor(name, type));
+        }
     }
 
 
