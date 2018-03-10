@@ -112,7 +112,7 @@ public class MetaData {
         } else {
             fileHandle = parent.child(key);
             if (!fileHandle.exists()) {
-                FileHandle fileHandle2 = Gdx.files.internal(GLOBAL_DATA_FOLDER_NAME + key);
+                FileHandle fileHandle2 = Gdx.files.local(GLOBAL_DATA_FOLDER_NAME + key);
                 if (fileHandle2.exists()) {
                     fileHandle = fileHandle2;
                 }
