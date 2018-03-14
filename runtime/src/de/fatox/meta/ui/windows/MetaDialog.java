@@ -1,5 +1,6 @@
 package de.fatox.meta.ui.windows;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -65,6 +66,7 @@ public abstract class MetaDialog extends MetaWindow {
         centerWindow();
         setColor(1, 1, 1, 0);
         addAction(Actions.alpha(0.925f, 1f));
+        Gdx.input.setCursorCatched(false);
     }
 
     public void setDialogListener(DialogListener dialogListener) {
