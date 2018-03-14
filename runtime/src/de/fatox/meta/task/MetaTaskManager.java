@@ -16,8 +16,10 @@ public class MetaTaskManager {
     }
 
     public void undoLastTask() {
-        if (taskHistoryStack.size > 0)
-            taskHistoryStack.pop().undo();
+        if (taskHistoryStack.size > 0 && currentIndex > 0) {
+            taskHistoryStack.get(currentIndex).undo();
+            currentIndex--;
+        }
     }
 
     public void redoNextTask() {
