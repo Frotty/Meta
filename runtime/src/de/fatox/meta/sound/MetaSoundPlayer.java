@@ -48,6 +48,12 @@ public class MetaSoundPlayer {
 
     public MetaSoundHandle playSound(MetaSoundDefinition soundDefinition) {
         if (soundDefinition == null) return null;
+        MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
+        float volume = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
+        if(volume <= 0) {
+            return null;
+        }
+
         if (!playingHandles.containsKey(soundDefinition)) {
             // Create handlelist if sound is played for the first time
             playingHandles.put(soundDefinition, new Array<>(soundDefinition.maxInstances));
@@ -65,8 +71,7 @@ public class MetaSoundPlayer {
             soundDefinition.setSound(sound);
         }
         // Play or loop sound
-        MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
-        float volume = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
+
         long id = soundDefinition.isLooping() ? soundDefinition.getSound().loop(volume, 1, 0) : soundDefinition.getSound().play(volume, 1, 0);
 
         MetaSoundHandle soundHandle = new MetaSoundHandle(soundDefinition, id);
