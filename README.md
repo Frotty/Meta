@@ -1,5 +1,7 @@
 ![](https://i.imgur.com/8M6CSMh.png)
+
 [![Build Status](https://travis-ci.org/Frotty/Meta.svg?branch=master)](https://travis-ci.org/Frotty/Meta) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/5d29848d4aa84e46b4e4fb185222c668)](https://www.codacy.com/app/frotty/Meta?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Frotty/Meta&amp;utm_campaign=Badge_Grade)
+
 # Meta
 Conceptual 2D and 3D engine with scene and shader editor, build on top of libGDX.
 
