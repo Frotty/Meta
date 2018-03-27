@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.scenes.scene2d.InputEvent
@@ -42,7 +43,7 @@ class PrimitivesWindow : MetaWindow("Primitives", true, true) {
                     entity.actorModel.transform.scl(4f)
                     entity.actorModel.transform.rotate(MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0, 360).toFloat())
 
-//                    entity.actorModel.materials.get(0).set(ColorAttribute.createDiffuse(MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), 1f))
+                    entity.actorModel.materials.get(0).set(ColorAttribute.createDiffuse(MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), MathUtils.random(0f, 1f), 1f))
                 }
                 renderer.rebuildCache()
             }

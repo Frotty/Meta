@@ -1,6 +1,7 @@
+![](https://i.imgur.com/8M6CSMh.png)
 [![Build Status](https://travis-ci.org/Frotty/Meta.svg?branch=master)](https://travis-ci.org/Frotty/Meta) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/5d29848d4aa84e46b4e4fb185222c668)](https://www.codacy.com/app/frotty/Meta?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Frotty/Meta&amp;utm_campaign=Badge_Grade)
 # Meta
-Conceptual 2D and 3D rendering engine + scene editor built on top of libGDX.
+Conceptual 2D and 3D engine with scene and shader editor, build on top of libGDX.
 
 ## Concept
 Meta is supposed to be used along side libgdx and provide a more complete out of the box experience.
@@ -14,8 +15,10 @@ It combines asset management and scene creation into a simple UI with the capabi
 While the editor is recommended for any beginner, advanced users can also decide to use the runtime without it.
 Your own source in the JVM language of your choice will always remain the core of your project.
 
-(Early screenshot)
-![WIP Screen](https://i.imgur.com/cwOhhYn.png)
+(Early screenshots)
+![Final Screen](https://i.imgur.com/7n8eZ1r.png)
+![Final Screen](https://i.imgur.com/SyWxgYH.png)
+
 
 ## Runtime
 The runtime contains all core components of the meta engine that will aid in the creation of any 2d or 3d game.
