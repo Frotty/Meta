@@ -33,6 +33,7 @@ object XPKLoader {
         var it = sevenZFile.nextEntry
         do {
             val xpkFileHandle = XPKFileHandle(array, 0, fileHandle, it, it.name)
+            println("cache name: <" + it.name + ">")
             array.add(xpkFileHandle)
             it = sevenZFile.nextEntry
         } while (it != null)
