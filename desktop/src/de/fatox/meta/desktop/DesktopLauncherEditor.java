@@ -11,6 +11,7 @@ public class DesktopLauncherEditor {
         config.setWindowPosition(960 - (980 / 2), 540 - (360 / 2));
         config.setResizable(true);
         config.setTitle("Meta");
+        config.setWindowIcon("icon.png");
         config.setWindowedMode(980, 360);
         config.useOpenGL3(true, 3, 2);
         config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 4);
