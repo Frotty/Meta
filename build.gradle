@@ -17,7 +17,7 @@ allprojects {
         appName = "Meta"
         gdxVersion = '1.9.9-SNAPSHOT'
         roboVMVersion = '1.12.0'
-        aiVersion = '1.8.0'
+        aiVersion = '1.8.1'
         visuiVersion = '1.4.1-SNAPSHOT'
     }
 
