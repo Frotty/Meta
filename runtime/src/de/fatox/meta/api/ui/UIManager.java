@@ -4,12 +4,19 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.MenuBar;
+import de.fatox.meta.api.PosModifier;
 import de.fatox.meta.ui.windows.MetaDialog;
 
 /**
  * Created by Frotty on 20.05.2016.
  */
 public interface UIManager {
+    PosModifier getPosModifier();
+
+    void setPosModifier(PosModifier modifier);
+
+    void moveWindow(int width, int height);
+
     void resize(int width, int height);
 
     /**
@@ -46,4 +53,6 @@ public interface UIManager {
     void metaSave(String name, Object windowData);
 
     Array<Window> getCurrentlyActiveWindows();
+
+
 }

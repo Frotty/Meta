@@ -10,7 +10,9 @@ import com.badlogic.gdx.utils.reflect.ClassReflection;
 import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import de.fatox.meta.Meta;
+import de.fatox.meta.api.DummyPosModifier;
 import de.fatox.meta.api.Logger;
+import de.fatox.meta.api.PosModifier;
 import de.fatox.meta.api.model.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
@@ -39,13 +41,13 @@ public class MetaUiManager implements UIManager {
     @Inject
     private MetaInput metaInput;
 
-
     private Array<Window> displayedWindows = new Array<>();
     private Array<Window> cachedWindows = new Array<>();
     private MenuBar mainMenuBar;
 
     private Table contentTable = new Table();
     private String currentScreenId = "(none)";
+    private PosModifier posModifier = new DummyPosModifier();
 
     public MetaUiManager() {
         Meta.inject(this);
@@ -53,6 +55,11 @@ public class MetaUiManager implements UIManager {
         contentTable.setPosition(0, 0);
         contentTable.setFillParent(true);
         uiRenderer.addActor(contentTable);
+    }
+
+    @Override
+    public void moveWindow(int x, int y) {
+        posModifier.modify(x, y);
     }
 
     @Override
@@ -301,12 +308,21 @@ public class MetaUiManager implements UIManager {
         }
     }
 
-    Array<Window> copy = new Array<>();
+    private Array<Window> copy = new Array<>();
 
     @Override
     public Array<Window> getCurrentlyActiveWindows() {
         copy.clear();
         copy.addAll(displayedWindows);
         return copy;
+    }
+
+    @Override
+    public PosModifier getPosModifier() {
+        return posModifier;
+    }
+
+    public void setPosModifier(PosModifier posModifier) {
+        this.posModifier = posModifier;
     }
 }
