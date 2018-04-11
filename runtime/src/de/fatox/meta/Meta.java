@@ -22,9 +22,9 @@ public class Meta extends Game {
     private Screen lastScreen;
 
     @Inject
-    private Screen firstScreen;
+    protected Screen firstScreen;
     @Inject
-    private UIManager uiManager;
+    protected UIManager uiManager;
     protected PosModifier modifier;
 
     public static Meta getInstance() {

@@ -26,6 +26,7 @@ class MetaUIRenderer : UIRenderer {
     @Inject
     @Log
     private lateinit var log: Logger
+
     @Inject
     private lateinit var metaInput: MetaInput
     @Inject
@@ -33,12 +34,14 @@ class MetaUIRenderer : UIRenderer {
     @Inject
     @Named("visuiSkin")
     private lateinit var visuiSkin: String
-
-    private val stage: Stage
+    private val stage: Stage = Stage(ScreenViewport())
 
     init {
         Meta.inject(this)
         log.debug(TAG, "Injected MetaUi")
+    }
+
+    override fun load() {
         if (visuiSkin != "") {
             VisUI.load(assetProvider[visuiSkin, FileHandle::class.java])
         } else {
@@ -47,7 +50,6 @@ class MetaUIRenderer : UIRenderer {
         FileChooser.setDefaultPrefsName("de.fatox.meta")
         log.debug(TAG, "Loaded VisUi")
         VisUI.setDefaultTitleAlign(Align.center)
-        stage = Stage(ScreenViewport())
         stage.root.addCaptureListener(object : InputListener() {
             override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
                 if (!(event!!.target is TextField || event.target is ScrollPane)) stage.scrollFocus = null

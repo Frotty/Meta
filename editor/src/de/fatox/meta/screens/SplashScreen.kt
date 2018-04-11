@@ -7,13 +7,16 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import de.fatox.meta.Meta
+import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.Inject
 
 class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
     @Inject
-    private val spriteBatch: SpriteBatch? = null
+    private lateinit var spriteBatch: SpriteBatch
+    @Inject
+    private lateinit var uiRenderer: UIRenderer
     private var sprite: Sprite? = null
-    private var f = 0f
+    private var f = true
 
     override fun show() {
         Meta.inject(this)
@@ -29,14 +32,14 @@ class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
         Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
         Gdx.gl.glClearColor(0.146f, 0.146f, 0.147f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-        spriteBatch!!.begin()
+        spriteBatch.begin()
         sprite!!.draw(spriteBatch)
         spriteBatch.end()
-        if (f >= 1) {
+        if (f) {
+            f = false
             cb.invoke()
-            f = -999999999999f
+            uiRenderer.load()
         }
-        f += delta
     }
 
 
