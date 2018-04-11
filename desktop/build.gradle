@@ -1,7 +1,9 @@
 apply plugin: "java"
+apply plugin: 'kotlin'
+
 sourceCompatibility = 1.8
 sourceSets.main.java.srcDirs = ["src/"]
-project.ext.mainClassName = "de.fatox.de.fatox.meta.desktop.DesktopLauncherEditor"
+project.ext.mainClassName = "de.fatox.meta.desktop.DesktopLauncherEditor"
 project.ext.assetsDir = new File("../android/assets");
 task run(dependsOn: classes, type: JavaExec) {
     main = project.mainClassName
@@ -23,4 +25,14 @@ task dist(type: Jar) {
 dist.dependsOn classes
 dependencies {
     compile project(':editor')
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+}
+buildscript {
+    ext.kotlin_version = '1.2.31'
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
 }

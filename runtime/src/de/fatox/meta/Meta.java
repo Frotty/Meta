@@ -4,6 +4,9 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.utils.TimeUtils;
+import de.fatox.meta.api.DummyPosModifier;
+import de.fatox.meta.api.PosModifier;
+import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Metastasis;
 
@@ -20,16 +23,24 @@ public class Meta extends Game {
 
     @Inject
     private Screen firstScreen;
+    @Inject
+    private UIManager uiManager;
+    protected PosModifier modifier;
 
     public static Meta getInstance() {
         return metaInstance != null ? metaInstance : new Meta();
     }
 
     public Meta() {
+        this(new DummyPosModifier());
+    }
+
+    public Meta(PosModifier modifier) {
+        this.modifier = modifier;
         Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
             exception.printStackTrace();
             try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
             } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
                 e.printStackTrace();
             }
@@ -89,6 +100,7 @@ public class Meta extends Game {
     @Override
     public void create() {
         inject(this);
+        uiManager.setPosModifier(modifier);
         changeScreen(firstScreen);
     }
 

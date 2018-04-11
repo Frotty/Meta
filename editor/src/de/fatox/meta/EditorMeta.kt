@@ -14,7 +14,7 @@ import de.fatox.meta.modules.MetaUIModule
 import de.fatox.meta.screens.MetaEditorScreen
 import de.fatox.meta.screens.SplashScreen
 
-class EditorMeta(val posM: PosModifier) : Meta() {
+class EditorMeta(posM: PosModifier) : Meta(posM) {
 
     @Inject
     private lateinit var metaData: MetaData
@@ -30,7 +30,7 @@ class EditorMeta(val posM: PosModifier) : Meta() {
 
     override fun create() {
         Meta.inject(this)
-        uiManager.posModifier = posM
+        uiManager.posModifier = this.modifier
         val array = Array<FileHandle>()
         array.add(Gdx.files.internal("data/"))
         Meta.changeScreen(SplashScreen({
