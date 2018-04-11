@@ -6,7 +6,6 @@ import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.api.model.MetaAudioVideoData
-import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.Inject
 import de.fatox.meta.modules.MetaEditorModule
@@ -18,8 +17,6 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
 
     @Inject
     private lateinit var metaData: MetaData
-    @Inject
-    private lateinit var uiManager: UIManager
     @Inject
     private lateinit var assetProvider: AssetProvider
 
