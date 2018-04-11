@@ -13,6 +13,7 @@ public class DesktopLauncherEditor {
         config.setTitle("Meta");
         config.setWindowIcon("icon.png");
         config.setWindowedMode(980, 360);
+        config.setDecorated(false);
         config.useOpenGL3(true, 3, 2);
         config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 4);
         EditorMeta editorMeta = new EditorMeta(new WindowPosModifier());
