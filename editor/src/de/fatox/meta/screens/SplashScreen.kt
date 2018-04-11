@@ -16,7 +16,7 @@ class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
     @Inject
     private lateinit var uiRenderer: UIRenderer
     private var sprite: Sprite? = null
-    private var f = true
+    private var f = 0f
 
     override fun show() {
         Meta.inject(this)
@@ -35,11 +35,12 @@ class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
         spriteBatch.begin()
         sprite!!.draw(spriteBatch)
         spriteBatch.end()
-        if (f) {
-            f = false
+        if (f >= 1f) {
+            f = -99999999f
             cb.invoke()
             uiRenderer.load()
         }
+        f += 1
     }
 
 

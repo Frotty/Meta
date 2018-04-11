@@ -33,9 +33,12 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
         Meta.changeScreen(SplashScreen({
             array.forEach { it -> assetProvider.loadAssetsFromFolder(it) }
             val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
+            Gdx.app.postRunnable({
+                uiManager.moveWindow(audioVideoData.x, audioVideoData.y)
+                audioVideoData.apply()
+            })
             changeScreen(MetaEditorScreen())
-            uiManager.moveWindow(audioVideoData.x, audioVideoData.y)
-            audioVideoData.apply()
+
         }))
     }
 
