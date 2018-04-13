@@ -72,7 +72,7 @@ public class Meta extends Game {
         if (getInstance().lastScreen != null) {
             try {
                 changeScreen(getInstance().lastScreen.getClass().newInstance());
-            } catch (InstantiationException | IllegalAccessException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
