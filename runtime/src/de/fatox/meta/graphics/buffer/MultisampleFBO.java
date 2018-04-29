@@ -41,7 +41,7 @@ import java.util.Map;
  * <p>
  * Encapsulates OpenGL ES 2.0 frame buffer objects. This is a simple helper class which should cover most FBO uses. It will
  * automatically create a gltexture for the color attachment and a renderbuffer for the depth buffer. You can get a hold of the
- * gltexture by {@link TomskisLittleFbo#getColorBufferTexture()}. This class will only work with OpenGL ES 2.0.
+ * gltexture by {@link MultisampleFBO#getColorBufferTexture()}. This class will only work with OpenGL ES 2.0.
  * </p>
  * <p>
  * <p>
@@ -55,9 +55,9 @@ import java.util.Map;
  *
  * @author mzechner, realitix
  */
-public class TomskisLittleFbo implements Disposable {
+public class MultisampleFBO implements Disposable {
     /** the frame buffers **/
-    protected final static Map<Application, Array<TomskisLittleFbo>> buffers = new HashMap<Application, Array<TomskisLittleFbo>>();
+    protected final static Map<Application, Array<MultisampleFBO>> buffers = new HashMap<Application, Array<MultisampleFBO>>();
 
     protected final static int GL_DEPTH24_STENCIL8_OES = 0x88F0;
 
@@ -85,10 +85,10 @@ public class TomskisLittleFbo implements Disposable {
 
     protected FrameBuffer nonMultisampledFbo;
 
-    protected GLFrameBufferBuilder<? extends TomskisLittleFbo> bufferBuilder;
+    protected GLFrameBufferBuilder<? extends MultisampleFBO> bufferBuilder;
 
-    /** Creates a TomskisLittleFbo from the specifications provided by bufferBuilder **/
-    protected TomskisLittleFbo(GLFrameBufferBuilder<? extends TomskisLittleFbo> bufferBuilder) {
+    /** Creates a MultisampleFBO from the specifications provided by bufferBuilder **/
+    protected MultisampleFBO(GLFrameBufferBuilder<? extends MultisampleFBO> bufferBuilder) {
         this.bufferBuilder = bufferBuilder;
         build();
 
@@ -96,6 +96,10 @@ public class TomskisLittleFbo implements Disposable {
 
     /** Convenience method to return the first Texture attachment present in the fbo **/
     public Texture getColorBufferTexture() {
+        if(nonMultisampledFbo == null){
+            // TODO fix
+            return null;
+        }
         Gdx.gl30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, framebufferHandle);
         Gdx.gl30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, nonMultisampledFbo.getFramebufferHandle());
         Gdx.gl30.glBlitFramebuffer(0, 0, getWidth(), getHeight(), 0, 0, getWidth(), getHeight(), GL30.GL_COLOR_BUFFER_BIT, GL30.GL_NEAREST);
@@ -124,9 +128,9 @@ public class TomskisLittleFbo implements Disposable {
             intBuffer.rewind();
             Gdx.gl30.glDrawBuffers(1, intBuffer);
             if (i == textureAttachments - 1 && textureAttachments > 1) {
-                Gdx.gl30.glBlitFramebuffer(0, 0, getWidth(), getHeight(), 0, 0, getWidth(), getHeight(), GL30.GL_DEPTH_BUFFER_BIT , GL30.GL_NEAREST);
+                Gdx.gl30.glBlitFramebuffer(0, 0, getWidth(), getHeight(), 0, 0, getWidth(), getHeight(), GL30.GL_DEPTH_BUFFER_BIT, GL30.GL_NEAREST);
             } else {
-                Gdx.gl30.glBlitFramebuffer(0, 0, getWidth(), getHeight(), 0, 0, getWidth(), getHeight(), GL30.GL_COLOR_BUFFER_BIT , GL30.GL_NEAREST);
+                Gdx.gl30.glBlitFramebuffer(0, 0, getWidth(), getHeight(), 0, 0, getWidth(), getHeight(), GL30.GL_COLOR_BUFFER_BIT, GL30.GL_NEAREST);
             }
         }
         FrameBuffer.unbind();
@@ -152,7 +156,12 @@ public class TomskisLittleFbo implements Disposable {
         try {
             int texture = Gdx.gl.glGenTexture();
             Gdx.gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, texture);
-            GL32.glTexImage2DMultisample(GL32.GL_TEXTURE_2D_MULTISAMPLE, 4, attachmentSpec.internalFormat, getWidth(), getHeight(), true);
+
+            GL32.glTexImage2DMultisample(GL32.GL_TEXTURE_2D_MULTISAMPLE, 2, attachmentSpec.internalFormat, getWidth(), getHeight(), true);
+            Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_MIN_FILTER, Texture.TextureFilter.Nearest.getGLEnum());
+            Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_MAG_FILTER, Texture.TextureFilter.Nearest.getGLEnum());
+            Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_WRAP_S, Texture.TextureWrap.ClampToEdge.getGLEnum());
+            Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_WRAP_T, Texture.TextureWrap.ClampToEdge.getGLEnum());
             Gdx.gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, 0);
             return texture;
         } catch (Exception e) {
@@ -208,19 +217,20 @@ public class TomskisLittleFbo implements Disposable {
             Gdx.gl30.glRenderbufferStorageMultisample(GL20.GL_RENDERBUFFER, 4, bufferBuilder.packedStencilDepthRenderBufferSpec.internalFormat, width, height);
         }
 
-
         isMRT = bufferBuilder.textureAttachmentSpecs.size > 1;
+        isMRT = true;
         int colorTextureCounter = 0;
         if (isMRT) {
             for (FrameBufferTextureAttachmentSpec attachmentSpec : bufferBuilder.textureAttachmentSpecs) {
                 int texture = createTexture(attachmentSpec);
                 textureAttachments++;
                 if (attachmentSpec.isColorTexture()) {
-                    gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + colorTextureCounter, GL32.GL_TEXTURE_2D_MULTISAMPLE, texture, 0);
+                    gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + colorTextureCounter, GL32.GL_TEXTURE_2D_MULTISAMPLE,
+                            texture, 0);
                     imBuilder.addColorTextureAttachment(GL30.GL_RGBA8, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE);
                     colorTextureCounter++;
                 } else if (attachmentSpec.isDepth) {
-                    gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL20.GL_DEPTH_ATTACHMENT, GL32.GL_TEXTURE_2D_MULTISAMPLE, texture, 0);
+                    gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL20.GL_DEPTH_ATTACHMENT, GL30.GL_TEXTURE_2D, texture, 0);
                     imBuilder.addDepthTextureAttachment(GL30.GL_DEPTH_COMPONENT32F, GL30.GL_FLOAT);
                 } else if (attachmentSpec.isStencil) {
                     gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL20.GL_STENCIL_ATTACHMENT, gl.GL_TEXTURE_2D, texture, 0);
@@ -258,37 +268,17 @@ public class TomskisLittleFbo implements Disposable {
         gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, 0);
         gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, 0);
 
-        int result = gl.glCheckFramebufferStatus(GL20.GL_FRAMEBUFFER);
 
-        if (result == GL20.GL_FRAMEBUFFER_UNSUPPORTED && bufferBuilder.hasDepthRenderBuffer && bufferBuilder.hasStencilRenderBuffer
-                && (Gdx.graphics.supportsExtension("GL_OES_packed_depth_stencil") ||
-                Gdx.graphics.supportsExtension("GL_EXT_packed_depth_stencil"))) {
-            if (bufferBuilder.hasDepthRenderBuffer) {
-                gl.glDeleteRenderbuffer(depthbufferHandle);
-                depthbufferHandle = 0;
-            }
-            if (bufferBuilder.hasStencilRenderBuffer) {
-                gl.glDeleteRenderbuffer(stencilbufferHandle);
-                stencilbufferHandle = 0;
-            }
-            if (bufferBuilder.hasPackedStencilDepthRenderBuffer) {
-                gl.glDeleteRenderbuffer(depthStencilPackedBufferHandle);
-                depthStencilPackedBufferHandle = 0;
-            }
-
-            depthStencilPackedBufferHandle = gl.glGenRenderbuffer();
-            hasDepthStencilPackedBuffer = true;
-            gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, depthStencilPackedBufferHandle);
-            Gdx.gl30.glRenderbufferStorageMultisample(GL20.GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8_OES, width, height);
-            gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, 0);
-
-            gl.glFramebufferRenderbuffer(GL20.GL_FRAMEBUFFER, GL20.GL_DEPTH_ATTACHMENT, GL20.GL_RENDERBUFFER, depthStencilPackedBufferHandle);
-            gl.glFramebufferRenderbuffer(GL20.GL_FRAMEBUFFER, GL20.GL_STENCIL_ATTACHMENT, GL20.GL_RENDERBUFFER, depthStencilPackedBufferHandle);
-            result = gl.glCheckFramebufferStatus(GL20.GL_FRAMEBUFFER);
-        }
-
+        assertShit();
         gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, defaultFramebufferHandle);
 
+        addManagedFrameBuffer(Gdx.app, this);
+        nonMultisampledFbo = imBuilder.build();
+    }
+
+    private void assertShit() {
+        GL20 gl = Gdx.gl;
+        int result = gl.glCheckFramebufferStatus(GL20.GL_FRAMEBUFFER);
         if (result != GL20.GL_FRAMEBUFFER_COMPLETE) {
 
             if (hasDepthStencilPackedBuffer) {
@@ -310,9 +300,6 @@ public class TomskisLittleFbo implements Disposable {
                 throw new IllegalStateException("frame buffer couldn't be constructed: unsupported combination of formats");
             throw new IllegalStateException("frame buffer couldn't be constructed: unknown error " + result);
         }
-
-        addManagedFrameBuffer(Gdx.app, this);
-        nonMultisampledFbo = imBuilder.build();
     }
 
     /** Releases all resources associated with the FrameBuffer. */
@@ -332,7 +319,9 @@ public class TomskisLittleFbo implements Disposable {
         gl.glDeleteFramebuffer(framebufferHandle);
 
         if (buffers.get(Gdx.app) != null) buffers.get(Gdx.app).removeValue(this, true);
-        nonMultisampledFbo.dispose();
+        if (nonMultisampledFbo != null) {
+            nonMultisampledFbo.dispose();
+        }
     }
 
     /** Makes the frame buffer current so everything gets drawn to it. */
@@ -405,9 +394,9 @@ public class TomskisLittleFbo implements Disposable {
         return bufferBuilder.width;
     }
 
-    private static void addManagedFrameBuffer(Application app, TomskisLittleFbo frameBuffer) {
-        Array<TomskisLittleFbo> managedResources = buffers.get(app);
-        if (managedResources == null) managedResources = new Array<TomskisLittleFbo>();
+    private static void addManagedFrameBuffer(Application app, MultisampleFBO frameBuffer) {
+        Array<MultisampleFBO> managedResources = buffers.get(app);
+        if (managedResources == null) managedResources = new Array<MultisampleFBO>();
         managedResources.add(frameBuffer);
         buffers.put(app, managedResources);
     }
@@ -419,7 +408,7 @@ public class TomskisLittleFbo implements Disposable {
     public static void invalidateAllFrameBuffers(Application app) {
         if (Gdx.gl20 == null) return;
 
-        Array<TomskisLittleFbo> bufferArray = buffers.get(app);
+        Array<MultisampleFBO> bufferArray = buffers.get(app);
         if (bufferArray == null) return;
         for (int i = 0; i < bufferArray.size; i++) {
             bufferArray.get(i).build();
@@ -493,7 +482,7 @@ public class TomskisLittleFbo implements Disposable {
         }
     }
 
-    protected static abstract class GLFrameBufferBuilder<U extends TomskisLittleFbo> {
+    protected static abstract class GLFrameBufferBuilder<U extends MultisampleFBO> {
 
         protected int width, height;
 
@@ -578,15 +567,15 @@ public class TomskisLittleFbo implements Disposable {
         public abstract U build();
     }
 
-    public static class FrameBufferBuilder extends TomskisLittleFbo.GLFrameBufferBuilder<TomskisLittleFbo> {
+    public static class FrameBufferBuilder extends MultisampleFBO.GLFrameBufferBuilder<MultisampleFBO> {
 
         public FrameBufferBuilder(int width, int height) {
             super(width, height);
         }
 
         @Override
-        public TomskisLittleFbo build() {
-            return new TomskisLittleFbo(this);
+        public MultisampleFBO build() {
+            return new MultisampleFBO(this);
         }
 
     }

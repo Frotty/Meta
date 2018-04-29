@@ -79,7 +79,7 @@ public class OpenProjectDialog extends MetaDialog {
                     public void selected(Array<FileHandle> file) {
                         if (file.size == 1) {
                             rootfile = file.get(0);
-                            folderButton.setText(StringUtil.truncate(file.get(0).pathWithoutExtension(), 30));
+                            folderButton.setText(StringUtil.INSTANCE.truncate(file.get(0).pathWithoutExtension(), 30));
                             if (projectManager.verifyProjectFile(rootfile)) {
                                 openBtn.setDisabled(false);
                             }

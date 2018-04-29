@@ -34,7 +34,7 @@ public class SceneWizardDialog extends MetaDialog {
         sceneNameTF.addValidator(new MetaInputValidator() {
             @Override
             public void validateInput(String input, MetaErrorHandler errors) {
-                if(StringUtil.isBlank(input)) {
+                if(StringUtil.INSTANCE.isBlank(input)) {
                     errors.add(new MetaError("Scene name required", "") {
                         @Override
                         public void gotoError() {

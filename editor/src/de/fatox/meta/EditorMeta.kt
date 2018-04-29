@@ -36,9 +36,8 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
             Gdx.app.postRunnable({
                 uiManager.moveWindow(audioVideoData.x, audioVideoData.y)
                 audioVideoData.apply()
+                changeScreen(MetaEditorScreen())
             })
-            changeScreen(MetaEditorScreen())
-
         }))
     }
 

@@ -5,18 +5,18 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.graphics.buffer.MRTFrameBuffer
-import de.fatox.meta.graphics.buffer.TomskisLittleFbo
+import de.fatox.meta.graphics.buffer.MultisampleFBO
 
 /**
  * Created by Frotty on 18.04.2017.
  */
 class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShader) {
     private var mrtFrameBuffer: MRTFrameBuffer? = null
-    private var frameBuffer: TomskisLittleFbo? = null
+    private var frameBuffer: MultisampleFBO? = null
 
 
     fun rebuild(width: Int, height: Int) {
-        println("rebuilt")
+        println("rebuilt width=$width height=$height")
         mrtFrameBuffer?.dispose()
         frameBuffer?.dispose()
 
@@ -26,7 +26,7 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
             mrtFrameBuffer = MRTFrameBuffer(width, height, targetsNum, data.hasDepth)
         } else {
             // Regular Framebuffer
-            val builder = TomskisLittleFbo.FrameBufferBuilder(width, height)
+            val builder = MultisampleFBO.FrameBufferBuilder(width, height)
             builder.addColorTextureAttachment(GL30.GL_RGBA8, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE)
             if(data.hasDepth) {
                 builder.addDepthTextureAttachment(GL30.GL_DEPTH_COMPONENT32F, GL30.GL_FLOAT)

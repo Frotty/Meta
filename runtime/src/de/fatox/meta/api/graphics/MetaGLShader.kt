@@ -7,25 +7,23 @@ import com.badlogic.gdx.math.Matrix3
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector3
 import de.fatox.meta.Meta
-import de.fatox.meta.error.MetaError
-import de.fatox.meta.error.MetaErrorHandler
 
 /**
  * Created by Frotty on 29.06.2016.
  */
 abstract class MetaGLShader(var shaderHandle: GLShaderHandle) : Shader {
-    private val metaErrorHandler = MetaErrorHandler()
+//    private val metaErrorHandler = MetaErrorHandler()
 
     var shaderProgram: ShaderProgram = ShaderProgram(shaderHandle.vertexHandle, shaderHandle.fragmentHandle)
 
     init {
         Meta.inject(this)
         if (!shaderProgram.isCompiled) {
-            metaErrorHandler.add(object : MetaError("Shader compilation failed", "") {
-                override fun gotoError() {
-
-                }
-            })
+//            metaErrorHandler.add(object : MetaError("Shader compilation failed", "") {
+//                override fun gotoError() {
+//
+//                }
+//            })
             throw RuntimeException()
         }
     }

@@ -48,7 +48,7 @@ public class ShaderWizardDialog extends MetaDialog {
         shaderNameTF.addValidator(new MetaInputValidator() {
             @Override
             public void validateInput(String input, MetaErrorHandler errors) {
-                if (StringUtil.isBlank(input)){
+                if (StringUtil.INSTANCE.isBlank(input)){
                     errors.add(new MetaError("Invalid Shader name", "") {
                         @Override
                         public void gotoError() {
@@ -84,7 +84,7 @@ public class ShaderWizardDialog extends MetaDialog {
 
 
     private void checkButton() {
-        if(! StringUtil.isBlank(shaderNameTF.getTextField().getText()) && vertexSelect.hasFile() && fragmentSelect.hasFile()) {
+        if(! StringUtil.INSTANCE.isBlank(shaderNameTF.getTextField().getText()) && vertexSelect.hasFile() && fragmentSelect.hasFile()) {
             createBtn.setDisabled(false);
         } else {
             createBtn.setDisabled(true);

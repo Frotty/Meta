@@ -99,7 +99,7 @@ public class ProjectWizardDialog extends MetaDialog {
                     public void selected(Array<FileHandle> file) {
                         if (file.size == 1) {
                             rootfile = file.get(0);
-                            folderButton.setText(StringUtil.truncate(file.get(0).pathWithoutExtension(), 30));
+                            folderButton.setText(StringUtil.INSTANCE.truncate(file.get(0).pathWithoutExtension(), 30));
                             locationValid = true;
                         } else {
                             locationValid = false;
@@ -121,7 +121,7 @@ public class ProjectWizardDialog extends MetaDialog {
         projectNameTF.addValidator(new MetaInputValidator() {
             @Override
             public void validateInput(String input, MetaErrorHandler errors) {
-                if (!StringUtil.isValidFolderName(input)) {
+                if (!StringUtil.INSTANCE.isValidFolderName(input)) {
                     errors.add(new MetaError(languageBundle.get("newproj_dia_inalid_name"), "Name can only contain alphanumeric characters") {
                         @Override
                         public void gotoError() {

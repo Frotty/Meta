@@ -12,7 +12,7 @@ class MRTFrameBuffer(
         val width: Int,
         /** height  */
         val height: Int, textureCount: Int, hasDepth: Boolean) : Disposable {
-    private var frameBuffer: TomskisLittleFbo? = null
+    private var frameBuffer: MultisampleFBO? = null
 
     val colorBufferTextures: Array<Texture>
         get() = frameBuffer!!.textureAttachments
@@ -22,7 +22,7 @@ class MRTFrameBuffer(
     }
 
     private fun build(numTextures: Int, hasDepth: Boolean) {
-        val frameBufferBuilder = TomskisLittleFbo.FrameBufferBuilder(width, height)
+        val frameBufferBuilder = MultisampleFBO.FrameBufferBuilder(width, height)
         for (i in 0 until numTextures) {
             frameBufferBuilder.addColorTextureAttachment(GL30.GL_RGBA8, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE)
         }

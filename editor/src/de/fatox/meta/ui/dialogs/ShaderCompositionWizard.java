@@ -38,7 +38,7 @@ public class ShaderCompositionWizard extends MetaDialog {
         compNameTF.addValidator(new MetaInputValidator() {
             @Override
             public void validateInput(String input, MetaErrorHandler errors) {
-                if (StringUtil.isBlank(input)) {
+                if (StringUtil.INSTANCE.isBlank(input)) {
                     errors.add(new MetaError("Invalid composition name", "") {
                         @Override
                         public void gotoError() {
@@ -57,7 +57,7 @@ public class ShaderCompositionWizard extends MetaDialog {
 
 
     private void checkButton() {
-        if (!StringUtil.isBlank(compNameTF.getTextField().getText())) {
+        if (!StringUtil.INSTANCE.isBlank(compNameTF.getTextField().getText())) {
             createBtn.setDisabled(false);
         } else {
             createBtn.setDisabled(true);

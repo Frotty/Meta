@@ -160,11 +160,13 @@ class EditorSceneRenderer : Renderer {
     }
 
     private fun resize(width: Int, height: Int) {
-        resizeCam(width, height)
+        if (width > 0 && height > 0) {
+            resizeCam(width, height)
 
-        val composition = shaderComposer.currentComposition
-        for (bufferHandle in composition?.bufferHandles!!) {
-            bufferHandle.rebuild(width, height)
+            val composition = shaderComposer.currentComposition
+            for (bufferHandle in composition?.bufferHandles!!) {
+                bufferHandle.rebuild(width, height)
+            }
         }
     }
 
