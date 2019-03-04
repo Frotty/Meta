@@ -3,9 +3,13 @@ buildscript {
         jcenter()
         mavenCentral()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+      maven {
+        url 'https://maven.google.com/'
+        name 'Google'
+      }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.0'
+        classpath 'com.android.tools.build:gradle:3.2.0'
     }
 }
 
@@ -15,10 +19,10 @@ allprojects {
     version = '1.0'
     ext {
         appName = "Meta"
-        gdxVersion = '1.9.9-SNAPSHOT'
-        roboVMVersion = '1.12.0'
+        gdxVersion = '1.9.10-SNAPSHOT'
+        roboVMVersion = '2.3.5'
         aiVersion = '1.8.1'
-        visuiVersion = '1.4.2-SNAPSHOT'
+        visuiVersion = '1.4.2'
     }
 
     repositories {
@@ -26,6 +30,10 @@ allprojects {
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
         maven { url 'https://jitpack.io' }
+      maven {
+        url 'https://maven.google.com/'
+        name 'Google'
+      }
     }
 }
 
@@ -115,5 +123,5 @@ project(":example") {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '3.3'
+    gradleVersion = '4.6'
 }
