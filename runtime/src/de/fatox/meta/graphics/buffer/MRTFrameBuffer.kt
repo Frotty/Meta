@@ -28,7 +28,9 @@ class MRTFrameBuffer(
         }
         if (hasDepth) {
             frameBufferBuilder.addDepthTextureAttachment(GL30.GL_DEPTH_COMPONENT32F, GL30.GL_FLOAT)
-        }
+			frameBufferBuilder.addBasicDepthRenderBuffer()
+		}
+
         frameBuffer = frameBufferBuilder.build()
     }
 

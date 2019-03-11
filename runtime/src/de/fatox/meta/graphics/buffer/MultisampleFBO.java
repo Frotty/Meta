@@ -482,7 +482,7 @@ public class MultisampleFBO implements Disposable {
         }
     }
 
-    protected static abstract class GLFrameBufferBuilder<U extends MultisampleFBO> {
+    public static abstract class GLFrameBufferBuilder<U extends MultisampleFBO> {
 
         protected int width, height;
 
