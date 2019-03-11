@@ -44,7 +44,7 @@ class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
         sprite?.draw(spriteBatch)
 		sprite2?.draw(spriteBatch)
         spriteBatch.end()
-        if (f >= 1000f) {
+        if (f >= 1f) {
             f = -99999999f
             cb.invoke()
             uiRenderer.load()
