@@ -1,5 +1,4 @@
 apply plugin: "java"
-
 apply plugin: 'kotlin'
 
 targetCompatibility = 1.8
@@ -8,6 +7,8 @@ sourceCompatibility = 1.8
 
 sourceSets.main.java.srcDirs = [ "src/" ]
 sourceSets.test.java.srcDirs = [ "test/" ]
+sourceSets.main.kotlin.srcDirs = [ "src/" ]
+sourceSets.test.kotlin.srcDirs = [ "test/" ]
 
 buildscript {
     ext.kotlin_version = '1.2.51'

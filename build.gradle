@@ -30,6 +30,7 @@ allprojects {
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
         maven { url 'https://jitpack.io' }
+        jcenter()
       maven {
         url 'https://maven.google.com/'
         name 'Google'
@@ -42,10 +43,11 @@ project(":desktop") {
 
     dependencies {
         compile project(":runtime")
+        compile files("build/classes/kotlin/main")
+        compile "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
         compile "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
-        compile "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-controllers-platform:$gdxVersion:natives-desktop"
         testCompile("com.badlogicgames.gdx:gdx-tools:$gdxVersion") {
             exclude group: "com.badlogicgames.gdx", module: "gdx-backend-lwjgl"
@@ -68,7 +70,6 @@ project(":android") {
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
-        compile "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-controllers-android:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-ai:$aiVersion"
         testCompile "junit:junit:4.11"
@@ -83,8 +84,9 @@ project(":runtime") {
     sourceSets.test.java.srcDirs = ["test/"]
 
     dependencies {
-        compile "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
-        compile "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+        compile files("build/classes/kotlin/main")
+        compileOnly "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
+        compileOnly "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
         compile group: 'org.apache.commons', name: 'commons-compress', version: '1.16.1'
         compile group: 'org.tukaani', name: 'xz', version: '1.8'
         testCompile 'com.github.inwc3:wc3libs:f101a29623'
@@ -100,6 +102,7 @@ project(":editor") {
     sourceSets.test.java.srcDirs = ["test/"]
 
     dependencies {
+        compile files("build/classes/kotlin/main")
         compile project(":runtime")
         compile fileTree(dir: 'libs', include: '*.jar')
 
@@ -120,8 +123,4 @@ project(":example") {
         compile project(":runtime")
         compile fileTree(dir: 'libs', include: '*.jar')
     }
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.6'
 }
