@@ -1,10 +1,12 @@
-apply plugin: "java"
-apply plugin: 'kotlin'
+apply plugin: "kotlin"
 
 sourceCompatibility = 1.8
-sourceSets.main.java.srcDirs = ["src/"]
-project.ext.mainClassName = "de.fatox.meta.desktop.DesktopLauncherEditor"
-project.ext.assetsDir = new File("../android/assets");
+sourceSets.main.java.srcDirs = [ "src/" ]
+sourceSets.main.resources.srcDirs = ["../runtime/assets"]
+
+project.ext.mainClassName = "de.fatox.meta.desktop.DesktopLauncher"
+project.ext.assetsDir = new File("../runtime/assets")
+
 task run(dependsOn: classes, type: JavaExec) {
     main = project.mainClassName
     classpath = sourceSets.main.runtimeClasspath
@@ -12,27 +14,25 @@ task run(dependsOn: classes, type: JavaExec) {
     workingDir = project.assetsDir
     ignoreExitValue = true
 }
-task dist(type: Jar) {
-    from files(sourceSets.main.output.classesDirs)
-    from files(sourceSets.main.output.resourcesDir)
-    from { configurations.compile.collect { zipTree(it) } }
-    from files(project.assetsDir);
 
+task debug(dependsOn: classes, type: JavaExec) {
+    main = project.mainClassName
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+    workingDir = project.assetsDir
+    ignoreExitValue = true
+    debug = true
+}
+
+task dist(type: Jar) {
     manifest {
         attributes 'Main-Class': project.mainClassName
     }
+    from {
+        configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
 }
+
+
 dist.dependsOn classes
-dependencies {
-    compile project(':editor')
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-}
-buildscript {
-    ext.kotlin_version = '1.2.51'
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}

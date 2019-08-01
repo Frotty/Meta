@@ -1,51 +1,6 @@
-buildscript {
-    ext.kotlin_version = '1.2.51'
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
-repositories {
-    mavenCentral()
-}
-
-apply plugin: "java"
-apply plugin: 'kotlin'
+apply plugin: "kotlin"
 
 sourceCompatibility = 1.8
-
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 sourceSets.main.java.srcDirs = [ "src/" ]
-sourceSets.test.java.srcDirs = [ "test/" ]
-
-dependencies {
-    compile "com.badlogicgames.gdx:gdx:$gdxVersion"
-    compile "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
-    compile "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-    compile "com.kotcrab.vis:vis-ui:$visuiVersion"
-    compile fileTree(dir: 'libs', include: '*.jar')
-    testCompile "junit:junit:4.11"
-    testCompile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
-    testCompile "com.badlogicgames.gdx:gdx:$gdxVersion"
-    testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-}
-
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-}
-
-jar {
-  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-}
-
