@@ -8,7 +8,7 @@ public class Launcher {
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
 		config.setResizable(true);
 		config.setTitle("Meta");
-		config.setWindowIcon("icon.png");
+		config.setWindowIcon("meta-icon.png");
 		EditorMeta editorMeta = new EditorMeta(new WindowPosModifier());
 		MetaDesktopLauncher.INSTANCE.init(config, editorMeta);
 	}

@@ -10,7 +10,7 @@ object DesktopLauncherEditor {
         val config = Lwjgl3ApplicationConfiguration()
         config.setResizable(true)
         config.setTitle("Meta")
-        config.setWindowIcon("icon.png")
+        config.setWindowIcon("meta-icon.png")
         val editorMeta = EditorMeta(WindowPosModifier())
         MetaDesktopLauncher.init(config, editorMeta)
     }
