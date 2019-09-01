@@ -152,7 +152,9 @@ public class MetaMusicPlayer {
         if (currentMusic != null) {
             if (musicEnabled) {
                 currentMusic.setVolume(vol);
-                Timer.schedule(task, 0, 0.1f);
+                if (!task.isScheduled()) {
+					Timer.schedule(task, 0, 0.1f);
+				}
             } else {
                 vol = currentMusic.getVolume();
                 currentMusic.setVolume(0);
