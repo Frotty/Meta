@@ -25,7 +25,7 @@ public class MetaTaskManager {
     public void redoNextTask() {
         if (currentIndex < taskHistoryStack.size - 1) {
             currentIndex++;
-            taskHistoryStack.get(currentIndex).execute();
+            taskHistoryStack.get(currentIndex).run();
         }
     }
 
