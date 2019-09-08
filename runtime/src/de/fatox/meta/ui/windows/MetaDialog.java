@@ -65,7 +65,7 @@ public abstract class MetaDialog extends MetaWindow {
         // Set color invisible for fade in to work
         centerWindow();
         setColor(1, 1, 1, 0);
-        addAction(Actions.alpha(0.9f, 0.75f));
+        addAction(Actions.alpha(0.95f, 0.75f));
         Gdx.input.setCursorCatched(false);
     }
 
