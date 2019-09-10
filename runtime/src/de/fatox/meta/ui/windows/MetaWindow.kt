@@ -15,19 +15,14 @@ import com.kotcrab.vis.ui.widget.VisTable
 import com.kotcrab.vis.ui.widget.VisWindow
 import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.api.Logger
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.Log
 
 /**
  * Created by Frotty on 08.05.2016.
  */
 abstract class MetaWindow @JvmOverloads constructor(title: String, resizable: Boolean = false, closeButton: Boolean = false) : VisWindow(title, if (resizable) "resizable" else "default") {
-    @Inject
-    @Log
-    private lateinit var log: Logger
     @Inject
     protected lateinit var uiManager: UIManager
     @Inject
@@ -121,11 +116,7 @@ abstract class MetaWindow @JvmOverloads constructor(title: String, resizable: Bo
 
     public override fun close() {
         super.close()
-        log.debug(TAG, "on close")
         uiManager.closeWindow(this)
     }
 
-    companion object {
-        private val TAG = "MetaWindow"
-    }
 }

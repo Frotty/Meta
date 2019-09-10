@@ -8,22 +8,16 @@ import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
-import de.fatox.meta.api.Logger;
-import de.fatox.meta.api.model.MetaAudioVideoData;
-import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.api.graphics.FontProvider;
+import de.fatox.meta.api.model.MetaAudioVideoData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
+import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.ide.SceneManager;
 import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.MetaEditorUI;
 
 public class MetaEditorScreen extends ScreenAdapter {
-    private static final String TAG = "EditorScreen";
-    @Inject
-    @Log
-    private Logger log;
     @Inject
     private UIManager uiManager;
     @Inject

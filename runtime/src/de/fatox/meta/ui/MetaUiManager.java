@@ -11,17 +11,17 @@ import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.kotcrab.vis.ui.widget.MenuBar;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.DummyPosModifier;
-import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.PosModifier;
 import de.fatox.meta.api.model.MetaWindowData;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Log;
 import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.input.MetaInput;
 import de.fatox.meta.ui.windows.MetaDialog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
@@ -30,10 +30,7 @@ import java.io.File;
  */
 @Singleton
 public class MetaUiManager implements UIManager {
-    private static final String TAG = "MetaUiManager";
-    @Inject
-    @Log
-    private Logger log;
+	private static final Logger log = LoggerFactory.getLogger(MetaUiManager.class);
     @Inject
     private UIRenderer uiRenderer;
     @Inject
@@ -145,7 +142,7 @@ public class MetaUiManager implements UIManager {
      */
     @Override
     public <T extends Window> T showWindow(Class<? extends T> windowClass) {
-        log.debug(TAG, "show window: " + windowClass.getName());
+        log.debug("show window: " + windowClass.getName());
         T window = displayWindow(windowClass);
 
         window.setVisible(true);
@@ -167,7 +164,7 @@ public class MetaUiManager implements UIManager {
 
     @Override
     public <T extends MetaDialog> T showDialog(Class<? extends T> dialogClass) {
-        log.debug(TAG, "show dialog: " + dialogClass.getName());
+        log.debug("show dialog: " + dialogClass.getName());
         // Dialogs are just Window subtypes so we show it as usual
         T dialog = showWindow(dialogClass);
         dialog.show();
@@ -228,13 +225,13 @@ public class MetaUiManager implements UIManager {
         // Check if this window is a singleton. If it is and it is displayed, return displayed instance
         T theWindow = checkSingleton(windowClass);
         if (theWindow != null) {
-            log.debug(TAG, "singleton already displaying");
+            log.debug("singleton already displaying");
             return theWindow;
         }
         // Check for a cached instance
         for (Window cachedWindow : cachedWindows) {
             if (cachedWindow.getClass() == windowClass) {
-                log.debug(TAG, "found cached");
+                log.debug("found cached");
                 theWindow = (T) cachedWindow;
                 break;
             }
@@ -244,7 +241,7 @@ public class MetaUiManager implements UIManager {
             cachedWindows.removeValue(theWindow, true);
         } else {
             try {
-                log.debug(TAG, "try instance");
+                log.debug("try instance");
                 theWindow = windowClass.newInstance();
 
             } catch (InstantiationException | IllegalAccessException e) {

@@ -11,21 +11,15 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.TimeUtils;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.model.MetaAudioVideoData;
 import de.fatox.meta.api.ui.UIRenderer;
 import de.fatox.meta.assets.MetaAssetProvider;
 import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Log;
 
 import java.util.Iterator;
 
 public class MetaSoundPlayer {
-    private static final String TAG = "MetaSoundPlayer";
-    @Inject
-    @Log
-    private Logger log;
     private static final Vector3 helper = new Vector3();
     private ObjectMap<String, MetaSoundDefinition> soundDefinitions = new ObjectMap<>();
     private ObjectMap<MetaSoundDefinition, Array<MetaSoundHandle>> playingHandles = new ObjectMap<>();

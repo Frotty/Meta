@@ -6,20 +6,17 @@ import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane;
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPaneAdapter;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Log;
 import de.fatox.meta.ui.tabs.WelcomeTab;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Frotty on 04.06.2016.
  */
 public class MetaEditorUI {
-    private static final String TAG = "MetaEditorUI";
-    @Inject
-    @Log
-    private Logger log;
+	private static final Logger log = LoggerFactory.getLogger(MetaEditorUI.class);
     @Inject
     private UIManager uiManager;
 
@@ -34,7 +31,7 @@ public class MetaEditorUI {
 
     public void setup() {
         metaToolbar = new EditorMenuBar();
-        log.info(TAG, "Toolbar created");
+        log.info("Toolbar created");
         uiManager.setMainMenuBar(metaToolbar.menuBar);
 
         tabbedPane = new TabbedPane();

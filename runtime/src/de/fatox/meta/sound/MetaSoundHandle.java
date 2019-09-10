@@ -7,17 +7,11 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.TimeUtils;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.model.MetaAudioVideoData;
 import de.fatox.meta.assets.MetaData;
 import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Log;
 
 public class MetaSoundHandle {
-    private static final String TAG = "SoundHandle";
-    @Inject
-    @Log
-    private Logger log;
     @Inject
     private ShapeRenderer shapeRenderer;
     @Inject

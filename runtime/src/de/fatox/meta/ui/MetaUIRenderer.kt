@@ -15,17 +15,14 @@ import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.file.FileChooser
 import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.api.Logger
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.Log
 import de.fatox.meta.injection.Named
 import de.fatox.meta.input.MetaInput
+import org.slf4j.LoggerFactory
 
 class MetaUIRenderer : UIRenderer {
-    @Inject
-    @Log
-    private lateinit var log: Logger
+	private val log = LoggerFactory.getLogger(MetaUiManager::class.java)
 
     @Inject
     private lateinit var metaInput: MetaInput
@@ -38,7 +35,7 @@ class MetaUIRenderer : UIRenderer {
 
     init {
         Meta.inject(this)
-        log.debug(TAG, "Injected MetaUi")
+        log.debug("Injected MetaUi")
     }
 
     override fun load() {
@@ -48,7 +45,7 @@ class MetaUIRenderer : UIRenderer {
             VisUI.load()
         }
         FileChooser.setDefaultPrefsName("de.fatox.meta")
-        log.debug(TAG, "Loaded VisUi")
+        log.debug("Loaded VisUi")
         VisUI.setDefaultTitleAlign(Align.center)
         stage.root.addCaptureListener(object : InputListener() {
             override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
@@ -82,10 +79,6 @@ class MetaUIRenderer : UIRenderer {
 
     override fun getCamera(): Camera {
         return stage.camera
-    }
-
-    companion object {
-        private val TAG = "MetaUiRenderer"
     }
 
 }

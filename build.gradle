@@ -65,6 +65,8 @@ project(":runtime") {
         api "com.kotcrab.vis:vis-ui:1.4.4-SNAPSHOT"
         api group: 'org.tukaani', name: 'xz', version: '1.8'
         api group: 'org.apache.commons', name: 'commons-compress', version: '1.16.1'
+		api group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+		api group: 'org.slf4j', name: 'slf4j-api', version: '1.7.28'
         compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
         compile group: 'org.lwjgl', name: 'lwjgl-opengl', version: '3.1.0'
     }
