@@ -9,16 +9,11 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.utils.IntMap
 import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.api.Logger
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.Log
 
 class MetaFontProvider @Inject
 constructor() : FontProvider {
-    @Inject
-    @Log
-    private lateinit var log: Logger
     private val bitmapFontMap = IntMap<BitmapFont>()
     private val generator: FreeTypeFontGenerator by lazy {
         FreeTypeFontGenerator(assetProvider.get("Montserrat.ttf", FileHandle::class.java))

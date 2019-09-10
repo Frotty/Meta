@@ -4,23 +4,18 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.I18NBundle;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.Logger;
 import de.fatox.meta.api.lang.AvailableLanguages;
 import de.fatox.meta.api.lang.LanguageBundle;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
 
 public class MetaLanguageBundle implements LanguageBundle {
-    @Inject
-    @Log
-    private Logger log;
-
-    public I18NBundle currentBundle;
+	private static final Logger log = LoggerFactory.getLogger(MetaLanguageBundle.class);
+    private I18NBundle currentBundle;
 
     private AvailableLanguages currentLanguage;
-
 
     public MetaLanguageBundle() {
         Meta.inject(this);
@@ -34,10 +29,10 @@ public class MetaLanguageBundle implements LanguageBundle {
         try {
             currentBundle = I18NBundle.createBundle(baseFileHandle, locale);
         } catch (Exception e) {
-            log.error("MetaLanguageBundle", e.getLocalizedMessage());
+            log.error(e.getLocalizedMessage());
         }
-        log.debug("MetaLanguageBundle", "Loaded: " + lang);
-        log.debug("MetaLanguageBundle", "Current Locale: " + currentBundle.getLocale());
+        log.debug("Loaded: " + lang);
+        log.debug("Current Locale: " + currentBundle.getLocale());
     }
 
     /**

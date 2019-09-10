@@ -20,14 +20,11 @@ import com.badlogic.gdx.utils.IntMap;
 import com.badlogic.gdx.utils.ObjectMap;
 import de.fatox.meta.Meta;
 import de.fatox.meta.api.AssetProvider;
-import de.fatox.meta.api.Logger;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetaAssetProvider implements AssetProvider {
-    @Inject
-    @Log
-    private Logger log;
+	private static final Logger log = LoggerFactory.getLogger(MetaAssetProvider.class);
 
     public MetaAssetProvider() {
         Meta.inject(this);
@@ -64,7 +61,7 @@ public class MetaAssetProvider implements AssetProvider {
                     list.forEach(it -> {
                         packFileCache.put(it.name(), it);
                         packFileCache.put(it.name().replace("/", "\\"), it);
-                        log.debug("assetProvider", "cache name: <" + it.name() + ">");
+                        log.debug("cache name: <" + it.name() + ">");
                     });
                 }
             }
@@ -75,9 +72,9 @@ public class MetaAssetProvider implements AssetProvider {
 
     @Override
     public <T> void load(String name, Class<T> type) {
-        log.debug("assetProvider", "loading <" + name + ">");
+        log.debug("loading <" + name + ">");
         if (packFileCache.containsKey(name)) {
-            log.debug("assetProvider", "pack cache contains filename");
+            log.debug("pack cache contains filename");
             loadIntern(new AssetDescriptor(packFileCache.get(name), type));
         } else {
             loadIntern(new AssetDescriptor(name, type));
@@ -89,10 +86,10 @@ public class MetaAssetProvider implements AssetProvider {
         if (descr.type == Model.class) {
             assetManager.load(descr.fileName, Model.class, defaultModelParam);
         } else if (descr.type == Texture.class && !descr.fileName.contains("ui")) {
-            log.debug("assetProvider", "ui load");
+            log.debug("ui load");
             assetManager.load(descr.fileName, Texture.class, defaultTexParam);
         } else {
-            log.debug("assetProvider", "normal load");
+            log.debug("normal load");
             assetManager.load(descr);
         }
 

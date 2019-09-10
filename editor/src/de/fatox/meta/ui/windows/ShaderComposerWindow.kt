@@ -9,8 +9,8 @@ import com.badlogic.gdx.utils.Scaling
 import com.kotcrab.vis.ui.widget.VisImageButton
 import com.kotcrab.vis.ui.widget.VisSelectBox
 import com.kotcrab.vis.ui.widget.VisTable
-import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.graphics.RenderBufferHandle
+import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.injection.Inject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.shader.MetaShaderComposer
@@ -28,9 +28,9 @@ import java.util.*
 @Singleton
 class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
     @Inject
-    private val shaderLibrary: MetaShaderLibrary? = null
+    private lateinit var shaderLibrary: MetaShaderLibrary
     @Inject
-    private val shaderComposer: MetaShaderComposer? = null
+    private lateinit var shaderComposer: MetaShaderComposer
 
     private var renderSelectbox: VisSelectBox<String>? = null
     private var bufferTable: VisTable? = null
@@ -40,8 +40,8 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 
     init {
         setupEmpty()
-        shaderComposer!!.addListener { this.onRemoveBuffer() }
-        shaderLibrary!!.addListener {
+        shaderComposer.addListener { this.onRemoveBuffer() }
+        shaderLibrary.addListener {
             loadComposition(Objects.requireNonNull<ShaderComposition>(shaderComposer.currentComposition))
         }
     }
@@ -61,8 +61,8 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
         renderSelectbox = VisSelectBox()
         renderSelectbox!!.items = Array()
         renderSelectbox!!.addListener(object : ChangeListener() {
-            override fun changed(event: ChangeListener.ChangeEvent, actor: Actor) {
-                val selectedComp = shaderComposer!!.getComposition(renderSelectbox!!.selected)
+            override fun changed(event: ChangeEvent, actor: Actor) {
+                val selectedComp = shaderComposer.getComposition(renderSelectbox!!.selected)
                 if (selectedComp != null && shaderComposer.currentComposition != selectedComp) {
                     shaderComposer.currentComposition = selectedComp
                     loadComposition(selectedComp)
@@ -76,7 +76,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
         contentTable.row().padTop(2f)
         contentTable.add<VisTable>(bufferTable).colspan(3).grow()
 
-        if (shaderComposer != null && shaderComposer.compositions.size > 0) {
+        if (shaderComposer.compositions.size > 0) {
             for (i in 0 until shaderComposer.compositions.size) {
                 addComposition(shaderComposer.compositions.get(i))
             }
@@ -95,11 +95,11 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
     }
 
     private fun onAddBuffer() {
-        shaderComposer!!.addRenderBuffer(RenderBufferData(shaderLibrary!!.defaultShaderPath))
+        shaderComposer.addRenderBuffer(RenderBufferData(shaderLibrary.defaultShaderPath))
     }
 
     private fun onRemoveBuffer() {
-        loadComposition(Objects.requireNonNull<ShaderComposition>(shaderComposer!!.currentComposition))
+        loadComposition(Objects.requireNonNull<ShaderComposition>(shaderComposer.currentComposition))
     }
 
     private fun loadBuffers(buffers: Array<RenderBufferHandle>) {

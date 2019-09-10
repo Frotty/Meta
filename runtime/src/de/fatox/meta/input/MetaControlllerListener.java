@@ -6,14 +6,13 @@ import com.badlogic.gdx.controllers.ControllerListener;
 import com.badlogic.gdx.controllers.PovDirection;
 import com.badlogic.gdx.math.Vector3;
 import de.fatox.meta.Meta;
-import de.fatox.meta.api.Logger;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Log;
+import de.fatox.meta.assets.MetaAssetProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetaControlllerListener implements ControllerListener {
-    @Inject
-    @Log
-    private Logger log;
+	private static final Logger log = LoggerFactory.getLogger(MetaAssetProvider.class);
+
     private MetaInput metaInput;
     private int currentDownKey = -1;
 
@@ -26,12 +25,12 @@ public class MetaControlllerListener implements ControllerListener {
 
     @Override
     public void connected(Controller controller) {
-        log.debug("MetaControllerListener", "Controller connected");
+        log.debug("Controller connected");
     }
 
     @Override
     public void disconnected(Controller controller) {
-        log.debug("MetaControllerListener", "Controller disconnected");
+        log.debug("Controller disconnected");
     }
 
     @Override

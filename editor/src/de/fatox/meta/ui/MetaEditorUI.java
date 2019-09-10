@@ -32,7 +32,7 @@ public class MetaEditorUI {
     public void setup() {
         metaToolbar = new EditorMenuBar();
         log.info("Toolbar created");
-        uiManager.setMainMenuBar(metaToolbar.menuBar);
+        uiManager.setMainMenuBar(metaToolbar.getMenuBar());
 
         tabbedPane = new TabbedPane();
         tabbedPane.addListener(new TabbedPaneAdapter() {

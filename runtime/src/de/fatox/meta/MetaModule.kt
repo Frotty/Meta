@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.utils.Json
 import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.api.Logger
 import de.fatox.meta.api.entity.EntityManager
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIManager
@@ -15,7 +14,6 @@ import de.fatox.meta.assets.MetaAssetProvider
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.entity.MetaEntityManager
 import de.fatox.meta.graphics.font.MetaFontProvider
-import de.fatox.meta.injection.Log
 import de.fatox.meta.injection.Named
 import de.fatox.meta.injection.Provides
 import de.fatox.meta.injection.Singleton
@@ -28,10 +26,8 @@ import de.fatox.meta.ui.UiControlHelper
 
 @Singleton
 class MetaModule {
-    constructor()
 
-
-    @Provides
+	@Provides
     @Named("default")
     fun string(): String {
         return ""
@@ -121,13 +117,6 @@ class MetaModule {
     @Named("default")
     fun taskManager(): MetaTaskManager {
         return MetaTaskManager()
-    }
-
-    @Provides
-    @Singleton
-    @Log
-    fun log(metaLogger: MetaLogger): Logger {
-        return metaLogger
     }
 
     @Provides
