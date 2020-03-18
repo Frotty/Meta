@@ -42,8 +42,8 @@ public class ProjectWizardDialog extends MetaDialog {
     private VisLabel checkboxLabel;
 
 
-    public ProjectWizardDialog(String title) {
-        super(title, true);
+    public ProjectWizardDialog() {
+        super("Project Wizard", true);
 
         addButton(new VisTextButton("Cancel"), Align.left, false);
         createBtn = addButton(new VisTextButton("Create"), Align.right, true);
@@ -64,10 +64,12 @@ public class ProjectWizardDialog extends MetaDialog {
         getContentTable().add(visTable).top().growX();
         createBtn.setDisabled(true);
 
+        pack();
+
         setDialogListener(object -> {
             if ((boolean) object) {
                 MetaProjectData metaProjectData = new MetaProjectData(projectNameTF.getTextField().getText());
-                projectManager.saveProject(metaProjectData);
+                projectManager.newProject(rootfile, metaProjectData);
                 projectManager.loadProject(projectManager.getCurrentProjectRoot());
             }
             close();
@@ -99,7 +101,7 @@ public class ProjectWizardDialog extends MetaDialog {
                     public void selected(Array<FileHandle> file) {
                         if (file.size == 1) {
                             rootfile = file.get(0);
-                            folderButton.setText(StringUtil.INSTANCE.truncate(file.get(0).pathWithoutExtension(), 30));
+                            folderButton.setText(StringUtil.INSTANCE.truncate(file.get(0).pathWithoutExtension(), 20));
                             locationValid = true;
                         } else {
                             locationValid = false;

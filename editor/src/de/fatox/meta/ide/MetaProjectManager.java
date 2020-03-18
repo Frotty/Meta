@@ -48,6 +48,9 @@ public class MetaProjectManager implements ProjectManager {
 
     @Override
     public MetaProjectData loadProject(FileHandle projectFile) {
+    	if (!projectFile.name().endsWith("metaproject.json")) {
+    		projectFile = projectFile.child("metaproject.json");
+		}
         MetaProjectData metaProjectData = json.fromJson(MetaProjectData.class, projectFile.readString());
         currentProjectRoot = projectFile.parent();
         createFolders(metaProjectData);
@@ -87,7 +90,13 @@ public class MetaProjectManager implements ProjectManager {
         toastTable.add(new VisLabel("Project created"));
     }
 
-    @Override
+	@Override
+	public void newProject(FileHandle location, MetaProjectData projectData) {
+		currentProjectRoot = location;
+		saveProject(projectData);
+	}
+
+	@Override
     public boolean verifyProjectFile(FileHandle file) {
         try {
             MetaProjectData metaProjectData = json.fromJson(MetaProjectData.class, file.readString());

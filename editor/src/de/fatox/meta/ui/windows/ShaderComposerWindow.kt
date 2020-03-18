@@ -42,7 +42,9 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
         setupEmpty()
         shaderComposer.addListener { this.onRemoveBuffer() }
         shaderLibrary.addListener {
-            loadComposition(Objects.requireNonNull<ShaderComposition>(shaderComposer.currentComposition))
+			if (shaderComposer.currentComposition != null) {
+				loadComposition(shaderComposer.currentComposition!!)
+			}
         }
     }
 

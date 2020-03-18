@@ -12,6 +12,8 @@ public interface ProjectManager {
 
     void saveProject(MetaProjectData projectData);
 
+	void newProject(FileHandle location, MetaProjectData projectData);
+
     boolean verifyProjectFile(FileHandle file);
 
     FileHandle getCurrentProjectRoot();

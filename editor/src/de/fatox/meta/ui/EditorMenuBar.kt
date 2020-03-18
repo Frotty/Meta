@@ -53,7 +53,7 @@ class EditorMenuBar {
         windowsMenu!!.clear()
     }
 
-    fun addAvailableWindow(windowClass: Class<out Window>, icon: Image) {
+    fun addAvailableWindow(windowClass: Class<out Window>, icon: Image?) {
         val menuItem = MenuItem(windowClass.simpleName.substring(0, windowClass.simpleName.indexOf("Window")), icon)
         menuItem.addListener(object : ChangeListener() {
             override fun changed(event: ChangeEvent, actor: Actor) {
