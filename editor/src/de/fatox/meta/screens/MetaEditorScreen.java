@@ -78,8 +78,8 @@ public class MetaEditorScreen extends ScreenAdapter {
                 MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
                 audioVideoData.setWidth(width);
                 audioVideoData.setHeight(height);
-                audioVideoData.setX(uiManager.getPosModifier().getX());
-                audioVideoData.setY(uiManager.getPosModifier().getY());
+                audioVideoData.setX(uiManager.posModifier.getX());
+                audioVideoData.setY(uiManager.posModifier.getY());
                 metaData.save("audioVideoData", audioVideoData);
             }
         }
