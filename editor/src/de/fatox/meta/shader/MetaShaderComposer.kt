@@ -67,7 +67,7 @@ class MetaShaderComposer : MetaNotifier() {
         if (composition != null) {
             compositions.add(composition)
             val window = uiManager.getWindow(ShaderComposerWindow::class.java)
-            window?.addComposition(composition)
+			window.addComposition(composition)
             currentComposition = composition
         }
     }

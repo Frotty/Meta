@@ -37,7 +37,6 @@ abstract class MetaGLShader(var shaderHandle: GLShaderHandle) : Shader {
     }
 
     override fun end() {
-        shaderProgram.end()
     }
 
     override fun dispose() {

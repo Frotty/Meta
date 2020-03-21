@@ -49,7 +49,7 @@ class MetaGeoShader(shaderHandle: GLShaderHandle) : de.fatox.meta.api.graphics.M
     override fun begin(camera: Camera, context: RenderContext) {
         this.camera = camera
         this.context = context
-        shaderProgram.begin()
+        shaderProgram.bind()
 
         UniformAssignments.assignCameraUniforms(shaderProgram, camera)
 

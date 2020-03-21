@@ -28,8 +28,8 @@ class MetaShaderLibrary : MetaNotifier() {
 
     init {
         Meta.inject(this)
-        projectManager.addOnLoadListener { evt ->
-            loadedShaders.clear()
+        projectManager.addOnLoadListener {
+			loadedShaders.clear()
             metaShaders.clear()
             loadDefaultShader()
             loadProjectShaders()

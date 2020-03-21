@@ -46,7 +46,7 @@ class EditorSceneRenderer : Renderer {
 		}
 
 	private val staticModelCache = ModelCache()
-	private var renderContext: RenderContext = RenderContext(DefaultTextureBinder(DefaultTextureBinder.WEIGHTED))
+	private var renderContext: RenderContext = RenderContext(DefaultTextureBinder(DefaultTextureBinder.LRU))
 
 	private var modelBatch: ModelBatch = ModelBatch(renderContext)
 

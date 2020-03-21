@@ -39,15 +39,11 @@ class MetaFullscreenShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHa
 
     override fun begin(camera: Camera, context: RenderContext) {
         this.camera = camera
-        shaderProgram.begin()
+        shaderProgram.bind()
 
         UniformAssignments.assignCustomUniforms(shaderProgram, camera, context, null)
     }
 
-
-    override fun end() {
-        shaderProgram.end()
-    }
 
     override fun dispose() {
         shaderProgram.dispose()
