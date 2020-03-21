@@ -11,7 +11,7 @@ import de.fatox.meta.ui.windows.MetaDialog
  * Created by Frotty on 20.05.2016.
  */
 interface UIManager {
-	var posModifier: PosModifier?
+	var posModifier: PosModifier
 	fun moveWindow(width: Int, height: Int)
 	fun resize(width: Int, height: Int)
 	/**

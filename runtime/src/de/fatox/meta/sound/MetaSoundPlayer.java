@@ -104,7 +104,7 @@ public class MetaSoundPlayer {
 
     private boolean soundInScreen(Vector2 soundPosition) {
         helper.set(soundPosition.x, soundPosition.y, 0);
-        Vector3 project = uiRenderer.camera.project(helper);
+        Vector3 project = uiRenderer.getCamera().project(helper);
         return project.x > 0 && project.x < Gdx.graphics.getWidth() && project.y > 0 && project.y < Gdx.graphics.getHeight();
     }
 

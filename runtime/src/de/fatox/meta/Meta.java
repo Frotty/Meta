@@ -100,7 +100,7 @@ public class Meta extends Game {
     @Override
     public void create() {
         inject(this);
-        uiManager.posModifier = modifier;
+        uiManager.setPosModifier(modifier);
         changeScreen(firstScreen);
     }
 
