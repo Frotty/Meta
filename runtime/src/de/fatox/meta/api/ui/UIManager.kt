@@ -31,11 +31,11 @@ interface UIManager {
 	fun <T : MetaDialog?> showDialog(dialogClass: Class<out T>?): T
 	fun setMainMenuBar(menuBar: MenuBar?)
 	fun <T : Window?> getWindow(windowClass: Class<out T>?): T
-	fun closeWindow(window: Window?)
-	fun updateWindow(window: Window?)
+	fun closeWindow(window: Window)
+	fun updateWindow(window: Window)
 	fun bringWindowsToFront()
 	fun metaHas(name: String?): Boolean
 	fun <T> metaGet(name: String?, c: Class<T>?): T
 	fun metaSave(name: String?, windowData: Any?)
-	val currentlyActiveWindows: Array<Window?>?
+	val currentlyActiveWindows: Array<Window>
 }
