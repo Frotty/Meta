@@ -44,7 +44,7 @@ public class MetaSoundPlayer {
         if (soundDefinition == null) return null;
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
         float volume = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
-        if(volume <= 0) {
+        if (volume <= 0) {
             return null;
         }
 
@@ -55,7 +55,7 @@ public class MetaSoundPlayer {
 
         Array<MetaSoundHandle> handleList = playingHandles.get(soundDefinition);
         cleanupHandles(handleList);
-        if (handleList.size >= soundDefinition.maxInstances || (handleList.size > 0 && handleList.first().getStartTime() + 250 >= TimeUtils.millis())) {
+        if (handleList.size >= soundDefinition.maxInstances || (handleList.size > 0 && handleList.first().getStartTime() + 200 >= TimeUtils.millis())) {
             return null;
         }
 
