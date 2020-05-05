@@ -40,6 +40,10 @@ public class MetaSoundPlayer {
         Meta.inject(this);
     }
 
+	public MetaSoundHandle playSound(MetaSoundDefinition soundDefinition) {
+		return playSound(soundDefinition);
+	}
+
     public MetaSoundHandle playSound(MetaSoundDefinition soundDefinition, Vector2 listenerPos) {
         if (soundDefinition == null) return null;
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
@@ -122,7 +126,7 @@ public class MetaSoundPlayer {
         if (!soundDefinitions.containsKey(path)) {
             soundDefinitions.put(path, new MetaSoundDefinition(path));
         }
-        return playSound(soundDefinitions.get(path), null);
+        return playSound(soundDefinitions.get(path));
     }
 
     public MetaSoundHandle playSound(String path, Vector2 listenerPosition, Vector2 soundPosition) {
