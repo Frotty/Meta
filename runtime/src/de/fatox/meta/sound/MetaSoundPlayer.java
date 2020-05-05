@@ -41,16 +41,19 @@ public class MetaSoundPlayer {
     }
 
 	public MetaSoundHandle playSound(MetaSoundDefinition soundDefinition) {
-		return playSound(soundDefinition, null);
+		return playSound(soundDefinition, null, null);
 	}
 
-    public MetaSoundHandle playSound(MetaSoundDefinition soundDefinition, Vector2 listenerPos) {
+    public MetaSoundHandle playSound(MetaSoundDefinition soundDefinition, Vector2 listenerPos, Vector2 soundPos) {
         if (soundDefinition == null) return null;
         MetaAudioVideoData audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
         float volume = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
         if (volume <= 0) {
             return null;
         }
+		if (listenerPos != null && isInAudibleRange(soundDefinition, listenerPos, soundPos)) {
+			return null;
+		}
 
         if (!playingHandles.containsKey(soundDefinition)) {
             // Create handlelist if sound is played for the first time
@@ -70,7 +73,7 @@ public class MetaSoundPlayer {
         }
         // Play or loop sound
 		MetaSoundHandle soundHandle = new MetaSoundHandle(soundDefinition);
-
+		soundHandle.setSoundPosition(listenerPos, soundPos);
         if (listenerPos != null) {
 			float mappedVolume = soundHandle.calcVolume(listenerPos, false);
 			float mappedPan = soundHandle.calcPan(listenerPos);
@@ -78,6 +81,7 @@ public class MetaSoundPlayer {
 				? soundDefinition.getSound().loop(mappedVolume, 1, mappedPan)
 				: soundDefinition.getSound().play(mappedVolume, 1, mappedPan);
 			soundHandle.setHandleId(id);
+			dynamicHandles.add(soundHandle);
 		} else {
 			long id = soundDefinition.isLooping() ? soundDefinition.getSound().loop(volume, 1, 0) : soundDefinition.getSound().play(volume, 1, 0);
 			soundHandle.setHandleId(id);
@@ -96,20 +100,6 @@ public class MetaSoundPlayer {
                 iterator.remove();
             }
         }
-    }
-
-    public MetaSoundHandle playSound(MetaSoundDefinition sound, Vector2 listenerPosition, Vector2 soundPosition) {
-        if (isInAudibleRange(sound, listenerPosition, soundPosition)) {
-            // Sound is in audible range
-            MetaSoundHandle metaSoundHandle = playSound(sound, listenerPosition);
-            if (metaSoundHandle != null) {
-                // The sound started playing successfully, set position and add to managed handles
-                metaSoundHandle.setSoundPosition(listenerPosition, soundPosition);
-                dynamicHandles.add(metaSoundHandle);
-            }
-            return metaSoundHandle;
-        }
-        return null;
     }
 
     private boolean isInAudibleRange(MetaSoundDefinition sound, Vector2 listenerPosition, Vector2 soundPosition) {

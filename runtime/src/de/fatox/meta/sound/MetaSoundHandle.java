@@ -61,7 +61,6 @@ public class MetaSoundHandle {
 
     public void setSoundPosition(Vector2 listenerPos, Vector2 soundPos) {
         this.soundPos = soundPos;
-		calcVolAndPan(listenerPos);
 	}
 
 	public void calcVolAndPan(Vector2 listenerPos) {
