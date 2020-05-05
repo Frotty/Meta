@@ -19,7 +19,7 @@ public class MetaSoundHandle {
 
     private final MetaAudioVideoData audioVideoData;
     private final MetaSoundDefinition definition;
-    private final long handleId;
+    private long handleId;
     // For 2d positioning
     private Vector2 soundPos;
 
@@ -28,11 +28,9 @@ public class MetaSoundHandle {
     private boolean done = false;
     private boolean playing = true;
 
-    public MetaSoundHandle(MetaSoundDefinition definition, long id) {
+    public MetaSoundHandle(MetaSoundDefinition definition) {
         this.definition = definition;
-        this.handleId = id;
         this.startTime = TimeUtils.millis();
-        this.definition.getSound().setVolume(handleId, definition.getVolume());
         if (!playing) {
             stop();
         }
@@ -44,27 +42,33 @@ public class MetaSoundHandle {
         return startTime;
     }
 
-    public void calculateVolPitchPan(Vector2 listenerPos) {
-        float audibleRange = (Gdx.graphics.getHeight() * 0.4f);
+    public float calcPan(Vector2 listenerPos) {
+		float audibleRange = (Gdx.graphics.getHeight() * 0.4f);
+		float xPan = soundPos.x - listenerPos.x;
+		return MathUtils.clamp(xPan / (audibleRange), -1, 1) * 0.90f;
+	}
+
+    public float calcVolume(Vector2 listenerPos, boolean terminate) {
+		float audibleRange = (Gdx.graphics.getHeight() * 0.4f);
         float audibleRangeSquared = audibleRange * audibleRange;
         float distSquared = listenerPos.dst2(soundPos);
         float volumeMod = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
-        float volumeRemap =  volumeMod * definition.getVolume() * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
-        float xPan = soundPos.x - listenerPos.x;
-        float remappedXPan = MathUtils.clamp(xPan / (audibleRange), -1, 1) * 0.90f;
-        if (distSquared > audibleRangeSquared) {
-            setDone();
-        } else {
-            definition.getSound().setPan(handleId, remappedXPan, volumeRemap);
-        }
+		if (terminate && (distSquared > audibleRangeSquared)) {
+			setDone();
+		}
+		return volumeMod * definition.getVolume() * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
     }
 
     public void setSoundPosition(Vector2 listenerPos, Vector2 soundPos) {
         this.soundPos = soundPos;
-        calculateVolPitchPan(listenerPos);
-    }
+		calcVolAndPan(listenerPos);
+	}
 
-    public void stop() {
+	public void calcVolAndPan(Vector2 listenerPos) {
+		definition.getSound().setPan(handleId, calcPan(listenerPos), calcVolume(listenerPos, true));
+	}
+
+	public void stop() {
         definition.getSound().stop(handleId);
     }
 
@@ -85,4 +89,8 @@ public class MetaSoundHandle {
         shapeRenderer.setColor(Color.CHARTREUSE);
         shapeRenderer.circle(soundPos.x + 16, soundPos.y + 16, 14);
     }
+
+	public void setHandleId(long handleId) {
+		this.handleId = handleId;
+	}
 }
