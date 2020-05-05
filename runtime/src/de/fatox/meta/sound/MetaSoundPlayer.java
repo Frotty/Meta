@@ -51,7 +51,7 @@ public class MetaSoundPlayer {
         if (volume <= 0) {
             return null;
         }
-		if (listenerPos != null && isInAudibleRange(soundDefinition, listenerPos, soundPos)) {
+		if (listenerPos != null && !isInAudibleRange(soundDefinition, listenerPos, soundPos)) {
 			return null;
 		}
 
