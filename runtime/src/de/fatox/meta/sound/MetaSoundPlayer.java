@@ -41,7 +41,7 @@ public class MetaSoundPlayer {
     }
 
 	public MetaSoundHandle playSound(MetaSoundDefinition soundDefinition) {
-		return playSound(soundDefinition);
+		return playSound(soundDefinition, null);
 	}
 
     public MetaSoundHandle playSound(MetaSoundDefinition soundDefinition, Vector2 listenerPos) {
