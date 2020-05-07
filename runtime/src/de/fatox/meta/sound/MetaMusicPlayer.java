@@ -29,6 +29,7 @@ public class MetaMusicPlayer {
     private Array<Music> allPool = new Array<>();
     private Array<Music> activePool = new Array<>();
     private ObjectMap<String, Music> musicCache = new ObjectMap<>();
+	private Timer timer = new Timer();
 
     public MetaMusicPlayer() {
         Meta.inject(this);
@@ -36,7 +37,7 @@ public class MetaMusicPlayer {
 
     public void start() {
         // Start Timer to update music
-        task = Timer.schedule(new Timer.Task() {
+		task = timer.scheduleTask(new Timer.Task() {
             @Override
             public void run() {
                 updateMusic();
@@ -117,7 +118,6 @@ public class MetaMusicPlayer {
     public void addMusicToPool(String musicName) {
         Music music = getMusic(musicName);
         allPool.add(music);
-        allPool.shuffle();
     }
 
     public void nextFromPool() {
@@ -153,7 +153,7 @@ public class MetaMusicPlayer {
             if (musicEnabled) {
                 currentMusic.setVolume(vol);
                 if (!task.isScheduled()) {
-					Timer.schedule(task, 0, 0.1f);
+					timer.scheduleTask(task, 0, 0.1f);
 				}
             } else {
                 vol = currentMusic.getVolume();
@@ -164,6 +164,6 @@ public class MetaMusicPlayer {
     }
 
 	public boolean isMusicPlaying() {
-		return currentMusic != null;
+		return currentMusic != null && currentMusic.isPlaying();
 	}
 }
