@@ -162,4 +162,8 @@ public class MetaMusicPlayer {
             }
         }
     }
+
+	public boolean isMusicPlaying() {
+		return currentMusic != null;
+	}
 }
