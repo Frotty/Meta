@@ -45,6 +45,13 @@ class MetaModule {
     @Provides
     @Singleton
     fun uiRenderer(): UIRenderer {
+		if (Gdx.app.getType().equals(Application.ApplicationType.Desktop)) {
+			ShaderProgram.prependVertexCode =  "#version 140\n"
+			ShaderProgram.prependFragmentCode =  "#version 140\n"
+		} else {
+			ShaderProgram.prependVertexCode = "#version 300 es\n"
+			ShaderProgram.prependFragmentCode = "#version 300 es\n"
+		}
         return MetaUIRenderer()
     }
 
