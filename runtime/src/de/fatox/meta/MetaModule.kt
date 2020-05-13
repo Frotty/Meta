@@ -92,6 +92,8 @@ class MetaModule {
     @Singleton
     @Named("default")
     fun spriteBatch(): SpriteBatch {
+		ShaderProgram.prependVertexCode = Gdx.app.getType().equals(Application.ApplicationType.Desktop) ? "#version 140\n" : "#version 300 es\n";
+		ShaderProgram.prependFragmentCode = Gdx.app.getType().equals(Application.ApplicationType.Desktop) ? "#version 140\n" : "#version 300 es\n";
         val spriteBatch = SpriteBatch()
         spriteBatch.enableBlending()
         return spriteBatch
