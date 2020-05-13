@@ -23,6 +23,8 @@ import de.fatox.meta.task.MetaTaskManager
 import de.fatox.meta.ui.MetaUIRenderer
 import de.fatox.meta.ui.MetaUiManager
 import de.fatox.meta.ui.UiControlHelper
+import com.badlogic.gdx.graphics.g3d.Shader;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 
 @Singleton
 class MetaModule {
