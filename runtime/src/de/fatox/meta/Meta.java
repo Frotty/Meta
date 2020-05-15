@@ -9,12 +9,16 @@ import de.fatox.meta.api.PosModifier;
 import de.fatox.meta.api.ui.UIManager;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Metastasis;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class Meta extends Game {
+	private static final Logger log = LoggerFactory.getLogger(Meta.class);
+
     private static Meta metaInstance;
     private Metastasis metastasis;
 
@@ -56,6 +60,7 @@ public class Meta extends Game {
 
 	private void setUncaughtHandler() {
 		Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
+			log.error(exception.getMessage(), exception);
 			exception.printStackTrace();
 			try {
 				javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
