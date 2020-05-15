@@ -3,6 +3,8 @@ package de.fatox.meta.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Camera
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
@@ -21,6 +23,7 @@ import de.fatox.meta.injection.Named
 import de.fatox.meta.input.MetaInput
 import org.slf4j.LoggerFactory
 
+
 class MetaUIRenderer : UIRenderer {
 	private val log = LoggerFactory.getLogger(MetaUiManager::class.java)
 
@@ -31,10 +34,13 @@ class MetaUIRenderer : UIRenderer {
     @Inject
     @Named("visuiSkin")
     private lateinit var visuiSkin: String
-    private val stage: Stage = Stage(ScreenViewport())
+	@Inject
+	private lateinit var spriteBatch: SpriteBatch
+    private var stage: Stage;
 
     init {
         Meta.inject(this)
+		stage = Stage(ScreenViewport(), spriteBatch)
         log.debug("Injected MetaUi")
     }
 
@@ -55,6 +61,9 @@ class MetaUIRenderer : UIRenderer {
         })
         metaInput.addGlobalAdapter(stage)
     }
+
+
+
 
 
     override fun addActor(actor: Actor) {

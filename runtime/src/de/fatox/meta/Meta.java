@@ -37,26 +37,41 @@ public class Meta extends Game {
 
     public Meta(PosModifier modifier) {
         this.modifier = modifier;
-        Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
-            exception.printStackTrace();
-            try {
-                javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
-                e.printStackTrace();
-            }
-            StringWriter sw = new StringWriter();
-            exception.printStackTrace(new PrintWriter(sw));
-            JTextArea jTextField = new JTextArea();
-            jTextField.setText("Please report this crash with the following info:\n" + sw.toString());
-            jTextField.setEditable(false);
-            JOptionPane.showMessageDialog(null, jTextField, "Uncaught Exception", JOptionPane.ERROR_MESSAGE);
-        });
-        metaInstance = this;
+		setUncaughtHandler();
+		metaInstance = this;
         setupMetastasis();
         addModule(new MetaModule());
     }
 
-    public static void addModule(Object module) {
+	public Meta(PosModifier modifier, Object... modules) {
+		this.modifier = modifier;
+		setUncaughtHandler();
+		metaInstance = this;
+		setupMetastasis();
+		for (Object module: modules) {
+			addModule(module);
+		}
+		addModule(new MetaModule());
+	}
+
+	private void setUncaughtHandler() {
+		Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
+			exception.printStackTrace();
+			try {
+				javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
+			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+				e.printStackTrace();
+			}
+			StringWriter sw = new StringWriter();
+			exception.printStackTrace(new PrintWriter(sw));
+			JTextArea jTextField = new JTextArea();
+			jTextField.setText("Please report this crash with the following info:\n" + sw.toString());
+			jTextField.setEditable(false);
+			JOptionPane.showMessageDialog(null, jTextField, "Uncaught Exception", JOptionPane.ERROR_MESSAGE);
+		});
+	}
+
+	public static void addModule(Object module) {
         getInstance().metastasis.loadModule(module);
     }
 

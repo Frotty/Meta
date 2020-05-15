@@ -31,10 +31,62 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 class MetaModule {
 
 	@Provides
+	@Singleton
+	@Named("default")
+	fun assetProvider(metaAssetProvider: MetaAssetProvider): AssetProvider {
+		return metaAssetProvider
+	}
+
+	@Provides
     @Named("default")
     fun string(): String {
         return ""
     }
+
+	@Provides
+	@Named("spritebatch-shader")
+	@Singleton
+	fun shaderProgram(): ShaderProgram {
+		if (Gdx.app.getType().equals(Application.ApplicationType.Desktop)) {
+			ShaderProgram.prependVertexCode =  "#version 140\n"
+			ShaderProgram.prependFragmentCode =  "#version 140\n"
+		} else {
+			ShaderProgram.prependVertexCode = "#version 300 es\n"
+			ShaderProgram.prependFragmentCode = "#version 300 es\n"
+		}
+			val vertexShader = """in vec4 ${ShaderProgram.POSITION_ATTRIBUTE};
+in vec4 ${ShaderProgram.COLOR_ATTRIBUTE};
+in vec2 ${ShaderProgram.TEXCOORD_ATTRIBUTE}0;
+uniform mat4 u_projTrans;
+out vec4 v_color;
+out vec2 v_texCoords;
+
+void main()
+{
+   v_color = ${ShaderProgram.COLOR_ATTRIBUTE};
+   v_color.a = v_color.a * (255.0/254.0);
+   v_texCoords = ${ShaderProgram.TEXCOORD_ATTRIBUTE}0;
+   gl_Position =  u_projTrans * ${ShaderProgram.POSITION_ATTRIBUTE};
+}
+"""
+			val fragmentShader = """#ifdef GL_ES
+#define LOWP lowp
+precision mediump float;
+#else
+#define LOWP 
+#endif
+in LOWP vec4 v_color;
+in vec2 v_texCoords;
+uniform sampler2D u_texture;
+out vec4 fragData;
+void main()
+{
+  fragData = v_color * texture(u_texture, v_texCoords);
+}"""
+			val shader = ShaderProgram(vertexShader, fragmentShader)
+			require(shader.isCompiled) { "Error compiling shader: " + shader.log }
+			return shader
+	}
 
     @Provides
     @Singleton
@@ -45,13 +97,6 @@ class MetaModule {
     @Provides
     @Singleton
     fun uiRenderer(): UIRenderer {
-		if (Gdx.app.getType().equals(Application.ApplicationType.Desktop)) {
-			ShaderProgram.prependVertexCode =  "#version 140\n"
-			ShaderProgram.prependFragmentCode =  "#version 140\n"
-		} else {
-			ShaderProgram.prependVertexCode = "#version 300 es\n"
-			ShaderProgram.prependFragmentCode = "#version 300 es\n"
-		}
         return MetaUIRenderer()
     }
 
@@ -102,23 +147,9 @@ class MetaModule {
     @Singleton
     @Named("default")
     fun spriteBatch(): SpriteBatch {
-		if (Gdx.app.getType().equals(Application.ApplicationType.Desktop)) {
-			ShaderProgram.prependVertexCode =  "#version 140\n"
-			ShaderProgram.prependFragmentCode =  "#version 140\n"
-		} else {
-			ShaderProgram.prependVertexCode = "#version 300 es\n"
-			ShaderProgram.prependFragmentCode = "#version 300 es\n"
-		}
-		val spriteBatch = SpriteBatch()
+		val spriteBatch = SpriteBatch(1000, shaderProgram())
         spriteBatch.enableBlending()
         return spriteBatch
-    }
-
-    @Provides
-    @Singleton
-    @Named("default")
-    fun assetProvider(metaAssetProvider: MetaAssetProvider): AssetProvider {
-        return metaAssetProvider
     }
 
     @Provides
