@@ -7,11 +7,14 @@ import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.reflect.ClassReflection;
 import com.badlogic.gdx.utils.reflect.ReflectionException;
+import de.fatox.meta.Meta;
+import de.fatox.meta.injection.Inject;
+import de.fatox.meta.injection.Named;
 
 /**
  * Created by Frotty on 10.03.2017.
  * Handles MetaData needs.
- * Basically de-/serializes config classes from a .meta folder next to the executable
+ * De-/serializes config classes from a .meta sub folder in the game's data folder inside user home
  * MetaData can be accessed via #.get and will be cached.
  */
 public class MetaData {
@@ -24,20 +27,26 @@ public class MetaData {
         }
     }
 
-    public static final String GLOBAL_DATA_FOLDER_NAME = ".meta/";
+    @Inject
+	@Named("gameName")
+	private String gameName;
 
-    private ObjectMap<String, FileHandle> fileHandleCache = new ObjectMap<>();
-    private ObjectMap<String, CacheObj<? extends Object>> jsonCache = new ObjectMap<>();
-    private static FileHandle globalRoot = Gdx.files.absolute(GLOBAL_DATA_FOLDER_NAME);
+    public static final String GLOBAL_DATA_FOLDER_NAME = ".meta";
 
-    static {
-        globalRoot.mkdirs();
-    }
+    private final ObjectMap<String, FileHandle> fileHandleCache = new ObjectMap<>();
+    private final ObjectMap<String, CacheObj<? extends Object>> jsonCache = new ObjectMap<>();
+    private final FileHandle dataRoot;
 
-    private Json json = new Json();
+	public MetaData() {
+		Meta.inject(this);
+		dataRoot = Gdx.files.external("." + gameName).child(GLOBAL_DATA_FOLDER_NAME);
+		dataRoot.mkdirs();
+	}
+
+    private final Json json = new Json();
 
     public void save(String key, Object obj) {
-        save(globalRoot, key, obj);
+        save(dataRoot, key, obj);
     }
 
     public FileHandle save(FileHandle target, String key, Object obj) {
@@ -55,17 +64,17 @@ public class MetaData {
 
     /** Loads and caches the filehandle descripted by the path, if it exists */
     public FileHandle get(String key) {
-        return getCachedHandle(globalRoot, key);
+        return getCachedHandle(dataRoot, key);
     }
 
     /** Caches and returns this object loaded from json at the default location */
     public <T> T get(Class<T> type) {
-        return getCachedJson(globalRoot, type.getClass().getSimpleName(), type);
+        return getCachedJson(dataRoot, type.getClass().getSimpleName(), type);
     }
 
     /** Caches and returns this object loaded from json at the specified location */
     public <T> T get(String key, Class<T> type) {
-        return getCachedJson(globalRoot, key, type);
+        return getCachedJson(dataRoot, key, type);
     }
 
     private <T> T getCachedJson(FileHandle parent, String key, Class<T> type) {
@@ -102,7 +111,7 @@ public class MetaData {
     }
 
     public FileHandle getCachedHandle(String key) {
-        return getCachedHandle(globalRoot, key);
+        return getCachedHandle(dataRoot, key);
     }
 
     public FileHandle getCachedHandle(FileHandle parent, String key) {
@@ -112,7 +121,7 @@ public class MetaData {
         } else {
             fileHandle = parent.child(key);
             if (!fileHandle.exists()) {
-                FileHandle fileHandle2 = Gdx.files.local(GLOBAL_DATA_FOLDER_NAME + key);
+                FileHandle fileHandle2 = Gdx.files.external(GLOBAL_DATA_FOLDER_NAME + key);
                 if (fileHandle2.exists()) {
                     fileHandle = fileHandle2;
                 }
@@ -123,7 +132,7 @@ public class MetaData {
     }
 
     public boolean has(String name) {
-        return has(globalRoot, name);
+        return has(dataRoot, name);
     }
 
     public boolean has(FileHandle fileHandle, String name) {
