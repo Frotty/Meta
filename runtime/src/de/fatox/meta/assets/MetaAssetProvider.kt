@@ -165,7 +165,7 @@ class MetaAssetProvider : AssetProvider {
 	 * @return
 	 */
 	fun loadAnimationFrames(baseName: String, frames: Int): Array<out TextureRegion> {
-		val key = baseName.hashCode()
+		val key = baseName.hashCode() + frames
 		if (!animCache.containsKey(key)) {
 			var regions: Array<AtlasRegion>? = null
 			for (atlas in atlasCache) {
@@ -175,8 +175,8 @@ class MetaAssetProvider : AssetProvider {
 				}
 			}
 			if (regions != null) {
-				animCache.put(key, regions)
 				regions.setSize(frames)
+				animCache.put(key, regions)
 			}
 		}
 		return animCache[key]
