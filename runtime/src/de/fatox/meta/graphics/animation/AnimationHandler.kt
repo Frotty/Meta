@@ -53,7 +53,7 @@ class AnimationHandler {
 			return
 		}
 		stateTime += delta
-		if (currentAnimation!!.isAnimationFinished(stateTime) && currentAnimation!!.playMode != PlayMode.LOOP) {
+		if (currentAnimation!!.playMode == PlayMode.NORMAL && currentAnimation!!.isAnimationFinished(stateTime)) {
 			if (animQueue != null && animQueue!!.size > 0) {
 				currentAnimation = animQueue!!.pop()
 				stateTime = 0f
