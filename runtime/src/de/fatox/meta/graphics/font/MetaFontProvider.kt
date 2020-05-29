@@ -29,7 +29,7 @@ constructor() : FontProvider {
 
     override fun getFont(size: Int): BitmapFont {
         if (!bitmapFontMap.containsKey(size)) {
-            generateFont(size)
+            generateFont(if (size > 1) size else 5)
         }
         return bitmapFontMap.get(size)
     }
