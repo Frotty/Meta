@@ -24,8 +24,8 @@ import de.fatox.meta.task.MetaTaskManager
 import de.fatox.meta.ui.MetaUIRenderer
 import de.fatox.meta.ui.MetaUiManager
 import de.fatox.meta.ui.UiControlHelper
-import com.badlogic.gdx.graphics.g3d.Shader;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import de.fatox.meta.graphics.font.FontInfo
 
 @Singleton
 class MetaModule {
@@ -181,10 +181,11 @@ void main()
         return UiControlHelper()
     }
 
-//	@Provides
-//	@Singleton
-//	@Named("default-font")
-//	fun defaultFont(): String {
-//		return "Montserrat.ttf"
-//	}
+	@Provides
+	@Singleton
+	@Named("default")
+	fun fontInfo(): FontInfo {
+		return FontInfo("Montserrat.ttf")
+	}
+
 }

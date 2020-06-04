@@ -22,15 +22,11 @@ constructor() : FontProvider {
     @Inject
     private lateinit var spriteBatch: SpriteBatch
 	@Inject
-	@Named("default-font")
-	private lateinit var defaultFont: String
+	private lateinit var fontInfo: FontInfo
 
     init {
         Meta.inject(this)
-		if (defaultFont.isBlank()) {
-			defaultFont = "Montserrat.ttf"
-		}
-		generator = FreeTypeFontGenerator(assetProvider[defaultFont, FileHandle::class.java])
+		generator = FreeTypeFontGenerator(assetProvider[fontInfo.path, FileHandle::class.java])
 	}
 
     override fun getFont(size: Int): BitmapFont {
