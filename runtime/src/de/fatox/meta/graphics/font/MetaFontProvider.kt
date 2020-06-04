@@ -11,17 +11,21 @@ import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.Named
 
 class MetaFontProvider @Inject
 constructor() : FontProvider {
     private val bitmapFontMap = IntMap<BitmapFont>()
     private val generator: FreeTypeFontGenerator by lazy {
-        FreeTypeFontGenerator(assetProvider.get("Montserrat.ttf", FileHandle::class.java))
+        FreeTypeFontGenerator(assetProvider[defaultFont, FileHandle::class.java])
     }
     @Inject
     private lateinit var assetProvider: AssetProvider
     @Inject
     private lateinit var spriteBatch: SpriteBatch
+	@Inject
+	@Named("default-font")
+	private lateinit var defaultFont: String
 
     init {
         Meta.inject(this)
