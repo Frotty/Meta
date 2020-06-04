@@ -181,10 +181,10 @@ void main()
         return UiControlHelper()
     }
 
-	@Provides
-	@Singleton
-	@Named("default-font")
-	fun defaultFont(): String {
-		return "Montserrat.ttf"
-	}
+//	@Provides
+//	@Singleton
+//	@Named("default-font")
+//	fun defaultFont(): String {
+//		return "Montserrat.ttf"
+//	}
 }
