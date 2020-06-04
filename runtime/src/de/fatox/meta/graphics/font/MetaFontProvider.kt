@@ -16,9 +16,7 @@ import de.fatox.meta.injection.Named
 class MetaFontProvider @Inject
 constructor() : FontProvider {
     private val bitmapFontMap = IntMap<BitmapFont>()
-    private val generator: FreeTypeFontGenerator by lazy {
-        FreeTypeFontGenerator(assetProvider[defaultFont, FileHandle::class.java])
-    }
+    private var generator: FreeTypeFontGenerator
     @Inject
     private lateinit var assetProvider: AssetProvider
     @Inject
@@ -29,7 +27,11 @@ constructor() : FontProvider {
 
     init {
         Meta.inject(this)
-    }
+		if (defaultFont.isBlank()) {
+			defaultFont = "Montserrat.ttf"
+		}
+		generator = FreeTypeFontGenerator(assetProvider[defaultFont, FileHandle::class.java])
+	}
 
     override fun getFont(size: Int): BitmapFont {
         if (!bitmapFontMap.containsKey(size)) {
