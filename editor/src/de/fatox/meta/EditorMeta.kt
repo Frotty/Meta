@@ -21,24 +21,24 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
     private lateinit var assetProvider: AssetProvider
 
     init {
-        Meta.addModule(MetaEditorModule())
-        Meta.addModule(MetaUIModule())
+        addModule(MetaEditorModule())
+        addModule(MetaUIModule())
     }
 
     override fun create() {
-        Meta.inject(this)
+        inject(this)
         uiManager.posModifier = this.modifier
         val array = Array<FileHandle>()
         array.add(Gdx.files.internal("data/"))
-        Meta.changeScreen(SplashScreen({
-            array.forEach { it -> assetProvider.loadAssetsFromFolder(it) }
+        changeScreen(SplashScreen {
+            array.forEach { assetProvider.loadAssetsFromFolder(it) }
             val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
-            Gdx.app.postRunnable({
-                uiManager.moveWindow(audioVideoData.x, audioVideoData.y)
-                audioVideoData.apply()
-                changeScreen(MetaEditorScreen())
-            })
-        }))
+            Gdx.app.postRunnable {
+				uiManager.moveWindow(audioVideoData.x, audioVideoData.y)
+				audioVideoData.apply()
+				changeScreen(MetaEditorScreen())
+			}
+		})
     }
 
 }
