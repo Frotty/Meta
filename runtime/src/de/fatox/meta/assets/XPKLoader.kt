@@ -8,6 +8,8 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
+import org.apache.commons.compress.archivers.sevenz.SevenZMethod
+import org.apache.commons.compress.archivers.sevenz.SevenZMethodConfiguration
 
 enum class XPKTypes(val letter: String, val cb: Class<out Disposable>?) {
 
@@ -31,6 +33,8 @@ object XPKLoader {
         val array = Array<XPKFileHandle>()
         val sevenZFile = SevenZFile(fileHandle.file())
         var it = sevenZFile.nextEntry
+		val methodConfig = SevenZMethodConfiguration(SevenZMethod.DEFLATE)
+		it.contentMethods = listOf(methodConfig)
         do {
             val xpkFileHandle = XPKFileHandle(array, 0, fileHandle, it, it.name.replace("/","\\"))
             array.add(xpkFileHandle)
