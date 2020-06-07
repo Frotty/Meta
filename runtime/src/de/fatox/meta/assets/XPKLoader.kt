@@ -49,7 +49,7 @@ object XPKLoader {
             do {
                 if (itr.name == entry.name) {
                     val content = ByteArray(itr.size.toInt())
-                    s7f.read(content, 0, itr.size.toInt())
+                    s7f.read(content)
                     return content
                 }
                 itr = it.nextEntry
