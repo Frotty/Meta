@@ -33,8 +33,6 @@ object XPKLoader {
         val array = Array<XPKFileHandle>()
         val sevenZFile = SevenZFile(fileHandle.file())
         var it = sevenZFile.nextEntry
-		val methodConfig = SevenZMethodConfiguration(SevenZMethod.DEFLATE)
-		it.contentMethods = listOf(methodConfig)
         do {
             val xpkFileHandle = XPKFileHandle(array, 0, fileHandle, it, it.name.replace("/","\\"))
             array.add(xpkFileHandle)
