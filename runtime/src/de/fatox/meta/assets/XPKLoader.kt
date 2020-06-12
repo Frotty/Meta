@@ -8,8 +8,10 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
-import org.apache.commons.compress.archivers.sevenz.SevenZMethod
-import org.apache.commons.compress.archivers.sevenz.SevenZMethodConfiguration
+import org.apache.commons.compress.utils.SeekableInMemoryByteChannel
+import java.nio.file.Files
+import java.util.*
+
 
 enum class XPKTypes(val letter: String, val cb: Class<out Disposable>?) {
 
@@ -29,9 +31,19 @@ object XPKLoader {
         return XPKTypes.INVALID
     }
 
+	fun concat(first: ByteArray, second: ByteArray): ByteArray {
+		val result = first.copyOf(first.size + second.size)
+		System.arraycopy(second, 0, result, first.size, second.size)
+		return result
+	}
+
     fun getList(fileHandle: FileHandle): Array<XPKFileHandle> {
         val array = Array<XPKFileHandle>()
-        val sevenZFile = SevenZFile(fileHandle.file())
+		var readBytes = fileHandle.readBytes()
+		if (readBytes[0] != '7'.toByte()) {
+			readBytes = concat(byteArrayOf('7'.toByte(), 'z'.toByte(), -68, -81, 39, 28), readBytes)
+		}
+		val sevenZFile = SevenZFile(SeekableInMemoryByteChannel(readBytes))
         var it = sevenZFile.nextEntry
         do {
             val xpkFileHandle = XPKFileHandle(array, 0, fileHandle, it, it.name.replace("/","\\"))
