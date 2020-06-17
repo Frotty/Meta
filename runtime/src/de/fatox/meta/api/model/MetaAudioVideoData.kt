@@ -6,6 +6,7 @@ import com.badlogic.gdx.Gdx
  * Created by Frotty on 05.11.2016.
  */
 data class MetaAudioVideoData(var profile: String = "default") {
+	var hd = true
     var resizeable = true
     var borderless = false
     var fullscreen = false

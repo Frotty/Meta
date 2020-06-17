@@ -9,8 +9,7 @@ import com.badlogic.gdx.utils.Disposable
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
 import org.apache.commons.compress.utils.SeekableInMemoryByteChannel
-import java.nio.file.Files
-import java.util.*
+import java.io.FileInputStream
 
 
 enum class XPKTypes(val letter: String, val cb: Class<out Disposable>?) {
@@ -39,11 +38,7 @@ object XPKLoader {
 
     fun getList(fileHandle: FileHandle): Array<XPKFileHandle> {
         val array = Array<XPKFileHandle>()
-		var readBytes = fileHandle.readBytes()
-		if (readBytes[0] != '7'.toByte()) {
-			readBytes = concat(byteArrayOf('7'.toByte(), 'z'.toByte(), -68, -81, 39, 28), readBytes)
-		}
-		val sevenZFile = SevenZFile(SeekableInMemoryByteChannel(readBytes))
+		val sevenZFile = SevenZFile(fileHandle.file())
         var it = sevenZFile.nextEntry
         do {
             val xpkFileHandle = XPKFileHandle(array, 0, fileHandle, it, it.name.replace("/","\\"))

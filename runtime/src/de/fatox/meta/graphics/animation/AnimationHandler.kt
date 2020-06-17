@@ -7,9 +7,8 @@ import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.utils.Array
 
 /**
- * #getCurrentFrame()
- * Returns a textureRegion from an animation according to it's settings and stateTime.
- * Animations can be played directly or queued to be played when the current one finishes.
+ * Wraps a libGDX Animation, tracking state time and a queue of animations.
+ * Queued animations will play once the current animation has finished.
  */
 class AnimationHandler {
 	var animQueue: Array<Animation<TextureRegion>>? = null
