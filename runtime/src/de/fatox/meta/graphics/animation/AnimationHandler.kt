@@ -12,14 +12,15 @@ import com.badlogic.gdx.utils.Array
  */
 class AnimationHandler {
 	var animQueue: Array<Animation<TextureRegion>>? = null
-	private var currentAnimation: Animation<TextureRegion>? = null
+	private var currentAnimation: Animation<TextureRegion> = EmptyAnimation.get()
 	var isPlaying = false
 		private set
 	var stateTime = 0f
+
 	/**
 	 * Plays the given animation instantly
 	 */
-	fun playAnimation(animation: Animation<TextureRegion>?) {
+	fun playAnimation(animation: Animation<TextureRegion>) {
 		stateTime = 0f
 		currentAnimation = animation
 		isPlaying = true
@@ -42,7 +43,7 @@ class AnimationHandler {
 	 * @return The to be rendered frame of the animation
 	 */
 	val currentFrame: TextureRegion
-		get() = currentAnimation!!.getKeyFrame(stateTime)
+		get() = currentAnimation.getKeyFrame(stateTime)
 
 	/**
 	 * Internally updates the animation
@@ -52,12 +53,12 @@ class AnimationHandler {
 			return
 		}
 		stateTime += delta
-		if (currentAnimation!!.playMode == PlayMode.NORMAL && currentAnimation!!.isAnimationFinished(stateTime)) {
+		if (currentAnimation.playMode == PlayMode.NORMAL && currentAnimation.isAnimationFinished(stateTime)) {
 			if (animQueue != null && animQueue!!.size > 0) {
 				currentAnimation = animQueue!!.pop()
 				stateTime = 0f
 			} else {
-				stateTime = currentAnimation!!.animationDuration
+				stateTime = currentAnimation.animationDuration
 				isPlaying = false
 			}
 		}
@@ -67,7 +68,7 @@ class AnimationHandler {
 	 * Randomizes the timeState
 	 */
 	fun randomizeState() {
-		stateTime = MathUtils.random(0f, currentAnimation!!.animationDuration)
+		stateTime = MathUtils.random(0f, currentAnimation.animationDuration)
 	}
 
 	/**
@@ -79,7 +80,7 @@ class AnimationHandler {
 	}
 
 	val isFinished: Boolean
-		get() = currentAnimation!!.isAnimationFinished(stateTime)
+		get() = currentAnimation.isAnimationFinished(stateTime)
 
 	fun getCurrentAnimation(): Animation<TextureRegion>? {
 		return currentAnimation
