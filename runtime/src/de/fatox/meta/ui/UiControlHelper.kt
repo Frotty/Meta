@@ -165,7 +165,7 @@ class UiControlHelper {
         }
         this.selectedActor = selectedActor
         this.selectedColor.set(selectedActor.color)
-        this.selectedActor!!.color = Color.LIGHT_GRAY
+        this.selectedActor!!.color = this.selectedActor!!.color.add(0.05f, 0.05f, 0.1f, 0f)
     }
 
 }
