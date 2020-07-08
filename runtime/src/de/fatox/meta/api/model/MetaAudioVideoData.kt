@@ -16,6 +16,7 @@ data class MetaAudioVideoData(var profile: String = "default") {
     var height = 720
     var displayMode = 0
     var vsyncEnabled = true
+	var maxFps = 128;
     var videoDebug = false
 
     var masterVolume = 0.5f
