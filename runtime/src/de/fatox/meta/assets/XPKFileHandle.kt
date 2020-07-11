@@ -7,7 +7,7 @@ import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 
-class XPKFileHandle(val siblings: Array<XPKFileHandle>, var length: Int, val sevenZFile: FileHandle, val entry: SevenZArchiveEntry, val name: String) : FileHandle() {
+class XPKFileHandle(val siblings: Array<XPKFileHandle>, var length: Int, val sevenZFile: FileHandle, val entry: SevenZArchiveEntry, val name: String) : FileHandle(sevenZFile.file()) {
     val path: String = name.substring(0, name.lastIndexOf("\\").takeIf { it >= 0 } ?: name.length)
     val fileName: String = name.substring((name.lastIndexOf("\\").takeIf { it >= 0 } ?: -1) + 1)
     var array: ByteArray? = null
@@ -34,7 +34,7 @@ class XPKFileHandle(val siblings: Array<XPKFileHandle>, var length: Int, val sev
         try {
             return ByteArrayInputStream(readBytes())
         } catch (ex: Exception) {
-            if (file().isDirectory)
+            if (file() != null && file().isDirectory)
                 throw GdxRuntimeException("Cannot open a stream to a directory: $file ($type)", ex)
             throw GdxRuntimeException("Error reading file: $file ($type)", ex)
         }
