@@ -1,6 +1,7 @@
 package de.fatox.meta.assets;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
@@ -24,6 +25,11 @@ public class HashUtils {
             throw new RuntimeException(e);
         }
     }
+
+	//  http://stackoverflow.com/a/3940857/314015
+	static String hex(byte[] data) {
+		return String.format("%040x", new BigInteger(1, data));
+	}
 
 }
 
