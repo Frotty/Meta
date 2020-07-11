@@ -52,23 +52,23 @@ public class MetaControlllerListener implements ControllerListener {
     }
 
     private boolean checkVert(Controller controller) {
-        if (currentDownKey != Input.Keys.DOWN && (controller.getAxis(1) < -deadzone)) {
+        if (currentDownKey != Input.Keys.UP && (controller.getAxis(1) < -deadzone)) {
             metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.DOWN;
+            currentDownKey = Input.Keys.UP;
             metaInput.keyDown(currentDownKey);
             return true;
-        } else if (currentDownKey == Input.Keys.DOWN && (controller.getAxis(1) > -deadzone)) {
+        } else if (currentDownKey == Input.Keys.UP && (controller.getAxis(1) > -deadzone)) {
             metaInput.keyUp(currentDownKey);
             currentDownKey = -1;
             return true;
         }
 
-        if (currentDownKey != Input.Keys.UP && (controller.getAxis(1) > deadzone)) {
+        if (currentDownKey != Input.Keys.DOWN && (controller.getAxis(1) > deadzone)) {
             metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.UP;
+            currentDownKey = Input.Keys.DOWN;
             metaInput.keyDown(currentDownKey);
             return true;
-        } else if (currentDownKey == Input.Keys.UP && (controller.getAxis(1) < deadzone)) {
+        } else if (currentDownKey == Input.Keys.DOWN && (controller.getAxis(1) < deadzone)) {
             metaInput.keyUp(currentDownKey);
             currentDownKey = -1;
             return true;
