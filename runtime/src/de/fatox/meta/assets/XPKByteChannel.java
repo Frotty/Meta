@@ -7,6 +7,8 @@ import java.nio.channels.SeekableByteChannel;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static de.fatox.meta.assets.XPKLoader.HASH_LENGTH;
+
 /**
  * A {@link SeekableByteChannel} implementation that wraps a byte[].
  *
@@ -36,7 +38,7 @@ public class XPKByteChannel implements SeekableByteChannel {
      */
     public XPKByteChannel(byte[] data) {
         this.data = data;
-        size = data.length - 40;
+        size = data.length - HASH_LENGTH;
     }
 
     /**
