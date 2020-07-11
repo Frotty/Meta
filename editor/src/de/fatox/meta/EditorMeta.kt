@@ -31,7 +31,8 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
         val array = Array<FileHandle>()
         array.add(Gdx.files.internal("data/"))
         changeScreen(SplashScreen {
-            array.forEach { assetProvider.loadAssetsFromFolder(it) }
+			assetProvider.loadRawAssetsFromFolder(Gdx.files.internal("."))
+            array.forEach { assetProvider.loadPackedAssetsFromFolder(it) }
             val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
             Gdx.app.postRunnable {
 				uiManager.moveWindow(audioVideoData.x, audioVideoData.y)

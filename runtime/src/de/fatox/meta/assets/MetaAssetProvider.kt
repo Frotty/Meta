@@ -28,14 +28,14 @@ import java.util.function.Consumer
 class MetaAssetProvider : AssetProvider {
 	internal inner class MetaFileHandleResolver : FileHandleResolver {
 		override fun resolve(fileName: String): FileHandle {
-			return if (packFileCache.containsKey(fileName)) packFileCache[fileName] else Gdx.files.internal(fileName)
+			return if (fileCache.containsKey(fileName)) fileCache[fileName] else Gdx.files.internal(fileName)
 		}
 	}
 
 	private val assetManager = AssetManager(MetaFileHandleResolver())
 	private val atlasCache = Array<TextureAtlas>()
 	private val animCache = IntMap<Array<out TextureRegion>>()
-	private val packFileCache = ObjectMap<String, XPKFileHandle>()
+	private val fileCache = ObjectMap<String, FileHandle>()
 
 	companion object {
 		private val log = LoggerFactory.getLogger(MetaAssetProvider::class.java)
@@ -49,14 +49,14 @@ class MetaAssetProvider : AssetProvider {
 		}
 	}
 
-	override fun loadAssetsFromFolder(folder: FileHandle): Boolean {
+	override fun loadPackedAssetsFromFolder(folder: FileHandle): Boolean {
 		if (folder.isDirectory) {
 			for (itrHandle in folder.list()) {
 				if (itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) {
 					val list = getList(itrHandle)
 					list.forEach(Consumer { it: XPKFileHandle ->
-						packFileCache.put(it.name(), it)
-						packFileCache.put(it.name().replace("/", "\\"), it)
+						fileCache.put(it.name(), it)
+						fileCache.put(it.name().replace("/", "\\"), it)
 						log.debug("cache name: <" + it.name() + ">")
 					})
 				}
@@ -66,11 +66,27 @@ class MetaAssetProvider : AssetProvider {
 		return false
 	}
 
+	override fun loadRawAssetsFromFolder(folder: FileHandle): Boolean {
+		if (folder.isDirectory) {
+			for (itrHandle in folder.list()) {
+				if (itrHandle.isDirectory) {
+					loadRawAssetsFromFolder(itrHandle)
+				} else {
+					fileCache.put(itrHandle.name(), itrHandle)
+					fileCache.put(itrHandle.name().replace("/", "\\"), itrHandle)
+				}
+
+			}
+			return true
+		}
+		return false
+	}
+
 	override fun <T> load(name: String, type: Class<T>) {
 		log.debug("loading <$name>")
-		if (packFileCache.containsKey(name)) {
+		if (fileCache.containsKey(name)) {
 			log.debug("pack cache contains filename")
-			loadIntern(AssetDescriptor(packFileCache[name], type))
+			loadIntern(AssetDescriptor(fileCache[name], type))
 		} else {
 			loadIntern(AssetDescriptor(name, type))
 		}
@@ -105,8 +121,8 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun <T> get(fileName: String, type: Class<T>, index: Int): T? {
 		if (type == FileHandle::class.java) {
-			return if (packFileCache.containsKey(fileName)) {
-				packFileCache[fileName] as T
+			return if (fileCache.containsKey(fileName)) {
+				fileCache[fileName] as T
 			} else {
 				Gdx.files.internal(fileName) as T
 			}
@@ -129,8 +145,8 @@ class MetaAssetProvider : AssetProvider {
 			if (texture != null) {
 				return TextureRegion(texture) as T
 			}
-		} else if (packFileCache.containsKey(fileName)) {
-			val xpkFileHandle = packFileCache[fileName]
+		} else if (fileCache.containsKey(fileName)) {
+			val xpkFileHandle = fileCache[fileName]
 			val assetDescriptor = AssetDescriptor(xpkFileHandle, type)
 			loadIntern(assetDescriptor)
 			return get(fileName, type)

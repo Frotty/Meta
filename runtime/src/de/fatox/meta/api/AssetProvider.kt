@@ -5,7 +5,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 
 interface AssetProvider {
 	/** Loads all assets from XPK archives in the given folder. */
-    fun loadAssetsFromFolder(folder: FileHandle): Boolean
+    fun loadPackedAssetsFromFolder(folder: FileHandle): Boolean
+
+	/** Loads all assets from the given folder. */
+	fun loadRawAssetsFromFolder(folder: FileHandle): Boolean
 
 	/** Loads some asset. Loading happens async. Use #get after loading has finished. */
     fun <T> load(name: String, type: Class<T>)
