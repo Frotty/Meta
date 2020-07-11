@@ -20,7 +20,6 @@ object XPKLoader {
 			it.read(buffer)
 			val hashBytes : ByteArray = buffer.array()
 
-			it.truncate(it.size() - HASH_LENGTH)
 			it.position(0)
             val dataHashBytes = HashUtils.computeSha1(it)
 
