@@ -14,20 +14,22 @@ object XPKLoader {
 
     fun getList(fileHandle: FileHandle): Array<XPKFileHandle> {
         val array = Array<XPKFileHandle>()
-        Files.newByteChannel(fileHandle.file().toPath()).let {
-            val buffer = ByteBuffer.allocate(HASH_LENGTH)
-            val read = it.read(buffer)
-            if (read != HASH_LENGTH) {
-                throw RuntimeException("game files corrupt")
-            }
-            val hashBytes: ByteArray = buffer.array()
+		Files.newByteChannel(fileHandle.file().toPath()).let {
+			it.position(it.size() - HASH_LENGTH)
+			val buffer = ByteBuffer.allocate(40)
+			it.read(buffer)
+			val hashBytes : ByteArray = buffer.array()
+
+			it.truncate(it.size() - HASH_LENGTH)
+			it.position(0)
             val dataHashBytes = HashUtils.computeSha1(it)
+
 
             if (!hashBytes.contentEquals(dataHashBytes)) {
                 throw RuntimeException("game files invalid")
             }
 
-            it.position(40)
+            it.position(0)
             val sevenZFile = SevenZFile(it)
             var archive = sevenZFile.nextEntry
             do {
