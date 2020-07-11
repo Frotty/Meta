@@ -4,8 +4,14 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
+import org.apache.commons.compress.utils.MultiReadOnlySeekableByteChannel
+import org.apache.commons.compress.utils.SeekableInMemoryByteChannel
+import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
+import java.nio.channels.Channels
+import java.nio.channels.SeekableByteChannel
 import java.nio.file.Files
+import java.util.*
 
 
 object XPKLoader {
@@ -14,22 +20,22 @@ object XPKLoader {
 
     fun getList(fileHandle: FileHandle): Array<XPKFileHandle> {
         val array = Array<XPKFileHandle>()
-		Files.newByteChannel(fileHandle.file().toPath()).let {
-			it.position(it.size() - HASH_LENGTH)
+		Files.readAllBytes(fileHandle.file().toPath()).let {
+			val dataChannel = Channels.newChannel(ByteArrayInputStream(it, 0, it.size - HASH_LENGTH))
+			val hashChannel = Channels.newChannel(ByteArrayInputStream(it, it.size - HASH_LENGTH, HASH_LENGTH))
 			val buffer = ByteBuffer.allocate(40)
-			it.read(buffer)
+			hashChannel.read(buffer)
 			val hashBytes : ByteArray = buffer.array()
 
-			it.position(0)
-            val dataHashBytes = HashUtils.computeSha1(it)
-
-
+            val dataHashBytes = HashUtils.computeSha1(dataChannel)
+			dataChannel.close()
+			hashChannel.close()
             if (!hashBytes.contentEquals(dataHashBytes)) {
                 throw RuntimeException("game files invalid")
             }
 
-            it.position(0)
-            val sevenZFile = SevenZFile(it)
+			val data2 = Channels.newChannel(ByteArrayInputStream(it, 0, it.size - HASH_LENGTH))
+			val sevenZFile = SevenZFile(XPKByteChannel(it))
             var archive = sevenZFile.nextEntry
             do {
                 val xpkFileHandle = XPKFileHandle(array, 0, fileHandle, archive, archive.name.replace("/", "\\"))
