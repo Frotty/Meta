@@ -5,14 +5,10 @@ import com.badlogic.gdx.utils.Array
 import de.fatox.meta.assets.HashUtils.hex
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
-import org.apache.commons.compress.utils.MultiReadOnlySeekableByteChannel
-import org.apache.commons.compress.utils.SeekableInMemoryByteChannel
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.nio.channels.Channels
-import java.nio.channels.SeekableByteChannel
 import java.nio.file.Files
-import java.util.*
 
 
 object XPKLoader {
@@ -31,6 +27,7 @@ object XPKLoader {
 			val hashBytes : ByteArray = buffer.array()
 
             val dataHashBytes = HashUtils.computeSha1(dataChannel)
+
 			dataChannel.close()
 			input1.close()
 
@@ -38,8 +35,14 @@ object XPKLoader {
 			input2.close()
 
             if (!hashBytes.contentEquals(dataHashBytes)) {
-                throw RuntimeException("game files invalid.") // expected: " + hex(hashBytes) + " actual: " + hex(dataHashBytes))
+                throw RuntimeException("game files invalid. expected: " + hex(hashBytes) + " actual: " + hex(dataHashBytes))
             }
+			it[0] = '7'.toByte()
+			it[1] = 'z'.toByte()
+			it[2] = 0xBC.toByte()
+			it[3] = 0xAF.toByte()
+			it[4] = 0x27.toByte()
+			it[5] = 0x1C.toByte()
 
 			val sevenZFile = SevenZFile(XPKByteChannel(it))
             var archive = sevenZFile.nextEntry
