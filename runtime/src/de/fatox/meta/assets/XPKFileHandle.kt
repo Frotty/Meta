@@ -4,10 +4,11 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.GdxRuntimeException
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
+import org.apache.commons.compress.archivers.sevenz.SevenZFile
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 
-class XPKFileHandle(val siblings: Array<XPKFileHandle>, var length: Int, val sevenZFile: FileHandle, val entry: SevenZArchiveEntry, val name: String) : FileHandle(sevenZFile.file()) {
+class XPKFileHandle(val siblings: Array<XPKFileHandle>, var length: Int, val sevenZFile: SevenZFile, val entry: SevenZArchiveEntry, val name: String) : FileHandle() {
     val path: String = name.substring(0, name.lastIndexOf("\\").takeIf { it >= 0 } ?: name.length)
     val fileName: String = name.substring((name.lastIndexOf("\\").takeIf { it >= 0 } ?: -1) + 1)
     var array: ByteArray? = null

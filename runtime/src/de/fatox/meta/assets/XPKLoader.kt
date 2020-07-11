@@ -47,27 +47,25 @@ object XPKLoader {
 			val sevenZFile = SevenZFile(XPKByteChannel(it))
             var archive = sevenZFile.nextEntry
             do {
-                val xpkFileHandle = XPKFileHandle(array, 0, fileHandle, archive, archive.name.replace("/", "\\"))
+                val xpkFileHandle = XPKFileHandle(array, 0, sevenZFile, archive, archive.name.replace("/", "\\"))
                 array.add(xpkFileHandle)
                 archive = sevenZFile.nextEntry
             } while (archive != null)
-            sevenZFile.close()
             return array
         }
 
     }
 
-    fun loadEntry(file: FileHandle, entry: SevenZArchiveEntry): ByteArray? {
-        val s7f = SevenZFile(file.file())
-        s7f.use {
+    fun loadEntry(file: SevenZFile, entry: SevenZArchiveEntry): ByteArray? {
+		file.use {
             var itr = it.nextEntry
             do {
                 if (itr.name == entry.name) {
                     val size = itr.size.toInt()
                     val content = ByteArray(size)
-                    var offset = s7f.read(content)
+                    var offset = file.read(content)
                     while (offset != -1) {
-                        val result = s7f.read(content, offset, size)
+                        val result = file.read(content, offset, size)
                         if (result == -1) {
                             break
                         }
