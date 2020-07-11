@@ -9,8 +9,9 @@ import java.security.NoSuchAlgorithmException;
 public class HashUtils {
     private static final ByteBuffer buffer = ByteBuffer.allocate(1024 * 4 * 4);
 
-    static byte[] computeSha1(SeekableByteChannel channel) {
+    public static byte[] computeSha1(SeekableByteChannel channel) {
         try {
+			buffer.rewind();
             MessageDigest digest = MessageDigest.getInstance("SHA-1");
             while (channel.read(buffer) != -1) {
                 buffer.flip();
