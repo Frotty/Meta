@@ -191,7 +191,7 @@ class MetaAssetProvider : AssetProvider {
 					break
 				}
 			}
-			if (regions != null) {
+			if (regions != null && regions.size > 0) {
 				if (frames > -1) {
 					regions.setSize(frames)
 				}
