@@ -177,10 +177,10 @@ class MetaAssetProvider : AssetProvider {
 	 * Returns a cached list of TextureRegions that represent the animation of the given texture
 	 *
 	 * @param baseName name of the texture
-	 * @param frames   limit frames of animations
+	 * @param frames   limit frames of animations, all frames if not specified
 	 * @return
 	 */
-	fun loadAnimationFrames(baseName: String, frames: Int): Array<out TextureRegion> {
+	fun loadAnimationFrames(baseName: String, frames: Int = -1): Array<out TextureRegion> {
 		val key = baseName.hashCode() + frames
 		if (!animCache.containsKey(key)) {
 			var regions: Array<AtlasRegion>? = null
@@ -191,7 +191,9 @@ class MetaAssetProvider : AssetProvider {
 				}
 			}
 			if (regions != null) {
-				regions.setSize(frames)
+				if (frames > -1) {
+					regions.setSize(frames)
+				}
 				animCache.put(key, regions)
 			}
 		}
