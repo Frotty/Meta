@@ -17,6 +17,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.Meta
@@ -195,6 +196,8 @@ class MetaAssetProvider : AssetProvider {
 					regions.setSize(frames)
 				}
 				animCache.put(key, regions)
+			} else {
+				throw GdxRuntimeException("couldn't load " + baseName)
 			}
 		}
 		return animCache[key]
