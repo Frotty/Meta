@@ -44,38 +44,43 @@ object XPKLoader {
 			it[4] = 0x27.toByte()
 			it[5] = 0x1C.toByte()
 
-			val sevenZFile = SevenZFile(XPKByteChannel(it))
-            var archive = sevenZFile.nextEntry
-            do {
-                val xpkFileHandle = XPKFileHandle(array, 0, sevenZFile, archive, archive.name.replace("/", "\\"))
-                array.add(xpkFileHandle)
-                archive = sevenZFile.nextEntry
-            } while (archive != null)
+			val byteChannel = XPKByteChannel(it)
+			val sevenZFile = SevenZFile(byteChannel)
+			sevenZFile.let {
+				var archive = sevenZFile.nextEntry
+				do {
+					val xpkFileHandle = XPKFileHandle(array, 0, byteChannel, archive, archive.name.replace("/", "\\"))
+					array.add(xpkFileHandle)
+					archive = sevenZFile.nextEntry
+				} while (archive != null)
+			}
             return array
         }
 
     }
 
-    fun loadEntry(file: SevenZFile, entry: SevenZArchiveEntry): ByteArray? {
-		file.use {
-            var itr = it.nextEntry
-            do {
-                if (itr.name == entry.name) {
-                    val size = itr.size.toInt()
-                    val content = ByteArray(size)
-                    var offset = file.read(content)
-                    while (offset != -1) {
-                        val result = file.read(content, offset, size)
-                        if (result == -1) {
-                            break
-                        }
-                        offset += result
-                    }
-                    return content
-                }
-                itr = it.nextEntry
-            } while (itr != null)
-        }
+    fun loadEntry(file: XPKByteChannel, entry: SevenZArchiveEntry): ByteArray? {
+		file.position(0)
+		val s7f = SevenZFile(file)
+		s7f.let {
+			var itr = s7f.nextEntry
+			do {
+				if (itr.name == entry.name) {
+					val size = entry.size.toInt()
+					val content = ByteArray(size)
+					var offset = s7f.read(content)
+					while (offset != -1) {
+						val result = s7f.read(content, offset, size)
+						if (result == -1) {
+							break
+						}
+						offset += result
+					}
+					return content
+				}
+				itr = s7f.nextEntry
+			} while (itr != null)
+		}
         return null
     }
 
