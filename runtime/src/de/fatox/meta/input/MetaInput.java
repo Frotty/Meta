@@ -17,7 +17,7 @@ public class MetaInput implements InputProcessor {
 
     public MetaInput() {
         Gdx.input.setInputProcessor(this);
-        Controllers.addListener(new MetaControlllerListener(this));
+        Controllers.addListener(new MetaControllerListener(this));
     }
 
     public void changeScreen() {

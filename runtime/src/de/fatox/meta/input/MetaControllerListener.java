@@ -10,7 +10,7 @@ import de.fatox.meta.assets.MetaAssetProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MetaControlllerListener implements ControllerListener {
+public class MetaControllerListener implements ControllerListener {
 	private static final Logger log = LoggerFactory.getLogger(MetaAssetProvider.class);
 
     private MetaInput metaInput;
@@ -18,7 +18,7 @@ public class MetaControlllerListener implements ControllerListener {
 
     private float deadzone = 0.395f;
 
-    public MetaControlllerListener(MetaInput metaInput) {
+    public MetaControllerListener(MetaInput metaInput) {
         this.metaInput = metaInput;
         Meta.inject(this);
     }
