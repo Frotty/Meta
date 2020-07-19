@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.Meta
 import de.fatox.meta.api.ui.UIManager
@@ -131,7 +132,8 @@ class UiControlHelper {
         val iterator = possibleTargets.iterator()
         while (iterator.hasNext()) {
             val next = iterator.next()
-            if (Math.abs(next.x - selectedActor!!.x) > selectedActor!!.width * 1.25f) {
+            if (Math.abs(next.x - selectedActor!!.x) > selectedActor!!.width * 1.25f
+				|| (next is Disableable && (next as Disableable).isDisabled)) {
                 iterator.remove()
             }
         }
