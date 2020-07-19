@@ -113,7 +113,8 @@ class UiControlHelper {
         val iterator = possibleTargets.iterator()
         while (iterator.hasNext()) {
             val next = iterator.next()
-            if (Math.abs(next.y - selectedActor!!.y) > selectedActor!!.height * 2.75f) {
+            if (Math.abs(next.y - selectedActor!!.y) > selectedActor!!.height * 2.75f
+				|| (next is Disableable && (next as Disableable).isDisabled)) {
                 iterator.remove()
             }
         }
