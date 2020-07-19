@@ -29,7 +29,7 @@ public class MetaLabel extends Widget {
     private final Vector2 prefSize = new Vector2();
     private final StringBuilder text = new StringBuilder();
     private BitmapFont font;
-    private int size;
+    private float size;
     private BitmapFontCache cache;
     private int labelAlign = Align.left;
     private int lineAlign = Align.left;
@@ -303,12 +303,21 @@ public class MetaLabel extends Widget {
     public void setMaxWidth(int maxWidth) {
         while (getGlyphLayout().width > maxWidth) {
             size *= 0.95;
-            font = metaFontProvider.getFont(size);
-            setText(text);
-            cache = font.newFontCache();
-            layout();
-        }
+			updateFont();
+		}
     }
+
+	private void updateFont() {
+		font = metaFontProvider.getFont(Math.round(size));
+		setText(text);
+		cache = font.newFontCache();
+		layout();
+	}
+
+	public void setFontSize(int size) {
+		this.size = size;
+		updateFont();
+	}
 
     /**
      * The style for a label, see {@link MetaLabel}.
