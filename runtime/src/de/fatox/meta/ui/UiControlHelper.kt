@@ -165,7 +165,12 @@ class UiControlHelper {
         }
         this.selectedActor = selectedActor
         this.selectedColor.set(selectedActor.color)
-        this.selectedActor!!.color = this.selectedActor!!.color.add(0.1f, 0.1f, 0.3f, 0.1f)
+		val color = this.selectedActor!!.color
+		if (color.r + color.g + color.b > 1.0f) {
+			this.selectedActor!!.color = this.selectedActor!!.color.add(-0.25f, -0.25f, 0.3f, 0.2f)
+		} else {
+			this.selectedActor!!.color = this.selectedActor!!.color.add(0.05f, 0.05f, 0.3f, 0.2f)
+		}
     }
 
 }
