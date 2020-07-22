@@ -20,7 +20,7 @@ allprojects {
     version = '1.0'
     ext {
         appName = "MetaRuntime"
-        gdxVersion = '1.9.11-SNAPSHOT'
+        gdxVersion = '1.9.11'
         aiVersion = '1.8.0'
     }
 

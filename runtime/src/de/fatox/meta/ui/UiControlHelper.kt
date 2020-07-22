@@ -84,6 +84,7 @@ class UiControlHelper {
                     inputEvent.stageY = selectedActor!!.y
                     inputEvent.type = InputEvent.Type.touchDown
                     inputEvent.listenerActor = selectedActor
+                    inputEvent.stage = selectedActor!!.stage
                     selectedActor!!.listeners.forEach { eventListener -> eventListener.handle(inputEvent) }
                     inputEvent.type = InputEvent.Type.touchUp
                     selectedActor!!.listeners.forEach { eventListener -> eventListener.handle(inputEvent) }
