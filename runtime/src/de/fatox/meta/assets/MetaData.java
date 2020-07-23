@@ -11,6 +11,8 @@ import de.fatox.meta.Meta;
 import de.fatox.meta.injection.Inject;
 import de.fatox.meta.injection.Named;
 
+import java.io.File;
+
 /**
  * Created by Frotty on 10.03.2017.
  * Handles MetaData needs.
@@ -34,6 +36,7 @@ public class MetaData {
     public static final String GLOBAL_DATA_FOLDER_NAME = ".meta";
 
     private final ObjectMap<String, FileHandle> fileHandleCache = new ObjectMap<>();
+	private final ObjectMap<FileHandle, File> fileCache = new ObjectMap<>();
     private final ObjectMap<String, CacheObj<? extends Object>> jsonCache = new ObjectMap<>();
     private final FileHandle dataRoot;
 
@@ -81,7 +84,7 @@ public class MetaData {
         T jsonHandle;
         if (jsonCache.containsKey(key)) {
             CacheObj<T> cacheObj = (CacheObj<T>) jsonCache.get(key);
-            long lastModified = getCachedHandle(parent, key).lastModified();
+            long lastModified = getCachedFile(key).lastModified();
             if (cacheObj.created < lastModified) {
                 cacheObj.obj = json.fromJson(type, getCachedHandle(parent, key));
                 cacheObj.created = lastModified;
@@ -114,6 +117,13 @@ public class MetaData {
         return getCachedHandle(dataRoot, key);
     }
 
+	public File getCachedFile(String key) {
+		if (fileHandleCache.containsKey(key)) {
+			return fileCache.get(fileHandleCache.get(key));
+		}
+		return null;
+	}
+
     public FileHandle getCachedHandle(FileHandle parent, String key) {
         FileHandle fileHandle;
         if (fileHandleCache.containsKey(key)) {
@@ -127,6 +137,7 @@ public class MetaData {
                 }
             }
             fileHandleCache.put(key, fileHandle);
+            fileCache.put(fileHandle, fileHandle.file());
         }
         return fileHandle;
     }
