@@ -36,7 +36,7 @@ public class MetaData {
     public static final String GLOBAL_DATA_FOLDER_NAME = ".meta";
 
     private final ObjectMap<String, FileHandle> fileHandleCache = new ObjectMap<>();
-	private final ObjectMap<FileHandle, File> fileCache = new ObjectMap<>();
+	private final ObjectMap<String, File> fileCache = new ObjectMap<>();
     private final ObjectMap<String, CacheObj<? extends Object>> jsonCache = new ObjectMap<>();
     private final FileHandle dataRoot;
 
@@ -118,8 +118,8 @@ public class MetaData {
     }
 
 	public File getCachedFile(String key) {
-		if (fileHandleCache.containsKey(key)) {
-			return fileCache.get(fileHandleCache.get(key));
+		if (fileCache.containsKey(key)) {
+			return fileCache.get(key);
 		}
 		return null;
 	}
@@ -137,7 +137,7 @@ public class MetaData {
                 }
             }
             fileHandleCache.put(key, fileHandle);
-            fileCache.put(fileHandle, fileHandle.file());
+            fileCache.put(key, fileHandle.file());
         }
         return fileHandle;
     }
