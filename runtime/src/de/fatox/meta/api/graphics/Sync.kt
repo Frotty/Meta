@@ -32,6 +32,7 @@
 package de.fatox.meta.api.graphics
 
 import org.lwjgl.glfw.GLFW
+import kotlin.math.max
 
 /**
  * A highly accurate sync method that continually adapts to the system
@@ -87,7 +88,7 @@ object Sync {
 		}
 
 		// schedule next frame, drop frame(s) if already too late for next frame
-		nextFrame = Math.max(nextFrame + NANOS_IN_SECOND / fps, time)
+		nextFrame = max(nextFrame + NANOS_IN_SECOND / fps, time)
 	}
 
 	/**

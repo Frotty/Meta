@@ -26,7 +26,7 @@ class UiControlHelper {
     private var selectedActor: Actor? = null
     private val selectedColor = Color.WHITE.cpy()
     var activated = true
-
+	var canMove = true
     private var targets = Array<Actor>()
 
     private val possibleTargets: Array<Actor>
@@ -49,28 +49,28 @@ class UiControlHelper {
         Meta.inject(this)
         metaInput.registerGlobalKeyListener(Input.Keys.RIGHT, object : KeyListener() {
             override fun onEvent() {
-                if (activated) {
+                if (activated && canMove) {
                     setSelectedActor(getNextX(false))
                 }
             }
         })
         metaInput.registerGlobalKeyListener(Input.Keys.LEFT, object : KeyListener() {
             override fun onEvent() {
-                if (activated) {
+                if (activated && canMove) {
                     setSelectedActor(getNextX(true))
                 }
             }
         })
         metaInput.registerGlobalKeyListener(Input.Keys.DOWN, object : KeyListener() {
             override fun onEvent() {
-                if (activated) {
+                if (activated && canMove) {
                     setSelectedActor(getNextY(false))
                 }
             }
         })
         metaInput.registerGlobalKeyListener(Input.Keys.UP, object : KeyListener() {
             override fun onEvent() {
-                if (activated) {
+                if (activated && canMove) {
                     setSelectedActor(getNextY(true))
                 }
             }
@@ -144,7 +144,11 @@ class UiControlHelper {
     }
 
     private fun getNext(left: Boolean, possibleTargets: Array<Actor>, index: Int): Actor {
-        return if (left) {
+		if (possibleTargets.isEmpty) {
+			return selectedActor!!
+		}
+
+		return if (left) {
             if (index == 0) {
                 possibleTargets.get(possibleTargets.size - 1)
             } else {
