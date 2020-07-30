@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package de.fatox.meta.api.ui
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -39,3 +41,7 @@ interface UIManager {
 	fun metaSave(name: String?, windowData: Any?)
 	val currentlyActiveWindows: Array<Window>
 }
+
+inline fun <reified T : Window> UIManager.getWindow(): T = getWindow(T::class.java)
+inline fun <reified T : Window> UIManager.showWindow(): T = showWindow(T::class.java)
+inline fun <reified T : MetaDialog> UIManager.showDialog(): T = showDialog(T::class.java)
