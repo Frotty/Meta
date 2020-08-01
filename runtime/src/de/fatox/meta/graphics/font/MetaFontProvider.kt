@@ -11,45 +11,48 @@ import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.Named
 
 class MetaFontProvider @Inject
 constructor() : FontProvider {
-    private val bitmapFontMap = IntMap<BitmapFont>()
-    private var generator: FreeTypeFontGenerator
-    @Inject
-    private lateinit var assetProvider: AssetProvider
-    @Inject
-    private lateinit var spriteBatch: SpriteBatch
+	@Inject
+	private lateinit var assetProvider: AssetProvider
+	@Inject
+	private lateinit var spriteBatch: SpriteBatch
 	@Inject
 	private lateinit var fontInfo: FontInfo
 
+	private val normalFontMap = IntMap<BitmapFont>()
+	private val monoFontMap = IntMap<BitmapFont>()
+	private var normalGenerator: FreeTypeFontGenerator
+	private var monoGenerator: FreeTypeFontGenerator
+
     init {
         Meta.inject(this)
-		generator = FreeTypeFontGenerator(assetProvider[fontInfo.path, FileHandle::class.java])
+		normalGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.normalFontPath, FileHandle::class.java])
+		monoGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.monoFontPath, FileHandle::class.java])
 	}
 
-    override fun getFont(size: Int): BitmapFont {
-        if (!bitmapFontMap.containsKey(size)) {
-            generateFont(if (size > 1) size else 5)
+    override fun getFont(size: Int, mono: Boolean): BitmapFont {
+        if (!(if (mono) monoFontMap else normalFontMap).containsKey(size)) {
+            generateFont(if (size > 1) size else 5, mono)
         }
-        return bitmapFontMap.get(size)
+        return (if (mono) monoFontMap else normalFontMap).get(size)
     }
 
-    override fun write(x: Float, y: Float, text: String, size: Int) {
+    override fun write(x: Float, y: Float, text: String, size: Int, mono: Boolean) {
         spriteBatch.color = Color.WHITE
         spriteBatch.enableBlending()
         spriteBatch.shader = null
         spriteBatch.begin()
-        getFont(size).draw(spriteBatch, text, x, y)
+        getFont(size, mono).draw(spriteBatch, text, x, y)
         spriteBatch.end()
     }
 
-    private fun generateFont(size: Int) {
+    private fun generateFont(size: Int, mono: Boolean) {
         val param = defaultFontParam()
         param.size = size
-        val value = generator.generateFont(param)
-        bitmapFontMap.put(size, value)
+        val value = (if (mono) monoGenerator else normalGenerator).generateFont(param)
+		(if (mono) monoFontMap else normalFontMap).put(size, value)
     }
 
     private fun defaultFontParam(): FreeTypeFontGenerator.FreeTypeFontParameter {

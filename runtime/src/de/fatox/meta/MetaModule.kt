@@ -185,7 +185,7 @@ void main()
 	@Singleton
 	@Named("default")
 	fun fontInfo(): FontInfo {
-		return FontInfo("Montserrat.ttf")
+		return FontInfo("Montserrat.ttf", "RobotoMono.ttf")
 	}
 
 }

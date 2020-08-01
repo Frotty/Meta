@@ -40,12 +40,18 @@ public class MetaLabel extends Widget {
     private String ellipsis;
     @Inject
     private FontProvider metaFontProvider;
-    private Color fontColor;
+    private final Color fontColor;
+    private final boolean mono;
 
-    public MetaLabel(CharSequence text, int size, Color color) {
+	public MetaLabel(CharSequence text, int size, Color color) {
+		this(text, size, color, false);
+	}
+
+    public MetaLabel(CharSequence text, int size, Color color, boolean monospace) {
         Meta.inject(this);
+        this.mono = monospace;
         this.size = size;
-        font = metaFontProvider.getFont(size);
+        font = metaFontProvider.getFont(size, monospace);
         setAlignment(Align.center);
         fontColor = color;
         setText(text);
@@ -308,7 +314,7 @@ public class MetaLabel extends Widget {
     }
 
 	private void updateFont() {
-		font = metaFontProvider.getFont(Math.round(size));
+		font = metaFontProvider.getFont(Math.round(size), mono);
 		setText(text);
 		cache = font.newFontCache();
 		layout();

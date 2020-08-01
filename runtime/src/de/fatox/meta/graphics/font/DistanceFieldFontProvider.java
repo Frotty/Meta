@@ -21,12 +21,12 @@ public class DistanceFieldFontProvider implements FontProvider {
     }
 
     @Override
-    public BitmapFont getFont(int size) {
+    public BitmapFont getFont(int size, boolean mono) {
         return null;
     }
 
     @Override
-    public void write(float x, float y, String text, int size) {
+    public void write(float x, float y, String text, int size, boolean mono) {
 
     }
 }

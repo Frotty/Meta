@@ -24,7 +24,7 @@ public class TextWidget extends Widget {
     @Override
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
-        fontProvider.getFont(80).draw(batch, text, getX(), getY()+getHeight()/2, getWidth(), Align.center, false);
+        fontProvider.getFont(80, false).draw(batch, text, getX(), getY()+getHeight()/2, getWidth(), Align.center, false);
     }
 }
 
