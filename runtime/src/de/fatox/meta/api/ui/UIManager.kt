@@ -42,6 +42,6 @@ interface UIManager {
 	val currentlyActiveWindows: Array<Window>
 }
 
-inline fun <reified T : Window> UIManager.getWindow(): T = getWindow(T::class.java)
-inline fun <reified T : Window> UIManager.showWindow(): T = showWindow(T::class.java)
-inline fun <reified T : MetaDialog> UIManager.showDialog(): T = showDialog(T::class.java)
+inline fun <reified T : Window> UIManager.getWindow(config: T.() -> Unit): T = getWindow(T::class.java).apply(config)
+inline fun <reified T : Window> UIManager.showWindow(config: T.() -> Unit): T = showWindow(T::class.java).apply(config)
+inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit): T = showDialog(T::class.java).apply(config)
