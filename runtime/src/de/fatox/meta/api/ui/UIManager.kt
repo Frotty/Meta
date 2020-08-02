@@ -16,6 +16,7 @@ interface UIManager {
 	var posModifier: PosModifier
 	fun moveWindow(width: Int, height: Int)
 	fun resize(width: Int, height: Int)
+
 	/**
 	 * Indicates a screen change. This will remove/modify the elements of the current screen
 	 * and load the saved elements
@@ -25,6 +26,7 @@ interface UIManager {
 	fun changeScreen(screenIdentifier: String?)
 
 	fun addTable(table: Table?, gx: Boolean, gy: Boolean)
+
 	/**
 	 * @param windowClass The window to show
 	 */
@@ -42,6 +44,6 @@ interface UIManager {
 	val currentlyActiveWindows: Array<Window>
 }
 
-inline fun <reified T : Window> UIManager.getWindow(config: T.() -> Unit): T = getWindow(T::class.java).apply(config)
-inline fun <reified T : Window> UIManager.showWindow(config: T.() -> Unit): T = showWindow(T::class.java).apply(config)
-inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit): T = showDialog(T::class.java).apply(config)
+inline fun <reified T : Window> UIManager.getWindow(config: T.() -> Unit = {}): T = getWindow(T::class.java).apply(config)
+inline fun <reified T : Window> UIManager.showWindow(config: T.() -> Unit = {}): T = showWindow(T::class.java).apply(config)
+inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = {}): T = showDialog(T::class.java).apply(config)
