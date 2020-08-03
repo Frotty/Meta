@@ -124,12 +124,12 @@ public class MetaUiManager implements UIManager {
     }
 
     @Override
-    public void addTable(Table table, boolean gx, boolean gy) {
+    public void addTable(Table table, boolean growX, boolean growY) {
         contentTable.row();
         Cell<Table> add = contentTable.add(table);
-        if (gx)
+        if (growX)
             add.growX();
-        if (gy)
+        if (growY)
             add.growY();
         contentTable.invalidate();
     }

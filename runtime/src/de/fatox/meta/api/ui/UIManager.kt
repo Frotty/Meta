@@ -25,7 +25,7 @@ interface UIManager {
 	 */
 	fun changeScreen(screenIdentifier: String?)
 
-	fun addTable(table: Table?, gx: Boolean, gy: Boolean)
+	fun addTable(table: Table?, growX: Boolean, growY: Boolean)
 
 	/**
 	 * @param windowClass The window to show
