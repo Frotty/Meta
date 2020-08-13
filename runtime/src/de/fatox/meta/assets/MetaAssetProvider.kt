@@ -121,41 +121,28 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun <T> get(fileName: String, type: Class<T>, index: Int): T? {
-		if (type == FileHandle::class.java) {
-			return if (fileCache.containsKey(fileName)) {
-				fileCache[fileName] as T
-			} else {
-				Gdx.files.internal(fileName) as T
+		return when {
+			type == FileHandle::class.java -> {
+				if (fileCache.containsKey(fileName))
+					fileCache[fileName] as T
+				else
+					Gdx.files.internal(fileName) as T
+			}
+			assetManager.isLoaded(fileName, type) -> assetManager[fileName, type]
+			type == TextureRegion::class.java -> {
+				atlasCache.asSequence().map {
+					if (index <= 0) it.findRegion(fileName) else it.findRegion(fileName, index)
+				}.firstOrNull() as T? ?: get(fileName, Texture::class.java)?.let { TextureRegion(it) } as T?
+			}
+			fileCache.containsKey(fileName) -> {
+				loadIntern(AssetDescriptor(fileCache[fileName], type))
+				get(fileName, type)
+			}
+			else -> {
+				load(fileName, type)
+				get(fileName, type)
 			}
 		}
-		if (assetManager.isLoaded(fileName, type)) {
-			return assetManager[fileName, type]
-		} else if (type == TextureRegion::class.java) {
-			for (atlas in atlasCache) {
-				var region: AtlasRegion?
-				region = if (index <= 0) {
-					atlas.findRegion(fileName)
-				} else {
-					atlas.findRegion(fileName, index)
-				}
-				if (region != null) {
-					return region as T
-				}
-			}
-			val texture = get(fileName, Texture::class.java)
-			if (texture != null) {
-				return TextureRegion(texture) as T
-			}
-		} else if (fileCache.containsKey(fileName)) {
-			val xpkFileHandle = fileCache[fileName]
-			val assetDescriptor = AssetDescriptor(xpkFileHandle, type)
-			loadIntern(assetDescriptor)
-			return get(fileName, type)
-		} else {
-			load(fileName, type)
-			return get(fileName, type)
-		}
-		return null
 	}
 
 	override fun <T> get(fileName: String, type: Class<T>): T? {
@@ -182,23 +169,16 @@ class MetaAssetProvider : AssetProvider {
 	 * @return
 	 */
 	fun loadAnimationFrames(baseName: String, frames: Int = -1): Array<out TextureRegion> {
-		val key = baseName.hashCode() + frames
+		val key = baseName.hashCode() + 31 * frames
 		if (!animCache.containsKey(key)) {
-			var regions: Array<AtlasRegion>? = null
-			for (atlas in atlasCache) {
-				regions = atlas.findRegions(baseName)
-				if (regions != null) {
-					break
-				}
-			}
-			if (regions != null && regions.size > 0) {
-				if (frames > -1) {
-					regions.setSize(frames)
-				}
+			// Since we use asSequence() map is lazily evaluated, thus only calling it when necessary.
+			val regions: Array<AtlasRegion> = atlasCache.asSequence().map { it.findRegions(baseName) }.first()
+
+			if (regions.size > 0) {
+				if (frames > -1) regions.setSize(frames) // limit to the request number of frames
 				animCache.put(key, regions)
-			} else {
+			} else
 				throw GdxRuntimeException("couldn't load " + baseName)
-			}
 		}
 		return animCache[key]
 	}
