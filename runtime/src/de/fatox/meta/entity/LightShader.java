@@ -98,8 +98,7 @@ public class LightShader implements Shader {
     }
 
     @Override
-    public void end() {
-        program.end();
+    public void end() { // program.end is no longer necessary
     }
 
     @Override
@@ -116,7 +115,7 @@ public class LightShader implements Shader {
     public void begin(Camera camera, RenderContext context) {
         this.camera = camera;
         this.context = context;
-        program.begin();
+        program.bind();
         program.setUniformMatrix(u_ProjTrans, camera.projection);
         program.setUniformMatrix(u_invProjTrans, camera.invProjectionView);
         program.setUniformMatrix(u_ViewTrans, camera.view);
