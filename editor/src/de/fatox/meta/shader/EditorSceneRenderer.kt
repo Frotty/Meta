@@ -85,13 +85,11 @@ class EditorSceneRenderer : Renderer {
 
 					bufferHandle.end(x, y)
 					renderContext.end()
-					var j = 0
-					bufferHandle.colorTextures.forEach {
+					bufferHandle.colorTextures.forEachIndexed { j, texture ->
 						val name = "s_pass${i}_$j"
-						UniformAssignments.customAssignments.put(name) { prog, cam, context, renderable ->
-							prog.setUniformi(name, context.textureBinder.bind(it))
+						UniformAssignments.customAssignments.put(name) { prog, _, context, _ ->
+							prog.setUniformi(name, context.textureBinder.bind(texture))
 						}
-						j++
 					}
 
 				}
