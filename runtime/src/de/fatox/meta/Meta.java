@@ -61,7 +61,6 @@ public class Meta extends Game {
 	private void setUncaughtHandler() {
 		Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
 			log.error(exception.getMessage(), exception);
-			exception.printStackTrace();
 			try {
 				javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
 			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
