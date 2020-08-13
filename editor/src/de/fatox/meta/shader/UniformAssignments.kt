@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.Matrix3
 import com.badlogic.gdx.math.Matrix4
-import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.ObjectMap
 
 object UniformAssignments {
@@ -40,24 +39,21 @@ object UniformAssignments {
     }
 
     init {
-        beginAssignments.put("u_camPos", { program, cam -> program.setUniformf("u_camPos", cam.position) })
-        beginAssignments.put("u_projTrans", { program, cam -> program.setUniformMatrix("u_projTrans", cam.combined) })
+        beginAssignments.put("u_camPos") { program, cam -> program.setUniformf("u_camPos", cam.position) }
+		beginAssignments.put("u_projTrans") { program, cam -> program.setUniformMatrix("u_projTrans", cam.combined) }
 
-        renderableAssignments.put("u_worldTrans", { program, _, renderable -> program.setUniformMatrix("u_worldTrans", renderable.worldTransform) })
-        renderableAssignments.put("u_normalTrans", { program, _, renderable ->
-            tmpM3.set(renderable.worldTransform).inv().transpose()
-            program.setUniformMatrix("u_normalTrans", tmpM3)
-        })
+		renderableAssignments.put("u_worldTrans") { program, _, renderable -> program.setUniformMatrix("u_worldTrans", renderable.worldTransform) }
+		renderableAssignments.put("u_normalTrans") { program, _, renderable ->
+			tmpM3.set(renderable.worldTransform).inv().transpose()
+			program.setUniformMatrix("u_normalTrans", tmpM3)
+		}
 
-        renderableAssignments.put("u_mvpTrans", { program, camera, renderable ->
-            tempM4.set(camera.combined).mul(renderable.worldTransform)
-            program.setUniformMatrix("u_mvpTrans", tempM4)
-        })
-
-
-    }
+		renderableAssignments.put("u_mvpTrans") { program, camera, renderable ->
+			tempM4.set(camera.combined).mul(renderable.worldTransform)
+			program.setUniformMatrix("u_mvpTrans", tempM4)
+		}
+	}
 
     private val tmpM3 = Matrix3()
     private val tempM4 = Matrix4()
-    private val tempV = Vector3()
 }
