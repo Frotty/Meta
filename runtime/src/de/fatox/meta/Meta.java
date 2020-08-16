@@ -69,10 +69,10 @@ public class Meta extends Game {
 			StringWriter sw = new StringWriter();
 			exception.printStackTrace(new PrintWriter(sw));
 			JTextArea jTextField = new JTextArea();
+			jTextField.setLineWrap(true);
+			jTextField.setColumns("Please report this crash with the following info:\n".length() + 30);
 			jTextField.setText("Please report this crash with the following info:\n" + sw.toString());
 			jTextField.setEditable(false);
-			jTextField.setLineWrap(true);
-			jTextField.setColumns("Please report this crash with the following info:\n".length() + 10);
 			JOptionPane.showMessageDialog(null, jTextField, "Uncaught Exception", JOptionPane.ERROR_MESSAGE);
 		});
 	}
