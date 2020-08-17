@@ -176,7 +176,7 @@ class MetaAssetProvider : AssetProvider {
 
 			if (regions.size > 0) {
 				if (frames > -1) regions.setSize(frames) // limit to the request number of frames
-				animCache.put(key, regions)
+				animCache.put(key, regions) as Array<out TextureRegion>?
 			} else
 				throw GdxRuntimeException("couldn't load " + baseName)
 		}
