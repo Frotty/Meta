@@ -20,7 +20,6 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.ObjectMap
-import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.assets.XPKLoader.getList
 import org.slf4j.LoggerFactory
@@ -176,7 +175,7 @@ class MetaAssetProvider : AssetProvider {
 
 			if (regions.size > 0) {
 				if (frames > -1) regions.setSize(frames) // limit to the request number of frames
-				animCache.put(key, regions) as Array<out TextureRegion>?
+				val unused: Array<out TextureRegion>? = animCache.put(key, regions) as Array<out TextureRegion>?
 			} else
 				throw GdxRuntimeException("couldn't load " + baseName)
 		}
