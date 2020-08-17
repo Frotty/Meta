@@ -32,6 +32,16 @@ allprojects {
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
     }
+
+	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+		kotlinOptions.jvmTarget = "1.8"
+		kotlinOptions {
+			freeCompilerArgs += "-progressive"
+			freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+			freeCompilerArgs += "-Xinline-classes"
+			freeCompilerArgs += "-XXLanguage:+NewInference"
+		}
+	}
 }
 
 project(":desktop") {
@@ -47,7 +57,7 @@ project(":desktop") {
         api "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
         api "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
         api "com.badlogicgames.gdx:gdx-controllers-platform:$gdxVersion:natives-desktop"
-        compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
     }
 }
 
@@ -64,7 +74,7 @@ project(":runtime") {
         api group: 'org.apache.commons', name: 'commons-compress', version: '1.20'
 		api group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
 		api group: 'org.slf4j', name: 'slf4j-api', version: '1.7.28'
-        compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
         compile group: 'org.lwjgl', name: 'lwjgl-opengl', version: '3.1.0'
     }
 }
@@ -79,6 +89,6 @@ project(":editor") {
         api "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
         api "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
         api "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
-        compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
     }
 }

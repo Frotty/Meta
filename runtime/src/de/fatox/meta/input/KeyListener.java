@@ -3,21 +3,21 @@ package de.fatox.meta.input;
 import com.badlogic.gdx.utils.Timer;
 
 public abstract class KeyListener {
-    private long requiredLengthMilis = 0;
+    private long requiredLengthMillis = 0;
     private Timer.Task task = null;
 
     public abstract void onEvent();
 
     public void onDown() {
-        if (requiredLengthMilis > 0) {
+        if (requiredLengthMillis > 0) {
             task = new Timer.Task() {
                 @Override
                 public void run() {
-                    Timer.schedule(task, requiredLengthMilis / 1000f);
+                    Timer.schedule(task, requiredLengthMillis / 1000f);
                     onEvent();
                 }
             };
-            Timer.schedule(task, requiredLengthMilis / 1000f);
+            Timer.schedule(task, requiredLengthMillis / 1000f);
         }
     }
 
@@ -25,18 +25,18 @@ public abstract class KeyListener {
         if (task != null) {
             task.cancel();
         }
-        if(requiredLengthMilis <= 0) {
+        if(requiredLengthMillis <= 0) {
             onEvent();
         }
     }
 
     public void resetDelay() {
         task.cancel();
-        Timer.schedule(task, requiredLengthMilis / 1000f);
+        Timer.schedule(task, requiredLengthMillis / 1000f);
     }
 
-    public void setRequiredLengthMilis(long requiredLengthMilis) {
-        this.requiredLengthMilis = requiredLengthMilis;
+    public void setRequiredLengthMillis(long requiredLengthMillis) {
+        this.requiredLengthMillis = requiredLengthMillis;
     }
 
 }

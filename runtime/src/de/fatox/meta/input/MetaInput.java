@@ -37,7 +37,7 @@ public class MetaInput implements InputProcessor {
         if (!globalKeyListeners.containsKey(keycode)) {
             globalKeyListeners.put(keycode, new Array<>());
         }
-        keyListener.setRequiredLengthMilis(milisRequired);
+        keyListener.setRequiredLengthMillis(milisRequired);
         globalKeyListeners.get(keycode).add(keyListener);
     }
 
@@ -49,7 +49,7 @@ public class MetaInput implements InputProcessor {
         if (!screenKeyListeners.containsKey(keycode)) {
             screenKeyListeners.put(keycode, new Array<>());
         }
-        keyListener.setRequiredLengthMilis(milisRequired);
+        keyListener.setRequiredLengthMillis(milisRequired);
         screenKeyListeners.get(keycode).add(keyListener);
     }
 
