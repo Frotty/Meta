@@ -11,7 +11,8 @@ import de.fatox.meta.injection.Singleton;
 import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
-import de.fatox.meta.util.StringUtil;
+
+import static kotlin.text.StringsKt.isBlank;
 
 /**
  * Created by Frotty on 13.06.2016.
@@ -34,7 +35,7 @@ public class SceneWizardDialog extends MetaDialog {
         sceneNameTF.addValidator(new MetaInputValidator() {
             @Override
             public void validateInput(String input, MetaErrorHandler errors) {
-                if(StringUtil.INSTANCE.isBlank(input)) {
+                if(isBlank(input)) {
                     errors.add(new MetaError("Scene name required", "") {
                         @Override
                         public void gotoError() {

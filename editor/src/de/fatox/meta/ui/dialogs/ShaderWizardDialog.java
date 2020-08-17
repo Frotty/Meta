@@ -6,8 +6,8 @@ import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
-import de.fatox.meta.api.model.GLShaderData;
 import de.fatox.meta.api.graphics.GLShaderHandle;
+import de.fatox.meta.api.model.GLShaderData;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
 import de.fatox.meta.ide.ProjectManager;
@@ -19,7 +19,8 @@ import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
 import de.fatox.meta.ui.windows.ShaderLibraryWindow;
-import de.fatox.meta.util.StringUtil;
+
+import static kotlin.text.StringsKt.isBlank;
 
 /**
  * Created by Frotty on 29.06.2016.
@@ -48,7 +49,7 @@ public class ShaderWizardDialog extends MetaDialog {
         shaderNameTF.addValidator(new MetaInputValidator() {
             @Override
             public void validateInput(String input, MetaErrorHandler errors) {
-                if (StringUtil.INSTANCE.isBlank(input)){
+                if (isBlank(input)){
                     errors.add(new MetaError("Invalid Shader name", "") {
                         @Override
                         public void gotoError() {
@@ -84,11 +85,11 @@ public class ShaderWizardDialog extends MetaDialog {
 
 
     private void checkButton() {
-        if(! StringUtil.INSTANCE.isBlank(shaderNameTF.getTextField().getText()) && vertexSelect.hasFile() && fragmentSelect.hasFile()) {
-            createBtn.setDisabled(false);
-        } else {
-            createBtn.setDisabled(true);
-        }
+		createBtn.setDisabled(
+			isBlank(shaderNameTF.getTextField().getText())
+				|| !vertexSelect.hasFile()
+				|| !fragmentSelect.hasFile()
+		);
     }
 
     private void setupTable() {

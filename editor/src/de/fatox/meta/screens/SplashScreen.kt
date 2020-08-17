@@ -9,7 +9,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import de.fatox.meta.Meta
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.Inject
-import org.lwjgl.glfw.GLFW.*
 
 class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
     @Inject

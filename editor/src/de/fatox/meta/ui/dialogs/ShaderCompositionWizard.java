@@ -12,7 +12,8 @@ import de.fatox.meta.shader.MetaShaderComposer;
 import de.fatox.meta.ui.components.MetaInputValidator;
 import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
-import de.fatox.meta.util.StringUtil;
+
+import static kotlin.text.StringsKt.isBlank;
 
 /**
  * Created by Frotty on 29.06.2016.
@@ -38,7 +39,7 @@ public class ShaderCompositionWizard extends MetaDialog {
         compNameTF.addValidator(new MetaInputValidator() {
             @Override
             public void validateInput(String input, MetaErrorHandler errors) {
-                if (StringUtil.INSTANCE.isBlank(input)) {
+                if (isBlank(input)) {
                     errors.add(new MetaError("Invalid composition name", "") {
                         @Override
                         public void gotoError() {
@@ -57,11 +58,7 @@ public class ShaderCompositionWizard extends MetaDialog {
 
 
     private void checkButton() {
-        if (!StringUtil.INSTANCE.isBlank(compNameTF.getTextField().getText())) {
-            createBtn.setDisabled(false);
-        } else {
-            createBtn.setDisabled(true);
-        }
+		createBtn.setDisabled(isBlank(compNameTF.getTextField().getText()));
     }
 
     private void setupTable() {

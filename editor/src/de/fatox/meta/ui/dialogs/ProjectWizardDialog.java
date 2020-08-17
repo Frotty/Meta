@@ -7,8 +7,8 @@ import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.*;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
-import de.fatox.meta.api.model.MetaProjectData;
 import de.fatox.meta.api.lang.LanguageBundle;
+import de.fatox.meta.api.model.MetaProjectData;
 import de.fatox.meta.error.MetaError;
 import de.fatox.meta.error.MetaErrorHandler;
 import de.fatox.meta.ide.ProjectManager;
@@ -21,6 +21,7 @@ import de.fatox.meta.ui.components.MetaTextButton;
 import de.fatox.meta.ui.components.MetaValidTextField;
 import de.fatox.meta.ui.windows.MetaDialog;
 import de.fatox.meta.util.StringUtil;
+
 @Singleton
 public class ProjectWizardDialog extends MetaDialog {
     private final VisTextButton createBtn;
@@ -101,7 +102,7 @@ public class ProjectWizardDialog extends MetaDialog {
                     public void selected(Array<FileHandle> file) {
                         if (file.size == 1) {
                             rootfile = file.get(0);
-                            folderButton.setText(StringUtil.INSTANCE.truncate(file.get(0).pathWithoutExtension(), 20));
+                            folderButton.setText(StringUtil.truncate(file.get(0).pathWithoutExtension(), 20));
                             locationValid = true;
                         } else {
                             locationValid = false;
@@ -123,7 +124,7 @@ public class ProjectWizardDialog extends MetaDialog {
         projectNameTF.addValidator(new MetaInputValidator() {
             @Override
             public void validateInput(String input, MetaErrorHandler errors) {
-                if (!StringUtil.INSTANCE.isValidFolderName(input)) {
+                if (!StringUtil.isValidFolderName(input)) {
                     errors.add(new MetaError(languageBundle.get("newproj_dia_inalid_name"), "Name can only contain alphanumeric characters") {
                         @Override
                         public void gotoError() {
