@@ -9,17 +9,17 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import de.fatox.meta.Meta
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
-    @Inject
-    private lateinit var spriteBatch: SpriteBatch
-    @Inject
-    private lateinit var uiRenderer: UIRenderer
+    private val spriteBatch: SpriteBatch by lazyInject()
+    private val uiRenderer: UIRenderer by lazyInject()
+
     private var sprite: Sprite? = null
     private var f = 0f
 
     override fun show() {
-        Meta.inject(this)
         val internal = Gdx.files.internal("textures/meta_logo2.png")
         sprite = Sprite(Texture(internal))
         val width = Gdx.graphics.width
