@@ -17,7 +17,7 @@ import de.fatox.meta.screens.SplashScreen
 class EditorMeta(posM: PosModifier) : Meta(posM) {
 
 	private val metaData: MetaData by lazyInject()
-	private val assetProvider: AssetProvider by lazyInject("default")
+	private val assetProvider: AssetProvider by lazyInject()
 
 	init {
 		addModule(MetaEditorModule())

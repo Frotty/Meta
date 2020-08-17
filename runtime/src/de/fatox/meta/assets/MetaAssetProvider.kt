@@ -182,8 +182,4 @@ class MetaAssetProvider : AssetProvider {
 		}
 		return animCache[key]
 	}
-
-	init {
-		Meta.inject(this)
-	}
 }

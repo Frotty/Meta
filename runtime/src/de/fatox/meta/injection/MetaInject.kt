@@ -42,14 +42,17 @@ open class MetaInject {
 	inline fun <reified T : Any> lazyInject(name: String? = null): Lazy<T> = lazy(lazyType) { inject(name) }
 
 	inline fun <reified T : Any> provider(name: String? = null, noinline provider: () -> T) {
+		if (name == "default") providers[InjectionKey(T::class, null)] = provider
 		providers[InjectionKey(T::class, name)] = provider
 	}
 
 	inline fun <reified T : Any> singleton(name: String? = null, noinline singleton: () -> T) {
+		if (name == "default") singletons[InjectionKey(T::class, null)] = singleton
 		singletons[InjectionKey(T::class, name)] = singleton
 	}
 
 	inline fun <reified T : Any> singleton(singleton: T, name: String? = null) {
+		if (name == "default") singletonCache[InjectionKey(T::class, null)] = singleton
 		singletonCache[InjectionKey(T::class, name)] = singleton
 	}
 
