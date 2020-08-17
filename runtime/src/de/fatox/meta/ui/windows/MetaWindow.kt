@@ -18,24 +18,22 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
  * Created by Frotty on 08.05.2016.
  */
 abstract class MetaWindow @JvmOverloads constructor(title: String, resizable: Boolean = false, closeButton: Boolean = false) : VisWindow(title, if (resizable) "resizable" else "default") {
-    @Inject
-    protected lateinit var uiManager: UIManager
-    @Inject
-    protected lateinit var assetProvider: AssetProvider
-    @Inject
-    protected lateinit var metaData: MetaData
+    protected val uiManager: UIManager by lazyInject()
+    protected val assetProvider: AssetProvider by lazyInject()
+    protected val metaData: MetaData by lazyInject()
 
     var contentTable: Table = VisTable()
 
     private var startDrag = false
 
     init {
-        Meta.inject(this)
         titleTable.left().padLeft(2f)
         titleLabel.setAlignment(Align.left)
         if (closeButton) {
