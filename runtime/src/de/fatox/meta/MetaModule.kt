@@ -17,6 +17,8 @@ import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.entity.MetaEntityManager
 import de.fatox.meta.graphics.font.FontInfo
 import de.fatox.meta.graphics.font.MetaFontProvider
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.injection.Named
 import de.fatox.meta.injection.Provides
 import de.fatox.meta.injection.Singleton
@@ -30,31 +32,36 @@ import de.fatox.meta.ui.UiControlHelper
 @Singleton
 class MetaModule {
 
-	@Provides
-	@Singleton
-	@Named("default")
-	fun assetProvider(metaAssetProvider: MetaAssetProvider): AssetProvider {
-		return metaAssetProvider
-	}
-
-	@Provides
-    @Named("default")
-    fun string(): String {
-        return ""
-    }
-
-	@Provides
-	@Named("spritebatch-shader")
-	@Singleton
-	fun shaderProgram(): ShaderProgram {
-		if (Gdx.app.getType().equals(Application.ApplicationType.Desktop)) {
-			ShaderProgram.prependVertexCode =  "#version 140\n"
-			ShaderProgram.prependFragmentCode =  "#version 140\n"
-		} else {
-			ShaderProgram.prependVertexCode = "#version 300 es\n"
-			ShaderProgram.prependFragmentCode = "#version 300 es\n"
-		}
-			val vertexShader = """in vec4 ${ShaderProgram.POSITION_ATTRIBUTE};
+	init {
+		MetaInject.global {
+			singleton { MetaSoundPlayer() }
+			singleton<UIRenderer> { MetaUIRenderer() }
+			singleton<UIManager> { MetaUiManager() }
+			singleton { ModelBuilder() }
+			singleton { MetaInput() }
+			singleton<EntityManager<Meta3DEntity>>("default") { MetaEntityManager() }
+			singleton("default") { MetaTaskManager() }
+			singleton("", "default")
+			singleton(Json(), "default")
+			singleton("default") { UiControlHelper() }
+			singleton("default") { FontInfo("Montserrat.ttf", "RobotoMono.ttf") }
+			singleton("default") { SpriteBatch(1000, inject("spritebatch-shader")).apply { enableBlending() } }
+			singleton {
+				PerspectiveCamera(67f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat()).apply {
+					position.set(0f, 50f, 50f)
+					near = 0.1f
+					far = 200f
+				}
+			}
+			singleton("spritebatch-shader") {
+				if (Gdx.app.getType().equals(Application.ApplicationType.Desktop)) {
+					ShaderProgram.prependVertexCode = "#version 140\n"
+					ShaderProgram.prependFragmentCode = "#version 140\n"
+				} else {
+					ShaderProgram.prependVertexCode = "#version 300 es\n"
+					ShaderProgram.prependFragmentCode = "#version 300 es\n"
+				}
+				val vertexShader = """in vec4 ${ShaderProgram.POSITION_ATTRIBUTE};
 in vec4 ${ShaderProgram.COLOR_ATTRIBUTE};
 in vec2 ${ShaderProgram.TEXCOORD_ATTRIBUTE}0;
 uniform mat4 u_projTrans;
@@ -69,7 +76,7 @@ void main()
    gl_Position =  u_projTrans * ${ShaderProgram.POSITION_ATTRIBUTE};
 }
 """
-			val fragmentShader = """#ifdef GL_ES
+				val fragmentShader = """#ifdef GL_ES
 #define LOWP lowp
 precision mediump float;
 #else
@@ -83,109 +90,97 @@ void main()
 {
   fragData = v_color * texture(u_texture, v_texCoords);
 }"""
-			val shader = ShaderProgram(vertexShader, fragmentShader)
-			require(shader.isCompiled) { "Error compiling shader: " + shader.log }
-			return shader
+				val shader = ShaderProgram(vertexShader, fragmentShader)
+				require(shader.isCompiled) { "Error compiling shader: " + shader.log }
+				shader
+			}
+		}
 	}
-
-    @Provides
-    @Singleton
-    fun metaSoundPlayer(): MetaSoundPlayer {
-        return MetaSoundPlayer()
-    }
-
-    @Provides
-    @Singleton
-    fun uiRenderer(): UIRenderer {
-        return MetaUIRenderer()
-    }
-
-    @Provides
-    @Singleton
-    fun uiManager(): UIManager {
-        return MetaUiManager()
-    }
-
-    @Provides
-    @Singleton
-    fun metaInput(): MetaInput {
-        return MetaInput()
-    }
-
-    //    @Provides
-    //    @Singleton
-    //    @Named("default")
-    //    public Renderer renderer(BufferRenderer renderer) {
-    //        return renderer;
-    //    }
-
-    @Provides
-    @Singleton
-    fun perspectiveCamera(): PerspectiveCamera {
-        val cam = PerspectiveCamera(67f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-        cam.position.set(0f, 50f, 50f)
-        cam.near = 0.1f
-        cam.far = 200f
-        return cam
-    }
-
-    @Provides
-    @Singleton
-    fun modelBuilder(): ModelBuilder {
-        return ModelBuilder()
-    }
-
-    @Provides
-    @Singleton
-    @Named("default")
-    fun entityManager(): EntityManager<Meta3DEntity> {
-        return MetaEntityManager()
-    }
-
-
-    @Provides
-    @Singleton
-    @Named("default")
-    fun spriteBatch(): SpriteBatch {
-		val spriteBatch = SpriteBatch(1000, shaderProgram())
-        spriteBatch.enableBlending()
-        return spriteBatch
-    }
-
-    @Provides
-    @Singleton
-    @Named("default")
-    fun fontProvider(metaFontProvider: MetaFontProvider): FontProvider {
-        return metaFontProvider
-    }
-
-
-    @Provides
-    @Singleton
-    @Named("default")
-    fun taskManager(): MetaTaskManager {
-        return MetaTaskManager()
-    }
-
-    @Provides
-    @Singleton
-    @Named("default")
-    fun json(): Json {
-        return Json()
-    }
-
-    @Provides
-    @Singleton
-    @Named("default")
-    fun uiControlHelp(): UiControlHelper {
-        return UiControlHelper()
-    }
 
 	@Provides
 	@Singleton
 	@Named("default")
-	fun fontInfo(): FontInfo {
-		return FontInfo("Montserrat.ttf", "RobotoMono.ttf")
+	fun assetProvider(metaAssetProvider: MetaAssetProvider): AssetProvider {
+		return metaAssetProvider
 	}
+
+	@Provides
+	@Named("default")
+	fun string(): String = inject()
+
+	@Provides
+	@Singleton
+	@Named("spritebatch-shader")
+	fun shaderProgram(): ShaderProgram = inject("spritebatch-shader")
+
+	@Provides
+	@Singleton
+	fun metaSoundPlayer(): MetaSoundPlayer = inject()
+
+	@Provides
+	@Singleton
+	fun uiRenderer(): UIRenderer = inject()
+
+	@Provides
+	@Singleton
+	fun uiManager(): UIManager = inject()
+
+	@Provides
+	@Singleton
+	fun metaInput(): MetaInput = inject()
+
+	//    @Provides
+	//    @Singleton
+	//    @Named("default")
+	//    public Renderer renderer(BufferRenderer renderer) {
+	//        return renderer;
+	//    }
+
+	@Provides
+	@Singleton
+	fun perspectiveCamera(): PerspectiveCamera = inject()
+
+	@Provides
+	@Singleton
+	fun modelBuilder(): ModelBuilder = inject()
+
+	@Provides
+	@Singleton
+	@Named("default")
+	fun entityManager(): EntityManager<Meta3DEntity> = inject("default")
+
+
+	@Provides
+	@Singleton
+	@Named("default")
+	fun spriteBatch(): SpriteBatch =inject("default")
+
+	@Provides
+	@Singleton
+	@Named("default")
+	fun fontProvider(metaFontProvider: MetaFontProvider): FontProvider {
+		return metaFontProvider
+	}
+
+
+	@Provides
+	@Singleton
+	@Named("default")
+	fun taskManager(): MetaTaskManager = inject("default")
+
+	@Provides
+	@Singleton
+	@Named("default")
+	fun json(): Json = inject("default")
+
+	@Provides
+	@Singleton
+	@Named("default")
+	fun uiControlHelp(): UiControlHelper = inject("default")
+
+	@Provides
+	@Singleton
+	@Named("default")
+	fun fontInfo(): FontInfo = inject("default")
 
 }

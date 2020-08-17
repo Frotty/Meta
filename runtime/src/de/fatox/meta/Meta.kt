@@ -1,132 +1,128 @@
-package de.fatox.meta;
+package de.fatox.meta
 
-import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.utils.TimeUtils;
-import de.fatox.meta.api.DummyPosModifier;
-import de.fatox.meta.api.PosModifier;
-import de.fatox.meta.api.ui.UIManager;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Metastasis;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.badlogic.gdx.Game
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Screen
+import com.badlogic.gdx.utils.TimeUtils
+import de.fatox.meta.api.DummyPosModifier
+import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.Metastasis
+import org.slf4j.LoggerFactory
+import java.io.PrintWriter
+import java.io.StringWriter
+import javax.swing.JOptionPane
+import javax.swing.JTextArea
+import javax.swing.UnsupportedLookAndFeelException
 
-import javax.swing.*;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+open class Meta : Game {
+	private var metastasis: Metastasis? = null
+	private var lastChange: Long = 0
+	private var lastScreen: Screen? = null
 
-public class Meta extends Game {
-	private static final Logger log = LoggerFactory.getLogger(Meta.class);
+	protected val firstScreen: Screen by lazyInject()
+	protected val uiManager: UIManager by lazyInject()
 
-    private static Meta metaInstance;
-    private Metastasis metastasis;
+	protected var modifier: PosModifier
 
-    private long lastChange = 0;
-    private Screen lastScreen;
+	@JvmOverloads
+	constructor(modifier: PosModifier = DummyPosModifier()) {
+		this.modifier = modifier
+		setUncaughtHandler()
+		metaInstance = this
+		setupMetastasis()
+		addModule(MetaModule())
+	}
 
-    @Inject
-    protected Screen firstScreen;
-    @Inject
-    protected UIManager uiManager;
-    protected PosModifier modifier;
-
-    public static Meta getInstance() {
-        return metaInstance != null ? metaInstance : new Meta();
-    }
-
-    public Meta() {
-        this(new DummyPosModifier());
-    }
-
-    public Meta(PosModifier modifier) {
-        this.modifier = modifier;
-		setUncaughtHandler();
-		metaInstance = this;
-        setupMetastasis();
-        addModule(new MetaModule());
-    }
-
-	public Meta(PosModifier modifier, Object... modules) {
-		this.modifier = modifier;
-		setUncaughtHandler();
-		metaInstance = this;
-		setupMetastasis();
-		for (Object module: modules) {
-			addModule(module);
+	constructor(modifier: PosModifier, vararg modules: Any?) {
+		this.modifier = modifier
+		setUncaughtHandler()
+		metaInstance = this
+		setupMetastasis()
+		for (module in modules) {
+			addModule(module)
 		}
-		addModule(new MetaModule());
+		addModule(MetaModule())
 	}
 
-	private void setUncaughtHandler() {
-		Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> {
-			log.error(exception.getMessage(), exception);
+	private fun setUncaughtHandler() {
+		Thread.setDefaultUncaughtExceptionHandler { thread: Thread?, exception: Throwable ->
+			log.error(exception.message, exception)
 			try {
-				javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
-			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
-				e.printStackTrace();
+				javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName())
+			} catch (e: ClassNotFoundException) {
+				e.printStackTrace()
+			} catch (e: InstantiationException) {
+				e.printStackTrace()
+			} catch (e: IllegalAccessException) {
+				e.printStackTrace()
+			} catch (e: UnsupportedLookAndFeelException) {
+				e.printStackTrace()
 			}
-			StringWriter sw = new StringWriter();
-			exception.printStackTrace(new PrintWriter(sw));
-			JTextArea jTextField = new JTextArea();
-			jTextField.setLineWrap(true);
-			jTextField.setColumns("Please report this crash with the following info:\n".length() + 30);
-			jTextField.setText("Please report this crash with the following info:\n" + sw.toString());
-			jTextField.setEditable(false);
-			JOptionPane.showMessageDialog(null, jTextField, "Uncaught Exception", JOptionPane.ERROR_MESSAGE);
-		});
+			val sw = StringWriter()
+			exception.printStackTrace(PrintWriter(sw))
+			val jTextField = JTextArea()
+			jTextField.lineWrap = true
+			jTextField.columns = "Please report this crash with the following info:\n".length + 30
+			jTextField.text = "Please report this crash with the following info:\n$sw"
+			jTextField.isEditable = false
+			JOptionPane.showMessageDialog(null, jTextField, "Uncaught Exception", JOptionPane.ERROR_MESSAGE)
+		}
 	}
 
-	public static void addModule(Object module) {
-        getInstance().metastasis.loadModule(module);
-    }
+	private fun setupMetastasis() {
+		metastasis = Metastasis()
+	}
 
-    public static void registerMetaAnnotation(Class annotationClass) {
+	override fun create() {
+		//inject(this)
+		uiManager.posModifier = modifier
+		changeScreen(firstScreen)
+	}
 
-    }
+	val lastScreenType: Class<*>
+		get() = lastScreen!!.javaClass
 
-    public static boolean canChangeScreen() {
-        return (TimeUtils.millis() > metaInstance.lastChange + 150);
-    }
+	companion object {
+		private val log = LoggerFactory.getLogger(Meta::class.java)
+		private var metaInstance: Meta? = null
+		val instance: Meta?
+			get() = if (metaInstance != null) metaInstance else Meta()
 
-    public static void newLastScreen() {
-        if (getInstance().lastScreen != null) {
-            try {
-                changeScreen(getInstance().lastScreen.getClass().newInstance());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
+		fun addModule(module: Any?) {
+			instance!!.metastasis!!.loadModule(module)
+		}
 
-    public static void changeScreen(final Screen newScreen) {
-        if (canChangeScreen()) {
-            metaInstance.lastChange = TimeUtils.millis();
-            Screen oldScreen = getInstance().getScreen();
-            if (oldScreen != null && !oldScreen.getClass().isInstance(newScreen)) {
-                getInstance().lastScreen = oldScreen;
-            }
-            Gdx.app.postRunnable(() -> getInstance().setScreen(newScreen));
-        }
-    }
+		fun registerMetaAnnotation(annotationClass: Class<*>?) {}
+		fun canChangeScreen(): Boolean {
+			return TimeUtils.millis() > metaInstance!!.lastChange + 150
+		}
 
-    private void setupMetastasis() {
-        metastasis = new Metastasis();
-    }
+		fun newLastScreen() {
+			if (instance!!.lastScreen != null) {
+				try {
+					changeScreen(instance!!.lastScreen!!.javaClass.newInstance())
+				} catch (e: Exception) {
+					e.printStackTrace()
+				}
+			}
+		}
 
-    public static void inject(Object object) {
-        getInstance().metastasis.injectFields(object);
-    }
+		fun changeScreen(newScreen: Screen?) {
+			if (canChangeScreen()) {
+				metaInstance!!.lastChange = TimeUtils.millis()
+				val oldScreen = instance!!.getScreen()
+				if (oldScreen != null && !oldScreen.javaClass.isInstance(newScreen)) {
+					instance!!.lastScreen = oldScreen
+				}
+				Gdx.app.postRunnable { instance!!.setScreen(newScreen) }
+			}
+		}
 
-    @Override
-    public void create() {
-        inject(this);
-        uiManager.setPosModifier(modifier);
-        changeScreen(firstScreen);
-    }
-
-    public Class getLastScreenType() {
-        return lastScreen.getClass();
-    }
-
+		@JvmStatic
+		fun inject(`object`: Any?) {
+			instance!!.metastasis!!.injectFields(`object`)
+		}
+	}
 }

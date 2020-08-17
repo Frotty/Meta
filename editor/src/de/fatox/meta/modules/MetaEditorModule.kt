@@ -1,114 +1,115 @@
-package de.fatox.meta.modules;
+package de.fatox.meta.modules
 
-import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.kotcrab.vis.ui.widget.file.FileChooser;
-import de.fatox.meta.Primitives;
-import de.fatox.meta.api.graphics.Renderer;
-import de.fatox.meta.api.lang.LanguageBundle;
-import de.fatox.meta.assets.MetaAssetProvider;
-import de.fatox.meta.ide.*;
-import de.fatox.meta.injection.Named;
-import de.fatox.meta.injection.Provides;
-import de.fatox.meta.injection.Singleton;
-import de.fatox.meta.lang.MetaLanguageBundle;
-import de.fatox.meta.screens.MetaEditorScreen;
-import de.fatox.meta.shader.EditorSceneRenderer;
-import de.fatox.meta.shader.MetaShaderComposer;
-import de.fatox.meta.shader.MetaShaderLibrary;
+import com.badlogic.gdx.Screen
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.kotcrab.vis.ui.widget.file.FileChooser
+import de.fatox.meta.Meta
+import de.fatox.meta.Primitives
+import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.graphics.Renderer
+import de.fatox.meta.api.lang.LanguageBundle
+import de.fatox.meta.assets.MetaAssetProvider
+import de.fatox.meta.ide.*
+import de.fatox.meta.injection.MetaInject.Companion.global
+import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.injection.Named
+import de.fatox.meta.injection.Provides
+import de.fatox.meta.injection.Singleton
+import de.fatox.meta.lang.MetaLanguageBundle
+import de.fatox.meta.screens.MetaEditorScreen
+import de.fatox.meta.shader.EditorSceneRenderer
+import de.fatox.meta.shader.MetaShaderComposer
+import de.fatox.meta.shader.MetaShaderLibrary
 
-public class MetaEditorModule {
+class MetaEditorModule {
+	init {
+		global {
+			singleton<Renderer> { EditorSceneRenderer() }
+			singleton { Primitives() }
+			singleton { AssetDiscoverer() }
+			singleton("default") { MetaShaderComposer() }
+			singleton("default") { MetaShaderLibrary() }
+			singleton("default") { MetaAssetProvider() }
+			singleton<AssetProvider>("default") { inject<MetaAssetProvider>("default") }
 
-    @Provides
-    @Singleton
-    public Renderer renderer() {
-        return new EditorSceneRenderer();
-    }
+			singleton("open") { FileChooser(FileChooser.Mode.OPEN) }
+			singleton("save") { FileChooser(FileChooser.Mode.SAVE) }
 
-    @Provides
-    @Singleton
-    public Primitives primitives() {
-        return new Primitives();
-    }
+			singleton("visui\\uiskin.json", "visuiSkin")
+		}
+	}
 
-    @Provides
-    @Singleton
-    public ProjectManager projectManager(MetaProjectManager projectManager) {
-        return projectManager;
-    }
+	@Provides
+	@Singleton
+	fun renderer(): Renderer = inject()
 
-    @Provides
-    @Singleton
-    @Named("default")
-    public MetaShaderComposer shaderComposer() {
-        return new MetaShaderComposer();
-    }
+	@Provides
+	@Singleton
+	fun primitives(): Primitives = inject()
 
-    @Provides
-    @Singleton
-    @Named("default")
-    public MetaShaderLibrary shaderLibrary() {
-        return new MetaShaderLibrary();
-    }
+	@Provides
+	@Singleton
+	fun projectManager(projectManager: MetaProjectManager): ProjectManager {
+		return projectManager
+	}
 
-    @Provides
-    @Singleton
-    public SceneManager sceneManager(MetaSceneManager sceneManager) {
-        return sceneManager;
-    }
+	@Provides
+	@Singleton
+	@Named("default")
+	fun shaderComposer(): MetaShaderComposer = inject("default")
 
-    @Provides
-    @Singleton
-    @Named("default")
-    public MetaAssetProvider metaAssetProvider() {
-        return new MetaAssetProvider();
-    }
+	@Provides
+	@Singleton
+	@Named("default")
+	fun shaderLibrary(): MetaShaderLibrary = inject("default")
 
-    @Provides
-    @Singleton
-    public AssetDiscoverer assetManager() {
-        return new AssetDiscoverer();
-    }
+	@Provides
+	@Singleton
+	fun sceneManager(sceneManager: MetaSceneManager): SceneManager {
+		return sceneManager
+	}
 
-    @Provides
-    @Singleton
-    @Named("default")
-    public Screen firstScreen(MetaEditorScreen editorScreen) {
-        return editorScreen;
-    }
+	@Provides
+	@Singleton
+	@Named("default")
+	fun metaAssetProvider(): MetaAssetProvider = inject("default")
 
-    @Provides
-    @Singleton
-    @Named("default")
-    public LanguageBundle languageBundle(MetaLanguageBundle metaLanguageBundle) {
-        return metaLanguageBundle;
-    }
+	@Provides
+	@Singleton
+	fun assetManager(): AssetDiscoverer = inject()
 
-    @Provides
-    @Singleton
-    @Named("open")
-    public FileChooser openFileChooser() {
-        return new FileChooser(FileChooser.Mode.OPEN);
-    }
+	@Provides
+	@Singleton
+	@Named("default")
+	fun firstScreen(editorScreen: MetaEditorScreen): Screen {
+		return editorScreen
+	}
 
-    @Provides
-    @Singleton
-    @Named("save")
-    public FileChooser saveFileChooser() {
-        return new FileChooser(FileChooser.Mode.SAVE);
-    }
+	@Provides
+	@Singleton
+	@Named("default")
+	fun languageBundle(metaLanguageBundle: MetaLanguageBundle): LanguageBundle {
+		return metaLanguageBundle
+	}
 
-    @Provides
-    @Singleton
-    @Named("visuiSkin")
-    public String uiSkinPath() {
-        return "visui\\uiskin.json";
-    }
+	@Provides
+	@Singleton
+	@Named("open")
+	fun openFileChooser(): FileChooser = inject("open")
 
-    @Provides
-    @Singleton
-    public ShapeRenderer shapeRenderer() {
-        return null;
-    }
+	@Provides
+	@Singleton
+	@Named("save")
+	fun saveFileChooser(): FileChooser = inject("save")
 
+	@Provides
+	@Singleton
+	@Named("visuiSkin")
+	fun uiSkinPath(): String = inject("visuiSkin")
+
+	@Provides
+	@Singleton
+	fun shapeRenderer(): ShapeRenderer? {
+		return null
+	}
 }
