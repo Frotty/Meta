@@ -35,8 +35,7 @@ class GLShaderHandle(
 		targets.clear()
 		try {
 			BufferedReader(this.fragmentHandle.reader()).use { br ->
-				var line: String
-				while (br.readLine().also { line = it } != null) {
+				br.forEachLine { line ->
 					if (line.startsWith("layout")) {
 						val matcher: Matcher = outPattern.matcher(line)
 						if (matcher.matches()) {
