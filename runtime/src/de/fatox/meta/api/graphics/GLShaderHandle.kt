@@ -4,8 +4,6 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.api.model.RenderTargetData
-import java.io.BufferedReader
-import java.io.IOException
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -33,26 +31,20 @@ class GLShaderHandle(
 
 	init {
 		targets.clear()
-		try {
-			BufferedReader(this.fragmentHandle.reader()).use { br ->
-				br.forEachLine { line ->
-					if (line.startsWith("layout")) {
-						val matcher: Matcher = outPattern.matcher(line)
-						if (matcher.matches()) {
-							val type = matcher.group(4)
-							val name = matcher.group(6)
-							targets.add(RenderTargetData(type, name))
-						}
-					}
+
+		this.fragmentHandle.reader().buffered().forEachLine { line ->
+			if (line.startsWith("layout")) {
+				val matcher: Matcher = outPattern.matcher(line)
+				if (matcher.matches()) {
+					val type = matcher.group(4)
+					val name = matcher.group(6)
+					targets.add(RenderTargetData(type, name))
 				}
 			}
-		} catch (e: IOException) {
-			e.printStackTrace()
 		}
-		if (targets.size == 0) {
-			// add default gl out
+
+		if (targets.size == 0) // Add default gl out when no render target is defined
 			targets.add(RenderTargetData("vec4", "gl_FragColor"))
-		}
 	}
 }
 
