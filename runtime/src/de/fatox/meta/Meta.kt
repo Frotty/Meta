@@ -12,9 +12,11 @@ import de.fatox.meta.injection.Metastasis
 import org.slf4j.LoggerFactory
 import java.io.PrintWriter
 import java.io.StringWriter
-import javax.swing.JOptionPane
-import javax.swing.JTextArea
-import javax.swing.UnsupportedLookAndFeelException
+import javax.swing.*
+import javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+import javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
+import javax.swing.UIManager as JavaUIManager
+
 
 open class Meta : Game {
 	private var metastasis: Metastasis? = null
@@ -47,10 +49,10 @@ open class Meta : Game {
 	}
 
 	private fun setUncaughtHandler() {
-		Thread.setDefaultUncaughtExceptionHandler { thread: Thread?, exception: Throwable ->
+		Thread.setDefaultUncaughtExceptionHandler { _, exception ->
 			log.error(exception.message, exception)
 			try {
-				javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName())
+				JavaUIManager.setLookAndFeel(JavaUIManager.getSystemLookAndFeelClassName())
 			} catch (e: ClassNotFoundException) {
 				e.printStackTrace()
 			} catch (e: InstantiationException) {
@@ -64,10 +66,11 @@ open class Meta : Game {
 			exception.printStackTrace(PrintWriter(sw))
 			val jTextField = JTextArea()
 			jTextField.lineWrap = true
-			jTextField.columns = "Please report this crash with the following info:\n".length + 30
+			jTextField.columns = "Please report this crash with the following info:\n".length + 50
 			jTextField.text = "Please report this crash with the following info:\n$sw"
 			jTextField.isEditable = false
-			JOptionPane.showMessageDialog(null, jTextField, "Uncaught Exception", JOptionPane.ERROR_MESSAGE)
+			val scroll = JScrollPane(jTextField, VERTICAL_SCROLLBAR_AS_NEEDED, HORIZONTAL_SCROLLBAR_NEVER)
+			JOptionPane.showMessageDialog(JFrame(), scroll, "Uncaught Exception", JOptionPane.ERROR_MESSAGE)
 		}
 	}
 
