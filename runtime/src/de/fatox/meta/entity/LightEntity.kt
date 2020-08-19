@@ -11,8 +11,6 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.math.Vector3
 import de.fatox.meta.Meta.Companion.inject
 import de.fatox.meta.api.entity.Entity
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**

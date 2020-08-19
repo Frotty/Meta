@@ -1,8 +1,7 @@
 package de.fatox.meta.test.injection
 
 import de.fatox.meta.Meta.Companion.addModule
-import de.fatox.meta.Meta.Companion.inject
-import de.fatox.meta.injection.*
+import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.global
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach

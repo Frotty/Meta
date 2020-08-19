@@ -8,8 +8,6 @@ import com.badlogic.gdx.utils.TimeUtils
 import com.badlogic.gdx.utils.reflect.ClassReflection
 import com.badlogic.gdx.utils.reflect.ReflectionException
 import de.fatox.meta.Meta.Companion.inject
-import de.fatox.meta.injection.MetaInject
-import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import java.io.File
 

@@ -2,10 +2,7 @@ package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.InputAdapter
 import de.fatox.meta.api.MetaInputProcessor
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.input.MetaInput
 import de.fatox.meta.ui.components.MetaLabel
 
 class MetaKeyRebindDialog : MetaDialog("Rebind Key", true) {

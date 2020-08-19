@@ -1,8 +1,5 @@
 package de.fatox.meta.graphics.renderer
 
-import de.fatox.meta.injection.MetaInject
-import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-
 class BufferRenderer {
 //	private val batch: SpriteBatch by lazyInject()
 //	private val shaderLibrary: ShaderLibrary by lazyInject()

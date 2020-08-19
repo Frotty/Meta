@@ -3,7 +3,6 @@ package de.fatox.meta.ide
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.ObjectMap
-import de.fatox.meta.Meta.Companion.inject
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.AssetDiscovererWindow

@@ -5,10 +5,7 @@ import com.kotcrab.vis.ui.widget.VisTable
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPaneAdapter
-import de.fatox.meta.Meta.Companion.inject
 import de.fatox.meta.api.ui.UIManager
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.tabs.WelcomeTab
 import org.slf4j.Logger
