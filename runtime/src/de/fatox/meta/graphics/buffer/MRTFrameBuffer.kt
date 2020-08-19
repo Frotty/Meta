@@ -17,7 +17,7 @@ class MRTFrameBuffer(
 	private var frameBuffer: MultisampleFBO? = null
 
 	val colorBufferTextures: Array<Texture>
-		get() = frameBuffer!!.textureAttachments
+		get() = frameBuffer!!.getTextureAttachments()
 
 	init {
 		build(textureCount, hasDepth)
@@ -54,7 +54,7 @@ class MRTFrameBuffer(
 
 	/** Sets viewport to the dimensions of framebuffer. Called by [.begin].  */
 	protected fun setFrameBufferViewport() {
-		Gdx.gl20.glViewport(0, 0, frameBuffer!!.width, frameBuffer!!.height)
+		Gdx.gl20.glViewport(0, 0, frameBuffer!!.getWidth(), frameBuffer!!.getHeight())
 	}
 
 	/**

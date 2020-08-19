@@ -1,68 +1,61 @@
-package de.fatox.meta.ui.dialogs;
+package de.fatox.meta.ui.dialogs
 
-import com.badlogic.gdx.utils.Align;
-import com.kotcrab.vis.ui.widget.VisTable;
-import com.kotcrab.vis.ui.widget.VisTextButton;
-import de.fatox.meta.error.MetaError;
-import de.fatox.meta.error.MetaErrorHandler;
-import de.fatox.meta.ide.SceneManager;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Singleton;
-import de.fatox.meta.ui.components.MetaInputValidator;
-import de.fatox.meta.ui.components.MetaValidTextField;
-import de.fatox.meta.ui.windows.MetaDialog;
-
-import static kotlin.text.StringsKt.isBlank;
+import com.badlogic.gdx.utils.Align
+import com.kotcrab.vis.ui.widget.VisTable
+import com.kotcrab.vis.ui.widget.VisTextButton
+import de.fatox.meta.error.MetaError
+import de.fatox.meta.error.MetaErrorHandler
+import de.fatox.meta.ide.SceneManager
+import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.Singleton
+import de.fatox.meta.ui.components.MetaInputValidator
+import de.fatox.meta.ui.components.MetaValidTextField
+import de.fatox.meta.ui.windows.MetaDialog
 
 /**
  * Created by Frotty on 13.06.2016.
  */
 @Singleton
-public class SceneWizardDialog extends MetaDialog {
-    private final VisTextButton cancelBtn;
-    private final VisTextButton createBtn;
-    @Inject
-    private SceneManager sceneManager;
+class SceneWizardDialog : MetaDialog("Scene Wizard", true) {
+	private val cancelBtn: VisTextButton
+	private val createBtn: VisTextButton
 
-    private MetaValidTextField sceneNameTF;
+	private val sceneManager: SceneManager by lazyInject()
 
-    public SceneWizardDialog() {
-        super("Scene Wizard", true);
+	private val sceneNameTF: MetaValidTextField
 
-        cancelBtn = addButton(new VisTextButton("Cancel"), Align.left, false);
-        createBtn = addButton(new VisTextButton("Create"), Align.right, true);
-        sceneNameTF = new MetaValidTextField("Scene name:", statusLabel);
-        sceneNameTF.addValidator(new MetaInputValidator() {
-            @Override
-            public void validateInput(String input, MetaErrorHandler errors) {
-                if(isBlank(input)) {
-                    errors.add(new MetaError("Scene name required", "") {
-                        @Override
-                        public void gotoError() {
-
-                        }
-                    });
-                } else {
-                    createBtn.setDisabled(false);
-                }
-            }
-        });
-
-        VisTable visTable = new VisTable();
-        visTable.defaults().pad(4);
-        visTable.add(sceneNameTF.getDescription()).growX();
-        visTable.add(sceneNameTF.getTextField()).growX();
-        visTable.row();
-        getContentTable().add(visTable).top().growX();
-        createBtn.setDisabled(true);
-
-        setDialogListener((Object object) -> {
-            close();
-            if((boolean) object) {
-                sceneManager.createNew(sceneNameTF.getTextField().getText());
-            }
-        });
-        setDefaultSize(200, 400);
-    }
-
+	init {
+		cancelBtn = addButton(VisTextButton("Cancel"), Align.left, false)
+		createBtn = addButton(VisTextButton("Create"), Align.right, true)
+		sceneNameTF = MetaValidTextField("Scene name:", statusLabel)
+		sceneNameTF.addValidator(object : MetaInputValidator() {
+			override fun validateInput(input: String?, errors: MetaErrorHandler) {
+				if (input.isNullOrBlank()) {
+					errors!!.add(object : MetaError("Scene name required", "") {
+						override fun gotoError() {}
+					})
+				} else {
+					createBtn.isDisabled = false
+				}
+			}
+		})
+		val visTable = VisTable()
+		visTable.defaults().pad(4f)
+		visTable.add(sceneNameTF.description).growX()
+		visTable.add(sceneNameTF.textField).growX()
+		visTable.row()
+		contentTable.add(visTable).top().growX()
+		createBtn.isDisabled = true
+		dialogListener = object : DialogListener {
+			override fun onResult(any: Any?) {
+				close()
+				if (any as Boolean) {
+					sceneManager.createNew(sceneNameTF.textField.text)
+				}
+			}
+		}
+		setDefaultSize(200f, 400f)
+	}
 }

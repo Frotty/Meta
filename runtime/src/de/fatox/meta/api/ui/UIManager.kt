@@ -21,9 +21,9 @@ interface UIManager {
 	 * Indicates a screen change. This will remove/modify the elements of the current screen
 	 * and load the saved elements
 	 *
-	 * @param screenIdentifier name of the screen for the json persitence
+	 * @param screenIdentifier name of the screen for the json persistence
 	 */
-	fun changeScreen(screenIdentifier: String?)
+	fun changeScreen(screenIdentifier: String)
 
 	fun addTable(table: Table?, growX: Boolean, growY: Boolean)
 

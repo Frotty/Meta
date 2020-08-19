@@ -23,8 +23,9 @@ import de.fatox.meta.shader.MetaShaderLibrary
 class MetaEditorModule {
 	init {
 		global {
+			singleton<ProjectManager> { MetaProjectManager() }
 			singleton<Renderer> { EditorSceneRenderer() }
-			singleton { Primitives() }
+			singleton { Primitives }
 			singleton { AssetDiscoverer() }
 			singleton("default") { MetaShaderComposer() }
 			singleton("default") { MetaShaderLibrary() }
@@ -44,12 +45,6 @@ class MetaEditorModule {
 	@Provides
 	@Singleton
 	fun primitives(): Primitives = inject()
-
-	@Provides
-	@Singleton
-	fun projectManager(projectManager: MetaProjectManager): ProjectManager {
-		return projectManager
-	}
 
 	@Provides
 	@Singleton

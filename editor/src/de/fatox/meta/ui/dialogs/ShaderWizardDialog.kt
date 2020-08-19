@@ -1,136 +1,106 @@
-package de.fatox.meta.ui.dialogs;
+package de.fatox.meta.ui.dialogs
 
-import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
-import com.badlogic.gdx.utils.Align;
-import com.kotcrab.vis.ui.widget.VisCheckBox;
-import com.kotcrab.vis.ui.widget.VisLabel;
-import com.kotcrab.vis.ui.widget.VisTable;
-import com.kotcrab.vis.ui.widget.VisTextButton;
-import de.fatox.meta.api.graphics.GLShaderHandle;
-import de.fatox.meta.api.model.GLShaderData;
-import de.fatox.meta.error.MetaError;
-import de.fatox.meta.error.MetaErrorHandler;
-import de.fatox.meta.ide.ProjectManager;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Singleton;
-import de.fatox.meta.shader.MetaShaderLibrary;
-import de.fatox.meta.ui.components.AssetSelectButton;
-import de.fatox.meta.ui.components.MetaInputValidator;
-import de.fatox.meta.ui.components.MetaValidTextField;
-import de.fatox.meta.ui.windows.MetaDialog;
-import de.fatox.meta.ui.windows.ShaderLibraryWindow;
-
-import static kotlin.text.StringsKt.isBlank;
+import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup
+import com.badlogic.gdx.utils.Align
+import com.kotcrab.vis.ui.widget.VisCheckBox
+import com.kotcrab.vis.ui.widget.VisLabel
+import com.kotcrab.vis.ui.widget.VisTable
+import com.kotcrab.vis.ui.widget.VisTextButton
+import de.fatox.meta.api.model.GLShaderData
+import de.fatox.meta.error.MetaError
+import de.fatox.meta.error.MetaErrorHandler
+import de.fatox.meta.ide.ProjectManager
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.Singleton
+import de.fatox.meta.shader.MetaShaderLibrary
+import de.fatox.meta.ui.components.AssetSelectButton
+import de.fatox.meta.ui.components.MetaInputValidator
+import de.fatox.meta.ui.components.MetaValidTextField
+import de.fatox.meta.ui.windows.MetaDialog
+import de.fatox.meta.ui.windows.ShaderLibraryWindow
 
 /**
  * Created by Frotty on 29.06.2016.
  */
 @Singleton
-public class ShaderWizardDialog extends MetaDialog {
-    @Inject
-    private MetaShaderLibrary shaderLibrary;
-    @Inject
-    private ProjectManager projectManager;
+class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
+	private val shaderLibrary: MetaShaderLibrary by lazyInject()
+	private val projectManager: ProjectManager by lazyInject()
 
-    private final VisTextButton cancelBtn;
-    private final VisTextButton createBtn;
+	private val cancelBtn: VisTextButton = addButton(VisTextButton("Cancel"), Align.left, false)
+	private val createBtn: VisTextButton = addButton(VisTextButton("Create"), Align.right, true)
+	private val shaderNameTF: MetaValidTextField = MetaValidTextField("Shader name:", statusLabel)
+	private val renderTargetGroup = ButtonGroup<VisCheckBox>()
+	private var vertexSelect: AssetSelectButton? = null
+	private var fragmentSelect: AssetSelectButton? = null
+	private fun checkButton() {
+		createBtn.isDisabled = (shaderNameTF.textField.text.isBlank()
+			|| !vertexSelect!!.hasFile()
+			|| !fragmentSelect!!.hasFile())
+	}
 
-    private MetaValidTextField shaderNameTF;
-    private ButtonGroup<VisCheckBox> renderTargetGroup = new ButtonGroup<>();
-    private AssetSelectButton vertexSelect;
-    private AssetSelectButton fragmentSelect;
+	private fun setupTable() {
+		val visTable = VisTable()
+		visTable.defaults().pad(4f)
+		visTable.add(shaderNameTF.description).growX()
+		visTable.add(shaderNameTF.textField).growX()
+		visTable.row()
+		val visLabel = VisLabel("Render Target:")
+		visLabel.setAlignment(Align.center)
+		visTable.add(visLabel).colspan(2).pad(4f)
+		visTable.row()
+		val geometryButton = VisCheckBox("Geometry", true)
+		val fullscreenButton = VisCheckBox("Fullscreen", false)
+		visTable.add(geometryButton)
+		visTable.add(fullscreenButton)
+		visTable.row()
+		val visLabel2 = VisLabel("Shader Files:")
+		visLabel2.setAlignment(Align.center)
+		visTable.add(visLabel2).colspan(2).pad(4f)
+		visTable.row()
+		vertexSelect = AssetSelectButton("Vertex Shader")
+		vertexSelect!!.setSelectListener { file: FileHandle? -> checkButton() }
+		visTable.add(vertexSelect!!.table).colspan(2).growX()
+		visTable.row()
+		fragmentSelect = AssetSelectButton("Fragment Shader")
+		fragmentSelect!!.setSelectListener { file: FileHandle? -> checkButton() }
+		visTable.add(fragmentSelect!!.table).colspan(2).growX()
+		visTable.row()
+		renderTargetGroup.add(geometryButton)
+		renderTargetGroup.add(fullscreenButton)
+		contentTable.add(visTable).top().growX()
+	}
 
-    public ShaderWizardDialog() {
-        super("Shader Wizard", true);
-
-        cancelBtn = addButton(new VisTextButton("Cancel"), Align.left, false);
-        createBtn = addButton(new VisTextButton("Create"), Align.right, true);
-        shaderNameTF = new MetaValidTextField("Shader name:", statusLabel);
-        shaderNameTF.addValidator(new MetaInputValidator() {
-            @Override
-            public void validateInput(String input, MetaErrorHandler errors) {
-                if (isBlank(input)){
-                    errors.add(new MetaError("Invalid Shader name", "") {
-                        @Override
-                        public void gotoError() {
-
-                        }
-                    });
-                } else {
-                    checkButton();
-                }
-            }
-        });
-
-        renderTargetGroup.setMaxCheckCount(1);
-        renderTargetGroup.setMinCheckCount(1);
-        createBtn.setDisabled(true);
-        setDefaultSize(300, 450);
-        setupTable();
-        setDialogListener((Object object) -> {
-            if((boolean)object) {
-                String vertFile = projectManager.relativize(vertexSelect.getFile());
-                String fragFile = projectManager.relativize(fragmentSelect.getFile());
-                GLShaderData shaderData = new GLShaderData(shaderNameTF.getTextField().getText(), vertFile, fragFile);
-                GLShaderHandle glShaderHandle = shaderLibrary.newShader(shaderData);
-
-                ShaderLibraryWindow window = getUiManager().getWindow(ShaderLibraryWindow.class);
-                if(window != null) {
-                    window.addShader(glShaderHandle);
-                }
-            }
-            close();
-        });
-    }
-
-
-    private void checkButton() {
-		createBtn.setDisabled(
-			isBlank(shaderNameTF.getTextField().getText())
-				|| !vertexSelect.hasFile()
-				|| !fragmentSelect.hasFile()
-		);
-    }
-
-    private void setupTable() {
-        VisTable visTable = new VisTable();
-        visTable.defaults().pad(4);
-        visTable.add(shaderNameTF.getDescription()).growX();
-        visTable.add(shaderNameTF.getTextField()).growX();
-        visTable.row();
-
-        VisLabel visLabel = new VisLabel("Render Target:");
-        visLabel.setAlignment(Align.center);
-        visTable.add(visLabel).colspan(2).pad(4);
-        visTable.row();
-
-        VisCheckBox geometryButton = new VisCheckBox("Geometry", true);
-        VisCheckBox fullscreenButton = new VisCheckBox("Fullscreen", false);
-
-        visTable.add(geometryButton);
-        visTable.add(fullscreenButton);
-        visTable.row();
-
-        VisLabel visLabel2 = new VisLabel("Shader Files:");
-        visLabel2.setAlignment(Align.center);
-        visTable.add(visLabel2).colspan(2).pad(4);
-        visTable.row();
-
-
-        vertexSelect = new AssetSelectButton("Vertex Shader");
-        vertexSelect.setSelectListener((file) -> checkButton());
-        visTable.add(vertexSelect.getTable()).colspan(2).growX();
-        visTable.row();
-
-        fragmentSelect = new AssetSelectButton("Fragment Shader");
-        fragmentSelect.setSelectListener((file) -> checkButton());
-        visTable.add(fragmentSelect.getTable()).colspan(2).growX();
-        visTable.row();
-
-        renderTargetGroup.add(geometryButton);
-        renderTargetGroup.add(fullscreenButton);
-
-        getContentTable().add(visTable).top().growX();
-    }
-
+	init {
+		shaderNameTF.addValidator(object : MetaInputValidator() {
+			override fun validateInput(input: String?, errors: MetaErrorHandler) {
+				if (input!!.isBlank()) {
+					errors.add(object : MetaError("Invalid Shader name", "") {
+						override fun gotoError() {}
+					})
+				} else {
+					checkButton()
+				}
+			}
+		})
+		renderTargetGroup.setMaxCheckCount(1)
+		renderTargetGroup.setMinCheckCount(1)
+		createBtn.isDisabled = true
+		setDefaultSize(300f, 450f)
+		setupTable()
+		dialogListener = object : DialogListener {
+			override fun onResult(any: Any?) {
+				if (any as Boolean) {
+					val vertFile = projectManager.relativize(vertexSelect!!.file)
+					val fragFile = projectManager.relativize(fragmentSelect!!.file)
+					val shaderData = GLShaderData(shaderNameTF.textField.text, vertFile, fragFile)
+					val glShaderHandle = shaderLibrary.newShader(shaderData)!!
+					val window = uiManager.getWindow(ShaderLibraryWindow::class.java)
+					window.addShader(glShaderHandle)
+				}
+				close()
+			}
+		}
+	}
 }

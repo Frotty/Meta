@@ -1,66 +1,53 @@
-package de.fatox.meta.entity;
+package de.fatox.meta.entity
 
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
-import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.math.Vector3;
-import de.fatox.meta.Meta;
-import de.fatox.meta.api.entity.Entity;
-import de.fatox.meta.injection.Inject;
-
-import static com.badlogic.gdx.graphics.VertexAttributes.Usage;
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.VertexAttributes
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute
+import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
+import com.badlogic.gdx.math.Vector3
+import de.fatox.meta.Meta.Companion.inject
+import de.fatox.meta.api.entity.Entity
+import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
  * Created by Frotty on 20.03.2017.
  */
-public class LightEntity implements Entity<Vector3> {
-    public static Model model;
-    public Vector3 position;
-    public Vector3 color;
-    public float intensity;
-    public float radius;
+class LightEntity(override var position: Vector3, radius: Float, color: Vector3) : Entity<Vector3> {
+	var color: Vector3
+	var intensity = 0f
+	var radius: Float
+	var volumeSphere: ModelInstance
 
-    public ModelInstance volumeSphere;
-    private static BlendingAttribute blendingAttribute = new BlendingAttribute(GL20.GL_ONE, GL20.GL_ONE);
+	private val modelBuilder: ModelBuilder by lazyInject()
 
-    @Inject
-    private ModelBuilder modelBuilder;
+	override val id: Int
+		get() = 0
 
-    public LightEntity(Vector3 pos, float radius, Vector3 color) {
-        if (model == null) {
-            Meta.inject(this);
-            model = modelBuilder.createSphere(2f, 2f, 2f, 20, 20, new Material(), Usage.Position | Usage.Normal | Usage.ColorUnpacked | Usage.TextureCoordinates);
-            model.materials.get(0).set(blendingAttribute);
-            model.materials.get(0).set(IntAttribute.createCullFace(GL20.GL_FRONT));
-        }
-        this.position = pos;
-        this.color = color;
-        this.radius = radius;
-        volumeSphere = new ModelInstance(model, pos);
-        volumeSphere.transform.scl(radius * 2);
-    }
+	override fun update() {}
+	override fun draw() {}
 
-    @Override
-    public int getId() {
-        return 0;
-    }
+	companion object {
+		var model: Model? = null
+		private val blendingAttribute = BlendingAttribute(GL20.GL_ONE, GL20.GL_ONE)
+	}
 
-    @Override
-    public Vector3 getPosition() {
-        return null;
-    }
-
-    @Override
-    public void update() {
-
-    }
-
-    @Override
-    public void draw() {
-
-    }
+	init {
+		if (model == null) {
+			inject(this)
+			model = modelBuilder.createSphere(2f, 2f, 2f, 20, 20, Material(), (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal or VertexAttributes.Usage.ColorUnpacked or VertexAttributes.Usage.TextureCoordinates.toLong().toInt()).toLong())
+			model!!.materials[0].set(blendingAttribute)
+			model!!.materials[0].set(IntAttribute.createCullFace(GL20.GL_FRONT))
+		}
+		this.position = position
+		this.color = color
+		this.radius = radius
+		volumeSphere = ModelInstance(model, position)
+		volumeSphere.transform.scl(radius * 2)
+	}
 }

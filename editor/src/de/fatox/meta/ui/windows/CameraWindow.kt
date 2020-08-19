@@ -1,66 +1,57 @@
-package de.fatox.meta.ui.windows;
+package de.fatox.meta.ui.windows
 
-import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.g2d.Batch;
-import com.kotcrab.vis.ui.widget.VisTextField;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Singleton;
-import de.fatox.meta.ui.components.MetaLabel;
+import com.badlogic.gdx.graphics.PerspectiveCamera
+import com.badlogic.gdx.graphics.g2d.Batch
+import com.kotcrab.vis.ui.widget.VisTextField
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.Singleton
+import de.fatox.meta.ui.components.MetaLabel
 
 /**
  * Created by Frotty on 20.05.2016.
  */
 @Singleton
-public class CameraWindow extends MetaWindow {
-    private final VisTextField xPosField;
-    private final VisTextField yPosField;
-    private final VisTextField zPosField;
+class CameraWindow : MetaWindow("Camera", true, true) {
+	private val xPosField: VisTextField
+	private val yPosField: VisTextField
+	private val zPosField: VisTextField
+	private val xUpField: VisTextField
+	private val yUpField: VisTextField
+	private val zUpField: VisTextField
 
-    private final VisTextField xUpField;
-    private final VisTextField yUpField;
-    private final VisTextField zUpField;
+	val camera: PerspectiveCamera by lazyInject()
 
-    @Inject
-    public PerspectiveCamera camera;
+	override fun draw(batch: Batch, parentAlpha: Float) {
+		super.draw(batch, parentAlpha)
+		xPosField.text = camera.position.x.toString() + ""
+		yPosField.text = camera.position.y.toString() + ""
+		zPosField.text = camera.position.z.toString() + ""
+		xUpField.text = camera.up.x.toString() + ""
+		yUpField.text = camera.up.y.toString() + ""
+		zUpField.text = camera.up.z.toString() + ""
+	}
 
-    public CameraWindow() {
-        super("Camera", true, true);
-        xPosField = new VisTextField("0.0");
-        yPosField = new VisTextField("0.0");
-        zPosField = new VisTextField("0.0");
-
-        xUpField = new VisTextField("0.0");
-        yUpField = new VisTextField("0.0");
-        zUpField = new VisTextField("0.0");
-
-        getContentTable().add(new MetaLabel("Position:", 14)).colspan(6).center().row();
-        getContentTable().add(new MetaLabel("x:", 12));
-        getContentTable().add(xPosField).width(64).pad(2);
-        getContentTable().add(new MetaLabel("y:", 12));
-        getContentTable().add(yPosField).width(64).pad(2);
-        getContentTable().add(new MetaLabel("z:", 12));
-        getContentTable().add(zPosField).width(64).pad(2);
-        getContentTable().row();
-
-        getContentTable().add(new MetaLabel("Up:", 14)).colspan(6).center().row();
-        getContentTable().add(new MetaLabel("x:", 12));
-        getContentTable().add(xUpField).width(64).pad(2);
-        getContentTable().add(new MetaLabel("y:", 12));
-        getContentTable().add(yUpField).width(64).pad(2);
-        getContentTable().add(new MetaLabel("z:", 12));
-        getContentTable().add(zUpField).width(64).pad(2);
-    }
-
-
-    @Override
-    public void draw(Batch batch, float parentAlpha) {
-        super.draw(batch, parentAlpha);
-        xPosField.setText(camera.position.x + "");
-        yPosField.setText(camera.position.y + "");
-        zPosField.setText(camera.position.z + "");
-
-        xUpField.setText(camera.up.x + "");
-        yUpField.setText(camera.up.y + "");
-        zUpField.setText(camera.up.z + "");
-    }
+	init {
+		xPosField = VisTextField("0.0")
+		yPosField = VisTextField("0.0")
+		zPosField = VisTextField("0.0")
+		xUpField = VisTextField("0.0")
+		yUpField = VisTextField("0.0")
+		zUpField = VisTextField("0.0")
+		contentTable.add(MetaLabel("Position:", 14)).colspan(6).center().row()
+		contentTable.add(MetaLabel("x:", 12))
+		contentTable.add(xPosField).width(64f).pad(2f)
+		contentTable.add(MetaLabel("y:", 12))
+		contentTable.add(yPosField).width(64f).pad(2f)
+		contentTable.add(MetaLabel("z:", 12))
+		contentTable.add(zPosField).width(64f).pad(2f)
+		contentTable.row()
+		contentTable.add(MetaLabel("Up:", 14)).colspan(6).center().row()
+		contentTable.add(MetaLabel("x:", 12))
+		contentTable.add(xUpField).width(64f).pad(2f)
+		contentTable.add(MetaLabel("y:", 12))
+		contentTable.add(yUpField).width(64f).pad(2f)
+		contentTable.add(MetaLabel("z:", 12))
+		contentTable.add(zUpField).width(64f).pad(2f)
+	}
 }

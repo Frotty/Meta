@@ -1,71 +1,58 @@
-package de.fatox.meta.ui.tabs;
+package de.fatox.meta.ui.tabs
 
-import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.kotcrab.vis.ui.widget.VisTable;
-import de.fatox.meta.Meta;
-import de.fatox.meta.api.ui.UIRenderer;
-import de.fatox.meta.camera.ArcCamControl;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.input.MetaInput;
-import de.fatox.meta.shader.MetaSceneHandle;
-import de.fatox.meta.ui.MetaEditorUI;
-import de.fatox.meta.ui.components.SceneWidget;
-import de.fatox.meta.ui.windows.*;
+import com.badlogic.gdx.graphics.PerspectiveCamera
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.kotcrab.vis.ui.widget.VisTable
+import de.fatox.meta.Meta.Companion.inject
+import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.camera.ArcCamControl
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.input.MetaInput
+import de.fatox.meta.shader.MetaSceneHandle
+import de.fatox.meta.ui.MetaEditorUI
+import de.fatox.meta.ui.components.SceneWidget
+import de.fatox.meta.ui.windows.*
 
 /**
  * Created by Frotty on 13.06.2016.
  */
-public class SceneTab extends MetaTab {
-    @Inject
-    private PerspectiveCamera perspectiveCamera;
-    @Inject
-    private UIRenderer uiRenderer;
-    @Inject
-    private MetaInput metaInput;
-    @Inject
-    private MetaEditorUI editorUI;
+class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
+	private val perspectiveCamera: PerspectiveCamera by lazyInject()
+	private val uiRenderer: UIRenderer by lazyInject()
+	private val metaInput: MetaInput by lazyInject()
+	private val editorUI: MetaEditorUI by lazyInject()
 
-    private ArcCamControl camControl = new ArcCamControl();
-    private MetaSceneHandle metaSceneHandle;
-    private Table table;
+	private val camControl = ArcCamControl()
+	val sceneHandle: MetaSceneHandle
+	private val table: Table
+	override fun getTabTitle(): String {
+		return sceneHandle.sceneFile.name()
+	}
 
-    public SceneTab(MetaSceneHandle sceneHandle) {
-        Meta.inject(this);
-        this.metaSceneHandle = sceneHandle;
-        table = new VisTable();
-        table.add(new SceneWidget(metaSceneHandle)).grow();
-        table.invalidate();
-//        table.debugAll();
-    }
+	override fun getContentTable(): Table {
+		return table
+	}
 
-    @Override
-    public String getTabTitle() {
-        return metaSceneHandle.getSceneFile().name();
-    }
+	override fun onShow() {
+		metaInput.addAdapterForScreen(camControl)
+		editorUI.metaToolbar.clear()
+		editorUI.metaToolbar.addAvailableWindow(AssetDiscovererWindow::class.java, null)
+		editorUI.metaToolbar.addAvailableWindow(ShaderLibraryWindow::class.java, null)
+		editorUI.metaToolbar.addAvailableWindow(ShaderComposerWindow::class.java, null)
+		editorUI.metaToolbar.addAvailableWindow(SceneOptionsWindow::class.java, null)
+		editorUI.metaToolbar.addAvailableWindow(PrimitivesWindow::class.java, null)
+	}
 
-    @Override
-    public Table getContentTable() {
-        return table;
-    }
+	override fun onHide() {
+		metaInput.removeAdapterFromScreen(camControl)
+	}
 
-    @Override
-    public void onShow() {
-        metaInput.addAdapterForScreen(camControl);
-        editorUI.metaToolbar.clear();
-        editorUI.metaToolbar.addAvailableWindow(AssetDiscovererWindow.class, null);
-        editorUI.metaToolbar.addAvailableWindow(ShaderLibraryWindow.class, null);
-        editorUI.metaToolbar.addAvailableWindow(ShaderComposerWindow.class, null);
-        editorUI.metaToolbar.addAvailableWindow(SceneOptionsWindow.class, null);
-        editorUI.metaToolbar.addAvailableWindow(PrimitivesWindow.class, null);
-    }
-
-    @Override
-    public void onHide() {
-        metaInput.removeAdapterFromScreen(camControl);
-    }
-
-    public MetaSceneHandle getSceneHandle() {
-        return metaSceneHandle;
-    }
+	init {
+		inject(this)
+		this.sceneHandle = sceneHandle
+		table = VisTable()
+		table.add(SceneWidget(this.sceneHandle)).grow()
+		table.invalidate()
+		//        table.debugAll();
+	}
 }

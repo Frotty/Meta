@@ -38,14 +38,14 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
     val height: Int
         get() = when {
 			mrtFrameBuffer != null -> mrtFrameBuffer!!.height
-			frameBuffer != null -> frameBuffer!!.height
+			frameBuffer != null -> frameBuffer!!.getHeight()
 			else -> 0
 		}
 
     val width: Int
         get() = when {
 			mrtFrameBuffer != null -> mrtFrameBuffer!!.width
-			frameBuffer != null -> frameBuffer!!.width
+			frameBuffer != null -> frameBuffer!!.getWidth()
 			else -> 0
 		}
 

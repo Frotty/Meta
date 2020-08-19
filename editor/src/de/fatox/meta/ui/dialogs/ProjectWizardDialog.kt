@@ -1,142 +1,129 @@
-package de.fatox.meta.ui.dialogs;
+package de.fatox.meta.ui.dialogs
 
-import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.utils.Array;
-import com.kotcrab.vis.ui.widget.*;
-import com.kotcrab.vis.ui.widget.file.FileChooser;
-import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
-import de.fatox.meta.api.lang.LanguageBundle;
-import de.fatox.meta.api.model.MetaProjectData;
-import de.fatox.meta.error.MetaError;
-import de.fatox.meta.error.MetaErrorHandler;
-import de.fatox.meta.ide.ProjectManager;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Named;
-import de.fatox.meta.injection.Singleton;
-import de.fatox.meta.ui.components.MetaClickListener;
-import de.fatox.meta.ui.components.MetaInputValidator;
-import de.fatox.meta.ui.components.MetaTextButton;
-import de.fatox.meta.ui.components.MetaValidTextField;
-import de.fatox.meta.ui.windows.MetaDialog;
-import de.fatox.meta.util.StringUtil;
+import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.utils.Align
+import com.badlogic.gdx.utils.Array
+import com.kotcrab.vis.ui.widget.*
+import com.kotcrab.vis.ui.widget.file.FileChooser
+import com.kotcrab.vis.ui.widget.file.FileChooserAdapter
+import de.fatox.meta.api.lang.LanguageBundle
+import de.fatox.meta.api.model.MetaProjectData
+import de.fatox.meta.error.MetaError
+import de.fatox.meta.error.MetaErrorHandler
+import de.fatox.meta.ide.ProjectManager
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.Singleton
+import de.fatox.meta.ui.components.MetaClickListener
+import de.fatox.meta.ui.components.MetaInputValidator
+import de.fatox.meta.ui.components.MetaTextButton
+import de.fatox.meta.ui.components.MetaValidTextField
+import de.fatox.meta.ui.windows.MetaDialog
+import de.fatox.meta.util.isValidFolderName
+import de.fatox.meta.util.truncate
 
 @Singleton
-public class ProjectWizardDialog extends MetaDialog {
-    private final VisTextButton createBtn;
-    @Inject
-    private LanguageBundle languageBundle;
-    @Inject
-    @Named("open")
-    private FileChooser fileChooser;
-    @Inject
-    private ProjectManager projectManager;
+class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
+	private val createBtn: VisTextButton
 
-    private MetaValidTextField projectNameTF;
-    private MetaTextButton folderButton;
-    private VisLabel folderLabel;
-    private FileHandle rootfile;
-    private boolean namevalid;
-    private boolean locationValid;
-    private VisCheckBox checkbox;
-    private VisLabel checkboxLabel;
+	private val languageBundle: LanguageBundle by lazyInject()
+	private val fileChooser: FileChooser by lazyInject("open")
+	private val projectManager: ProjectManager by lazyInject()
 
+	private var projectNameTF: MetaValidTextField? = null
+	private var folderButton: MetaTextButton? = null
+	private var folderLabel: VisLabel? = null
+	private var rootfile: FileHandle? = null
+	private var namevalid = false
+	private var locationValid = false
+	private var checkbox: VisCheckBox? = null
+	private var checkboxLabel: VisLabel? = null
+	private fun createExampleCheckbox() {
+		checkboxLabel = VisLabel("Include Example:")
+		checkbox = VisCheckBox("", true)
+		Tooltip.Builder(languageBundle["newproj_dia_tooltip_example"]).target(checkboxLabel).build()
+	}
 
-    public ProjectWizardDialog() {
-        super("Project Wizard", true);
+	private fun checkValid() {
+		if (locationValid && namevalid) {
+			createBtn.isDisabled = false
+		}
+	}
 
-        addButton(new VisTextButton("Cancel"), Align.left, false);
-        createBtn = addButton(new VisTextButton("Create"), Align.right, true);
-        createProjectNameTF();
-        createFolderButton();
-        createExampleCheckbox();
+	private fun createFolderButton() {
+		folderLabel = VisLabel(languageBundle["newproj_dia_proj_root"])
+		folderButton = MetaTextButton(languageBundle["newproj_dia_select_folder"])
+		folderButton!!.addListener(object : MetaClickListener() {
+			override fun clicked(event: InputEvent, x: Float, y: Float) {
+				fileChooser.selectionMode = FileChooser.SelectionMode.DIRECTORIES
+				fileChooser.fadeIn()
+				fileChooser.setListener(object : FileChooserAdapter() {
+					override fun selected(file: Array<FileHandle>) {
+						if (file.size == 1) {
+							rootfile = file[0]
+							folderButton!!.setText(file[0].pathWithoutExtension().truncate(20))
+							locationValid = true
+						} else {
+							locationValid = false
+						}
+						fileChooser.fadeOut()
+						checkValid()
+					}
+				})
+				stage.addActor(fileChooser)
+				fileChooser.fadeIn()
+			}
+		})
+		Tooltip.Builder(languageBundle["newproj_dia_tooltip_location"]).target(folderLabel).build()
+	}
 
-        VisTable visTable = new VisTable();
-        visTable.defaults().pad(4);
-        visTable.add(projectNameTF.getDescription()).growX();
-        visTable.add(projectNameTF.getTextField()).growX();
-        visTable.row();
-        visTable.add(folderLabel).growX();
-        visTable.add(folderButton).growX();
-        visTable.row();
-        visTable.add(checkboxLabel).growX();
-        visTable.add(checkbox).growX();
-        getContentTable().add(visTable).top().growX();
-        createBtn.setDisabled(true);
+	private fun createProjectNameTF() {
+		val projectWizard = this
+		projectNameTF = MetaValidTextField(languageBundle["newproj_dia_name_tf"], statusLabel)
+		projectNameTF!!.addValidator(object : MetaInputValidator() {
+			override fun validateInput(input: String?, errors: MetaErrorHandler) {
+				if (!input!!.isValidFolderName()) {
+					errors.add(object : MetaError(languageBundle["newproj_dia_inalid_name"], "Name can only contain alphanumeric characters") {
+						override fun gotoError() {}
+					})
+					namevalid = false
+				}
+				namevalid = true
+				checkValid()
+			}
+		})
+		Tooltip.Builder(languageBundle["newproj_dia_tooltip_name"]).target(projectNameTF!!.description).build()
+	}
 
-        pack();
-
-        setDialogListener(object -> {
-            if ((boolean) object) {
-                MetaProjectData metaProjectData = new MetaProjectData(projectNameTF.getTextField().getText());
-                projectManager.newProject(rootfile, metaProjectData);
-                projectManager.loadProject(projectManager.getCurrentProjectRoot());
-            }
-            close();
-        });
-    }
-
-    private void createExampleCheckbox() {
-        checkboxLabel = new VisLabel("Include Example:");
-        checkbox = new VisCheckBox("", true);
-        new Tooltip.Builder(languageBundle.get("newproj_dia_tooltip_example")).target(checkboxLabel).build();
-    }
-
-    private void checkValid() {
-        if (locationValid && namevalid) {
-            createBtn.setDisabled(false);
-        }
-    }
-
-    private void createFolderButton() {
-        folderLabel = new VisLabel(languageBundle.get("newproj_dia_proj_root"));
-        folderButton = new MetaTextButton(languageBundle.get("newproj_dia_select_folder"));
-        folderButton.addListener(new MetaClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                fileChooser.setSelectionMode(FileChooser.SelectionMode.DIRECTORIES);
-                fileChooser.fadeIn();
-                fileChooser.setListener(new FileChooserAdapter() {
-                    @Override
-                    public void selected(Array<FileHandle> file) {
-                        if (file.size == 1) {
-                            rootfile = file.get(0);
-                            folderButton.setText(StringUtil.truncate(file.get(0).pathWithoutExtension(), 20));
-                            locationValid = true;
-                        } else {
-                            locationValid = false;
-                        }
-                        fileChooser.fadeOut();
-                        checkValid();
-                    }
-                });
-                getStage().addActor(fileChooser);
-                fileChooser.fadeIn();
-            }
-        });
-        new Tooltip.Builder(languageBundle.get("newproj_dia_tooltip_location")).target(folderLabel).build();
-    }
-
-    private void createProjectNameTF() {
-        final ProjectWizardDialog projectWizard = this;
-        projectNameTF = new MetaValidTextField(languageBundle.get("newproj_dia_name_tf"), statusLabel);
-        projectNameTF.addValidator(new MetaInputValidator() {
-            @Override
-            public void validateInput(String input, MetaErrorHandler errors) {
-                if (!StringUtil.isValidFolderName(input)) {
-                    errors.add(new MetaError(languageBundle.get("newproj_dia_inalid_name"), "Name can only contain alphanumeric characters") {
-                        @Override
-                        public void gotoError() {
-                        }
-                    });
-                    namevalid = false;
-                }
-                namevalid = true;
-                checkValid();
-            }
-        });
-        new Tooltip.Builder(languageBundle.get("newproj_dia_tooltip_name")).target(projectNameTF.getDescription()).build();
-    }
-
+	init {
+		addButton<Button>(VisTextButton("Cancel"), Align.left, false)
+		createBtn = addButton(VisTextButton("Create"), Align.right, true)
+		createProjectNameTF()
+		createFolderButton()
+		createExampleCheckbox()
+		val visTable = VisTable()
+		visTable.defaults().pad(4f)
+		visTable.add(projectNameTF!!.description).growX()
+		visTable.add(projectNameTF!!.textField).growX()
+		visTable.row()
+		visTable.add(folderLabel).growX()
+		visTable.add(folderButton).growX()
+		visTable.row()
+		visTable.add(checkboxLabel).growX()
+		visTable.add(checkbox).growX()
+		contentTable.add(visTable).top().growX()
+		createBtn.isDisabled = true
+		pack()
+		dialogListener = object : DialogListener{
+			override fun onResult(any: Any?) {
+				if (any as Boolean) {
+					val metaProjectData = MetaProjectData(projectNameTF!!.textField.text)
+					projectManager.newProject(rootfile, metaProjectData)
+					projectManager.loadProject(projectManager.currentProjectRoot)
+				}
+				close()
+			}
+		}
+	}
 }

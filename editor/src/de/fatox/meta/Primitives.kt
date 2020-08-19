@@ -1,121 +1,71 @@
-package de.fatox.meta;
+package de.fatox.meta
 
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.VertexAttributes;
-import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
-import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import de.fatox.meta.api.AssetProvider;
-import de.fatox.meta.injection.Inject;
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.VertexAttributes
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
+import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
  * Created by Frotty on 04.04.2017.
  */
-public class Primitives {
-    private Model planeLines;
-    private Model planeFilled;
-    private Model boxFilled;
-    private Model boxLines;
-    private Model sphereLines;
-    private Model sphereFilled;
-    private Model lineGrid;
-    private Model terrainGrid;
-    public static final long defaultAttr = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal
-            | VertexAttributes.Usage.ColorUnpacked | VertexAttributes.Usage.TextureCoordinates;
+object Primitives {
+	private val assetProvider: AssetProvider by lazyInject()
+	private val modelBuilder: ModelBuilder by lazyInject()
 
-    private final Material defaultMaterial = new Material();
-    @Inject
-    private AssetProvider assetProvider;
-    @Inject
-    private ModelBuilder modelBuilder;
+	private val defaultMaterial = Material().apply {
+		set(TextureAttribute.createDiffuse(assetProvider.getResource("textures/defaultTex.png", Texture::class.java)))
+	}
+	private const val defaultAttr: Long = (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal
+		or VertexAttributes.Usage.ColorUnpacked or VertexAttributes.Usage.TextureCoordinates).toLong()
 
-    public Primitives() {
-        Meta.inject(this);
-        defaultMaterial.set(TextureAttribute.createDiffuse(assetProvider.getResource("textures/defaultTex.png", Texture.class)));
-    }
+	val planeLines: Model by lazy(LazyThreadSafetyMode.NONE) {
+		modelBuilder.createRect(0f, 0f, 0f, 1f, 0f, 0f, 1f, 1f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, GL20.GL_LINES, defaultMaterial, defaultAttr)
+	}
+	val planeFilled: Model by lazy(LazyThreadSafetyMode.NONE) {
+		modelBuilder.createRect(0f, 0f, 0f, 1f, 0f, 0f, 1f, 1f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, defaultMaterial, defaultAttr)
+	}
+	val boxFilled: Model by lazy(LazyThreadSafetyMode.NONE) {
+		modelBuilder.createBox(1f, 1f, 1f, defaultMaterial, defaultAttr)
+	}
+	val boxLines: Model by lazy(LazyThreadSafetyMode.NONE) {
+		modelBuilder.createBox(1f, 1f, 1f, GL20.GL_LINES, defaultMaterial, defaultAttr)
+	}
+	val sphereLines: Model by lazy(LazyThreadSafetyMode.NONE) {
+		modelBuilder.createSphere(1f, 1f, 1f, 32, 32, GL20.GL_LINES, defaultMaterial, defaultAttr)
+	}
+	val sphereFilled: Model by lazy(LazyThreadSafetyMode.NONE) {
+		modelBuilder.createSphere(1f, 1f, 1f, 32, 32, defaultMaterial, defaultAttr)
+	}
+	val lineGrid: Model by lazy(LazyThreadSafetyMode.NONE) {
+		modelBuilder.createLineGrid(16, 16, 2f, 2f, defaultMaterial, defaultAttr)
+	}
 
-    public Model getPlaneLines() {
-        if (planeLines == null) {
-            planeLines = modelBuilder.createRect(0, 0, 0,
-                    1, 0, 0,
-                    1, 1, 0,
-                    0, 1, 0,
-                    0, 0, 1, GL20.GL_LINES, defaultMaterial, defaultAttr);
-        }
-        return planeLines;
-    }
-
-    public Model getPlaneFilled() {
-        if (planeFilled == null) {
-            planeFilled = modelBuilder.createRect(0, 0, 0,
-                    1, 0, 0,
-                    1, 1, 0,
-                    0, 1, 0,
-                    0, 0, 1, defaultMaterial, defaultAttr);
-        }
-        return planeFilled;
-    }
-
-    public Model getBoxFilled() {
-        if (boxFilled == null) {
-            boxFilled = modelBuilder.createBox(1, 1, 1, defaultMaterial, defaultAttr);
-        }
-        return boxFilled;
-    }
-
-    public Model getBoxLines() {
-        if (boxLines == null) {
-            boxLines = modelBuilder.createBox(1, 1, 1, GL20.GL_LINES, defaultMaterial, defaultAttr);
-        }
-        return boxLines;
-    }
-
-    public Model getSphereLines() {
-        if (sphereLines == null) {
-            sphereLines = modelBuilder.createSphere(1, 1, 1, 32, 32, GL20.GL_LINES, defaultMaterial, defaultAttr);
-        }
-        return sphereLines;
-    }
-
-
-    public Model getSphereFilled() {
-        if (sphereFilled == null) {
-            sphereFilled = modelBuilder.createSphere(1, 1, 1, 32, 32, defaultMaterial, defaultAttr);
-        }
-        return sphereFilled;
-    }
-
-    public Model getLinegrid() {
-        if (lineGrid == null) {
-            lineGrid = modelBuilder.createLineGrid(16, 16, 2, 2, defaultMaterial, defaultAttr);
-        }
-        return lineGrid;
-    }
-
-    public Model getTerraingrid() {
-        if (terrainGrid == null) {
-            modelBuilder.begin();
-            MeshPartBuilder partBuilder = modelBuilder.part("quads", GL20.GL_TRIANGLES, defaultAttr, defaultMaterial);
-            int xDivisions = 16;
-            float xSize = 2;
-            int zDivisions = 16;
-            float zSize = 2;
-            float xlength = xDivisions * xSize, zlength = zDivisions * zSize, hxlength = xlength / 2, hzlength = zlength / 2;
-            float x1 = -hxlength, z1;
-            for (int i = 0; i <= xDivisions; ++i) {
-                z1 = hzlength;
-                for (int j = 0; j <= zDivisions; ++j) {
-                    partBuilder.rect(x1, 0f, z1, x1, 0f, z1 + zSize, x1 + xSize, 0f, z1 + zSize, x1 + xSize, 0f, z1, 0f, 1f, 0f);
-                    z1 -= zSize;
-                }
-                x1 += xSize;
-            }
-
-            terrainGrid = modelBuilder.end();
-        }
-        return terrainGrid;
-    }
+	val terrainGrid: Model by lazy(LazyThreadSafetyMode.NONE) {
+		modelBuilder.begin()
+		val partBuilder = modelBuilder.part("quads", GL20.GL_TRIANGLES, defaultAttr, defaultMaterial)
+		val xDivisions = 16
+		val xSize = 2f
+		val zDivisions = 16
+		val zSize = 2f
+		val xlength = xDivisions * xSize
+		val zlength = zDivisions * zSize
+		val hxlength = xlength / 2
+		val hzlength = zlength / 2
+		var x1 = -hxlength
+		var z1: Float
+		for (i in 0..xDivisions) {
+			z1 = hzlength
+			for (j in 0..zDivisions) {
+				partBuilder.rect(x1, 0f, z1, x1, 0f, z1 + zSize, x1 + xSize, 0f, z1 + zSize, x1 + xSize, 0f, z1, 0f, 1f, 0f)
+				z1 -= zSize
+			}
+			x1 += xSize
+		}
+		modelBuilder.end()
+	}
 }

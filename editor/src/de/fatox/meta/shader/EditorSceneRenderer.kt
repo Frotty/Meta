@@ -50,11 +50,10 @@ class EditorSceneRenderer : Renderer {
 
 	init {
 		Meta.inject(this)
-		grid = Meta3DEntity(Vector3.Zero, primitives.terraingrid, 1f)
+		grid = Meta3DEntity(Vector3.Zero, primitives.terrainGrid, 1f)
 	}
 
 	override fun render(x: Float, y: Float) {
-
 		if (sceneHandle != null) {
 			if (sceneHandle?.shaderComposition == null) {
 				val table = Table()

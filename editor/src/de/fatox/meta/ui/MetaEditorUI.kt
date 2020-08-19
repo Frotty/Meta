@@ -1,96 +1,89 @@
-package de.fatox.meta.ui;
+package de.fatox.meta.ui
 
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.kotcrab.vis.ui.widget.VisTable;
-import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
-import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane;
-import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPaneAdapter;
-import de.fatox.meta.Meta;
-import de.fatox.meta.api.ui.UIManager;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.ui.tabs.WelcomeTab;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.kotcrab.vis.ui.widget.VisTable
+import com.kotcrab.vis.ui.widget.tabbedpane.Tab
+import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane
+import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPaneAdapter
+import de.fatox.meta.Meta.Companion.inject
+import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.tabs.WelcomeTab
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  * Created by Frotty on 04.06.2016.
  */
-public class MetaEditorUI {
-	private static final Logger log = LoggerFactory.getLogger(MetaEditorUI.class);
-    @Inject
-    private UIManager uiManager;
+class MetaEditorUI {
+	private val uiManager: UIManager by lazyInject()
 
-    public EditorMenuBar metaToolbar;
+	lateinit var metaToolbar: EditorMenuBar
 
-    private TabbedPane tabbedPane;
-    private Table tabTable = new Table();
+	private var tabbedPane: TabbedPane? = null
+	private val tabTable = Table()
+	fun setup() {
+		metaToolbar = EditorMenuBar()
+		log.info("Toolbar created")
+		uiManager.setMainMenuBar(metaToolbar!!.menuBar)
+		tabbedPane = TabbedPane()
+		tabbedPane!!.addListener(object : TabbedPaneAdapter() {
+			override fun switchedTab(tab: Tab) {
+				tabbedPane!!.activeTab.onHide()
+				uiManager.changeScreen(tab.javaClass.name)
+				apply()
+				val content = tab.contentTable
+				tabTable.clearChildren()
+				tabTable.add(content).grow()
+				tabTable.toFront()
+				content.toBack()
+				uiManager.bringWindowsToFront()
+			}
+		})
+		val visTable = VisTable()
+		visTable.add().top()
+		visTable.add().grow()
+		addTab(WelcomeTab())
+	}
 
-    public MetaEditorUI() {
-        Meta.inject(this);
-    }
+	fun apply() {
+		uiManager.addTable(tabbedPane!!.table, true, false)
+		uiManager.addTable(tabTable, true, true)
+	}
 
-    public void setup() {
-        metaToolbar = new EditorMenuBar();
-        log.info("Toolbar created");
-        uiManager.setMainMenuBar(metaToolbar.getMenuBar());
+	fun addTab(tab: Tab?) {
+		tabbedPane!!.add(tab)
+	}
 
-        tabbedPane = new TabbedPane();
-        tabbedPane.addListener(new TabbedPaneAdapter() {
-            @Override
-            public void switchedTab(Tab tab) {
-                tabbedPane.getActiveTab().onHide();
-                uiManager.changeScreen(tab.getClass().getName());
-                apply();
-                Table content = tab.getContentTable();
-                tabTable.clearChildren();
-                tabTable.add(content).grow();
-                tabTable.toFront();
-                content.toBack();
-                uiManager.bringWindowsToFront();
-            }
+	fun hasTab(name: String): Boolean {
+		return getTab(name) != null
+	}
 
-        });
-        VisTable visTable = new VisTable();
-        visTable.add().top();
-        visTable.add().grow();
-        addTab(new WelcomeTab());
-    }
+	private fun getTab(name: String): Tab? {
+		for (tab in tabbedPane!!.tabs) {
+			if (tab.tabTitle.equals(name, ignoreCase = true)) {
+				return tab
+			}
+		}
+		return null
+	}
 
-    public void apply() {
-        uiManager.addTable(tabbedPane.getTable(), true, false);
-        uiManager.addTable(tabTable, true, true);
-    }
+	val currentTab: Tab?
+		get() = tabbedPane!!.activeTab
 
-    public void addTab(Tab tab) {
-        tabbedPane.add(tab);
-    }
+	fun focusTab(name: String) {
+		if (hasTab(name)) {
+			tabbedPane!!.switchTab(getTab(name))
+		}
+	}
 
-    public boolean hasTab(String name) {
-        return getTab(name) != null;
-    }
-
-    private Tab getTab(String name) {
-        for (Tab tab : tabbedPane.getTabs()) {
-            if (tab.getTabTitle().equalsIgnoreCase(name)) {
-                return tab;
-            }
-        }
-        return null;
-    }
-
-    public Tab getCurrentTab() {
-        return tabbedPane.getActiveTab();
-    }
-
-    public void focusTab(String name) {
-        if (hasTab(name)) {
-            tabbedPane.switchTab(getTab(name));
-        }
-    }
-
-    public void closeTab(String name) {
-        if (hasTab(name)) {
-            getTab(name).removeFromTabPane();
-        }
-    }
+	fun closeTab(name: String) {
+		if (hasTab(name)) {
+			getTab(name)!!.removeFromTabPane()
+		}
+	}
 }
+
+private val log: Logger = LoggerFactory.getLogger(MetaEditorUI::class.java)

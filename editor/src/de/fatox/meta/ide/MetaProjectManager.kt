@@ -1,144 +1,125 @@
-package de.fatox.meta.ide;
+package de.fatox.meta.ide
 
-import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.scenes.scene2d.EventListener;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Json;
-import com.kotcrab.vis.ui.widget.VisLabel;
-import com.kotcrab.vis.ui.widget.toast.ToastTable;
-import de.fatox.meta.Meta;
-import de.fatox.meta.api.model.MetaProjectData;
-import de.fatox.meta.api.ui.UIManager;
-import de.fatox.meta.assets.MetaData;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Singleton;
-import de.fatox.meta.ui.MetaEditorUI;
-import de.fatox.meta.ui.tabs.ProjectHomeTab;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.scenes.scene2d.EventListener
+import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.Json
+import com.kotcrab.vis.ui.widget.VisLabel
+import com.kotcrab.vis.ui.widget.toast.ToastTable
+import de.fatox.meta.Meta.Companion.inject
+import de.fatox.meta.api.model.MetaProjectData
+import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.assets.MetaData
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.Singleton
+import de.fatox.meta.ui.MetaEditorUI
+import de.fatox.meta.ui.tabs.ProjectHomeTab
+import java.nio.file.Paths
 
 /**
  * Created by Frotty on 04.06.2016.
  */
 @Singleton
-public class MetaProjectManager implements ProjectManager {
-    @Inject
-    private Json json;
-    @Inject
-    private UIManager uiManager;
-    @Inject
-    private MetaEditorUI editorUI;
-    @Inject
-    private MetaData metaData;
+class MetaProjectManager : ProjectManager {
+	private val json: Json by lazyInject()
+	private val uiManager: UIManager by lazyInject()
+	private val editorUI: MetaEditorUI by lazyInject()
+	private val metaData: MetaData by lazyInject()
 
-    private MetaProjectData currentProject;
-    private FileHandle currentProjectRoot;
-
-    private Array<EventListener> onLoadListeners = new Array<>();
-
-    public MetaProjectManager() {
-        Meta.inject(this);
-    }
-
-    @Override
-    public MetaProjectData getCurrentProject() {
-        return currentProject;
-    }
-
-    @Override
-    public MetaProjectData loadProject(FileHandle projectFile) {
-    	if (!projectFile.name().endsWith("metaproject.json")) {
-    		projectFile = projectFile.child("metaproject.json");
-		}
-        MetaProjectData metaProjectData = json.fromJson(MetaProjectData.class, projectFile.readString());
-        currentProjectRoot = projectFile.parent();
-        createFolders(metaProjectData);
-        currentProject = metaProjectData;
-        Array<String> lastProjects;
-        if (metaData.has("lastProjects")) {
-            lastProjects = metaData.get("lastProjects", Array.class);
-        } else {
-            lastProjects = new Array<>();
-        }
-        if (!lastProjects.contains(projectFile.path(), false)) {
-            lastProjects.add(projectFile.path());
-            metaData.save("lastProjects", lastProjects);
-        }
-        for (EventListener listener : onLoadListeners) {
-            listener.handle(null);
-        }
-        editorUI.closeTab("home");
-        editorUI.addTab(new ProjectHomeTab(metaProjectData));
-        return metaProjectData;
-    }
-
-    @Override
-    public void saveProject(MetaProjectData projectData) {
-        FileHandle root = currentProjectRoot;
-        if (!root.exists()) {
-            root.mkdirs();
-        }
-        FileHandle child = root.child(projectData.getName());
-        child.mkdirs();
-        currentProjectRoot = child;
-
-        createFolders(projectData);
-        child = child.child(MetaProjectData.PROJECT_FILE_NAME);
-        child.writeBytes(json.toJson(projectData).getBytes(), false);
-        ToastTable toastTable = new ToastTable();
-        toastTable.add(new VisLabel("Project created"));
-    }
-
-	@Override
-	public void newProject(FileHandle location, MetaProjectData projectData) {
-		currentProjectRoot = location;
-		saveProject(projectData);
+	private var currentProject: MetaProjectData? = null
+	private var currentProjectRoot: FileHandle? = null
+	private val onLoadListeners = Array<EventListener>()
+	override fun getCurrentProject(): MetaProjectData {
+		return currentProject!!
 	}
 
-	@Override
-    public boolean verifyProjectFile(FileHandle file) {
-        try {
-            MetaProjectData metaProjectData = json.fromJson(MetaProjectData.class, file.readString());
-            if (metaProjectData.isValid()) {
-                return true;
-            }
-        } catch (Exception e) {
-        }
-        return false;
-    }
+	override fun loadProject(projectFile: FileHandle): MetaProjectData {
+		var projectFile = projectFile
+		if (!projectFile.name().endsWith("metaproject.json")) {
+			projectFile = projectFile.child("metaproject.json")
+		}
+		val metaProjectData = json.fromJson(MetaProjectData::class.java, projectFile.readString())
+		currentProjectRoot = projectFile.parent()
+		createFolders(metaProjectData)
+		currentProject = metaProjectData
+		val lastProjects: Array<String>
+		if (metaData.has("lastProjects")) {
+			lastProjects = metaData.get("lastProjects", Array::class.java) as Array<String>
+		} else {
+			lastProjects = Array()
+		}
+		if (!lastProjects.contains(projectFile.path(), false)) {
+			lastProjects.add(projectFile.path())
+			metaData.save("lastProjects", lastProjects)
+		}
+		for (listener in onLoadListeners) {
+			listener.handle(null)
+		}
+		editorUI.closeTab("home")
+		editorUI.addTab(ProjectHomeTab(metaProjectData))
+		return metaProjectData
+	}
 
-    @Override
-    public FileHandle getCurrentProjectRoot() {
-        return currentProjectRoot;
-    }
+	override fun saveProject(projectData: MetaProjectData) {
+		val root = currentProjectRoot
+		if (!root!!.exists()) {
+			root.mkdirs()
+		}
+		var child = root.child(projectData.name)
+		child.mkdirs()
+		currentProjectRoot = child
+		createFolders(projectData)
+		child = child.child(MetaProjectData.PROJECT_FILE_NAME)
+		child.writeBytes(json.toJson(projectData).toByteArray(), false)
+		val toastTable = ToastTable()
+		toastTable.add(VisLabel("Project created"))
+	}
 
+	override fun newProject(location: FileHandle, projectData: MetaProjectData) {
+		currentProjectRoot = location
+		saveProject(projectData)
+	}
 
-    private void createFolders(MetaProjectData projectData) {
-        currentProjectRoot.child("assets").mkdirs();
-        currentProjectRoot.child("scenes").mkdirs();
-    }
+	override fun verifyProjectFile(file: FileHandle): Boolean {
+		try {
+			val metaProjectData = json.fromJson(MetaProjectData::class.java, file.readString())
+			if (metaProjectData.isValid) {
+				return true
+			}
+		} catch (e: Exception) {
+		}
+		return false
+	}
 
-    @Override
-    public <T> T get(String key, Class<T> type) {
-        return metaData.get(currentProjectRoot, key, type);
-    }
+	override fun getCurrentProjectRoot(): FileHandle {
+		return currentProjectRoot!!
+	}
 
-    @Override
-    public FileHandle save(String key, Object obj) {
-        return metaData.save(currentProjectRoot, key, obj);
-    }
+	private fun createFolders(projectData: MetaProjectData) {
+		currentProjectRoot!!.child("assets").mkdirs()
+		currentProjectRoot!!.child("scenes").mkdirs()
+	}
 
-    @Override
-    public String relativize(FileHandle fh) {
-        Path pathAbsolute = Paths.get(fh.file().getAbsolutePath());
-        Path pathBase = Paths.get(currentProjectRoot.file().getAbsolutePath());
-        Path pathRelative = pathBase.relativize(pathAbsolute);
-        return pathRelative.toString();
-    }
+	override fun <T> get(key: String, type: Class<T>): T {
+		return metaData[currentProjectRoot, key, type] as T
+	}
 
-    @Override
-    public void addOnLoadListener(EventListener listener) {
-        onLoadListeners.add(listener);
-    }
+	override fun save(key: String, obj: Any): FileHandle {
+		return metaData.save(currentProjectRoot, key, obj)
+	}
+
+	override fun relativize(fh: FileHandle): String {
+		val pathAbsolute = Paths.get(fh.file().absolutePath)
+		val pathBase = Paths.get(currentProjectRoot!!.file().absolutePath)
+		val pathRelative = pathBase.relativize(pathAbsolute)
+		return pathRelative.toString()
+	}
+
+	override fun addOnLoadListener(listener: EventListener) {
+		onLoadListeners.add(listener)
+	}
+
+	init {
+		inject(this)
+	}
 }

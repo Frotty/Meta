@@ -35,7 +35,7 @@ class MetaUiManager : UIManager {
 	private val cachedWindows = Array<Window>()
 	private var mainMenuBar: MenuBar? = null
 	private val contentTable = Table()
-	private var currentScreenId: String? = "(none)"
+	private var currentScreenId: String = "(none)"
 	override var posModifier: PosModifier = DummyPosModifier
 
 	override fun moveWindow(x: Int, y: Int) {
@@ -46,7 +46,7 @@ class MetaUiManager : UIManager {
 		uiRenderer.resize(width, height)
 	}
 
-	override fun changeScreen(screenIdentifier: String?) {
+	override fun changeScreen(screenIdentifier: String) {
 		currentScreenId = screenIdentifier
 		metaInput.changeScreen()
 
@@ -119,7 +119,7 @@ class MetaUiManager : UIManager {
 	 */
 	override fun <T : Window> showWindow(windowClass: Class<out T>): T {
 		log.debug("show window: " + windowClass.name)
-		val window: Window? = displayWindow()
+		val window: T? = displayWindow(windowClass)
 		window!!.isVisible = true
 		if (metaHas(windowClass.name)) {
 			// There exists metadata for this window.
@@ -139,7 +139,7 @@ class MetaUiManager : UIManager {
 	override fun <T : MetaDialog> showDialog(dialogClass: Class<out T>): T {
 		log.debug("show dialog: " + dialogClass.name)
 		// Dialogs are just Window subtypes so we show it as usual
-		val dialog: MetaDialog = showWindow(dialogClass)
+		val dialog: T = showWindow(dialogClass)
 		dialog.show()
 		return dialog as T
 	}
@@ -189,16 +189,16 @@ class MetaUiManager : UIManager {
 		mainMenuBar!!.table.toFront()
 	}
 
-	private inline fun <reified T : Window> displayWindow(): T? {
+	private inline fun <T : Window> displayWindow(windowClass: Class<out T>): T? {
 		// Check if this window is a singleton. If it is and it is displayed, return displayed instance
-		var theWindow = checkSingleton<T>()
+		var theWindow = checkSingleton(windowClass)
 		if (theWindow != null) {
 			log.debug("singleton already displaying")
 			return theWindow
 		}
 		// Check for a cached instance
 		for (cachedWindow in cachedWindows) {
-			if (cachedWindow!!.javaClass == T::class.java) {
+			if (cachedWindow!!.javaClass == windowClass) {
 				log.debug("found cached")
 				theWindow = cachedWindow as T?
 				break
@@ -210,7 +210,7 @@ class MetaUiManager : UIManager {
 		} else {
 			try {
 				log.debug("try instance")
-				theWindow = T::class.java.newInstance()
+				theWindow = windowClass.newInstance()
 			} catch (e: InstantiationException) {
 				e.printStackTrace()
 			} catch (e: IllegalAccessException) {
@@ -222,9 +222,9 @@ class MetaUiManager : UIManager {
 		return theWindow
 	}
 
-	private inline fun <reified T : Window> checkSingleton(): T? {
-		if (T::class.java.isAnnotationPresent(Singleton::class.java)) {
-			val displayedWindow: T? = getDisplayedClass(T::class.java)
+	private inline fun <T : Window> checkSingleton(windowClass: Class<out T>): T? {
+		if (windowClass.isAnnotationPresent(Singleton::class.java)) {
+			val displayedWindow: T? = getDisplayedClass(windowClass)
 			if (displayedWindow != null) {
 				return displayedWindow
 			}
@@ -233,11 +233,11 @@ class MetaUiManager : UIManager {
 	}
 
 	private fun <T : Window> getDisplayedClass(windowClass: Class<out T>): T? {
-		return displayedWindows.firstOrNull { it.javaClass === windowClass } as T?
+		return displayedWindows.firstOrNull { it.javaClass == windowClass } as T?
 	}
 
 	private fun getDisplayedInstance(window: Window): Window? {
-		return displayedWindows.firstOrNull { it === window }
+		return displayedWindows.firstOrNull { it == window }
 	}
 
 	private fun cacheWindow(window: Window?, forceClose: Boolean) {

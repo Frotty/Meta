@@ -1,78 +1,67 @@
-package de.fatox.meta.ui.windows;
+package de.fatox.meta.ui.windows
 
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.utils.Scaling;
-import com.kotcrab.vis.ui.widget.Separator;
-import com.kotcrab.vis.ui.widget.VisImageButton;
-import com.kotcrab.vis.ui.widget.VisScrollPane;
-import com.kotcrab.vis.ui.widget.VisTable;
-import de.fatox.meta.api.AssetProvider;
-import de.fatox.meta.api.graphics.GLShaderHandle;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Singleton;
-import de.fatox.meta.shader.MetaShaderLibrary;
-import de.fatox.meta.ui.components.MetaClickListener;
-import de.fatox.meta.ui.components.MetaLabel;
-import de.fatox.meta.ui.components.MetaTextButton;
-import de.fatox.meta.ui.dialogs.ShaderWizardDialog;
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.utils.Scaling
+import com.kotcrab.vis.ui.widget.Separator
+import com.kotcrab.vis.ui.widget.VisImageButton
+import com.kotcrab.vis.ui.widget.VisScrollPane
+import com.kotcrab.vis.ui.widget.VisTable
+import de.fatox.meta.api.graphics.GLShaderHandle
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.Singleton
+import de.fatox.meta.shader.MetaShaderLibrary
+import de.fatox.meta.ui.components.MetaClickListener
+import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaTextButton
+import de.fatox.meta.ui.dialogs.ShaderWizardDialog
 
 /**
  * Created by Frotty on 28.06.2016.
  */
 @Singleton
-public class ShaderLibraryWindow extends MetaWindow {
-    @Inject
-    private AssetProvider assetProvider;
-    @Inject
-    private MetaShaderLibrary shaderLibrary;
+class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
+	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 
-    private final VisTable visTable;
-    private VisScrollPane scrollPane;
+	private val visTable: VisTable
+	private val scrollPane: VisScrollPane
 
-    public ShaderLibraryWindow() {
-        super("Shader Library", true, true);
-        setSize(240, 320);
-        createToolbar();
-        setPosition(1200, 328);
+	fun addShader(shader: GLShaderHandle) {
+		val metaTextButton = MetaTextButton(shader.data.name + ".msh", 16)
+		metaTextButton.row()
+		metaTextButton.add(MetaLabel(shader.vertexHandle.name() + "/" + shader.fragmentHandle.name(), 14))
+		metaTextButton.row()
+		metaTextButton.add(MetaLabel("Targets: " + shader.targets.size, 14))
+		visTable.add(metaTextButton).growX()
+		visTable.row()
+	}
 
-        visTable = new VisTable();
-        visTable.top();
-        visTable.defaults().pad(4);
-        scrollPane = new VisScrollPane(visTable);
+	private fun createToolbar() {
+		val visImageButton = VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
+		visImageButton.addListener(object : MetaClickListener() {
+			override fun clicked(event: InputEvent, x: Float, y: Float) {
+				uiManager.showDialog(ShaderWizardDialog::class.java)
+			}
+		})
+		visImageButton.image.setScaling(Scaling.fill)
+		visImageButton.image.setSize(24f, 24f)
+		contentTable.row().size(26f)
+		contentTable.add(visImageButton).size(24f).top().left()
+		contentTable.row().height(1f)
+		contentTable.add(Separator()).growX()
+		contentTable.row()
+	}
 
-        getContentTable().add(scrollPane).top().grow();
-        for(GLShaderHandle shader : shaderLibrary.getLoadedShaders()) {
-            addShader(shader);
-        }
-    }
-
-    public void addShader(GLShaderHandle shader) {
-        MetaTextButton metaTextButton = new MetaTextButton(shader.getData().getName() + ".msh", 16);
-        metaTextButton.row();
-        metaTextButton.add(new MetaLabel(shader.getVertexHandle().name() + "/" + shader.getFragmentHandle().name(), 14));
-        metaTextButton.row();
-        metaTextButton.add(new MetaLabel("Targets: " + shader.getTargets().size, 14));
-
-        visTable.add(metaTextButton).growX();
-        visTable.row();
-    }
-
-    private void createToolbar() {
-        VisImageButton visImageButton = new VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"));
-        visImageButton.addListener(new MetaClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                getUiManager().showDialog(ShaderWizardDialog.class);
-            }
-        });
-        visImageButton.getImage().setScaling(Scaling.fill);
-        visImageButton.getImage().setSize(24, 24);
-
-        getContentTable().row().size(26);
-        getContentTable().add(visImageButton).size(24).top().left();
-        getContentTable().row().height(1);
-        getContentTable().add(new Separator()).growX();
-        getContentTable().row();
-
-    }
+	init {
+		setSize(240f, 320f)
+		createToolbar()
+		setPosition(1200f, 328f)
+		visTable = VisTable()
+		visTable.top()
+		visTable.defaults().pad(4f)
+		scrollPane = VisScrollPane(visTable)
+		contentTable.add(scrollPane).top().grow()
+		for (shader in shaderLibrary.getLoadedShaders()) {
+			addShader(shader)
+		}
+	}
 }

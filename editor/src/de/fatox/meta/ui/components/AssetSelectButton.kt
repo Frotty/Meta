@@ -42,9 +42,9 @@ class AssetSelectButton {
         selectAssetButton = VisTextButton("...")
         selectAssetButton!!.addListener(object : MetaClickListener() {
             override fun clicked(event: InputEvent, x: Float, y: Float) {
-                var window = uiManager!!.getWindow(AssetDiscovererWindow::class.java)
+                var window = uiManager.getWindow(AssetDiscovererWindow::class.java)
                 if (window == null) window = uiManager.showWindow(AssetDiscovererWindow::class.java)
-                window?.enableSelectionMode { selected: FileHandle ->
+                window?.enableSelectionMode { selected: FileHandle? ->
                     this@AssetSelectButton.file = selected
                     if (selectListener != null) {
                         selectListener!!.onSelect(selected)

@@ -1,66 +1,57 @@
-package de.fatox.meta.ide;
+package de.fatox.meta.ide
 
-import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.utils.Json;
-import de.fatox.meta.Meta;
-import de.fatox.meta.api.model.MetaSceneData;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.shader.MetaSceneHandle;
-import de.fatox.meta.shader.MetaShaderComposer;
-import de.fatox.meta.shader.ShaderComposition;
-import de.fatox.meta.ui.MetaEditorUI;
-import de.fatox.meta.ui.tabs.SceneTab;
-
-import java.io.File;
+import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.utils.Json
+import de.fatox.meta.Meta.Companion.inject
+import de.fatox.meta.api.model.MetaSceneData
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.shader.MetaSceneHandle
+import de.fatox.meta.shader.MetaShaderComposer
+import de.fatox.meta.ui.MetaEditorUI
+import de.fatox.meta.ui.tabs.SceneTab
+import java.io.File
 
 /**
  * Created by Frotty on 15.06.2016.
  */
-public class MetaSceneManager implements SceneManager {
-    private static final String FOLDER = "scenes" + File.separator;
-    private static final String EXTENSION = "metascene";
-    @Inject
-    private ProjectManager projectManager;
-    @Inject
-    private MetaEditorUI metaEditorUI;
-    @Inject
-    private AssetDiscoverer assetDiscoverer;
-    @Inject
-    private MetaShaderComposer shaderComposer;
-    @Inject
-    private Json json;
+class MetaSceneManager : SceneManager {
+	private val projectManager: ProjectManager by lazyInject()
+	private val metaEditorUI: MetaEditorUI by lazyInject()
+	private val assetDiscoverer: AssetDiscoverer by lazyInject()
+	private val shaderComposer: MetaShaderComposer by lazyInject()
+	private val json: Json by lazyInject()
 
-    public MetaSceneManager() {
-        Meta.inject(this);
-        assetDiscoverer.addOpenListener(EXTENSION, this::loadScene);
-    }
+	override fun createNew(name: String): MetaSceneHandle {
+		val currentComposition = shaderComposer.currentComposition
+		val path = if (currentComposition != null) projectManager.relativize(currentComposition.compositionHandle) else ""
+		val metaSceneData = MetaSceneData(name, path, Vector3.Y, true)
+		val sceneFile = projectManager.currentProjectRoot.child("$FOLDER$name.$EXTENSION")
+		sceneFile.writeBytes(json.toJson(metaSceneData).toByteArray(), false)
+		val metaSceneHandle = MetaSceneHandle(metaSceneData, shaderComposer.currentComposition, sceneFile)
+		metaEditorUI.addTab(SceneTab(metaSceneHandle))
+		return metaSceneHandle
+	}
 
-    @Override
-    public MetaSceneHandle createNew(String name) {
-        ShaderComposition currentComposition = shaderComposer.getCurrentComposition();
-		String path = currentComposition != null ? projectManager.relativize(currentComposition.getCompositionHandle()) : "";
-		MetaSceneData metaSceneData = new MetaSceneData(name, path, Vector3.Y, true);
-        FileHandle sceneFile = projectManager.getCurrentProjectRoot().child(FOLDER + name + "." + EXTENSION);
-        sceneFile.writeBytes(json.toJson(metaSceneData).getBytes(), false);
-        MetaSceneHandle metaSceneHandle = new MetaSceneHandle(metaSceneData, shaderComposer.getCurrentComposition(), sceneFile);
-        metaEditorUI.addTab(new SceneTab(metaSceneHandle));
-        return metaSceneHandle;
-    }
+	override fun loadScene(sceneFile: FileHandle) {
+		if (metaEditorUI.hasTab(sceneFile.name())) {
+			metaEditorUI.focusTab(sceneFile.name())
+			return
+		}
+		val metaSceneData = json.fromJson(MetaSceneData::class.java, sceneFile.readString())
+		val composition = shaderComposer.getComposition(metaSceneData.compositionPath)
+		metaEditorUI.addTab(SceneTab(MetaSceneHandle(metaSceneData, composition, sceneFile)))
+	}
 
-    @Override
-    public void loadScene(FileHandle sceneFile) {
-        if (metaEditorUI.hasTab(sceneFile.name())) {
-            metaEditorUI.focusTab(sceneFile.name());
-            return;
-        }
-        MetaSceneData metaSceneData = json.fromJson(MetaSceneData.class, sceneFile.readString());
-        ShaderComposition composition = shaderComposer.getComposition(metaSceneData.getCompositionPath());
-        metaEditorUI.addTab(new SceneTab(new MetaSceneHandle(metaSceneData, composition, sceneFile)));
-    }
+	override fun saveScene(sceneData: MetaSceneData) {}
 
-    @Override
-    public void saveScene(MetaSceneData sceneData) {
+	companion object {
+		private val FOLDER = "scenes" + File.separator
+		private const val EXTENSION = "metascene"
+	}
 
-    }
+	init {
+		inject(this)
+		assetDiscoverer.addOpenListener(EXTENSION) { sceneFile: FileHandle -> loadScene(sceneFile) }
+	}
 }

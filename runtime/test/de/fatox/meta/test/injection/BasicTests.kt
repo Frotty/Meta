@@ -2,21 +2,18 @@ package de.fatox.meta.test.injection
 
 import de.fatox.meta.Meta.Companion.addModule
 import de.fatox.meta.Meta.Companion.inject
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.Named
-import de.fatox.meta.injection.Provides
-import de.fatox.meta.injection.Singleton
+import de.fatox.meta.injection.*
+import de.fatox.meta.injection.MetaInject.Companion.global
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 internal class BasicTests {
 	class NamedTestModule {
-		@Provides
-		@Named("someName")
-		@Singleton
-		fun someString(): String {
-			return "yeah"
+		init {
+		    global {
+				singleton("yeah", "someName")
+			}
 		}
 	}
 
@@ -26,13 +23,7 @@ internal class BasicTests {
 	}
 
 	class NamedTestSample {
-		@Inject
-		@Named("someName")
-		var s: String? = null
-
-		init {
-			inject(this)
-		}
+		val s: String = MetaInject.inject("someName")
 	}
 
 	@Test
