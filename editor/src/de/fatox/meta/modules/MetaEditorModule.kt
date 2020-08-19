@@ -29,8 +29,7 @@ class MetaEditorModule {
 			singleton { AssetDiscoverer() }
 			singleton("default") { MetaShaderComposer() }
 			singleton("default") { MetaShaderLibrary() }
-			singleton("default") { MetaAssetProvider() }
-			singleton<AssetProvider>("default") { inject<MetaAssetProvider>("default") }
+			singleton<AssetProvider>("default") { MetaAssetProvider() }
 
 			singleton("open") { FileChooser(FileChooser.Mode.OPEN) }
 			singleton("save") { FileChooser(FileChooser.Mode.SAVE) }
@@ -68,11 +67,6 @@ class MetaEditorModule {
 	fun sceneManager(sceneManager: MetaSceneManager): SceneManager {
 		return sceneManager
 	}
-
-	@Provides
-	@Singleton
-	@Named("default")
-	fun metaAssetProvider(): MetaAssetProvider = inject("default")
 
 	@Provides
 	@Singleton

@@ -9,6 +9,8 @@ import de.fatox.meta.Primitives
 import de.fatox.meta.api.graphics.Renderer
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.components.MetaClickListener
@@ -22,12 +24,9 @@ import de.fatox.meta.ui.tabs.SceneTab
 class PrimitivesWindow : MetaWindow("Primitives", true, true) {
     private val boxButton: MetaIconTextButton
 
-    @Inject
-    private lateinit var metaEditorUI: MetaEditorUI
-    @Inject
-    private lateinit var primitives: Primitives
-    @Inject
-    private lateinit var renderer: Renderer
+    private val metaEditorUI: MetaEditorUI by lazyInject()
+    private val primitives: Primitives by lazyInject()
+    private val renderer: Renderer by lazyInject()
 
 
     init {

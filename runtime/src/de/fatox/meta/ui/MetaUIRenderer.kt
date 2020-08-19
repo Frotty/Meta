@@ -21,19 +21,17 @@ import de.fatox.meta.api.MetaInputProcessor
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+private val log: Logger = LoggerFactory.getLogger(MetaUIRenderer::class.java)
 
 class MetaUIRenderer : UIRenderer {
-	private val log: Logger = LoggerFactory.getLogger(MetaUiManager::class.java)
-
     private val metaInput: MetaInputProcessor by lazyInject()
     private val assetProvider: AssetProvider by lazyInject()
     private val visuiSkin: String by lazyInject("visuiSkin")
 	private val spriteBatch: SpriteBatch by lazyInject()
 
-    private var stage: Stage;
+    private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
 
     init {
-		stage = Stage(ScreenViewport(), spriteBatch)
         log.debug("Injected MetaUi")
     }
 

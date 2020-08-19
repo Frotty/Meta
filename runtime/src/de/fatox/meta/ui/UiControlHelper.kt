@@ -12,7 +12,7 @@ import com.badlogic.gdx.utils.Array
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.api.MetaInputProcessor
-import de.fatox.meta.input.registerGlobalKeyListener
+import de.fatox.meta.api.registerGlobalKeyListener
 import kotlin.math.abs
 
 @Singleton

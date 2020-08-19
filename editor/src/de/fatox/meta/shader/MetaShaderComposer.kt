@@ -12,6 +12,8 @@ import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.listener.MetaNotifier
 import de.fatox.meta.ui.windows.ShaderComposerWindow
@@ -22,14 +24,10 @@ import java.io.File
  */
 @Singleton
 class MetaShaderComposer : MetaNotifier() {
-    @Inject
-    private lateinit var projectManager: ProjectManager
-    @Inject
-    private lateinit var json: Json
-    @Inject
-    private lateinit var uiManager: UIManager
-    @Inject
-    private lateinit var shaderLibrary: MetaShaderLibrary
+    private val projectManager: ProjectManager by lazyInject()
+    private val json: Json by lazyInject()
+    private val uiManager: UIManager by lazyInject()
+    private val shaderLibrary: MetaShaderLibrary by lazyInject()
 
     val compositions = Array<ShaderComposition>(2)
 

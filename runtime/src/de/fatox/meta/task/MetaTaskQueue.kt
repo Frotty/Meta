@@ -1,35 +1,26 @@
-package de.fatox.meta.task;
+package de.fatox.meta.task
 
-import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar;
-import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
+import com.badlogic.gdx.utils.Array
 
 /**
  * A MetaTask is any action that should be reversible and actions that are not instant
  */
-public abstract class MetaTaskQueue extends MetaTask {
-    private final ProgressBar progressBar;
-    private MetaTask currentTask;
-    private Array<MetaTask> tasks = new Array<>();
+abstract class MetaTaskQueue(private val progressBar: ProgressBar, name: String, vararg tasks: MetaTask) : MetaTask(name) {
+	private val tasks: Array<MetaTask> = Array(tasks)
+	private lateinit var currentTask: MetaTask
 
-    public MetaTaskQueue(ProgressBar progressBar, MetaTask... tasks) {
-        this.progressBar = progressBar;
-        this.tasks.addAll(tasks);
-    }
 
-    public void add(MetaTask task, boolean startIfEmpty) {
-        tasks.add(task);
-        if (currentTask == null && startIfEmpty && tasks.size == 1) {
-            start();
-        }
-    }
+	fun add(task: MetaTask, startIfEmpty: Boolean) {
+		tasks.add(task)
+		if (::currentTask.isInitialized && startIfEmpty && tasks.size == 1) {
+			start()
+		}
+	}
 
-    public void start() {
-        currentTask = tasks.pop();
-        currentTask.execute();
-    }
+	fun start() {
+		currentTask = tasks.pop().also { it.execute() }
+	}
 
-    public void onTaskFinished(MetaTask task) {
-
-    }
-
+	fun onTaskFinished(task: MetaTask?) {}
 }

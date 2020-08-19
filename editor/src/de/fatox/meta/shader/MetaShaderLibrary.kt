@@ -10,15 +10,15 @@ import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.listener.MetaNotifier
 
 @Singleton
 class MetaShaderLibrary : MetaNotifier() {
-    @Inject
-    private lateinit var projectManager: ProjectManager
-    @Inject
-    private lateinit var json: Json
+    private val projectManager: ProjectManager by lazyInject()
+    private val json: Json by lazyInject()
 
     private val loadedShaders = ObjectMap<String, GLShaderHandle>()
     private val metaShaders = Array<GLShaderHandle>()

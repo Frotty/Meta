@@ -37,7 +37,7 @@ object MetaInput : MetaInputProcessor {
 		if (!globalKeyListeners.containsKey(keycode)) {
 			globalKeyListeners.put(keycode, Array())
 		}
-		keyListener.setRequiredLengthMillis(millisRequired)
+		keyListener.requiredLengthMillis = millisRequired
 		globalKeyListeners[keycode].add(keyListener)
 	}
 
@@ -49,7 +49,7 @@ object MetaInput : MetaInputProcessor {
 		if (!screenKeyListeners.containsKey(keycode)) {
 			screenKeyListeners.put(keycode, Array())
 		}
-		keyListener.setRequiredLengthMillis(millisRequired)
+		keyListener.requiredLengthMillis = millisRequired
 		screenKeyListeners[keycode].add(keyListener)
 	}
 

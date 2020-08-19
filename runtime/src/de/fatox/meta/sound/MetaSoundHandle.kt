@@ -1,95 +1,80 @@
-package de.fatox.meta.sound;
+package de.fatox.meta.sound
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.TimeUtils;
-import de.fatox.meta.Meta;
-import de.fatox.meta.api.model.MetaAudioVideoData;
-import de.fatox.meta.assets.MetaData;
-import de.fatox.meta.injection.Inject;
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.MathUtils
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.utils.TimeUtils
+import de.fatox.meta.api.model.MetaAudioVideoData
+import de.fatox.meta.assets.MetaData
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
-public class MetaSoundHandle {
-    @Inject
-    private ShapeRenderer shapeRenderer;
-    @Inject
-    private MetaData metaData;
+class MetaSoundHandle(private val definition: MetaSoundDefinition) {
+	private val shapeRenderer: ShapeRenderer by lazyInject()
+	private val metaData: MetaData by lazyInject()
 
-    private final MetaAudioVideoData audioVideoData;
-    private final MetaSoundDefinition definition;
-    private long handleId;
-    // For 2d positioning
-    private Vector2 soundPos;
+	private val audioVideoData: MetaAudioVideoData
+	private var handleId: Long = 0
 
-    private long startTime;
-
-    private boolean done = false;
-    private boolean playing = true;
-
-    public MetaSoundHandle(MetaSoundDefinition definition) {
-        this.definition = definition;
-        this.startTime = TimeUtils.millis();
-        if (!playing) {
-            stop();
-        }
-        Meta.inject(this);
-        audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData.class);
-    }
-
-    public long getStartTime() {
-        return startTime;
-    }
-
-    public float calcPan(Vector2 listenerPos) {
-		float audibleRange = (Gdx.graphics.getHeight() * 0.4f);
-		float xPan = soundPos.x - listenerPos.x;
-		return MathUtils.clamp(xPan / (audibleRange), -1, 1) * 0.90f;
-	}
-
-    public float calcVolume(Vector2 listenerPos, boolean terminate) {
-		float audibleRange = (Gdx.graphics.getHeight() * 0.4f);
-        float audibleRangeSquared = audibleRange * audibleRange;
-        float distSquared = listenerPos.dst2(soundPos);
-        float volumeMod = audioVideoData.getMasterVolume() * audioVideoData.getSoundVolume();
-		if (terminate && (distSquared > audibleRangeSquared)) {
-			setDone();
+	// For 2d positioning
+	var soundPos: Vector2 = Vector2.Zero.cpy()
+		set(value) {
+			this.soundPos.set(value)
 		}
-		return volumeMod * definition.getVolume() * MathUtils.clamp(1 - (distSquared / audibleRangeSquared), 0, 1);
-    }
 
-    public void setSoundPosition(Vector2 listenerPos, Vector2 soundPos) {
-        this.soundPos = soundPos;
+	val startTime: Long = TimeUtils.millis()
+
+	var isDone = false
+		get() = field || !definition.isLooping && TimeUtils.timeSinceMillis(startTime) > definition.duration
+		private set
+
+	fun setDone() {
+		isDone = true
+		stop()
 	}
 
-	public void calcVolAndPan(Vector2 listenerPos) {
-		definition.getSound().setPan(handleId, calcPan(listenerPos), calcVolume(listenerPos, true));
+	val isPlaying = true
+
+	fun calcPan(listenerPos: Vector2): Float {
+		val audibleRange = Gdx.graphics.height * 0.4f
+		val xPan = soundPos.x - listenerPos.x
+		return MathUtils.clamp(xPan / audibleRange, -1f, 1f) * 0.90f
 	}
 
-	public void stop() {
-        definition.getSound().stop(handleId);
-    }
+	fun calcVolume(listenerPos: Vector2, terminate: Boolean): Float {
+		val audibleRange = Gdx.graphics.height * 0.4f
+		val audibleRangeSquared = audibleRange * audibleRange
+		val distSquared = listenerPos.dst2(soundPos)
+		val volumeMod = audioVideoData.masterVolume * audioVideoData.soundVolume
+		if (terminate && distSquared > audibleRangeSquared) {
+			setDone()
+		}
+		return volumeMod * definition.volume * MathUtils.clamp(1 - distSquared / audibleRangeSquared, 0f, 1f)
+	}
 
-    public void setDone() {
-        done = true;
-        stop();
-    }
+	fun calcVolAndPan(listenerPos: Vector2) {
+		definition.sound.setPan(handleId, calcPan(listenerPos), calcVolume(listenerPos, true))
+	}
 
-    public boolean isDone() {
-        return done || (!definition.isLooping() && TimeUtils.timeSinceMillis(startTime) > definition.getDuration());
-    }
+	fun stop() {
+		definition.sound.stop(handleId)
+	}
 
-    public boolean isPlaying() {
-        return playing;
-    }
 
-    public void debugRender() {
-        shapeRenderer.setColor(Color.CHARTREUSE);
-        shapeRenderer.circle(soundPos.x + 16, soundPos.y + 16, 14);
-    }
+	fun debugRender() {
+		shapeRenderer.color = Color.CHARTREUSE
+		shapeRenderer.circle(soundPos.x + 16, soundPos.y + 16, 14f)
+	}
 
-	public void setHandleId(long handleId) {
-		this.handleId = handleId;
+	fun setHandleId(handleId: Long) {
+		this.handleId = handleId
+	}
+
+	init {
+		if (!isPlaying) {
+			stop()
+		}
+		audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
 	}
 }

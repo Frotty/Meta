@@ -67,10 +67,11 @@ open class Meta : Game {
 			val jTextField = JTextArea()
 			jTextField.lineWrap = true
 			jTextField.columns = "Please report this crash with the following info:\n".length + 50
+			jTextField.rows = 30
 			jTextField.text = "Please report this crash with the following info:\n$sw"
 			jTextField.isEditable = false
-			val scroll = JScrollPane(jTextField, VERTICAL_SCROLLBAR_AS_NEEDED, HORIZONTAL_SCROLLBAR_NEVER)
-			JOptionPane.showMessageDialog(JFrame(), scroll, "Uncaught Exception", JOptionPane.ERROR_MESSAGE)
+			val scroll = JScrollPane(jTextField)
+			JOptionPane.showMessageDialog(null, scroll, "Uncaught Exception", JOptionPane.ERROR_MESSAGE)
 		}
 	}
 

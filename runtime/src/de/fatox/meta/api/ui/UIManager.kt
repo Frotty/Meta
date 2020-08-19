@@ -14,7 +14,7 @@ import de.fatox.meta.ui.windows.MetaDialog
  */
 interface UIManager {
 	var posModifier: PosModifier
-	fun moveWindow(width: Int, height: Int)
+	fun moveWindow(x: Int, y: Int)
 	fun resize(width: Int, height: Int)
 
 	/**
@@ -30,17 +30,17 @@ interface UIManager {
 	/**
 	 * @param windowClass The window to show
 	 */
-	fun <T : Window?> showWindow(windowClass: Class<out T>?): T
+	fun <T : Window> showWindow(windowClass: Class<out T>): T
 
-	fun <T : MetaDialog?> showDialog(dialogClass: Class<out T>?): T
+	fun <T : MetaDialog> showDialog(dialogClass: Class<out T>): T
 	fun setMainMenuBar(menuBar: MenuBar?)
-	fun <T : Window?> getWindow(windowClass: Class<out T>?): T
+	fun <T : Window> getWindow(windowClass: Class<out T>): T
 	fun closeWindow(window: Window)
 	fun updateWindow(window: Window)
 	fun bringWindowsToFront()
-	fun metaHas(name: String?): Boolean
-	fun <T> metaGet(name: String?, c: Class<T>?): T
-	fun metaSave(name: String?, windowData: Any?)
+	fun metaHas(name: String): Boolean
+	fun <T> metaGet(name: String, c: Class<T>): T?
+	fun metaSave(name: String, windowData: Any?)
 	val currentlyActiveWindows: Array<Window>
 }
 

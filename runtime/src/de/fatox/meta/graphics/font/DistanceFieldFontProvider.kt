@@ -1,31 +1,26 @@
-package de.fatox.meta.graphics.font;
+package de.fatox.meta.graphics.font
 
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import de.fatox.meta.Meta;
-import de.fatox.meta.api.AssetProvider;
-import de.fatox.meta.api.graphics.FontProvider;
-import de.fatox.meta.injection.Inject;
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import de.fatox.meta.Meta.Companion.inject
+import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
  * Created by Frotty on 23.10.2016.
  */
-public class DistanceFieldFontProvider implements FontProvider {
-    private BitmapFont distanceFieldFont;
+class DistanceFieldFontProvider : FontProvider {
+	private val distanceFieldFont: BitmapFont? = TODO()
 
-    @Inject
-    private AssetProvider assetProvider;
+	private val assetProvider: AssetProvider by lazyInject()
 
-    public DistanceFieldFontProvider() {
-        Meta.inject(this);
-    }
+	override fun getFont(size: Int, mono: Boolean): BitmapFont {
+		TODO()
+	}
 
-    @Override
-    public BitmapFont getFont(int size, boolean mono) {
-        return null;
-    }
-
-    @Override
-    public void write(float x, float y, String text, int size, boolean mono) {
-
-    }
+	override fun write(x: Float, y: Float, text: String, size: Int, mono: Boolean) {
+		TODO()
+	}
 }

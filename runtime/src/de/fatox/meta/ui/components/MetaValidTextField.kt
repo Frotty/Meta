@@ -1,30 +1,16 @@
-package de.fatox.meta.ui.components;
+package de.fatox.meta.ui.components
 
-import com.kotcrab.vis.ui.widget.VisLabel;
-import com.kotcrab.vis.ui.widget.VisValidatableTextField;
+import com.kotcrab.vis.ui.widget.VisLabel
+import com.kotcrab.vis.ui.widget.VisValidatableTextField
 
-public class MetaValidTextField {
-    private VisLabel descriptionLabel;
-    private VisLabel errorLabel;
+class MetaValidTextField(description: String?, private val errorLabel: VisLabel) {
+	val description: VisLabel = VisLabel(description)
 
-    private VisValidatableTextField textField;
+	val textField: VisValidatableTextField = VisValidatableTextField()
 
-    public MetaValidTextField(String description, VisLabel errorLabel) {
-        descriptionLabel = new VisLabel(description);
-        textField = new VisValidatableTextField();
-        this.errorLabel = errorLabel;
-    }
+	fun addValidator(inputValidator: MetaInputValidator) {
+		inputValidator.setErrorLabel(errorLabel)
+		textField.addValidator(inputValidator)
+	}
 
-    public VisValidatableTextField getTextField() {
-        return textField;
-    }
-
-    public VisLabel getDescription() {
-        return descriptionLabel;
-    }
-
-    public void addValidator(MetaInputValidator inputValidator) {
-        inputValidator.setErrorLabel(errorLabel);
-        textField.addValidator(inputValidator);
-    }
 }

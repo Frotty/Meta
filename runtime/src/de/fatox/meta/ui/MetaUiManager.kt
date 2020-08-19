@@ -1,325 +1,285 @@
-package de.fatox.meta.ui;
+package de.fatox.meta.ui
 
-import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.scenes.scene2d.ui.Cell;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.Window;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.TimeUtils;
-import com.badlogic.gdx.utils.reflect.ClassReflection;
-import com.badlogic.gdx.utils.reflect.ReflectionException;
-import com.kotcrab.vis.ui.widget.MenuBar;
-import de.fatox.meta.Meta;
-import de.fatox.meta.api.DummyPosModifier;
-import de.fatox.meta.api.PosModifier;
-import de.fatox.meta.api.model.MetaWindowData;
-import de.fatox.meta.api.ui.UIManager;
-import de.fatox.meta.api.ui.UIRenderer;
-import de.fatox.meta.assets.MetaData;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Singleton;
-import de.fatox.meta.input.MetaInput;
-import de.fatox.meta.ui.windows.MetaDialog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.Window
+import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.GdxRuntimeException
+import com.badlogic.gdx.utils.TimeUtils
+import com.badlogic.gdx.utils.reflect.ClassReflection
+import com.badlogic.gdx.utils.reflect.ReflectionException
+import com.kotcrab.vis.ui.widget.MenuBar
+import de.fatox.meta.api.DummyPosModifier
+import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.model.MetaWindowData
+import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.assets.MetaData
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.Singleton
+import de.fatox.meta.input.MetaInput
+import de.fatox.meta.ui.windows.MetaDialog
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import java.io.File
 
 /**
  * Created by Frotty on 20.05.2016.
  */
 @Singleton
-public class MetaUiManager implements UIManager {
-	private static final Logger log = LoggerFactory.getLogger(MetaUiManager.class);
-    @Inject
-    private UIRenderer uiRenderer;
-    @Inject
-    private MetaData metaData;
-    @Inject
-    private MetaInput metaInput;
+class MetaUiManager : UIManager {
+	private val uiRenderer: UIRenderer by lazyInject()
+	private val metaData: MetaData by lazyInject()
+	private val metaInput: MetaInputProcessor by lazyInject()
 
-    private Array<Window> displayedWindows = new Array<>();
-    private Array<Window> cachedWindows = new Array<>();
-    private MenuBar mainMenuBar;
+	private val displayedWindows = Array<Window>()
+	private val cachedWindows = Array<Window>()
+	private var mainMenuBar: MenuBar? = null
+	private val contentTable = Table()
+	private var currentScreenId: String? = "(none)"
+	override var posModifier: PosModifier = DummyPosModifier
 
-    private Table contentTable = new Table();
-    private String currentScreenId = "(none)";
-    private PosModifier posModifier = DummyPosModifier.INSTANCE;
+	override fun moveWindow(x: Int, y: Int) {
+		posModifier.modify(x, y)
+	}
 
-    public MetaUiManager() {
-        Meta.inject(this);
-        contentTable.top().left();
-        contentTable.setPosition(0, 0);
-        contentTable.setFillParent(true);
-        uiRenderer.addActor(contentTable);
-    }
+	override fun resize(width: Int, height: Int) {
+		uiRenderer.resize(width, height)
+	}
 
-    @Override
-    public void moveWindow(int x, int y) {
-        posModifier.modify(x, y);
-    }
+	override fun changeScreen(screenIdentifier: String?) {
+		currentScreenId = screenIdentifier
+		metaInput.changeScreen()
 
-    @Override
-    public void resize(int width, int height) {
-        uiRenderer.resize(width, height);
-    }
+		// Close or move currently shown windows
+		for (window in displayedWindows) {
+			val name = window!!.javaClass.name
+			if (metaHas(name)) {
+				val metaWindowData = metaGet(name, MetaWindowData::class.java)!!
+				if (metaWindowData.displayed) {
+					// There exists saved window metadata
+					metaWindowData.set(window)
+				} else {
+					cacheWindow(window, true)
+				}
+			} else {
+				cacheWindow(window, true)
+			}
+		}
+		displayedWindows.removeAll(cachedWindows, true)
+		contentTable.remove()
+		contentTable.clear()
+		if (mainMenuBar != null) {
+			contentTable.row().height(26f)
+			contentTable.add(mainMenuBar!!.table).growX().top()
+			mainMenuBar!!.table.toFront()
+		}
+		uiRenderer.addActor(contentTable)
+		restoreWindows()
+	}
 
-    @Override
-    public void changeScreen(String screenIdentifier) {
-        this.currentScreenId = screenIdentifier;
-        metaInput.changeScreen();
+	private fun restoreWindows() {
+		val list = metaData.getCachedHandle(currentScreenId).list()
+		outer@ for (fh in list) {
+			if (fh.name().endsWith("Window")) {
+				try {
+					val windowClass: Class<out Window> = ClassReflection.forName(fh.name()) as Class<out Window>
+					val metaWindowData = metaGet(windowClass.name, MetaWindowData::class.java)!!
+					for (displayedWindow in displayedWindows) {
+						if (displayedWindow!!.javaClass == windowClass) {
+							if (!metaWindowData.displayed) {
+								cacheWindow(displayedWindow, true)
+							}
+							continue@outer
+						}
+					}
+					if (metaWindowData.displayed) {
+						metaWindowData.set(showWindow<Window>(windowClass))
+					}
+				} catch (e: ReflectionException) {
+					fh.delete()
+					e.printStackTrace()
+				}
+			}
+		}
+	}
 
-        // Close or move currently shown windows
-        for (Window window : displayedWindows) {
-            String name = window.getClass().getName();
-            if (metaHas(name)) {
-                MetaWindowData metaWindowData = metaGet(name, MetaWindowData.class);
-                if (metaWindowData.getDisplayed()) {
-                    // There exists saved window metadata
-                    metaWindowData.set(window);
-                } else {
-                    cacheWindow(window, true);
-                }
-            } else {
-                cacheWindow(window, true);
-            }
-        }
-        displayedWindows.removeAll(cachedWindows, true);
-        contentTable.remove();
-        contentTable.clear();
-        if (mainMenuBar != null) {
-            contentTable.row().height(26);
-            contentTable.add(mainMenuBar.getTable()).growX().top();
-            mainMenuBar.getTable().toFront();
-        }
-        uiRenderer.addActor(contentTable);
-        restoreWindows();
-    }
+	override fun addTable(table: Table?, growX: Boolean, growY: Boolean) {
+		contentTable.row()
+		val add = contentTable.add(table)
+		if (growX) add.growX()
+		if (growY) add.growY()
+		contentTable.invalidate()
+	}
 
-    private void restoreWindows() {
-        FileHandle[] list = metaData.getCachedHandle(currentScreenId).list();
-        outer:
-        for (FileHandle fh : list) {
-            if (fh.name().endsWith("Window")) {
-                try {
-                    Class windowclass = ClassReflection.forName(fh.name());
-                    MetaWindowData metaWindowData = metaGet(windowclass.getName(), MetaWindowData.class);
-                    for (Window displayedWindow : displayedWindows) {
-                        if (displayedWindow.getClass() == windowclass) {
-                            if (!metaWindowData.getDisplayed()) {
-                                cacheWindow(displayedWindow, true);
-                            }
-                            continue outer;
-                        }
-                    }
-                    if (metaWindowData.getDisplayed()) {
-                        metaWindowData.set(showWindow(windowclass));
-                    }
-                } catch (ReflectionException e) {
-                    fh.delete();
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
+	/**
+	 * Shows an instance of the given class on the current screen.
+	 * If metadata exists for the window, it will be loaded.
+	 *
+	 * @param windowClass The window to show
+	 */
+	override fun <T : Window> showWindow(windowClass: Class<out T>): T {
+		log.debug("show window: " + windowClass.name)
+		val window: Window? = displayWindow()
+		window!!.isVisible = true
+		if (metaHas(windowClass.name)) {
+			// There exists metadata for this window.
+			val windowData = metaGet(windowClass.name, MetaWindowData::class.java)!!
+			windowData.set(window)
+			if (!windowData.displayed) {
+				windowData.displayed = true
+				metaSave(windowClass.name, windowData)
+			}
+		} else {
+			// First time the window has been shown on this screen
+			metaSave(windowClass.name, MetaWindowData(window))
+		}
+		return window as T
+	}
 
-    @Override
-    public void addTable(Table table, boolean growX, boolean growY) {
-        contentTable.row();
-        Cell<Table> add = contentTable.add(table);
-        if (growX)
-            add.growX();
-        if (growY)
-            add.growY();
-        contentTable.invalidate();
-    }
+	override fun <T : MetaDialog> showDialog(dialogClass: Class<out T>): T {
+		log.debug("show dialog: " + dialogClass.name)
+		// Dialogs are just Window subtypes so we show it as usual
+		val dialog: MetaDialog = showWindow(dialogClass)
+		dialog.show()
+		return dialog as T
+	}
 
-    /**
-     * Shows an instance of the given class on the current screen.
-     * If metadata exists for the window, it will be loaded.
-     *
-     * @param windowClass The window to show
-     */
-    @Override
-    public <T extends Window> T showWindow(Class<? extends T> windowClass) {
-        log.debug("show window: " + windowClass.getName());
-        T window = displayWindow(windowClass);
+	override fun setMainMenuBar(menuBar: MenuBar?) {
+		if (menuBar != null) {
+			contentTable.row().height(26f)
+			contentTable.add(menuBar.table).growX().top()
+		} else if (mainMenuBar != null) {
+			contentTable.removeActor(mainMenuBar!!.table)
+		}
+		mainMenuBar = menuBar
+	}
 
-        window.setVisible(true);
+	override fun <T : Window> getWindow(windowClass: Class<out T>): T {
+		// TODO avoid NPE
+		return getDisplayedClass(windowClass)
+			?: throw GdxRuntimeException("Can't find ${windowClass.canonicalName}")
+	}
 
-        if (metaHas(windowClass.getName())) {
-            // There exists metadata for this window.
-            MetaWindowData windowData = metaGet(windowClass.getName(), MetaWindowData.class);
-            windowData.set(window);
-            if (!windowData.getDisplayed()) {
-                windowData.setDisplayed(true);
-                metaSave(windowClass.getName(), windowData);
-            }
-        } else {
-            // First time the window has been shown on this screen
-            metaSave(windowClass.getName(), new MetaWindowData(window));
-        }
-        return window;
-    }
+	override fun closeWindow(window: Window) {
+		val displayedWindow = getDisplayedInstance(window)
+		if (displayedWindow != null) {
+			displayedWindows.removeValue(window, true)
+			val metaWindowData = metaGet(window.javaClass.name, MetaWindowData::class.java)
+			if (metaWindowData != null) {
+				metaWindowData.displayed = false
+				metaSave(displayedWindow.javaClass.name, metaWindowData)
+			}
+			cacheWindow(window, false)
+		}
+	}
 
-    @Override
-    public <T extends MetaDialog> T showDialog(Class<? extends T> dialogClass) {
-        log.debug("show dialog: " + dialogClass.getName());
-        // Dialogs are just Window subtypes so we show it as usual
-        T dialog = showWindow(dialogClass);
-        dialog.show();
-        return dialog;
-    }
+	override fun updateWindow(window: Window) {
+		val name = window.javaClass.name
+		if (metaHas(name)) {
+			val metaWindowData = metaGet(name, MetaWindowData::class.java)!!
+			metaWindowData.setFrom(window)
+			metaSave(name, metaWindowData)
+		}
+	}
 
-    @Override
-    public void setMainMenuBar(MenuBar menuBar) {
-        if (menuBar != null) {
-            contentTable.row().height(26);
-            contentTable.add(menuBar.getTable()).growX().top();
-        } else if (mainMenuBar != null) {
-            contentTable.removeActor(mainMenuBar.getTable());
-        }
-        mainMenuBar = menuBar;
-    }
+	override fun bringWindowsToFront() {
+		for (window in displayedWindows) {
+			window!!.toFront()
+		}
+		mainMenuBar!!.table.toFront()
+	}
 
-    @Override
-    public <T extends Window> T getWindow(Class<? extends T> windowClass) {
-        // TODO avoid NPE
-        return getDisplayedClass(windowClass);
-    }
+	private inline fun <reified T : Window> displayWindow(): T? {
+		// Check if this window is a singleton. If it is and it is displayed, return displayed instance
+		var theWindow = checkSingleton<T>()
+		if (theWindow != null) {
+			log.debug("singleton already displaying")
+			return theWindow
+		}
+		// Check for a cached instance
+		for (cachedWindow in cachedWindows) {
+			if (cachedWindow!!.javaClass == T::class.java) {
+				log.debug("found cached")
+				theWindow = cachedWindow as T?
+				break
+			}
+		}
+		// If there was no cached instance we create a new one
+		if (theWindow != null) {
+			cachedWindows.removeValue(theWindow, true)
+		} else {
+			try {
+				log.debug("try instance")
+				theWindow = T::class.java.newInstance()
+			} catch (e: InstantiationException) {
+				e.printStackTrace()
+			} catch (e: IllegalAccessException) {
+				e.printStackTrace()
+			}
+		}
+		uiRenderer.addActor(theWindow!!)
+		displayedWindows.add(theWindow)
+		return theWindow
+	}
 
-    @Override
-    public void closeWindow(Window window) {
-        Window displayedWindow = getDisplayedInstance(window);
-        if (displayedWindow != null) {
-            displayedWindows.removeValue(window, true);
-            MetaWindowData metaWindowData = metaGet(window.getClass().getName(), MetaWindowData.class);
-            if (metaWindowData != null) {
-                metaWindowData.setDisplayed(false);
-                metaSave(displayedWindow.getClass().getName(), metaWindowData);
-            }
-            cacheWindow(window, false);
-        }
-    }
+	private inline fun <reified T : Window> checkSingleton(): T? {
+		if (T::class.java.isAnnotationPresent(Singleton::class.java)) {
+			val displayedWindow: T? = getDisplayedClass(T::class.java)
+			if (displayedWindow != null) {
+				return displayedWindow
+			}
+		}
+		return null
+	}
 
-    @Override
-    public void updateWindow(Window window) {
-        String name = window.getClass().getName();
-        if (metaHas(name)) {
-            MetaWindowData metaWindowData = metaGet(name, MetaWindowData.class);
-            metaWindowData.setFrom(window);
-            metaSave(name, metaWindowData);
-        }
-    }
+	private fun <T : Window> getDisplayedClass(windowClass: Class<out T>): T? {
+		return displayedWindows.firstOrNull { it.javaClass === windowClass } as T?
+	}
 
-    @Override
-    public void bringWindowsToFront() {
-        for (Window window : displayedWindows) {
-            window.toFront();
-        }
-        mainMenuBar.getTable().toFront();
-    }
+	private fun getDisplayedInstance(window: Window): Window? {
+		return displayedWindows.firstOrNull { it === window }
+	}
 
+	private fun cacheWindow(window: Window?, forceClose: Boolean) {
+		cachedWindows.add(window)
+		window!!.isVisible = false
+		if (forceClose) {
+			window.remove()
+		}
+	}
 
-    public <T extends Window> T displayWindow(Class<? extends T> windowClass) {
-        // Check if this window is a singleton. If it is and it is displayed, return displayed instance
-        T theWindow = checkSingleton(windowClass);
-        if (theWindow != null) {
-            log.debug("singleton already displaying");
-            return theWindow;
-        }
-        // Check for a cached instance
-        for (Window cachedWindow : cachedWindows) {
-            if (cachedWindow.getClass() == windowClass) {
-                log.debug("found cached");
-                theWindow = (T) cachedWindow;
-                break;
-            }
-        }
-        // If there was no cached instance we create a new one
-        if (theWindow != null) {
-            cachedWindows.removeValue(theWindow, true);
-        } else {
-            try {
-                log.debug("try instance");
-                theWindow = windowClass.newInstance();
+	override fun metaHas(name: String): Boolean {
+		return metaData.has(currentScreenId + File.separator + name)
+	}
 
-            } catch (InstantiationException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        }
-        uiRenderer.addActor(theWindow);
-        displayedWindows.add(theWindow);
-        return theWindow;
-    }
+	override fun <T> metaGet(name: String, c: Class<T>): T? {
+		return metaData[currentScreenId + File.separator + name, c]
+	}
 
-    private <T extends Window> T checkSingleton(Class<? extends T> windowClass) {
-        if (windowClass.isAnnotationPresent(Singleton.class)) {
-            T displayedWindow = getDisplayedClass(windowClass);
-            if (displayedWindow != null) {
-                return displayedWindow;
-            }
-        }
-        return null;
-    }
+	override fun metaSave(name: String, windowData: Any?) {
+		val id = currentScreenId + File.separator + name
+		if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(id).lastModified()) > 200) {
+			metaData.save(id, windowData)
+		}
+	}
 
-    private <T extends Window> T getDisplayedClass(Class<? extends Window> windowClass) {
-        for (Window displayedWindow : displayedWindows) {
-            if (displayedWindow.getClass() == windowClass) {
-                return (T) displayedWindow;
-            }
-        }
-        return null;
-    }
+	private val copy = Array<Window>()
+	override val currentlyActiveWindows: Array<Window>
+		get() {
+			copy.clear()
+			copy.addAll(displayedWindows)
+			return copy
+		}
 
-    private Window getDisplayedInstance(Window window) {
-        for (Window displayedWindow : displayedWindows) {
-            if (displayedWindow == window) {
-                return displayedWindow;
-            }
-        }
-        return null;
-    }
-
-
-    private void cacheWindow(Window window, boolean forceClose) {
-        cachedWindows.add(window);
-        window.setVisible(false);
-        if (forceClose) {
-            window.remove();
-        }
-    }
-
-    public boolean metaHas(String name) {
-        return metaData.has(currentScreenId + File.separator + name);
-    }
-
-    public <T> T metaGet(String name, Class<T> c) {
-        return metaData.get(currentScreenId + File.separator + name, c);
-    }
-
-    public void metaSave(String name, Object windowData) {
-        String id = currentScreenId + File.separator + name;
-        if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(id).lastModified()) > 200) {
-            metaData.save(id, windowData);
-        }
-    }
-
-    private Array<Window> copy = new Array<>();
-
-    @Override
-    public Array<Window> getCurrentlyActiveWindows() {
-        copy.clear();
-        copy.addAll(displayedWindows);
-        return copy;
-    }
-
-    @Override
-    public PosModifier getPosModifier() {
-        return posModifier;
-    }
-
-    public void setPosModifier(PosModifier posModifier) {
-        this.posModifier = posModifier;
-    }
+	init {
+		contentTable.apply {
+			top().left()
+			setPosition(0f, 0f)
+			setFillParent(true)
+		}
+		uiRenderer.addActor(contentTable)
+	}
 }
+
+private val log: Logger = LoggerFactory.getLogger(MetaUiManager::class.java)

@@ -1,75 +1,67 @@
-package de.fatox.meta.ui.windows;
+package de.fatox.meta.ui.windows
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.ui.Button;
-import com.badlogic.gdx.utils.Align;
-import com.kotcrab.vis.ui.widget.VisImageButton;
-import com.kotcrab.vis.ui.widget.VisLabel;
-import com.kotcrab.vis.ui.widget.VisTable;
-import de.fatox.meta.ui.components.MetaClickListener;
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.scenes.scene2d.Event
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.utils.Align
+import com.kotcrab.vis.ui.widget.VisImageButton
+import com.kotcrab.vis.ui.widget.VisLabel
+import com.kotcrab.vis.ui.widget.VisTable
+import de.fatox.meta.ui.components.MetaClickListener
 
 /**
  * Created by Frotty on 04.06.2016.
  */
-public abstract class MetaDialog extends MetaWindow {
-    protected final VisTable buttonTable = new VisTable();
-    protected final VisLabel statusLabel = new VisLabel();
-    protected DialogListener dialogListener;
-    private int buttonCount = 0;
+abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWindow(title, false, hasCloseButton) {
+	protected val buttonTable = VisTable()
+	@JvmField
+	protected val statusLabel = VisLabel()
+	var dialogListener: DialogListener? = null
+	private var buttonCount = 0
 
-    public interface DialogListener {
-        void onResult(Object object);
-    }
+	interface DialogListener {
+		fun onResult(any: Any?)
+	}
 
-    public MetaDialog(String title, boolean hasCloseButton) {
-        super(title, false, hasCloseButton);
-        if (hasCloseButton) {
-            Actor btn = getTitleTable().getCells().get(getTitleTable().getCells().size - 1).getActor();
-            if (btn instanceof VisImageButton) {
-                btn.addListener(event -> {
-                    dialogListener.onResult(null);
-                    return false;
-                });
-            }
-        }
-        getContentTable().top().padTop(4);
-        statusLabel.setAlignment(Align.center);
-        statusLabel.setWrap(true);
+	fun <T : Button?> addButton(button: Button, align: Int, result: Any?): T {
+		button.addListener(object : MetaClickListener() {
+			override fun clicked(event: InputEvent, x: Float, y: Float) {
+				if (!button.isDisabled && dialogListener != null) {
+					dialogListener!!.onResult(result)
+				}
+			}
+		})
+		if (buttonCount > 0) {
+			buttonTable.add().growX()
+		}
+		buttonCount++
+		buttonTable.add(button).align(align)
+		return button as T
+	}
 
-        add(statusLabel).growX();
-        row();
-        add(buttonTable).bottom().growX();
-    }
+	open fun show() {
+		// Set color invisible for fade in to work
+		centerWindow()
+		setColor(1f, 1f, 1f, 0f)
+		addAction(Actions.alpha(0.95f, 0.75f))
+		Gdx.input.isCursorCatched = false
+	}
 
-    public <T extends Button> T addButton(Button button, int align, Object result) {
-        button.addListener(new MetaClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if (!button.isDisabled() && dialogListener != null) {
-                    dialogListener.onResult(result);
-                }
-            }
-        });
-        if (buttonCount > 0) {
-            buttonTable.add().growX();
-        }
-        buttonCount++;
-        buttonTable.add(button).align(align);
-        return (T) button;
-    }
-
-    public void show() {
-        // Set color invisible for fade in to work
-        centerWindow();
-        setColor(1, 1, 1, 0);
-        addAction(Actions.alpha(0.95f, 0.75f));
-        Gdx.input.setCursorCatched(false);
-    }
-
-    public void setDialogListener(DialogListener dialogListener) {
-        this.dialogListener = dialogListener;
-    }
+	init {
+		if (hasCloseButton) {
+			val btn = titleTable.cells[titleTable.cells.size - 1].actor
+			(btn as? VisImageButton)?.addListener { event: Event? ->
+				dialogListener!!.onResult(null)
+				false
+			}
+		}
+		contentTable.top().padTop(4f)
+		statusLabel.setAlignment(Align.center)
+		statusLabel.wrap = true
+		add(statusLabel).growX()
+		row()
+		add(buttonTable).bottom().growX()
+	}
 }

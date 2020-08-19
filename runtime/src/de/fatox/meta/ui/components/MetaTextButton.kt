@@ -1,42 +1,27 @@
-package de.fatox.meta.ui.components;
+package de.fatox.meta.ui.components
 
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.scenes.scene2d.ui.Button;
-import com.badlogic.gdx.utils.Align;
-import com.kotcrab.vis.ui.VisUI;
-import com.kotcrab.vis.ui.widget.VisTextButton;
-import de.fatox.meta.util.GoldenRatio;
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.utils.Align
+import com.kotcrab.vis.ui.VisUI
+import com.kotcrab.vis.ui.widget.VisTextButton.VisTextButtonStyle
+import de.fatox.meta.util.GoldenRatio
 
 /**
  * Created by Frotty on 04.06.2016.
  */
-public class MetaTextButton extends Button {
-    private final MetaLabel label;
+open class MetaTextButton @JvmOverloads constructor(text: String = "", size: Int = 12) : Button(VisUI.getSkin().get(VisTextButtonStyle::class.java)) {
+	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE).apply { setAlignment(Align.center) }
 
-    public MetaTextButton(String text) {
-        this(text, 12);
-    }
+	fun setText(text: String = "") {
+		label.setText(text)
+	}
 
-    public MetaTextButton(String text, int size) {
-        super(VisUI.getSkin().get(VisTextButton.VisTextButtonStyle.class));
-        pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20);
-        label = new MetaLabel(text, size, Color.WHITE);
-        label.setAlignment(Align.center);
-        add(label).center().grow();
-    }
+	val text: CharSequence = label.text
 
-    public void draw(Batch batch, float parentAlpha) {
-        super.draw(batch, parentAlpha);
-    }
-
-    public void setText(String text) {
-        label.setText(text);
-    }
-
-    public CharSequence getText() {
-        return label.getText();
-    }
-
-
+	init {
+		pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20)
+		add(label).center().grow()
+	}
 }

@@ -1,26 +1,24 @@
-package de.fatox.meta.task;
+package de.fatox.meta.task
 
-import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Array
 
 /**
  * A MetaTask is any action that should be reversible and actions that are not instant
  */
-public abstract class MetaTask {
-    private Array<TaskListener> listeners = new Array<>();
+abstract class MetaTask(val name: String) {
+	private val listeners = Array<TaskListener>()
 
-    public void run() {
-        for(TaskListener listener : listeners) {
-            listener.onStart();
-        }
-        execute();
-        for(TaskListener listener : listeners) {
-            listener.onFinish();
-        }
-    }
+	fun run() {
+		for (listener in listeners) {
+			listener.onStart()
+		}
+		execute()
+		for (listener in listeners) {
+			listener.onFinish()
+		}
+	}
 
-    public abstract String getName();
 
-    public abstract void execute();
-
-    public abstract void undo();
+	abstract fun execute()
+	abstract fun undo()
 }

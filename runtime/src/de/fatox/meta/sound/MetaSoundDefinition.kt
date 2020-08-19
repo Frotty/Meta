@@ -1,88 +1,47 @@
-package de.fatox.meta.sound;
+package de.fatox.meta.sound
 
-import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.math.Vector2;
-import de.fatox.meta.Meta;
-import de.fatox.meta.injection.Inject;
+import com.badlogic.gdx.audio.Sound
+import com.badlogic.gdx.backends.lwjgl3.audio.OpenALSound
+import com.badlogic.gdx.backends.lwjgl3.audio.mock.MockSound
+import com.badlogic.gdx.math.Vector2
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+object UninitializedSound: MockSound()
 
-public class MetaSoundDefinition {
-    public static final long DEFAULT_SOUND_DURATION = 2000;
-    public static final float DEFAULT_SOUND_VOLUME = 0.4f;
-    public static final float DEFAULT_SOUND_RANGE2 = 600f * 600f;
+class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
+	val soundName: String = soundName.replace("/".toRegex(), "\\\\")
+	var sound: Sound = UninitializedSound
+		set(value) {
+			field = value
 
-    public final String soundName;
-    public final int maxInstances;
-    private Sound sound;
-    private boolean looping = false;
-    private float soundRange2 = DEFAULT_SOUND_RANGE2;
-    private float volume = DEFAULT_SOUND_VOLUME;
-    private long duration = DEFAULT_SOUND_DURATION;
+			if (value is OpenALSound)
+				this.duration = (value.duration() * 1000L).toLong() // TODO The only sound without duration is MockSound
+		}
+	var isLooping = false
+	var soundRange2 = DEFAULT_SOUND_RANGE2
+		private set
+	var volume = DEFAULT_SOUND_VOLUME
+	var duration = DEFAULT_SOUND_DURATION
+		private set
 
-    @Inject
-    private MetaSoundPlayer soundPlayer;
+	private val soundPlayer: MetaSoundPlayer by lazyInject()
 
-    public MetaSoundDefinition(String soundName) {
-        this(soundName, 4);
-    }
 
-    public MetaSoundDefinition(String soundName, int maxInstances) {
-        this.soundName = soundName.replaceAll("/", "\\\\");
-        this.maxInstances = maxInstances;
-        Meta.inject(this);
-    }
+	fun play(listenerPosition: Vector2?, soundPosition: Vector2): MetaSoundHandle? {
+		return soundPlayer.playSound(this, listenerPosition, soundPosition)
+	}
 
-    public MetaSoundHandle play(Vector2 listenerPosition, Vector2 soundPosition) {
-        return soundPlayer.playSound(this, listenerPosition, soundPosition);
-    }
+	fun play(): MetaSoundHandle? {
+		return soundPlayer.playSound(this)
+	}
 
-    public MetaSoundHandle play() {
-        return soundPlayer.playSound(this);
-    }
+	fun setSoundRange(soundRange: Float) {
+		soundRange2 = soundRange * soundRange
+	}
 
-    public Sound getSound() {
-        return sound;
-    }
-
-    public void setSound(Sound sound) {
-        this.sound = sound;
-        try {
-            Method duration = sound.getClass().getMethod("duration");
-            if (duration != null) {
-                this.duration = (long) (((float) duration.invoke(sound)) * 1000L);
-            }
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public boolean isLooping() {
-        return looping;
-    }
-
-    public void setLooping(boolean looping) {
-        this.looping = looping;
-    }
-
-    public void setVolume(float volume) {
-        this.volume = volume;
-    }
-
-    public float getVolume() {
-        return volume;
-    }
-
-    public long getDuration() {
-        return duration;
-    }
-
-    public float getSoundRange2() {
-        return soundRange2;
-    }
-
-    public void setSoundRange(float soundRange) {
-        this.soundRange2 = soundRange * soundRange;
-    }
+	companion object {
+		const val DEFAULT_SOUND_DURATION: Long = 2000
+		const val DEFAULT_SOUND_VOLUME = 0.4f
+		const val DEFAULT_SOUND_RANGE2 = 600f * 600f
+	}
 }

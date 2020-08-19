@@ -10,15 +10,15 @@ import de.fatox.meta.api.model.MetaShaderCompData
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
  * Created by Frotty on 10.04.2017.
  */
 class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderCompData) {
-    @Inject
-    private lateinit var shaderLibrary: MetaShaderLibrary
-    @Inject
-    private lateinit var projectManager: ProjectManager
+    private val shaderLibrary: MetaShaderLibrary by lazyInject()
+    private val projectManager: ProjectManager by lazyInject()
 
     val bufferHandles = Array<RenderBufferHandle>()
 
@@ -26,7 +26,6 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
         get() = bufferHandles.peek()
 
     init {
-        Meta.inject(this)
         loadExisting()
     }
 

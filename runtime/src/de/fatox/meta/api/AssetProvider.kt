@@ -16,10 +16,10 @@ interface AssetProvider {
 	fun <T> load(name: String, type: Class<T>)
 
 	/** Returns an instance of the loaded asset. Index is the libgdx packed frame index.*/
-	fun <T> getResource(fileName: String, type: Class<T>, index: Int = -1): T?
+	fun <T> getResource(fileName: String, type: Class<T>, index: Int = -1): T
 
 	// For java interop
-	fun <T> getResource(fileName: String, type: Class<T>): T? = getResource(fileName, type, -1)
+	fun <T> getResource(fileName: String, type: Class<T>): T = getResource(fileName, type, -1)
 
 	fun getDrawable(name: String): Drawable
 
@@ -40,5 +40,5 @@ inline fun <reified T : Any> AssetProvider.load(name: String) {
 	load(name, T::class.java)
 }
 
-inline operator fun <reified T : Any> AssetProvider.get(fileName: String, index: Int = -1): T? =
+inline operator fun <reified T : Any> AssetProvider.get(fileName: String, index: Int = -1): T =
 	getResource(fileName, T::class.java, index)

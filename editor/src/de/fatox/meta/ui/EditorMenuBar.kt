@@ -15,6 +15,8 @@ import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.dialogs.OpenProjectDialog
 import de.fatox.meta.ui.dialogs.ProjectWizardDialog
 import de.fatox.meta.ui.dialogs.SceneWizardDialog
@@ -24,14 +26,10 @@ import org.slf4j.LoggerFactory
 class EditorMenuBar {
 	private val log = LoggerFactory.getLogger(EditorMenuBar::class.java)
 
-    @Inject
-    private lateinit var languageBundle: LanguageBundle
-    @Inject
-    private lateinit var assetProvider: AssetProvider
-    @Inject
-    private lateinit var projectManager: ProjectManager
-    @Inject
-    private lateinit var uiManager: UIManager
+    private val languageBundle: LanguageBundle by lazyInject()
+    private val assetProvider: AssetProvider by lazyInject()
+    private val projectManager: ProjectManager by lazyInject()
+    private val uiManager: UIManager by lazyInject()
 
     val menuBar: MenuBar
     private var windowsMenu: Menu? = null

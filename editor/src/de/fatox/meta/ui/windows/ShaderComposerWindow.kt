@@ -12,6 +12,8 @@ import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
@@ -27,10 +29,8 @@ import java.util.*
  */
 @Singleton
 class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
-    @Inject
-    private lateinit var shaderLibrary: MetaShaderLibrary
-    @Inject
-    private lateinit var shaderComposer: MetaShaderComposer
+    private val shaderLibrary: MetaShaderLibrary by lazyInject()
+    private val shaderComposer: MetaShaderComposer by lazyInject()
 
     private var renderSelectbox: VisSelectBox<String>? = null
     private var bufferTable: VisTable? = null

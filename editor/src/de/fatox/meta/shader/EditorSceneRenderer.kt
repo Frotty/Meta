@@ -20,22 +20,19 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.graphics.renderer.FullscreenQuad
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.MetaLabel
 
 /**
  * Created by Frotty on 17.04.2017.
  */
 class EditorSceneRenderer : Renderer {
-	@Inject
-	private lateinit var batch: SpriteBatch
-	@Inject
-	private lateinit var shaderComposer: MetaShaderComposer
-	@Inject
-	private lateinit var cam: PerspectiveCamera
-	@Inject
-	private lateinit var primitives: Primitives
-	@Inject
-	private lateinit var uiManager: UIManager
+	private val batch: SpriteBatch by lazyInject()
+	private val shaderComposer: MetaShaderComposer by lazyInject()
+	private val cam: PerspectiveCamera by lazyInject()
+	private val primitives: Primitives by lazyInject()
+	private val uiManager: UIManager by lazyInject()
 
 	private val grid: Meta3DEntity
 

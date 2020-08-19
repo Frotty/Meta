@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.Json
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.entity.EntityManager
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIManager
@@ -34,11 +35,12 @@ class MetaModule {
 
 	init {
 		MetaInject.global {
+			singleton<FontProvider>("default") { MetaFontProvider() }
 			singleton { MetaSoundPlayer() }
 			singleton<UIRenderer> { MetaUIRenderer() }
 			singleton<UIManager> { MetaUiManager() }
 			singleton { ModelBuilder() }
-			singleton { MetaInput }
+			singleton< MetaInputProcessor> { MetaInput }
 			singleton<EntityManager<Meta3DEntity>>("default") { MetaEntityManager() }
 			singleton("default") { MetaTaskManager() }
 			singleton("", "default")
@@ -100,9 +102,7 @@ void main()
 	@Provides
 	@Singleton
 	@Named("default")
-	fun assetProvider(metaAssetProvider: MetaAssetProvider): AssetProvider {
-		return metaAssetProvider
-	}
+	fun assetProvider(): AssetProvider = inject("default")
 
 	@Provides
 	@Named("default")
@@ -127,7 +127,7 @@ void main()
 
 	@Provides
 	@Singleton
-	fun metaInput(): MetaInput = inject()
+	fun metaInput(): MetaInputProcessor = inject()
 
 	//    @Provides
 	//    @Singleton
@@ -158,9 +158,7 @@ void main()
 	@Provides
 	@Singleton
 	@Named("default")
-	fun fontProvider(metaFontProvider: MetaFontProvider): FontProvider {
-		return metaFontProvider
-	}
+	fun fontProvider(): FontProvider = inject("default")
 
 
 	@Provides

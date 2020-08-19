@@ -18,6 +18,8 @@ import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.model.RenderBufferData.IN.FULLSCREEN
 import de.fatox.meta.api.model.RenderBufferData.IN.GEOMETRY
 import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.util.GoldenRatio
@@ -27,12 +29,9 @@ import de.fatox.meta.util.GoldenRatio
  * They can be moved left & right and be deleted.
  */
 class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(VisTextButton.VisTextButtonStyle::class.java)) {
-    @Inject
-    private lateinit var assetProvider: AssetProvider
-    @Inject
-    private lateinit var shaderLibrary: MetaShaderLibrary
-    @Inject
-    private lateinit var shaderComposer: MetaShaderComposer
+    private val assetProvider: AssetProvider by lazyInject()
+    private val shaderLibrary: MetaShaderLibrary by lazyInject()
+    private val shaderComposer: MetaShaderComposer by lazyInject()
 
     private val nameLabel: MetaLabel = MetaLabel(text, size, Color.WHITE)
     private val inSelect = VisSelectBox<RenderBufferData.IN>()

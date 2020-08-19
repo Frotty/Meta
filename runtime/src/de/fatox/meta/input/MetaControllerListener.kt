@@ -1,124 +1,103 @@
-package de.fatox.meta.input;
+package de.fatox.meta.input
 
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.controllers.Controller;
-import com.badlogic.gdx.controllers.ControllerListener;
-import com.badlogic.gdx.controllers.PovDirection;
-import com.badlogic.gdx.math.Vector3;
-import de.fatox.meta.Meta;
-import de.fatox.meta.assets.MetaAssetProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.badlogic.gdx.Input
+import com.badlogic.gdx.controllers.Controller
+import com.badlogic.gdx.controllers.ControllerListener
+import com.badlogic.gdx.controllers.PovDirection
+import com.badlogic.gdx.math.Vector3
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-public class MetaControllerListener implements ControllerListener {
-	private static final Logger log = LoggerFactory.getLogger(MetaAssetProvider.class);
+class MetaControllerListener(private val metaInput: MetaInput) : ControllerListener {
+	private var currentDownKey = -1
+	private val deadzone = 0.395f
 
-    private MetaInput metaInput;
-    private int currentDownKey = -1;
+	override fun connected(controller: Controller) {
+		log.debug("Controller connected")
+	}
 
-    private float deadzone = 0.395f;
+	override fun disconnected(controller: Controller) {
+		log.debug("Controller disconnected")
+	}
 
-    public MetaControllerListener(MetaInput metaInput) {
-        this.metaInput = metaInput;
-        Meta.inject(this);
-    }
+	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
+		return false
+	}
 
-    @Override
-    public void connected(Controller controller) {
-        log.debug("Controller connected");
-    }
+	override fun buttonUp(controller: Controller, buttonCode: Int): Boolean {
+		println(buttonCode)
+		return false
+	}
 
-    @Override
-    public void disconnected(Controller controller) {
-        log.debug("Controller disconnected");
-    }
+	override fun axisMoved(controller: Controller, axisCode: Int, value: Float): Boolean {
+		checkVert(controller)
+		checkHor(controller)
+		return false
+	}
 
-    @Override
-    public boolean buttonDown(Controller controller, int buttonCode) {
-        return false;
-    }
+	private fun checkVert(controller: Controller): Boolean {
+		if (currentDownKey != Input.Keys.UP && controller.getAxis(1) < -deadzone) {
+			metaInput.keyUp(currentDownKey)
+			currentDownKey = Input.Keys.UP
+			metaInput.keyDown(currentDownKey)
+			return true
+		} else if (currentDownKey == Input.Keys.UP && controller.getAxis(1) > -deadzone) {
+			metaInput.keyUp(currentDownKey)
+			currentDownKey = -1
+			return true
+		}
+		if (currentDownKey != Input.Keys.DOWN && controller.getAxis(1) > deadzone) {
+			metaInput.keyUp(currentDownKey)
+			currentDownKey = Input.Keys.DOWN
+			metaInput.keyDown(currentDownKey)
+			return true
+		} else if (currentDownKey == Input.Keys.DOWN && controller.getAxis(1) < deadzone) {
+			metaInput.keyUp(currentDownKey)
+			currentDownKey = -1
+			return true
+		}
+		return false
+	}
 
-    @Override
-    public boolean buttonUp(Controller controller, int buttonCode) {
-        System.out.println(buttonCode);
-        return false;
-    }
+	private fun checkHor(controller: Controller): Boolean {
+		if (currentDownKey != Input.Keys.LEFT && controller.getAxis(0) < -deadzone) {
+			metaInput.keyUp(currentDownKey)
+			currentDownKey = Input.Keys.LEFT
+			metaInput.keyDown(currentDownKey)
+			return true
+		} else if (currentDownKey == Input.Keys.LEFT && controller.getAxis(0) > -deadzone) {
+			metaInput.keyUp(currentDownKey)
+			currentDownKey = -1
+			return true
+		}
+		if (currentDownKey != Input.Keys.RIGHT && controller.getAxis(0) > deadzone) {
+			metaInput.keyUp(currentDownKey)
+			currentDownKey = Input.Keys.RIGHT
+			metaInput.keyDown(currentDownKey)
+			return true
+		} else if (currentDownKey == Input.Keys.RIGHT && controller.getAxis(0) < deadzone) {
+			metaInput.keyUp(currentDownKey)
+			currentDownKey = -1
+			return true
+		}
+		return false
+	}
 
-    @Override
-    public boolean axisMoved(Controller controller, int axisCode, float value) {
-        checkVert(controller);
-        checkHor(controller);
-        return false;
-    }
+	override fun povMoved(controller: Controller, povCode: Int, value: PovDirection): Boolean {
+		return false
+	}
 
-    private boolean checkVert(Controller controller) {
-        if (currentDownKey != Input.Keys.UP && (controller.getAxis(1) < -deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.UP;
-            metaInput.keyDown(currentDownKey);
-            return true;
-        } else if (currentDownKey == Input.Keys.UP && (controller.getAxis(1) > -deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = -1;
-            return true;
-        }
+	override fun xSliderMoved(controller: Controller, sliderCode: Int, value: Boolean): Boolean {
+		return false
+	}
 
-        if (currentDownKey != Input.Keys.DOWN && (controller.getAxis(1) > deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.DOWN;
-            metaInput.keyDown(currentDownKey);
-            return true;
-        } else if (currentDownKey == Input.Keys.DOWN && (controller.getAxis(1) < deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = -1;
-            return true;
-        }
-        return false;
-    }
+	override fun ySliderMoved(controller: Controller, sliderCode: Int, value: Boolean): Boolean {
+		return false
+	}
 
-    private boolean checkHor(Controller controller) {
-        if (currentDownKey != Input.Keys.LEFT && (controller.getAxis(0) < -deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.LEFT;
-            metaInput.keyDown(currentDownKey);
-            return true;
-        } else if (currentDownKey == Input.Keys.LEFT && (controller.getAxis(0) > -deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = -1;
-            return true;
-        }
-
-        if (currentDownKey != Input.Keys.RIGHT && (controller.getAxis(0) > deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.RIGHT;
-            metaInput.keyDown(currentDownKey);
-            return true;
-        } else if (currentDownKey == Input.Keys.RIGHT && (controller.getAxis(0) < deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = -1;
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public boolean povMoved(Controller controller, int povCode, PovDirection value) {
-        return false;
-    }
-
-    @Override
-    public boolean xSliderMoved(Controller controller, int sliderCode, boolean value) {
-        return false;
-    }
-
-    @Override
-    public boolean ySliderMoved(Controller controller, int sliderCode, boolean value) {
-        return false;
-    }
-
-    @Override
-    public boolean accelerometerMoved(Controller controller, int accelerometerCode, Vector3 value) {
-        return false;
-    }
-
+	override fun accelerometerMoved(controller: Controller, accelerometerCode: Int, value: Vector3): Boolean {
+		return false
+	}
 }
+
+private val log: Logger = LoggerFactory.getLogger(MetaControllerListener::class.java)

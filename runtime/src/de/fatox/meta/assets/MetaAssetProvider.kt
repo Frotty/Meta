@@ -106,7 +106,7 @@ class MetaAssetProvider : AssetProvider {
 		}
 	}
 
-	override fun <T> getResource(fileName: String, type: Class<T>, index: Int): T? {
+	override fun <T> getResource(fileName: String, type: Class<T>, index: Int): T {
 		return when {
 			type == FileHandle::class.java -> {
 				if (fileCache.containsKey(fileName))
@@ -128,7 +128,7 @@ class MetaAssetProvider : AssetProvider {
 				load(fileName, type)
 				getResource(fileName, type)
 			}
-		}
+		} ?: throw GdxRuntimeException("Resource not found: $fileName")
 	}
 
 	override fun getDrawable(name: String): Drawable {
@@ -140,16 +140,16 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun loadAnimationFrames(baseName: String, frames: Int): Array<out TextureRegion> {
-		val key = baseName.hashCode() + 31 * frames
+		val key = 31 * baseName.hashCode() + frames
 		if (!animCache.containsKey(key)) {
 			// Since we use asSequence() map is lazily evaluated, thus only calling it when necessary.
 			val regions: Array<AtlasRegion> = atlasCache.asSequence().map { it.findRegions(baseName) }.first()
 
 			if (regions.size > 0) {
 				if (frames > -1) regions.setSize(frames) // limit to the request number of frames
-				val unused: Array<out TextureRegion>? = animCache.put(key, regions) as Array<out TextureRegion>?
+				animCache.put(key, regions)
 			} else
-				throw GdxRuntimeException("couldn't load " + baseName)
+				throw GdxRuntimeException("couldn't load $baseName")
 		}
 		return animCache[key]
 	}

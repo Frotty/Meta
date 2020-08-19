@@ -1,5 +1,3 @@
-package de.fatox.meta.input;
+package de.fatox.meta.input
 
-public @interface Hotkey {
-    int[] keycodes();
-}
+annotation class Hotkey(val keycodes: IntArray)
