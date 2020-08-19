@@ -43,7 +43,7 @@ class MetaGeoShader(shaderHandle: GLShaderHandle) : de.fatox.meta.api.graphics.M
         val pixmap = Pixmap(1, 1, Pixmap.Format.RGB888)
         pixmap.drawPixel(0, 0, Color.WHITE.toIntBits())
         whiteTex = Texture(pixmap)
-        emptyNormals = assetProvider!!.get("models/empty_n.png", Texture::class.java)
+        emptyNormals = assetProvider!!.getResource("models/empty_n.png", Texture::class.java)
     }
 
     override fun begin(camera: Camera, context: RenderContext) {

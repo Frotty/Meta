@@ -14,7 +14,6 @@ data class MetaWindowData(var name: String? = null,
                           var displayed: Boolean = false,
                           var dialog: Boolean = false) {
 
-
     constructor(metaWindow: Window) : this() {
         setFrom(metaWindow)
     }

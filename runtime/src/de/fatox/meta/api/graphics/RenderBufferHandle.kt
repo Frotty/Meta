@@ -36,24 +36,18 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
     }
 
     val height: Int
-        get() {
-            if (mrtFrameBuffer != null) {
-                return mrtFrameBuffer!!.height
-            } else if (frameBuffer != null) {
-                return frameBuffer!!.height
-            }
-            return 0
-        }
+        get() = when {
+			mrtFrameBuffer != null -> mrtFrameBuffer!!.height
+			frameBuffer != null -> frameBuffer!!.height
+			else -> 0
+		}
 
     val width: Int
-        get() {
-            if (mrtFrameBuffer != null) {
-                return mrtFrameBuffer!!.width
-            } else if (frameBuffer != null) {
-                return frameBuffer!!.width
-            }
-            return 0
-        }
+        get() = when {
+			mrtFrameBuffer != null -> mrtFrameBuffer!!.width
+			frameBuffer != null -> frameBuffer!!.width
+			else -> 0
+		}
 
     private val singleArray = Array<Texture>(1)
 
@@ -61,18 +55,14 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
         singleArray.size = 1
     }
 
-    private val emptyArray = Array<Texture>()
+    private val emptyArray: Array<out Texture> = Array()
 
-    val colorTextures: Array<Texture>
-        get() {
-            if (mrtFrameBuffer != null) {
-                return mrtFrameBuffer!!.colorBufferTextures
-            } else if (frameBuffer != null) {
-                singleArray.set(0, frameBuffer!!.colorBufferTexture)
-                return singleArray
-            }
-            return emptyArray
-        }
+    val colorTextures: Array<out Texture>
+        get() = when {
+			mrtFrameBuffer != null -> mrtFrameBuffer!!.colorBufferTextures
+			frameBuffer != null -> singleArray.apply { set(0, frameBuffer!!.colorBufferTexture) }
+			else -> emptyArray
+		}
 
 
     fun begin() {
@@ -91,12 +81,9 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
         }
     }
 
-    fun getFBO(): Int {
-        if (mrtFrameBuffer != null) {
-            return mrtFrameBuffer!!.getFBO()
-        } else if (frameBuffer != null) {
-            return frameBuffer!!.framebufferHandle
-        }
-        return -1
-    }
+    fun getFBO(): Int = when {
+		mrtFrameBuffer != null -> mrtFrameBuffer!!.getFBO()
+		frameBuffer != null -> frameBuffer!!.framebufferHandle
+		else -> -1
+	}
 }

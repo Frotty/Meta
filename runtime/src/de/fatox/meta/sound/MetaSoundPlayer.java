@@ -68,7 +68,7 @@ public class MetaSoundPlayer {
 
         if (soundDefinition.getSound() == null) {
             // Load sound if it is played for the first time
-            Sound sound = Gdx.audio.newSound(metaAssetProvider.get(soundDefinition.soundName, FileHandle.class));
+            Sound sound = Gdx.audio.newSound(metaAssetProvider.getResource(soundDefinition.soundName, FileHandle.class));
             soundDefinition.setSound(sound);
         }
         // Play or loop sound

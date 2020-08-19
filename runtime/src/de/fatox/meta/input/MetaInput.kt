@@ -1,220 +1,199 @@
-package de.fatox.meta.input;
+package de.fatox.meta.input
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.controllers.Controllers;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.IntMap;
-import de.fatox.meta.camera.ArcCamControl;
-import de.fatox.meta.ui.components.MetaClickListener;
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.controllers.Controllers
+import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.IntMap
+import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.camera.ArcCamControl
 
-public class MetaInput implements InputProcessor {
-    private final IntMap<Array<KeyListener>> globalKeyListeners = new IntMap<>();
-    private final IntMap<Array<KeyListener>> screenKeyListeners = new IntMap<>();
-    private InputProcessor exclusiveProcessor;
-    private final Array<InputProcessor> globalProcessors = new Array<>();
-    private final Array<InputProcessor> screenProcessors = new Array<>();
+object MetaInput : MetaInputProcessor {
+	private val globalKeyListeners = IntMap<Array<KeyListener>>()
+	private val screenKeyListeners = IntMap<Array<KeyListener>>()
+	private var exclusiveProcessor: InputProcessor? = null
+	private val globalProcessors = Array<InputProcessor>()
+	private val screenProcessors = Array<InputProcessor>()
 
-    public MetaInput() {
-        Gdx.input.setInputProcessor(this);
-        Controllers.addListener(new MetaControllerListener(this));
-    }
+	init {
+		Gdx.input.inputProcessor = this
+		Controllers.addListener(MetaControllerListener(this))
+	}
 
-    public void changeScreen() {
-        screenKeyListeners.clear();
-        screenProcessors.clear();
-    }
+	override fun changeScreen() {
+		screenKeyListeners.clear()
+		screenProcessors.clear()
+	}
 
-    public void addAdapterForScreen(InputProcessor adapter) {
-        screenProcessors.add(adapter);
-    }
+	override fun addAdapterForScreen(adapter: InputProcessor) {
+		screenProcessors.add(adapter)
+	}
 
-    public void registerGlobalKeyListener(int keycode, KeyListener keyListener) {
-        registerGlobalKeyListener(keycode, 0, keyListener);
-    }
+	override fun registerGlobalKeyListener(keycode: Int, keyListener: KeyListener) {
+		registerGlobalKeyListener(keycode, 0, keyListener)
+	}
 
-    public void registerGlobalKeyListener(int keycode, long milisRequired, KeyListener keyListener) {
-        if (!globalKeyListeners.containsKey(keycode)) {
-            globalKeyListeners.put(keycode, new Array<>());
-        }
-        keyListener.setRequiredLengthMillis(milisRequired);
-        globalKeyListeners.get(keycode).add(keyListener);
-    }
+	override fun registerGlobalKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener) {
+		if (!globalKeyListeners.containsKey(keycode)) {
+			globalKeyListeners.put(keycode, Array())
+		}
+		keyListener.setRequiredLengthMillis(millisRequired)
+		globalKeyListeners[keycode].add(keyListener)
+	}
 
-    public void registerScreenKeyListener(int keycode, KeyListener keyListener) {
-        registerScreenKeyListener(keycode, 0, keyListener);
-    }
+	override fun registerScreenKeyListener(keycode: Int, keyListener: KeyListener) {
+		registerScreenKeyListener(keycode, 0, keyListener)
+	}
 
-    public void registerScreenKeyListener(int keycode, long milisRequired, KeyListener keyListener) {
-        if (!screenKeyListeners.containsKey(keycode)) {
-            screenKeyListeners.put(keycode, new Array<>());
-        }
-        keyListener.setRequiredLengthMillis(milisRequired);
-        screenKeyListeners.get(keycode).add(keyListener);
-    }
+	override fun registerScreenKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener) {
+		if (!screenKeyListeners.containsKey(keycode)) {
+			screenKeyListeners.put(keycode, Array())
+		}
+		keyListener.setRequiredLengthMillis(millisRequired)
+		screenKeyListeners[keycode].add(keyListener)
+	}
 
-    @Override
-    public boolean keyTyped(char character) {
-        if (exclusiveProcessor != null) {
-            exclusiveProcessor.keyTyped(character);
-            return false;
-        }
-        for (InputProcessor processor : globalProcessors) {
-            processor.keyTyped(character);
-        }
-        for (InputProcessor processor : screenProcessors) {
-            processor.keyTyped(character);
-        }
-        return false;
-    }
+	override fun keyTyped(character: Char): Boolean {
+		if (exclusiveProcessor != null) {
+			exclusiveProcessor!!.keyTyped(character)
+			return false
+		}
+		for (processor in globalProcessors) {
+			processor.keyTyped(character)
+		}
+		for (processor in screenProcessors) {
+			processor.keyTyped(character)
+		}
+		return false
+	}
 
-    @Override
-    public boolean keyDown(int keycode) {
-        if (exclusiveProcessor != null) {
-            exclusiveProcessor.keyDown(keycode);
-            return false;
-        }
-        if (screenKeyListeners.containsKey(keycode)) {
-            for (KeyListener listener : screenKeyListeners.get(keycode)) {
-                listener.onDown();
-            }
-        }
-        if (globalKeyListeners.containsKey(keycode)) {
-            for (KeyListener listener : globalKeyListeners.get(keycode)) {
-                listener.onDown();
-            }
-        }
-        for (InputProcessor processor : globalProcessors) {
-            processor.keyDown(keycode);
-        }
-        for (InputProcessor processor : screenProcessors) {
-            processor.keyDown(keycode);
-        }
-        return false;
-    }
+	override fun keyDown(keycode: Int): Boolean {
+		if (exclusiveProcessor != null) {
+			exclusiveProcessor!!.keyDown(keycode)
+			return false
+		}
+		if (screenKeyListeners.containsKey(keycode)) {
+			for (listener in screenKeyListeners[keycode]) {
+				listener.onDown()
+			}
+		}
+		if (globalKeyListeners.containsKey(keycode)) {
+			for (listener in globalKeyListeners[keycode]) {
+				listener.onDown()
+			}
+		}
+		for (processor in globalProcessors) {
+			processor.keyDown(keycode)
+		}
+		for (processor in screenProcessors) {
+			processor.keyDown(keycode)
+		}
+		return false
+	}
 
-    @Override
-    public boolean keyUp(int keycode) {
-        if (exclusiveProcessor != null) {
-            exclusiveProcessor.keyUp(keycode);
-            return false;
-        }
-        if (screenKeyListeners.containsKey(keycode)) {
-            for (KeyListener listener : screenKeyListeners.get(keycode)) {
-                listener.onUp();
-            }
-        }
-        if (globalKeyListeners.containsKey(keycode)) {
-            for (KeyListener listener : globalKeyListeners.get(keycode)) {
-                listener.onUp();
-            }
-        }
-        for (InputProcessor processor : globalProcessors) {
-            processor.keyUp(keycode);
-        }
-        for (InputProcessor processor : screenProcessors) {
-            processor.keyUp(keycode);
-        }
-        return false;
-    }
+	override fun keyUp(keycode: Int): Boolean {
+		if (exclusiveProcessor != null) {
+			exclusiveProcessor!!.keyUp(keycode)
+			return false
+		}
+		if (screenKeyListeners.containsKey(keycode)) {
+			for (listener in screenKeyListeners[keycode]) {
+				listener.onUp()
+			}
+		}
+		if (globalKeyListeners.containsKey(keycode)) {
+			for (listener in globalKeyListeners[keycode]) {
+				listener.onUp()
+			}
+		}
+		for (processor in globalProcessors) {
+			processor.keyUp(keycode)
+		}
+		for (processor in screenProcessors) {
+			processor.keyUp(keycode)
+		}
+		return false
+	}
 
-    @Override
-    public boolean scrolled(int amount) {
-        if (exclusiveProcessor != null) {
-            exclusiveProcessor.scrolled(amount);
-            return true;
-        }
-        for (InputProcessor processor : globalProcessors) {
-            if (processor.scrolled(amount))
-                return true;
-        }
-        for (InputProcessor processor : screenProcessors) {
-            if (processor.scrolled(amount))
-                return true;
-        }
-        return true;
-    }
+	override fun scrolled(amount: Int): Boolean {
+		if (exclusiveProcessor != null) {
+			exclusiveProcessor!!.scrolled(amount)
+			return true
+		}
+		for (processor in globalProcessors) {
+			if (processor.scrolled(amount)) return true
+		}
+		for (processor in screenProcessors) {
+			if (processor.scrolled(amount)) return true
+		}
+		return true
+	}
 
-    @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if (exclusiveProcessor != null) {
-            exclusiveProcessor.touchDown(screenX, screenY, pointer, button);
-            return true;
-        }
-        for (InputProcessor processor : globalProcessors) {
-            if (processor.touchDown(screenX, screenY, pointer, button))
-                return true;
-        }
-        for (InputProcessor processor : screenProcessors) {
-            if (processor.touchDown(screenX, screenY, pointer, button))
-                return true;
-        }
-        return true;
-    }
+	override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+		if (exclusiveProcessor != null) {
+			exclusiveProcessor!!.touchDown(screenX, screenY, pointer, button)
+			return true
+		}
+		for (processor in globalProcessors) {
+			if (processor.touchDown(screenX, screenY, pointer, button)) return true
+		}
+		for (processor in screenProcessors) {
+			if (processor.touchDown(screenX, screenY, pointer, button)) return true
+		}
+		return true
+	}
 
-    @Override
-    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        if (exclusiveProcessor != null) {
-            exclusiveProcessor.touchUp(screenX, screenY, pointer, button);
-            return false;
-        }
-        for (InputProcessor processor : globalProcessors) {
-            if (processor.touchUp(screenX, screenY, pointer, button))
-                return true;
-        }
-        for (InputProcessor processor : screenProcessors) {
-            if (processor.touchUp(screenX, screenY, pointer, button))
-                return true;
-        }
-        return false;
-    }
+	override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+		if (exclusiveProcessor != null) {
+			exclusiveProcessor!!.touchUp(screenX, screenY, pointer, button)
+			return false
+		}
+		for (processor in globalProcessors) {
+			if (processor.touchUp(screenX, screenY, pointer, button)) return true
+		}
+		for (processor in screenProcessors) {
+			if (processor.touchUp(screenX, screenY, pointer, button)) return true
+		}
+		return false
+	}
 
-    @Override
-    public boolean touchDragged(int screenX, int screenY, int pointer) {
-        if (exclusiveProcessor != null) {
-            exclusiveProcessor.touchDragged(screenX, screenY, pointer);
-            return false;
-        }
-        for (InputProcessor processor : globalProcessors) {
-            if (processor.touchDragged(screenX, screenY, pointer))
-                return true;
-        }
-        for (InputProcessor processor : screenProcessors) {
-            if (processor.touchDragged(screenX, screenY, pointer))
-                return true;
-        }
-        return true;
-    }
+	override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
+		if (exclusiveProcessor != null) {
+			exclusiveProcessor!!.touchDragged(screenX, screenY, pointer)
+			return false
+		}
+		for (processor in globalProcessors) {
+			if (processor.touchDragged(screenX, screenY, pointer)) return true
+		}
+		for (processor in screenProcessors) {
+			if (processor.touchDragged(screenX, screenY, pointer)) return true
+		}
+		return true
+	}
 
-    @Override
-    public boolean mouseMoved(int screenX, int screenY) {
-        if (exclusiveProcessor != null) {
-            exclusiveProcessor.mouseMoved(screenX, screenY);
-            return false;
-        }
-        for (InputProcessor processor : globalProcessors) {
-            if (processor.mouseMoved(screenX, screenY))
-                return true;
-        }
-        for (InputProcessor processor : screenProcessors) {
-            if (processor.mouseMoved(screenX, screenY))
-                return true;
-        }
-        return false;
-    }
+	override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
+		if (exclusiveProcessor != null) {
+			exclusiveProcessor!!.mouseMoved(screenX, screenY)
+			return false
+		}
+		for (processor in globalProcessors) {
+			if (processor.mouseMoved(screenX, screenY)) return true
+		}
+		for (processor in screenProcessors) {
+			if (processor.mouseMoved(screenX, screenY)) return true
+		}
+		return false
+	}
 
-    public void registerClick(String simpleName, MetaClickListener metaClickListener) {
-    }
+	override fun setExclusiveProcessor(exclusiveProcessor: InputProcessor?) {
+		this.exclusiveProcessor = exclusiveProcessor
+	}
 
-    public void setExclusiveProcessor(InputProcessor exclusiveProcessor) {
-        this.exclusiveProcessor = exclusiveProcessor;
-    }
+	override fun addGlobalAdapter(processor: InputProcessor) {
+		globalProcessors.add(processor)
+	}
 
-    public void addGlobalAdapter(InputProcessor processor) {
-        globalProcessors.add(processor);
-    }
-
-    public void removeAdapterFromScreen(ArcCamControl camControl) {
-        screenProcessors.removeValue(camControl, true);
-    }
+	override fun removeAdapterFromScreen(camControl: ArcCamControl) {
+		screenProcessors.removeValue(camControl, true)
+	}
 }

@@ -1,34 +1,28 @@
-package de.fatox.meta.assets;
+package de.fatox.meta.assets
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.math.BigInteger
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 
-public class HashUtils {
-    private static final ByteBuffer buffer = ByteBuffer.allocate(1024 * 4 * 4);
 
-    public static byte[] computeSha1(ReadableByteChannel channel) {
-        try {
-			buffer.rewind();
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            while (channel.read(buffer) != -1) {
-                buffer.flip();
-                digest.update(buffer);
-                buffer.clear();
-            }
-            return digest.digest();
-        } catch (NoSuchAlgorithmException | IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
-	//  http://stackoverflow.com/a/3940857/314015
-	static String hex(byte[] data) {
-		return String.format("%040x", new BigInteger(1, data));
+object HashUtils {
+	const val HASH_LENGTH = 20
+
+	private val buffer = ByteBuffer.allocate(1024 * 4 * 4)
+	private val digest: MessageDigest = MessageDigest.getInstance("SHA-1")
+
+	fun requireValidHash(input: ByteArray) {
+		digest.reset()
+		digest.update(input, 0, input.size - HASH_LENGTH)
+		val newHash = digest.digest()
+		val oldHash = input.copyOfRange(input.size - HASH_LENGTH, input.lastIndex)
+		check(newHash.contentEquals(oldHash))
+		{ "game files invalid. expected: ${hex(oldHash)} actual: ${hex(newHash)}" }
 	}
 
+	//  http://stackoverflow.com/a/3940857/314015
+	private fun hex(data: ByteArray?): String {
+		return String.format("%040x", BigInteger(1, data))
+	}
 }
-

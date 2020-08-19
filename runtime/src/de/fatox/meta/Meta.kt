@@ -29,7 +29,7 @@ open class Meta : Game {
 	protected var modifier: PosModifier
 
 	@JvmOverloads
-	constructor(modifier: PosModifier = DummyPosModifier()) {
+	constructor(modifier: PosModifier = DummyPosModifier) {
 		this.modifier = modifier
 		setUncaughtHandler()
 		metaInstance = this

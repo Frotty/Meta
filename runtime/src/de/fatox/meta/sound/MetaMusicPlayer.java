@@ -109,7 +109,7 @@ public class MetaMusicPlayer {
 
     private Music getMusic(String musicPath) {
         if (!musicCache.containsKey(musicPath)) {
-            Music music = assetProvider.get(musicPath, Music.class);
+            Music music = assetProvider.getResource(musicPath, Music.class);
             musicCache.put(musicPath, music);
         }
         return musicCache.get(musicPath);

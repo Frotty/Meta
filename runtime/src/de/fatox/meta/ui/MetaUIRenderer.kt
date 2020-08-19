@@ -14,38 +14,32 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.file.FileChooser
-import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.ui.UIRenderer
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.Named
-import de.fatox.meta.input.MetaInput
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.api.MetaInputProcessor
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 
 class MetaUIRenderer : UIRenderer {
-	private val log = LoggerFactory.getLogger(MetaUiManager::class.java)
+	private val log: Logger = LoggerFactory.getLogger(MetaUiManager::class.java)
 
-    @Inject
-    private lateinit var metaInput: MetaInput
-    @Inject
-    private lateinit var assetProvider: AssetProvider
-    @Inject
-    @Named("visuiSkin")
-    private lateinit var visuiSkin: String
-	@Inject
-	private lateinit var spriteBatch: SpriteBatch
+    private val metaInput: MetaInputProcessor by lazyInject()
+    private val assetProvider: AssetProvider by lazyInject()
+    private val visuiSkin: String by lazyInject("visuiSkin")
+	private val spriteBatch: SpriteBatch by lazyInject()
+
     private var stage: Stage;
 
     init {
-        Meta.inject(this)
 		stage = Stage(ScreenViewport(), spriteBatch)
         log.debug("Injected MetaUi")
     }
 
     override fun load() {
         if (visuiSkin != "") {
-            VisUI.load(assetProvider[visuiSkin, FileHandle::class.java])
+            VisUI.load(assetProvider.getResource(visuiSkin, FileHandle::class.java))
         } else {
             VisUI.load()
         }
@@ -61,15 +55,11 @@ class MetaUIRenderer : UIRenderer {
         metaInput.addGlobalAdapter(stage)
     }
 
-
-
-
-
     override fun addActor(actor: Actor) {
         try {
             stage.addActor(actor)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: Throwable) {
+            log.error("Failed to add actor!", e)
         }
     }
 
@@ -88,5 +78,4 @@ class MetaUIRenderer : UIRenderer {
     override fun getCamera(): Camera {
         return stage.camera
     }
-
 }

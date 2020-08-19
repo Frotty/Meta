@@ -1,23 +1,15 @@
 package de.fatox.meta.api
 
 interface PosModifier {
-    fun modify(x: Int, y: Int)
+	val x: Int
+	val y: Int
 
-    fun getX(): Int
-    fun getY(): Int
+	fun modify(x: Int, y: Int)
 }
 
-class DummyPosModifier : PosModifier {
-    override fun getX(): Int {
-        return -1
-    }
+object DummyPosModifier : PosModifier {
+	override val x: Int = -1
+	override val y: Int = -1
 
-    override fun getY(): Int {
-        return -1
-    }
-
-    override fun modify(x: Int, y: Int) {
-
-    }
-
+	override fun modify(x: Int, y: Int) = Unit
 }

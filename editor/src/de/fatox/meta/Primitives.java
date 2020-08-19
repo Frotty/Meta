@@ -34,7 +34,7 @@ public class Primitives {
 
     public Primitives() {
         Meta.inject(this);
-        defaultMaterial.set(TextureAttribute.createDiffuse(assetProvider.get("textures/defaultTex.png", Texture.class)));
+        defaultMaterial.set(TextureAttribute.createDiffuse(assetProvider.getResource("textures/defaultTex.png", Texture.class)));
     }
 
     public Model getPlaneLines() {

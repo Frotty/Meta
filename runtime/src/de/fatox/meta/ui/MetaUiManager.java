@@ -44,7 +44,7 @@ public class MetaUiManager implements UIManager {
 
     private Table contentTable = new Table();
     private String currentScreenId = "(none)";
-    private PosModifier posModifier = new DummyPosModifier();
+    private PosModifier posModifier = DummyPosModifier.INSTANCE;
 
     public MetaUiManager() {
         Meta.inject(this);

@@ -33,7 +33,5 @@ data class MetaAudioVideoData(var profile: String = "default") {
             Gdx.graphics.setWindowedMode(width, height)
         }
         Gdx.graphics.setVSync(vsyncEnabled)
-
     }
-
 }

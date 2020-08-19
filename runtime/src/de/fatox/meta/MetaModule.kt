@@ -38,7 +38,7 @@ class MetaModule {
 			singleton<UIRenderer> { MetaUIRenderer() }
 			singleton<UIManager> { MetaUiManager() }
 			singleton { ModelBuilder() }
-			singleton { MetaInput() }
+			singleton { MetaInput }
 			singleton<EntityManager<Meta3DEntity>>("default") { MetaEntityManager() }
 			singleton("default") { MetaTaskManager() }
 			singleton("", "default")

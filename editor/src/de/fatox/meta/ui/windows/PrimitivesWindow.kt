@@ -36,7 +36,7 @@ class PrimitivesWindow : MetaWindow("Primitives", true, true) {
             override fun clicked(event: InputEvent, x: Float, y: Float) {
                 for (i in 0..105) {
                     val entity = Meta3DEntity(Vector3(MathUtils.random(-10, 10).toFloat(), MathUtils.random(-0.5f, 5.0f), MathUtils.random(-10, 10).toFloat()),
-                            assetProvider.get("models/box.g3dj", Model::class.java), MathUtils.random(0.001f, 0.01f))
+                            assetProvider.getResource("models/box.g3dj", Model::class.java), MathUtils.random(0.001f, 0.01f))
 
                     val currentTab = metaEditorUI.currentTab
                     (currentTab as? SceneTab)?.sceneHandle?.entityManager?.addStaticEntity(entity)

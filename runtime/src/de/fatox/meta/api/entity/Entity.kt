@@ -11,5 +11,4 @@ interface Entity<out DIMENSION : Vector<*>> {
     fun update()
 
     fun draw()
-
 }

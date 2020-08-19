@@ -12,7 +12,6 @@ import de.fatox.meta.injection.Inject;
 public class DistanceFieldFontProvider implements FontProvider {
     private BitmapFont distanceFieldFont;
 
-
     @Inject
     private AssetProvider assetProvider;
 

@@ -9,7 +9,6 @@ import com.badlogic.gdx.utils.Array
  */
 data class MetaShaderCompData(var name: String = "Unnamed ShaderComp") {
     val renderBuffers: Array<RenderBufferData> = Array()
-
 }
 
 

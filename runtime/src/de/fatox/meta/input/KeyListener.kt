@@ -1,42 +1,35 @@
-package de.fatox.meta.input;
+package de.fatox.meta.input
 
-import com.badlogic.gdx.utils.Timer;
+import com.badlogic.gdx.utils.Timer
+import com.badlogic.gdx.utils.Timer.Task
 
-public abstract class KeyListener {
-    private long requiredLengthMillis = 0;
-    private Timer.Task task = null;
+abstract class KeyListener {
+	var requiredLengthMillis: Long = 0
+	private var task: Task? = null
 
-    public abstract void onEvent();
+	abstract fun onEvent()
 
-    public void onDown() {
-        if (requiredLengthMillis > 0) {
-            task = new Timer.Task() {
-                @Override
-                public void run() {
-                    Timer.schedule(task, requiredLengthMillis / 1000f);
-                    onEvent();
-                }
-            };
-            Timer.schedule(task, requiredLengthMillis / 1000f);
-        }
-    }
+	fun onDown() {
+		if (requiredLengthMillis > 0) {
+			task = object : Task() {
+				override fun run() {
+					Timer.schedule(task, requiredLengthMillis / 1000f)
+					onEvent()
+				}
+			}
+			Timer.schedule(task, requiredLengthMillis / 1000f)
+		}
+	}
 
-    public void onUp() {
-        if (task != null) {
-            task.cancel();
-        }
-        if(requiredLengthMillis <= 0) {
-            onEvent();
-        }
-    }
+	fun onUp() {
+		task?.cancel()
+		if (requiredLengthMillis <= 0) {
+			onEvent()
+		}
+	}
 
-    public void resetDelay() {
-        task.cancel();
-        Timer.schedule(task, requiredLengthMillis / 1000f);
-    }
-
-    public void setRequiredLengthMillis(long requiredLengthMillis) {
-        this.requiredLengthMillis = requiredLengthMillis;
-    }
-
+	fun resetDelay() {
+		task!!.cancel()
+		Timer.schedule(task, requiredLengthMillis / 1000f)
+	}
 }

@@ -62,7 +62,7 @@ public class GBufferShader implements Shader {
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGB888);
         pixmap.drawPixel(0, 0, Color.WHITE.toIntBits());
         whiteTex = new Texture(pixmap);
-        emptyNormals = assetProvider.get("models/empty_n.png", Texture.class);
+        emptyNormals = assetProvider.getResource("models/empty_n.png", Texture.class);
     }
 
     @Override

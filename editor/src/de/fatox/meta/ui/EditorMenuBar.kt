@@ -65,14 +65,14 @@ class EditorMenuBar {
 
     private fun createFileMenu(): Menu {
         val fileMenu = Menu(languageBundle["filemenu_title"])
-        val menuItemNewProject = MenuItem(languageBundle["filemenu_new_proj"], Image(assetProvider["ui/appbar.new.png", Texture::class.java]))
+        val menuItemNewProject = MenuItem(languageBundle["filemenu_new_proj"], Image(assetProvider.getResource("ui/appbar.new.png", Texture::class.java)))
         menuItemNewProject.addListener(object : ChangeListener() {
             override fun changed(event: ChangeEvent, actor: Actor) {
                 uiManager.showDialog(ProjectWizardDialog::class.java)
             }
         })
         fileMenu.addItem(menuItemNewProject)
-        val menuItemNewScene = MenuItem(languageBundle["filemenu_new_scene"], Image(assetProvider["ui/appbar.new.png", Texture::class.java]))
+        val menuItemNewScene = MenuItem(languageBundle["filemenu_new_scene"], Image(assetProvider.getResource("ui/appbar.new.png", Texture::class.java)))
         menuItemNewScene.addListener(object : ChangeListener() {
             override fun changed(event: ChangeEvent, actor: Actor) {
                 if (projectManager.currentProject != null) {
@@ -83,7 +83,7 @@ class EditorMenuBar {
             }
         })
         fileMenu.addItem(menuItemNewScene)
-        val menuItemOpen = MenuItem(languageBundle["filemenu_open"], Image(assetProvider["ui/appbar.folder.open.png", Texture::class.java]))
+        val menuItemOpen = MenuItem(languageBundle["filemenu_open"], Image(assetProvider.getResource("ui/appbar.folder.open.png", Texture::class.java)))
         menuItemOpen.addListener(object : ChangeListener() {
             override fun changed(event: ChangeEvent, actor: Actor) {
                 uiManager.showDialog(OpenProjectDialog::class.java)

@@ -1,27 +1,20 @@
-package de.fatox.meta.input;
+package de.fatox.meta.input
 
-import de.fatox.meta.Meta;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.task.MetaTask;
+import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.task.MetaTask
 
+class MetaShortcut(callback: MetaTask?, vararg keycodes: Int) {
+	private val metaInput: MetaInputProcessor by lazyInject()
+	private val missingKeys: Int = keycodes.size
 
-public class MetaShortcut {
-    @Inject
-    private MetaInput metaInput;
-
-    private int missingKeys;
-
-    public MetaShortcut(final MetaTask callback, int... keycodes) {
-        Meta.inject(this);
-        missingKeys = keycodes.length;
-        // TODO use new metainput
+	init {
+// TODO use new metaInput
 //        for(int code : keycodes) {
 //            metaInput.registerKeyListener(code, new KeyListener() {
 //                @Override
 //                void onEvent() {
-//
 //                }
-//
 //                @Override
 //                public void onDown() {
 //                    missingKeys--;
@@ -29,13 +22,11 @@ public class MetaShortcut {
 //                        callback.execute();
 //                    }
 //                }
-//
 //                @Override
 //                public void onUp() {
 //                    missingKeys++;
 //                }
 //            });
 //        }
-    }
-
+	}
 }
