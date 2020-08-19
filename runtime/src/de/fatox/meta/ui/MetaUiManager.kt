@@ -3,7 +3,6 @@ package de.fatox.meta.ui
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.utils.Array
-import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.TimeUtils
 import com.badlogic.gdx.utils.reflect.ClassReflection
 import com.badlogic.gdx.utils.reflect.ReflectionException
