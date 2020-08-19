@@ -1,15 +1,14 @@
-package de.fatox.meta.camera;
+package de.fatox.meta.camera
 
-import com.badlogic.gdx.Input.Buttons;
-import com.badlogic.gdx.Input.Keys;
-import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.math.Vector3;
-import de.fatox.meta.Meta;
-import de.fatox.meta.api.entity.EntityManager;
-import de.fatox.meta.entity.Meta3DEntity;
-import de.fatox.meta.injection.Inject;
+import com.badlogic.gdx.Input
+import com.badlogic.gdx.Input.Buttons
+import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.graphics.PerspectiveCamera
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
+import com.badlogic.gdx.math.Vector3
+import de.fatox.meta.api.entity.EntityManager
+import de.fatox.meta.entity.Meta3DEntity
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
  * Better camera control because I dislike LibGDX's
@@ -17,192 +16,186 @@ import de.fatox.meta.injection.Inject;
  *
  * @author Frotty
  */
-public class ArcCamControl implements InputProcessor {
-    private static Vector3 temp = new Vector3();
-    public static boolean yes = true;
-    /** The button for moving the target. */
-    public int moveCameraButton = Buttons.RIGHT;
-    public int resetCameraButton = Buttons.MIDDLE;
-    /** The units to translate the camera when moved the full width or height of the screen. */
-    public float translateUnits = 0.2f; // FIXME auto calculate this based on the target
-    /** The key which must be pressed to enter rotation mode. */
-    public int rotateMode = Keys.CONTROL_LEFT;
-    protected boolean rotateModeOn = false;
-    protected boolean fastZoomMode = false;
-    /** The camera. */
-    @Inject
-    public PerspectiveCamera camera;
-    @Inject
-    public EntityManager<Meta3DEntity> entityManager;
-    @Inject
-    public ModelBuilder modelBuilder;
-    /** Are we in moveMode? */
-    private boolean moveModeOn = false;
-    /** The target of the arcball */
-    private Vector3 target = Vector3.Zero;
-    /** The planar (X/Y) rotation of the camera */
-    private float rotationAngle = 0;
-    /** The angle in which the camera looks onto the target */
-    private float angleOfAttack = 56;
+class ArcCamControl : InputProcessor {
+	/** The button for moving the target.  */
+	var moveCameraButton = Buttons.RIGHT
+	var resetCameraButton = Buttons.MIDDLE
 
-    /** Distance from target */
-    private float distance = 10;
+	/** The units to translate the camera when moved the full width or height of the screen.  */
+	var translateUnits = 0.2f // FIXME auto calculate this based on the target
 
-    public float getDistance() {
-        return distance;
-    }
+	/** The key which must be pressed to enter rotation mode.  */
+	var rotateMode = Input.Keys.CONTROL_LEFT
+	protected var rotateModeOn = false
+	protected var fastZoomMode = false
 
-    public void setDistance(float distance) {
-        this.distance = distance;
-        update();
-    }
+	/** The camera.  */
+	val camera: PerspectiveCamera by lazyInject()
+	val entityManager: EntityManager<Meta3DEntity> by lazyInject()
+	val modelBuilder: ModelBuilder by lazyInject()
 
-    private int startX, startY;
+	/** Are we in moveMode?  */
+	private var moveModeOn = false
 
-    public ArcCamControl() {
-        Meta.inject(this);
-        update();
-    }
+	/** The target of the arcball  */
+	private val target = Vector3.Zero
 
-    public void update() {
-        target.lerp(temp, 0.5f);
+	/** The planar (X/Y) rotation of the camera  */
+	private var rotationAngle = 0f
 
-        camera.position.x = ppX(target.x, distance, rotationAngle, angleOfAttack);
-        camera.position.y = ppY(0, distance, angleOfAttack);
-        camera.position.z = ppZ(target.z, distance, rotationAngle, angleOfAttack);
+	/** The angle in which the camera looks onto the target  */
+	private var angleOfAttack = 56f
 
-        camera.direction.x = target.x - camera.position.x;
-        camera.direction.y = target.y - camera.position.y;
-        camera.direction.z = target.z - camera.position.z;
+	/** Distance from target  */
+	private var distance = 10f
+	fun getDistance(): Float {
+		return distance
+	}
 
-        camera.up.x = -sin(rotationAngle) * cos(angleOfAttack);
-        camera.up.y = sin(angleOfAttack);
-        camera.up.z = -cos(rotationAngle) * cos(angleOfAttack);
-        camera.update();
-    }
+	fun setDistance(distance: Float) {
+		this.distance = distance
+		update()
+	}
 
-    private static float cos(float aoa) {
-        return (float) Math.cos(aoa * DEGTORAD);
-    }
+	private var startX = 0
+	private var startY = 0
+	fun update() {
+		target.lerp(temp, 0.5f)
+		camera.position.x = ppX(target.x, distance, rotationAngle, angleOfAttack)
+		camera.position.y = ppY(0f, distance, angleOfAttack)
+		camera.position.z = ppZ(target.z, distance, rotationAngle, angleOfAttack)
+		camera.direction.x = target.x - camera.position.x
+		camera.direction.y = target.y - camera.position.y
+		camera.direction.z = target.z - camera.position.z
+		camera.up.x = -sin(rotationAngle) * cos(angleOfAttack)
+		camera.up.y = sin(angleOfAttack)
+		camera.up.z = -cos(rotationAngle) * cos(angleOfAttack)
+		camera.update()
+	}
 
-    private static float sin(float ang) {
-        return (float) Math.sin(ang * DEGTORAD);
-    }
+	override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+		if (button == moveCameraButton) {
+			startX = screenX
+			startY = screenY
+			moveModeOn = true
+		}
+		if (button == resetCameraButton) {
+			rotationAngle = 0f
+			angleOfAttack = 56f
+			distance = 10f
+		}
+		update()
+		return false
+	}
 
-    @Override
-    public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if (button == moveCameraButton) {
-            startX = screenX;
-            startY = screenY;
-            moveModeOn = true;
-        }
-        if (button == resetCameraButton) {
-            rotationAngle = 0;
-            angleOfAttack = 56;
-            distance = 10;
-        }
-        update();
-        return false;
-    }
+	override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+		if (button == moveCameraButton) {
+			startX = screenX
+			startY = screenY
+			moveModeOn = false
+		}
+		update()
+		return false
+	}
 
-    @Override
-    public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        if (button == moveCameraButton) {
-            startX = screenX;
-            startY = screenY;
-            moveModeOn = false;
-        }
-        update();
-        return false;
-    }
+	override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
+		// Touch drag equals clicking a mouseButton and then moving the mouse
+		// In case the right mouse button is clicked, we are in MoveMode
+		if (moveModeOn) {
+			// Calculate the middle of old and new mousePosition
+			var deltaX = (screenX - startX).toFloat()
+			var deltaY = (startY - screenY).toFloat()
+			startX = screenX
+			startY = screenY
+			// If CTRL is active, we only rotate
+			if (rotateModeOn) {
+				angleOfAttack += deltaY * .25.toFloat()
+				rotationAngle += deltaX * .25.toFloat()
+			} else {
+				// Otherwise we simple move the target
+				if (distance < 150) {
+					deltaX *= distance / 100
+					deltaY *= distance / 100
+				}
+				temp.set(target).add(sin(rotationAngle) * deltaY + cos(rotationAngle) * -deltaX, 0f, cos(rotationAngle) * deltaY + sin(rotationAngle) * deltaX)
+			}
+			update()
+		}
+		return false
+	}
 
-    @Override
-    public boolean touchDragged(int screenX, int screenY, int pointer) {
-        // Touch drag equals clicking a mouseButton and then moving the mouse
-        // In case the right mouse button is clicked, we are in MoveMode
-        if (moveModeOn) {
-            // Calculate the middle of old and new mousePosition
-            float deltaX = (screenX - startX);
-            float deltaY = (startY - screenY);
-            startX = screenX;
-            startY = screenY;
-            // If CTRL is active, we only rotate
-            if (rotateModeOn) {
-                angleOfAttack += deltaY * .25;
-                rotationAngle += deltaX * .25;
-            } else {
-                // Otherwise we simple move the target
-                if (distance < 150) {
-                    deltaX *= distance / 100;
-                    deltaY *= distance / 100;
-                }
-                temp.set(target).add(sin(rotationAngle) * deltaY + cos(rotationAngle) * -deltaX, 0, cos(rotationAngle) * deltaY + sin(rotationAngle) * deltaX);
-            }
-            update();
-        }
-        return false;
-    }
+	override fun scrolled(amount: Int): Boolean {
+		return if (fastZoomMode) {
+			zoom(amount * translateUnits * 10)
+		} else {
+			zoom(amount * translateUnits)
+		}
+	}
 
-    @Override
-    public boolean scrolled(int amount) {
-        if (fastZoomMode) {
-            return zoom(amount * translateUnits * 10);
-        } else {
-            return zoom(amount * translateUnits);
-        }
+	fun zoom(amount: Float): Boolean {
+		distance += amount
+		update()
+		return true
+	}
 
-    }
+	override fun keyDown(keycode: Int): Boolean {
+		if (keycode == Input.Keys.CONTROL_LEFT) {
+			rotateModeOn = true
+		} else if (keycode == Input.Keys.SHIFT_LEFT) {
+			fastZoomMode = true
+		} else {
+			yes = !yes
+		}
+		return false
+	}
 
-    public boolean zoom(float amount) {
-        distance += amount;
-        update();
-        return true;
-    }
+	override fun keyUp(keycode: Int): Boolean {
+		if (keycode == Input.Keys.CONTROL_LEFT) {
+			rotateModeOn = false
+		} else if (keycode == Input.Keys.SHIFT_LEFT) {
+			fastZoomMode = false
+		}
+		return false
+	}
 
-    @Override
-    public boolean keyDown(int keycode) {
-        if (keycode == Keys.CONTROL_LEFT) {
-            rotateModeOn = true;
-        } else if (keycode == Keys.SHIFT_LEFT) {
-            fastZoomMode = true;
-        } else {
-            yes= ! yes;
-        }
-        return false;
-    }
+	override fun keyTyped(character: Char): Boolean {
+		return false
+	}
 
-    @Override
-    public boolean keyUp(int keycode) {
-        if (keycode == Keys.CONTROL_LEFT) {
-            rotateModeOn = false;
-        } else if (keycode == Keys.SHIFT_LEFT) {
-            fastZoomMode = false;
-        }
-        return false;
-    }
+	override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
+		return false
+	}
 
-    @Override
-    public boolean keyTyped(char character) {
-        return false;
-    }
+	companion object {
+		private val temp = Vector3()
 
-    @Override
-    public boolean mouseMoved(int screenX, int screenY) {
-        return false;
-    }
+		@JvmField
+		var yes = true
+		private fun cos(aoa: Float): Float {
+			return kotlin.math.cos(aoa * DEG_TO_RAD.toDouble()).toFloat()
+		}
 
-    /** Polar Projection from Wurst */
-    private static float ppX(float x, float dist, float ang, float aoa) {
-        return (float) (x + dist * Math.sin(ang * DEGTORAD) * Math.sin(aoa * DEGTORAD));
-    }
+		private fun sin(ang: Float): Float {
+			return kotlin.math.sin(ang * DEG_TO_RAD.toDouble()).toFloat()
+		}
 
-    private static float ppY(float y, float dist, float ang) {
-        return (float) (y + dist * Math.cos(ang * DEGTORAD));
-    }
+		/** Polar Projection from Wurst  */
+		private fun ppX(x: Float, dist: Float, ang: Float, aoa: Float): Float {
+			return (x + dist * kotlin.math.sin(ang * DEG_TO_RAD.toDouble()) * kotlin.math.sin(aoa * DEG_TO_RAD.toDouble())).toFloat()
+		}
 
-    private static float ppZ(float z, float dist, float ang, float aoa) {
-        return (float) (z + dist * Math.cos(ang * DEGTORAD) * Math.sin(aoa * DEGTORAD));
-    }
+		private fun ppY(y: Float, dist: Float, ang: Float): Float {
+			return (y + dist * kotlin.math.cos(ang * DEG_TO_RAD.toDouble())).toFloat()
+		}
 
-    public static final float DEGTORAD = 0.017453293f;
+		private fun ppZ(z: Float, dist: Float, ang: Float, aoa: Float): Float {
+			return (z + dist * kotlin.math.cos(ang * DEG_TO_RAD.toDouble()) * kotlin.math.sin(aoa * DEG_TO_RAD.toDouble())).toFloat()
+		}
+
+		private const val DEG_TO_RAD = 0.017453293f
+	}
+
+	init {
+		update()
+	}
 }

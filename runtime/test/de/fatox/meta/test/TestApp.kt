@@ -1,6 +1,5 @@
-package de.fatox.meta.test;
+package de.fatox.meta.test
 
-import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.ApplicationAdapter
 
-public class TestApp extends ApplicationAdapter {
-}
+class TestApp : ApplicationAdapter()

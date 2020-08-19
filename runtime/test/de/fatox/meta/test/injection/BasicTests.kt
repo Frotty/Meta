@@ -1,44 +1,43 @@
-package de.fatox.meta.test.injection;
+package de.fatox.meta.test.injection
 
-import de.fatox.meta.Meta;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Named;
-import de.fatox.meta.injection.Provides;
-import de.fatox.meta.injection.Singleton;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import de.fatox.meta.Meta.Companion.addModule
+import de.fatox.meta.Meta.Companion.inject
+import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.Named
+import de.fatox.meta.injection.Provides
+import de.fatox.meta.injection.Singleton
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-public class BasicTests {
+internal class BasicTests {
+	class NamedTestModule {
+		@Provides
+		@Named("someName")
+		@Singleton
+		fun someString(): String {
+			return "yeah"
+		}
+	}
 
-    public static class NamedTestModule {
+	@BeforeEach
+	fun prepare() {
+		addModule(NamedTestModule())
+	}
 
-        @Provides
-        @Named("someName")
-        @Singleton
-        public String someString() {
-            return "yeah";
-        }
-    }
+	class NamedTestSample {
+		@Inject
+		@Named("someName")
+		var s: String? = null
 
-    @Before
-    public void prepare() {
-        Meta.addModule(new NamedTestModule());
-    }
+		init {
+			inject(this)
+		}
+	}
 
-    public static class NamedTestSample {
-        @Inject
-        @Named("someName")
-        public String s;
-
-        public NamedTestSample() {
-            Meta.inject(this);
-        }
-    }
-
-    @Test
-    public void testNamed() {
-        NamedTestSample namedTestSample = new NamedTestSample();
-        Assert.assertEquals("yeah", namedTestSample.s);
-    }
+	@Test
+	fun testNamed() {
+		val namedTestSample = NamedTestSample()
+		Assertions.assertEquals("yeah", namedTestSample.s)
+	}
 }
