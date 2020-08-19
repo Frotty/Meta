@@ -73,8 +73,4 @@ class AssetDiscoverer {
 		currentFolder = root
 		refresh()
 	}
-
-	init {
-		inject(this)
-	}
 }
