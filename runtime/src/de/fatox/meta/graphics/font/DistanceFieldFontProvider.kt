@@ -1,11 +1,8 @@
 package de.fatox.meta.graphics.font
 
 import com.badlogic.gdx.graphics.g2d.BitmapFont
-import de.fatox.meta.Meta.Companion.inject
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.FontProvider
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**

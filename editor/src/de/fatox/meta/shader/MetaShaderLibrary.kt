@@ -9,8 +9,6 @@ import de.fatox.meta.Meta
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.ide.ProjectManager
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.listener.MetaNotifier

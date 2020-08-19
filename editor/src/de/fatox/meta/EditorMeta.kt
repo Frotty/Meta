@@ -7,7 +7,6 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.assets.MetaData
-import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.modules.MetaEditorModule
 import de.fatox.meta.modules.MetaUIModule

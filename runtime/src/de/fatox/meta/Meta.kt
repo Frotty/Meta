@@ -12,9 +12,10 @@ import de.fatox.meta.injection.Metastasis
 import org.slf4j.LoggerFactory
 import java.io.PrintWriter
 import java.io.StringWriter
-import javax.swing.*
-import javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-import javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
+import javax.swing.JOptionPane
+import javax.swing.JScrollPane
+import javax.swing.JTextArea
+import javax.swing.UnsupportedLookAndFeelException
 import javax.swing.UIManager as JavaUIManager
 
 

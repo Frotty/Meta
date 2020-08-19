@@ -1,15 +1,12 @@
 package de.fatox.meta.shader
 
 import com.badlogic.gdx.files.FileHandle
-import de.fatox.meta.Meta
 import de.fatox.meta.Primitives
 import de.fatox.meta.api.entity.EntityManager
 import de.fatox.meta.api.model.MetaSceneData
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.entity.MetaEntityManager
 import de.fatox.meta.ide.ProjectManager
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**

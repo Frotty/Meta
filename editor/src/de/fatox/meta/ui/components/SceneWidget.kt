@@ -2,10 +2,7 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
-import de.fatox.meta.Meta
 import de.fatox.meta.api.graphics.Renderer
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.EditorSceneRenderer
 import de.fatox.meta.shader.MetaSceneHandle

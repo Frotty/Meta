@@ -9,10 +9,10 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
-import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.registerGlobalKeyListener
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.Singleton
 import kotlin.math.abs
 
 @Singleton

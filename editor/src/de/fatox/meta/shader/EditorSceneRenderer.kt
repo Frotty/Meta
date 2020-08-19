@@ -19,8 +19,6 @@ import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.graphics.renderer.FullscreenQuad
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.MetaLabel
 

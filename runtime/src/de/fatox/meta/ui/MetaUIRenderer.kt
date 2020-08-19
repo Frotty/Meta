@@ -15,9 +15,9 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.file.FileChooser
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.api.MetaInputProcessor
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 

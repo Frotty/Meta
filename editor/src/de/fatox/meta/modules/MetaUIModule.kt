@@ -1,6 +1,5 @@
 package de.fatox.meta.modules
 
-import de.fatox.meta.Meta
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.inject

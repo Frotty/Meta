@@ -2,15 +2,12 @@ package de.fatox.meta.shader
 
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
-import de.fatox.meta.Meta
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.MetaGLShader
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.MetaShaderCompData
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.ide.ProjectManager
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**

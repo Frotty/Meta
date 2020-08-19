@@ -17,7 +17,6 @@ import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
-import de.fatox.meta.input.MetaInput
 import de.fatox.meta.ui.windows.MetaDialog
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.utils.IntMap
-import de.fatox.meta.Meta
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject

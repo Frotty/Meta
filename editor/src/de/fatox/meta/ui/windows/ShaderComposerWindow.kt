@@ -11,8 +11,6 @@ import com.kotcrab.vis.ui.widget.VisSelectBox
 import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.RenderBufferData
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.shader.MetaShaderComposer

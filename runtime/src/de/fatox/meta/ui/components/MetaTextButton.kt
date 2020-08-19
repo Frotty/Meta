@@ -1,7 +1,6 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.utils.Align
 import com.kotcrab.vis.ui.VisUI

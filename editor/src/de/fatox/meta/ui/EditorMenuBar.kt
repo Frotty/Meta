@@ -14,8 +14,6 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.ide.ProjectManager
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.dialogs.OpenProjectDialog
 import de.fatox.meta.ui.dialogs.ProjectWizardDialog

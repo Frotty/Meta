@@ -3,10 +3,7 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.utils.Align
-import de.fatox.meta.Meta.Companion.inject
 import de.fatox.meta.api.graphics.FontProvider
-import de.fatox.meta.injection.Inject
-import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
