@@ -7,9 +7,9 @@ import org.apache.commons.compress.archivers.sevenz.SevenZFile
 
 
 object XPKLoader {
-    const val EXTENSION = "xpk"
+	const val EXTENSION = "xpk"
 
-    fun getList(fileHandle: FileHandle): Array<XPKFileHandle> {
+	fun getList(fileHandle: FileHandle): Array<XPKFileHandle> {
 		fileHandle.file().readBytes().let { fileBytes ->
 			HashUtils.requireValidHash(fileBytes)
 
@@ -30,12 +30,12 @@ object XPKLoader {
 					archive = it.nextEntry
 				} while (archive != null)
 			}
-            return array
-        }
+			return array
+		}
 
-    }
+	}
 
-    fun loadEntry(file: XPKByteChannel, entry: SevenZArchiveEntry): ByteArray? {
+	fun loadEntry(file: XPKByteChannel, entry: SevenZArchiveEntry): ByteArray? {
 		file.position(0)
 		val s7f = SevenZFile(file)
 		s7f.let {
@@ -57,8 +57,8 @@ object XPKLoader {
 				itr = s7f.nextEntry
 			} while (itr != null)
 		}
-        return null
-    }
+		return null
+	}
 
 
 }

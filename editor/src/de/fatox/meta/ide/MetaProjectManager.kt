@@ -6,7 +6,7 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
 import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.toast.ToastTable
-import de.fatox.meta.Meta.Companion.inject
+
 import de.fatox.meta.api.model.MetaProjectData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
@@ -117,9 +117,5 @@ class MetaProjectManager : ProjectManager {
 
 	override fun addOnLoadListener(listener: EventListener) {
 		onLoadListeners.add(listener)
-	}
-
-	init {
-		inject(this)
 	}
 }

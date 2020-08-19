@@ -7,7 +7,7 @@ import de.fatox.meta.input.KeyListener
 inline fun MetaInputProcessor.registerGlobalKeyListener(
 	keycode: Int,
 	millisRequired: Long = 0,
-	crossinline keyListener: KeyListener.() -> Unit
+	crossinline keyListener: KeyListener.() -> Unit,
 ) {
 	registerGlobalKeyListener(keycode, millisRequired, object : KeyListener() {
 		override fun onEvent() {
@@ -19,7 +19,7 @@ inline fun MetaInputProcessor.registerGlobalKeyListener(
 inline fun MetaInputProcessor.registerScreenKeyListener(
 	keycode: Int,
 	millisRequired: Long = 0,
-	crossinline keyListener: KeyListener.() -> Unit
+	crossinline keyListener: KeyListener.() -> Unit,
 ) {
 	registerScreenKeyListener(keycode, millisRequired, object : KeyListener() {
 		override fun onEvent() {

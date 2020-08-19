@@ -24,56 +24,56 @@ import org.slf4j.LoggerFactory
 private val log: Logger = LoggerFactory.getLogger(MetaUIRenderer::class.java)
 
 class MetaUIRenderer : UIRenderer {
-    private val metaInput: MetaInputProcessor by lazyInject()
-    private val assetProvider: AssetProvider by lazyInject()
-    private val visuiSkin: String by lazyInject("visuiSkin")
+	private val metaInput: MetaInputProcessor by lazyInject()
+	private val assetProvider: AssetProvider by lazyInject()
+	private val visuiSkin: String by lazyInject("visuiSkin")
 	private val spriteBatch: SpriteBatch by lazyInject()
 
-    private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
+	private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
 
-    init {
-        log.debug("Injected MetaUi")
-    }
+	init {
+		log.debug("Injected MetaUi")
+	}
 
-    override fun load() {
-        if (visuiSkin != "") {
-            VisUI.load(assetProvider.getResource(visuiSkin, FileHandle::class.java))
-        } else {
-            VisUI.load()
-        }
-        FileChooser.setDefaultPrefsName("de.fatox.meta")
-        log.debug("Loaded VisUi")
-        VisUI.setDefaultTitleAlign(Align.center)
-        stage.root.addCaptureListener(object : InputListener() {
-            override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
-                if (!(event!!.target is TextField || event.target is ScrollPane)) stage.scrollFocus = null
-                return false
-            }
-        })
-        metaInput.addGlobalAdapter(stage)
-    }
+	override fun load() {
+		if (visuiSkin != "") {
+			VisUI.load(assetProvider.getResource(visuiSkin, FileHandle::class.java))
+		} else {
+			VisUI.load()
+		}
+		FileChooser.setDefaultPrefsName("de.fatox.meta")
+		log.debug("Loaded VisUi")
+		VisUI.setDefaultTitleAlign(Align.center)
+		stage.root.addCaptureListener(object : InputListener() {
+			override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+				if (!(event!!.target is TextField || event.target is ScrollPane)) stage.scrollFocus = null
+				return false
+			}
+		})
+		metaInput.addGlobalAdapter(stage)
+	}
 
-    override fun addActor(actor: Actor) {
-        try {
-            stage.addActor(actor)
-        } catch (e: Throwable) {
-            log.error("Failed to add actor!", e)
-        }
-    }
+	override fun addActor(actor: Actor) {
+		try {
+			stage.addActor(actor)
+		} catch (e: Throwable) {
+			log.error("Failed to add actor!", e)
+		}
+	}
 
-    override fun update() {
-        stage.act(Gdx.graphics.deltaTime)
-    }
+	override fun update() {
+		stage.act(Gdx.graphics.deltaTime)
+	}
 
-    override fun draw() {
-        stage.draw()
-    }
+	override fun draw() {
+		stage.draw()
+	}
 
-    override fun resize(width: Int, height: Int) {
-        stage.viewport.update(width, height, true)
-    }
+	override fun resize(width: Int, height: Int) {
+		stage.viewport.update(width, height, true)
+	}
 
-    override fun getCamera(): Camera {
-        return stage.camera
-    }
+	override fun getCamera(): Camera {
+		return stage.camera
+	}
 }

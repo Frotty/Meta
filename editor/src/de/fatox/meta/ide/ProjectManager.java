@@ -6,23 +6,23 @@ import de.fatox.meta.api.model.MetaProjectData;
 
 public interface ProjectManager {
 
-    MetaProjectData getCurrentProject();
+	MetaProjectData getCurrentProject();
 
-    MetaProjectData loadProject(FileHandle projectFile);
+	MetaProjectData loadProject(FileHandle projectFile);
 
-    void saveProject(MetaProjectData projectData);
+	void saveProject(MetaProjectData projectData);
 
 	void newProject(FileHandle location, MetaProjectData projectData);
 
-    boolean verifyProjectFile(FileHandle file);
+	boolean verifyProjectFile(FileHandle file);
 
-    FileHandle getCurrentProjectRoot();
+	FileHandle getCurrentProjectRoot();
 
-    <T> T get(String key, Class<T> type);
+	<T> T get(String key, Class<T> type);
 
-    FileHandle save(String key, Object obj);
+	FileHandle save(String key, Object obj);
 
-    String relativize(FileHandle fh);
+	String relativize(FileHandle fh);
 
-    void addOnLoadListener(EventListener listener);
+	void addOnLoadListener(EventListener listener);
 }

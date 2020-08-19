@@ -12,7 +12,7 @@ import com.badlogic.gdx.math.Matrix3
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.GdxRuntimeException
-import de.fatox.meta.Meta.Companion.inject
+
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.camera.ArcCamControl
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -37,7 +37,7 @@ class GBufferShader : Shader {
 	private val assetProvider: AssetProvider by lazyInject()
 
 	override fun init() {
-		inject(this)
+
 		val vert = Gdx.files.internal("shaders/gbuffer.vert").readString()
 		val frag = Gdx.files.internal("shaders/gbuffer.frag").readString()
 		program = ShaderProgram(vert, frag)

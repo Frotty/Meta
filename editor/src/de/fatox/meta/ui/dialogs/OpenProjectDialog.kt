@@ -33,11 +33,11 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 	private var folderButton: MetaTextButton? = null
 	private var rootfile: FileHandle? = null
 	private fun createFolderButton() {
-		folderLabel = VisLabel(languageBundle!!["newproj_dia_proj_root"])
+		folderLabel = VisLabel(languageBundle["newproj_dia_proj_root"])
 		folderButton = MetaTextButton(languageBundle["newproj_dia_select_project"])
 		folderButton!!.addListener(object : MetaClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
-				fileChooser!!.selectionMode = FileChooser.SelectionMode.FILES
+				fileChooser.selectionMode = FileChooser.SelectionMode.FILES
 				val fileTypeFilter = FileTypeFilter(false)
 				fileTypeFilter.addRule("Meta Project File", "json")
 				fileChooser.setFileTypeFilter(fileTypeFilter)
@@ -48,7 +48,7 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 						if (file.size == 1) {
 							rootfile = file[0]
 							folderButton!!.setText(file[0].pathWithoutExtension().truncate(30))
-							if (projectManager!!.verifyProjectFile(rootfile)) {
+							if (projectManager.verifyProjectFile(rootfile)) {
 								openBtn.isDisabled = false
 							}
 						}

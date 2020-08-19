@@ -31,7 +31,7 @@ class SceneWizardDialog : MetaDialog("Scene Wizard", true) {
 		sceneNameTF.addValidator(object : MetaInputValidator() {
 			override fun validateInput(input: String?, errors: MetaErrorHandler) {
 				if (input.isNullOrBlank()) {
-					errors!!.add(object : MetaError("Scene name required", "") {
+					errors.add(object : MetaError("Scene name required", "") {
 						override fun gotoError() {}
 					})
 				} else {

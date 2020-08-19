@@ -13,8 +13,8 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
  * Created by Frotty on 18.04.2017.
  */
 class MetaSceneHandle(var data: MetaSceneData, var shaderComposition: ShaderComposition?, val sceneFile: FileHandle) {
-    var entityManager: EntityManager<Meta3DEntity> = MetaEntityManager()
+	var entityManager: EntityManager<Meta3DEntity> = MetaEntityManager()
 
-    private val primitives: Primitives by lazyInject()
-    private val projectManager: ProjectManager by lazyInject()
+	private val primitives: Primitives by lazyInject()
+	private val projectManager: ProjectManager by lazyInject()
 }

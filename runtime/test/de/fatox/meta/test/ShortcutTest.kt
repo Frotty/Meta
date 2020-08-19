@@ -1,7 +1,7 @@
 package de.fatox.meta.test
 
 import com.badlogic.gdx.Input
-import de.fatox.meta.Meta.Companion.inject
+
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.input.Hotkey
 import de.fatox.meta.input.MetaInput
@@ -19,7 +19,7 @@ internal class ShortcutTest : MetaTest() {
 		}
 
 		init {
-			inject(this)
+
 		}
 	}
 

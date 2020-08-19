@@ -30,10 +30,6 @@ class WelcomeTab : MetaTab(false, false) {
 		return visTable
 	}
 
-	override fun onShow() {
-		super.onShow()
-	}
-
 	init {
 		visTable.top()
 		visTable.row().height(128f)

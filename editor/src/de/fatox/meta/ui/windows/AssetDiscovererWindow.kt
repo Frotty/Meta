@@ -49,7 +49,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		adapter = FolderListAdapter(Array())
 		view = ListView(adapter)
 		view!!.mainTable.defaults().pad(2f)
-		view!!.setItemClickListener{
+		view!!.setItemClickListener {
 			assetDiscoverer.openFolder((it as FolderModel).fileHandle)
 		}
 		contentTable.top().left()

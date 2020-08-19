@@ -12,7 +12,7 @@ import com.badlogic.gdx.utils.Disposable
  *
  * @author bmanuel
  */
-class FullscreenQuad(height: Float): Disposable {
+class FullscreenQuad(height: Float) : Disposable {
 	private val quad: Mesh = createFullscreenQuad(height)
 
 	override fun dispose() {

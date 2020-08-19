@@ -9,9 +9,9 @@ import de.fatox.meta.shader.MetaSceneHandle;
  */
 public interface SceneManager {
 
-    MetaSceneHandle createNew(String name);
+	MetaSceneHandle createNew(String name);
 
-    void loadScene(FileHandle projectFile);
+	void loadScene(FileHandle projectFile);
 
-    void saveScene(MetaSceneData sceneData);
+	void saveScene(MetaSceneData sceneData);
 }

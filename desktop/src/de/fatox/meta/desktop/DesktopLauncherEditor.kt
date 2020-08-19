@@ -5,13 +5,13 @@ import de.fatox.meta.EditorMeta
 
 object DesktopLauncherEditor {
 
-    @JvmStatic
-    fun main(arg: Array<String>) {
-        val config = Lwjgl3ApplicationConfiguration()
-        config.setResizable(true)
-        config.setTitle("Meta")
-        config.setWindowIcon("meta-icon.png")
-        val editorMeta = EditorMeta(WindowPosModifier())
-        MetaDesktopLauncher.init(config, editorMeta)
-    }
+	@JvmStatic
+	fun main(arg: Array<String>) {
+		val config = Lwjgl3ApplicationConfiguration()
+		config.setResizable(true)
+		config.setTitle("Meta")
+		config.setWindowIcon("meta-icon.png")
+		val editorMeta = EditorMeta(WindowPosModifier())
+		MetaDesktopLauncher.init(config, editorMeta)
+	}
 }

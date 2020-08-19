@@ -20,7 +20,7 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
 
 	init {
 		addModule(MetaEditorModule())
-		addModule(MetaUIModule())
+		addModule(MetaUIModule)
 	}
 
 	override fun create() {

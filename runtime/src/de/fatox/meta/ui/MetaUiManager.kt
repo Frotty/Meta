@@ -132,7 +132,7 @@ class MetaUiManager : UIManager {
 			// First time the window has been shown on this screen
 			metaSave(windowClass.name, MetaWindowData(window))
 		}
-		return window as T
+		return window
 	}
 
 	override fun <T : MetaDialog> showDialog(dialogClass: Class<out T>): T {
@@ -140,7 +140,7 @@ class MetaUiManager : UIManager {
 		// Dialogs are just Window subtypes so we show it as usual
 		val dialog: T = showWindow(dialogClass)
 		dialog.show()
-		return dialog as T
+		return dialog
 	}
 
 	override fun setMainMenuBar(menuBar: MenuBar?) {

@@ -8,7 +8,6 @@ import de.fatox.meta.api.DummyPosModifier
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Metastasis
 import org.slf4j.LoggerFactory
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -20,7 +19,6 @@ import javax.swing.UIManager as JavaUIManager
 
 
 open class Meta : Game {
-	private var metastasis: Metastasis? = null
 	private var lastChange: Long = 0
 	private var lastScreen: Screen? = null
 
@@ -34,19 +32,17 @@ open class Meta : Game {
 		this.modifier = modifier
 		setUncaughtHandler()
 		metaInstance = this
-		setupMetastasis()
-		addModule(MetaModule())
+		addModule(MetaModule)
 	}
 
-	constructor(modifier: PosModifier, vararg modules: Any?) {
+	constructor(modifier: PosModifier, vararg modules: Any) {
 		this.modifier = modifier
 		setUncaughtHandler()
 		metaInstance = this
-		setupMetastasis()
 		for (module in modules) {
 			addModule(module)
 		}
-		addModule(MetaModule())
+		addModule(MetaModule)
 	}
 
 	private fun setUncaughtHandler() {
@@ -76,12 +72,7 @@ open class Meta : Game {
 		}
 	}
 
-	private fun setupMetastasis() {
-		metastasis = Metastasis()
-	}
-
 	override fun create() {
-		//inject(this)
 		uiManager.posModifier = modifier
 		changeScreen(firstScreen)
 	}
@@ -95,8 +86,8 @@ open class Meta : Game {
 		val instance: Meta?
 			get() = if (metaInstance != null) metaInstance else Meta()
 
-		fun addModule(module: Any?) {
-			instance!!.metastasis!!.loadModule(module)
+		fun addModule(module: Any) {
+			module
 		}
 
 		fun registerMetaAnnotation(annotationClass: Class<*>?) {}
@@ -123,11 +114,6 @@ open class Meta : Game {
 				}
 				Gdx.app.postRunnable { instance!!.setScreen(newScreen) }
 			}
-		}
-
-		@JvmStatic
-		fun inject(`object`: Any?) {
-			instance!!.metastasis!!.injectFields(`object`)
 		}
 	}
 }

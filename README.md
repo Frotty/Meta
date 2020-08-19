@@ -45,7 +45,7 @@ class GameScreen : ScreenAdapter {
     private lateinit var renderer: Renderer
     
     init {
-        Meta.inject(this)
+        
     }
     
 }

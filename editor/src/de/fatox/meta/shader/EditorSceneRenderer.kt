@@ -11,7 +11,6 @@ import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Array
-import de.fatox.meta.Meta
 import de.fatox.meta.Primitives
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.graphics.Renderer
@@ -49,7 +48,7 @@ class EditorSceneRenderer : Renderer {
 	private var lastComposition: ShaderComposition? = null
 
 	init {
-		Meta.inject(this)
+
 		grid = Meta3DEntity(Vector3.Zero, primitives.terrainGrid, 1f)
 	}
 

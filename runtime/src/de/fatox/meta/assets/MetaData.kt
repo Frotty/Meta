@@ -7,7 +7,6 @@ import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.TimeUtils
 import com.badlogic.gdx.utils.reflect.ClassReflection
 import com.badlogic.gdx.utils.reflect.ReflectionException
-import de.fatox.meta.Meta.Companion.inject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import java.io.File
 
@@ -133,7 +132,6 @@ class MetaData {
 	}
 
 	init {
-		inject(this)
 		dataRoot = Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME)
 		dataRoot.mkdirs()
 	}

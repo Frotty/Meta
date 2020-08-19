@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.FPSLogger
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import de.fatox.meta.Meta.Companion.inject
+
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.model.MetaAudioVideoData
@@ -31,7 +31,7 @@ class MetaEditorScreen : ScreenAdapter() {
 	private val fpsLogger = FPSLogger()
 	override fun show() {
 		if (!isInited) {
-			inject(this)
+
 			uiManager.changeScreen(javaClass.name)
 			setupEditorUi()
 			isInited = true

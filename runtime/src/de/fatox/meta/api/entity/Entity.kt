@@ -4,11 +4,11 @@ import com.badlogic.gdx.math.Vector
 
 interface Entity<out DIMENSION : Vector<*>> {
 
-    val id: Int
+	val id: Int
 
-    val position: DIMENSION
+	val position: DIMENSION
 
-    fun update()
+	fun update()
 
-    fun draw()
+	fun draw()
 }

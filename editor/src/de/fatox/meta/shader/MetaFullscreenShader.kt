@@ -14,38 +14,38 @@ import de.fatox.meta.api.graphics.MetaGLShader
  * Fullscreen Shader (for fullscreen option, renders to fsquad)
  */
 class MetaFullscreenShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHandle) {
-    private val s_albedoTex: Int = 0
-    private var s_depthTex: Int = 0
-    private var u_nearDistance: Int = 0
-    private var u_farDistance: Int = 0
-    private val temp = Matrix4()
+	private val s_albedoTex: Int = 0
+	private var s_depthTex: Int = 0
+	private var u_nearDistance: Int = 0
+	private var u_farDistance: Int = 0
+	private val temp = Matrix4()
 
-    private lateinit var camera: Camera
+	private lateinit var camera: Camera
 
-    override fun init() {
-    }
+	override fun init() {
+	}
 
-    override fun render(renderable: Renderable) {
-        renderable.meshPart.render(shaderProgram)
-    }
+	override fun render(renderable: Renderable) {
+		renderable.meshPart.render(shaderProgram)
+	}
 
-    override fun compareTo(other: Shader): Int {
-        return 0
-    }
+	override fun compareTo(other: Shader): Int {
+		return 0
+	}
 
-    override fun canRender(instance: Renderable): Boolean {
-        return true
-    }
+	override fun canRender(instance: Renderable): Boolean {
+		return true
+	}
 
-    override fun begin(camera: Camera, context: RenderContext) {
-        this.camera = camera
-        shaderProgram.bind()
+	override fun begin(camera: Camera, context: RenderContext) {
+		this.camera = camera
+		shaderProgram.bind()
 
-        UniformAssignments.assignCustomUniforms(shaderProgram, camera, context, null)
-    }
+		UniformAssignments.assignCustomUniforms(shaderProgram, camera, context, null)
+	}
 
 
-    override fun dispose() {
-        shaderProgram.dispose()
-    }
+	override fun dispose() {
+		shaderProgram.dispose()
+	}
 }

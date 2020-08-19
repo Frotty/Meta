@@ -14,50 +14,51 @@ import de.fatox.meta.graphics.renderer.FullscreenShader;
  * Created by Frotty on 20.05.2016.
  */
 public class BlurShader extends FullscreenShader {
-    private ShaderProgram program;
-    private int s_inputTex;
+	private ShaderProgram program;
+	private int s_inputTex;
 
 
-    @Override
-    public ShaderProgram getProgram() {
-        return program;
-    }
+	@Override
+	public ShaderProgram getProgram() {
+		return program;
+	}
 
-    private Matrix4 temp = new Matrix4();
-    @Override
-    public void init() {
-        String vert = Gdx.files.internal("shaders/ssaoblur.vert").readString();
-        String frag = Gdx.files.internal("shaders/ssaoblur.frag").readString();
-        program = new ShaderProgram(vert, frag);
-        if (!program.isCompiled())
-            throw new GdxRuntimeException(program.getLog());
+	private final Matrix4 temp = new Matrix4();
 
-    }
+	@Override
+	public void init() {
+		String vert = Gdx.files.internal("shaders/ssaoblur.vert").readString();
+		String frag = Gdx.files.internal("shaders/ssaoblur.frag").readString();
+		program = new ShaderProgram(vert, frag);
+		if (!program.isCompiled())
+			throw new GdxRuntimeException(program.getLog());
 
-    @Override
-    public int compareTo(Shader other) {
-        return 0;
-    }
+	}
 
-    @Override
-    public boolean canRender(Renderable instance) {
-        return true;
-    }
+	@Override
+	public int compareTo(Shader other) {
+		return 0;
+	}
 
-    @Override
-    public void begin(Camera camera, RenderContext context) {
-        program.begin();
-        program.setUniformf("u_resolution", camera.viewportWidth, camera.viewportHeight);
-    }
+	@Override
+	public boolean canRender(Renderable instance) {
+		return true;
+	}
+
+	@Override
+	public void begin(Camera camera, RenderContext context) {
+		program.begin();
+		program.setUniformf("u_resolution", camera.viewportWidth, camera.viewportHeight);
+	}
 
 
-    @Override
-    public void end() {
-        program.end();
-    }
+	@Override
+	public void end() {
+		program.end();
+	}
 
-    @Override
-    public void dispose() {
-        program.dispose();
-    }
+	@Override
+	public void dispose() {
+		program.dispose();
+	}
 }

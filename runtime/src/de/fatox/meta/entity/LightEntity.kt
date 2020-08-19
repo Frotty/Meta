@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute
 import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.math.Vector3
-import de.fatox.meta.Meta.Companion.inject
+
 import de.fatox.meta.api.entity.Entity
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
@@ -37,7 +37,6 @@ class LightEntity(override var position: Vector3, radius: Float, color: Vector3)
 
 	init {
 		if (model == null) {
-			inject(this)
 			model = modelBuilder.createSphere(2f, 2f, 2f, 20, 20, Material(), (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal or VertexAttributes.Usage.ColorUnpacked or VertexAttributes.Usage.TextureCoordinates.toLong().toInt()).toLong())
 			model!!.materials[0].set(blendingAttribute)
 			model!!.materials[0].set(IntAttribute.createCullFace(GL20.GL_FRONT))

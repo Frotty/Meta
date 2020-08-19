@@ -24,7 +24,7 @@ class MetaEditorUI {
 	fun setup() {
 		metaToolbar = EditorMenuBar()
 		log.info("Toolbar created")
-		uiManager.setMainMenuBar(metaToolbar!!.menuBar)
+		uiManager.setMainMenuBar(metaToolbar.menuBar)
 		tabbedPane = TabbedPane()
 		tabbedPane!!.addListener(object : TabbedPaneAdapter() {
 			override fun switchedTab(tab: Tab) {

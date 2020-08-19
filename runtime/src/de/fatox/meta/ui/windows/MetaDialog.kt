@@ -16,6 +16,7 @@ import de.fatox.meta.ui.components.MetaClickListener
  */
 abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWindow(title, false, hasCloseButton) {
 	protected val buttonTable = VisTable()
+
 	@JvmField
 	protected val statusLabel = VisLabel()
 	var dialogListener: DialogListener? = null

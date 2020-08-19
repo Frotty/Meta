@@ -3,7 +3,7 @@ package de.fatox.meta.ide
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Json
-import de.fatox.meta.Meta.Companion.inject
+
 import de.fatox.meta.api.model.MetaSceneData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaSceneHandle
@@ -51,7 +51,7 @@ class MetaSceneManager : SceneManager {
 	}
 
 	init {
-		inject(this)
+
 		assetDiscoverer.addOpenListener(EXTENSION) { sceneFile: FileHandle -> loadScene(sceneFile) }
 	}
 }

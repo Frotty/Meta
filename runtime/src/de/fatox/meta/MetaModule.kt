@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.Json
-import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.entity.EntityManager
 import de.fatox.meta.api.graphics.FontProvider
@@ -18,10 +17,6 @@ import de.fatox.meta.entity.MetaEntityManager
 import de.fatox.meta.graphics.font.FontInfo
 import de.fatox.meta.graphics.font.MetaFontProvider
 import de.fatox.meta.injection.MetaInject
-import de.fatox.meta.injection.MetaInject.Companion.inject
-import de.fatox.meta.injection.Named
-import de.fatox.meta.injection.Provides
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.input.MetaInput
 import de.fatox.meta.sound.MetaSoundPlayer
 import de.fatox.meta.task.MetaTaskManager
@@ -29,9 +24,7 @@ import de.fatox.meta.ui.MetaUIRenderer
 import de.fatox.meta.ui.MetaUiManager
 import de.fatox.meta.ui.UiControlHelper
 
-@Singleton
-class MetaModule {
-
+object MetaModule {
 	init {
 		MetaInject.global {
 			singleton<FontProvider>("default") { MetaFontProvider() }
@@ -39,7 +32,7 @@ class MetaModule {
 			singleton<UIRenderer> { MetaUIRenderer() }
 			singleton<UIManager> { MetaUiManager() }
 			singleton { ModelBuilder() }
-			singleton< MetaInputProcessor> { MetaInput }
+			singleton<MetaInputProcessor> { MetaInput }
 			singleton<EntityManager<Meta3DEntity>>("default") { MetaEntityManager() }
 			singleton("default") { MetaTaskManager() }
 			singleton("", "default")
@@ -55,7 +48,7 @@ class MetaModule {
 				}
 			}
 			singleton("spritebatch-shader") {
-				if (Gdx.app.getType().equals(Application.ApplicationType.Desktop)) {
+				if (Gdx.app.type.equals(Application.ApplicationType.Desktop)) {
 					ShaderProgram.prependVertexCode = "#version 140\n"
 					ShaderProgram.prependFragmentCode = "#version 140\n"
 				} else {
@@ -97,87 +90,4 @@ void main()
 			}
 		}
 	}
-
-	@Provides
-	@Singleton
-	@Named("default")
-	fun assetProvider(): AssetProvider = inject("default")
-
-	@Provides
-	@Named("default")
-	fun string(): String = inject()
-
-	@Provides
-	@Singleton
-	@Named("spritebatch-shader")
-	fun shaderProgram(): ShaderProgram = inject("spritebatch-shader")
-
-	@Provides
-	@Singleton
-	fun metaSoundPlayer(): MetaSoundPlayer = inject()
-
-	@Provides
-	@Singleton
-	fun uiRenderer(): UIRenderer = inject()
-
-	@Provides
-	@Singleton
-	fun uiManager(): UIManager = inject()
-
-	@Provides
-	@Singleton
-	fun metaInput(): MetaInputProcessor = inject()
-
-	//    @Provides
-	//    @Singleton
-	//    @Named("default")
-	//    public Renderer renderer(BufferRenderer renderer) {
-	//        return renderer;
-	//    }
-
-	@Provides
-	@Singleton
-	fun perspectiveCamera(): PerspectiveCamera = inject()
-
-	@Provides
-	@Singleton
-	fun modelBuilder(): ModelBuilder = inject()
-
-	@Provides
-	@Singleton
-	@Named("default")
-	fun entityManager(): EntityManager<Meta3DEntity> = inject("default")
-
-
-	@Provides
-	@Singleton
-	@Named("default")
-	fun spriteBatch(): SpriteBatch =inject("default")
-
-	@Provides
-	@Singleton
-	@Named("default")
-	fun fontProvider(): FontProvider = inject("default")
-
-
-	@Provides
-	@Singleton
-	@Named("default")
-	fun taskManager(): MetaTaskManager = inject("default")
-
-	@Provides
-	@Singleton
-	@Named("default")
-	fun json(): Json = inject("default")
-
-	@Provides
-	@Singleton
-	@Named("default")
-	fun uiControlHelp(): UiControlHelper = inject("default")
-
-	@Provides
-	@Singleton
-	@Named("default")
-	fun fontInfo(): FontInfo = inject("default")
-
 }

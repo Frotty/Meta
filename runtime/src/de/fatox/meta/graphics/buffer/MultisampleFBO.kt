@@ -148,7 +148,7 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	/**
 	 * Override this method in a derived class to set up the backing texture as you like.
 	 */
-	 fun createTexture(attachmentSpec: FrameBufferTextureAttachmentSpec): Int {
+	fun createTexture(attachmentSpec: FrameBufferTextureAttachmentSpec): Int {
 		try {
 			val texture = Gdx.gl.glGenTexture()
 			Gdx.gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, texture)
@@ -219,10 +219,10 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 						texture, 0)
 					imBuilder
 						.addColorTextureAttachment(
-						GL30.GL_RGBA8,
-						GL30.GL_RGBA,
-						GL30.GL_UNSIGNED_BYTE
-					)
+							GL30.GL_RGBA8,
+							GL30.GL_RGBA,
+							GL30.GL_UNSIGNED_BYTE
+						)
 					colorTextureCounter++
 				} else if (attachmentSpec.isDepth) {
 					gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL20.GL_DEPTH_ATTACHMENT, GL30.GL_TEXTURE_2D, texture, 0)

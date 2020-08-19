@@ -6,7 +6,7 @@ import com.badlogic.gdx.backends.lwjgl3.audio.mock.MockSound
 import com.badlogic.gdx.math.Vector2
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
-object UninitializedSound: MockSound()
+object UninitializedSound : MockSound()
 
 class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
 	val soundName: String = soundName.replace("/".toRegex(), "\\\\")

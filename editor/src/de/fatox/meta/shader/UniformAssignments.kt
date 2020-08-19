@@ -9,37 +9,37 @@ import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.utils.ObjectMap
 
 object UniformAssignments {
-    val beginAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera) -> Unit>()
-    val renderableAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera, renderable: Renderable) -> Unit>()
-    val customAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable?) -> Unit>()
+	val beginAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera) -> Unit>()
+	val renderableAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera, renderable: Renderable) -> Unit>()
+	val customAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable?) -> Unit>()
 
-    fun assignCustomUniforms(program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable?) {
-        customAssignments.forEach {
-            if (program.hasUniform(it.key)) {
-                it.value.invoke(program, cam, context, renderable)
-            }
-        }
-    }
+	fun assignCustomUniforms(program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable?) {
+		customAssignments.forEach {
+			if (program.hasUniform(it.key)) {
+				it.value.invoke(program, cam, context, renderable)
+			}
+		}
+	}
 
-    fun assignCameraUniforms(program: ShaderProgram, cam: Camera) {
-        beginAssignments.forEach {
-            if (program.hasUniform(it.key)) {
-                it.value.invoke(program, cam)
-            }
-        }
-    }
+	fun assignCameraUniforms(program: ShaderProgram, cam: Camera) {
+		beginAssignments.forEach {
+			if (program.hasUniform(it.key)) {
+				it.value.invoke(program, cam)
+			}
+		}
+	}
 
 
-    fun assignRenderableUniforms(program: ShaderProgram, cam: Camera, renderable: Renderable) {
-        renderableAssignments.forEach {
-            if (program.hasUniform(it.key)) {
-                it.value.invoke(program, cam, renderable)
-            }
-        }
-    }
+	fun assignRenderableUniforms(program: ShaderProgram, cam: Camera, renderable: Renderable) {
+		renderableAssignments.forEach {
+			if (program.hasUniform(it.key)) {
+				it.value.invoke(program, cam, renderable)
+			}
+		}
+	}
 
-    init {
-        beginAssignments.put("u_camPos") { program, cam -> program.setUniformf("u_camPos", cam.position) }
+	init {
+		beginAssignments.put("u_camPos") { program, cam -> program.setUniformf("u_camPos", cam.position) }
 		beginAssignments.put("u_projTrans") { program, cam -> program.setUniformMatrix("u_projTrans", cam.combined) }
 
 		renderableAssignments.put("u_worldTrans") { program, _, renderable -> program.setUniformMatrix("u_worldTrans", renderable.worldTransform) }
@@ -54,6 +54,6 @@ object UniformAssignments {
 		}
 	}
 
-    private val tmpM3 = Matrix3()
-    private val tempM4 = Matrix4()
+	private val tmpM3 = Matrix3()
+	private val tempM4 = Matrix4()
 }

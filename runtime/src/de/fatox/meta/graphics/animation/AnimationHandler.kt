@@ -14,7 +14,7 @@ import de.fatox.meta.api.IAnimationHandler
 class AnimationHandler(
 	currentAnimation: Animation<TextureRegion> = EmptyAnimation,
 	var animQueue: Array<Animation<TextureRegion>> = Array(2),
-	override var stateTime: Float = 0f
+	override var stateTime: Float = 0f,
 ) : IAnimationHandler {
 	override var currentAnimation: Animation<TextureRegion> = currentAnimation
 		private set

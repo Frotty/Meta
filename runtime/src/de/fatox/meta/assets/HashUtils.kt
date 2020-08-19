@@ -5,7 +5,6 @@ import java.nio.ByteBuffer
 import java.security.MessageDigest
 
 
-
 object HashUtils {
 	const val HASH_LENGTH = 20
 

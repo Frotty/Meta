@@ -8,7 +8,7 @@ import de.fatox.meta.injection.Singleton;
 @Singleton
 public class ProjectSettingsWindow extends MetaWindow {
 
-    public ProjectSettingsWindow() {
-        super("Project Settings", true, true);
-    }
+	public ProjectSettingsWindow() {
+		super("Project Settings", true, true);
+	}
 }
