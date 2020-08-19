@@ -156,8 +156,7 @@ class MetaUiManager : UIManager {
 
 	override fun <T : Window> getWindow(windowClass: Class<out T>): T {
 		// TODO avoid NPE
-		return getDisplayedClass(windowClass)
-			?: throw GdxRuntimeException("Can't find ${windowClass.canonicalName}")
+		return getDisplayedClass(windowClass)!!
 	}
 
 	override fun closeWindow(window: Window) {

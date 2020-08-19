@@ -43,8 +43,12 @@ class AssetDiscoverer {
 				currentChildFiles!!.add(child)
 			}
 		}
-		val window = uiManager.getWindow(AssetDiscovererWindow::class.java)
-		window.refresh()
+		try {
+			val window = uiManager.getWindow(AssetDiscovererWindow::class.java)
+			window.refresh()
+		} catch (e: Throwable){
+			// Initialization order not clear, so the first time it throws a null pointer.
+		}
 	}
 
 	fun openFile(fileHandle: FileHandle) {
