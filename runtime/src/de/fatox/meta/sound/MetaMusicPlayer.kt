@@ -47,13 +47,14 @@ class MetaMusicPlayer {
 			currentMusic.volume = 0f
 			return
 		}
-		if (!currentMusic.isPlaying) {
+		if (currentMusic == UninitializedMusic || !currentMusic.isPlaying) {
 			if (nextMusic === UninitializedMusic) {
 				nextFromPool()
 			} else {
 				startMusic(nextMusic)
 			}
 		}
+		println(currentMusic.volume)
 		if (currentMusic !== UninitializedMusic) {
 			if (currentMusic.volume < startVolume) {
 				finishMusic()
@@ -64,6 +65,7 @@ class MetaMusicPlayer {
 				}
 			}
 		}
+		println(currentMusic.volume)
 	}
 
 	private fun finishMusic() {
@@ -95,7 +97,6 @@ class MetaMusicPlayer {
 	}
 
 	private fun startMusic(music: Music) {
-		println("startMusic $music, $currentMusic")
 		currentMusic = music.apply {
 			play()
 			volume = startVolume
