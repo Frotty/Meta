@@ -1,70 +1,54 @@
-package de.fatox.meta.entity;
+package de.fatox.meta.entity
 
-import com.badlogic.gdx.graphics.Camera;
-import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
-import com.badlogic.gdx.graphics.g3d.RenderableProvider;
-import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.math.collision.BoundingBox;
-import de.fatox.meta.api.entity.Entity;
+import com.badlogic.gdx.graphics.Camera
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.graphics.g3d.RenderableProvider
+import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.math.collision.BoundingBox
+import de.fatox.meta.api.entity.Entity
 
-public class Meta3DEntity implements Entity<Vector3> {
-	public final Vector3 position = new Vector3();
-	public final Vector3 center = new Vector3();
-	public final Vector3 dimensions = new Vector3();
-	public float radius;
-	public float scale = 1f;
-	public ModelInstance actorModel;
-
-	private final static BoundingBox bounds = new BoundingBox();
-	private static final Vector3 tempPos = new Vector3();
-
-	public Meta3DEntity(Vector3 pos, Model modelBase, float scale) {
-		this.actorModel = new ModelInstance(modelBase, pos);
-		this.scale = scale;
-		calculateBounds();
+class Meta3DEntity(override val position: Vector3 = Vector3(), modelBase: Model?, scale: Float) : Entity<Vector3> {
+	val center = Vector3()
+	val dimensions = Vector3()
+	var radius = 0f
+	var scale = 1f
+	var actorModel: ModelInstance
+	private fun calculateBounds() {
+		actorModel.transform.scale(scale, scale, scale)
+		actorModel.calculateBoundingBox(bounds)
+		bounds.getCenter(center)
+		bounds.getDimensions(dimensions)
+		radius = dimensions.len() / 2f
 	}
 
-	private void calculateBounds() {
-		actorModel.transform.scale(scale, scale, scale);
-		actorModel.calculateBoundingBox(bounds);
-		bounds.getCenter(center);
-		bounds.getDimensions(dimensions);
-		radius = dimensions.len() / 2f;
+	fun isVisible(cam: Camera): Boolean {
+		actorModel.transform.getTranslation(tempPos)
+		tempPos.add(center)
+		return cam.frustum.sphereInFrustum(tempPos, radius)
 	}
 
-	public boolean isVisible(final Camera cam) {
-		actorModel.transform.getTranslation(tempPos);
-		tempPos.add(center);
-		return cam.frustum.sphereInFrustum(tempPos, radius);
+	val actor: RenderableProvider
+		get() = actorModel
+
+	override val id: Int
+		get() = 0
+
+	override fun update() {}
+	override fun draw() {}
+	fun setPosition(vec: Vector3?) {
+		position.set(vec)
+		actorModel.transform.setToTranslation(vec)
 	}
 
-	public RenderableProvider getActor() {
-		return actorModel;
+	companion object {
+		private val bounds = BoundingBox()
+		private val tempPos = Vector3()
 	}
 
-	@Override
-	public Vector3 getPosition() {
-		return position;
+	init {
+		actorModel = ModelInstance(modelBase, position)
+		this.scale = scale
+		calculateBounds()
 	}
-
-	@Override
-	public int getId() {
-		return 0;
-	}
-
-	@Override
-	public void update() {
-	}
-
-	@Override
-	public void draw() {
-
-	}
-
-	public void setPosition(Vector3 vec) {
-		position.set(vec);
-		actorModel.transform.setToTranslation(vec);
-	}
-
 }
