@@ -13,6 +13,7 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.api.ui.showDialog
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.dialogs.OpenProjectDialog
@@ -20,6 +21,7 @@ import de.fatox.meta.ui.dialogs.ProjectWizardDialog
 import de.fatox.meta.ui.dialogs.SceneWizardDialog
 import de.fatox.meta.ui.windows.MetaConfirmDialog
 import org.slf4j.LoggerFactory
+import kotlin.reflect.KClass
 
 class EditorMenuBar {
 	private val log = LoggerFactory.getLogger(EditorMenuBar::class.java)
@@ -49,8 +51,8 @@ class EditorMenuBar {
 		windowsMenu!!.clear()
 	}
 
-	fun addAvailableWindow(windowClass: Class<out Window>, icon: Image?) {
-		val menuItem = MenuItem(windowClass.simpleName.substring(0, windowClass.simpleName.indexOf("Window")), icon)
+	fun addAvailableWindow(windowClass: KClass<out Window>, icon: Image?) {
+		val menuItem = MenuItem(windowClass.simpleName!!.substring(0, windowClass.simpleName!!.indexOf("Window")), icon)
 		menuItem.onChange { uiManager.showWindow(windowClass) }
 		windowsMenu!!.addItem(menuItem)
 	}
@@ -60,7 +62,7 @@ class EditorMenuBar {
 		val menuItemNewProject = MenuItem(languageBundle["filemenu_new_proj"], Image(assetProvider.getResource("ui/appbar.new.png", Texture::class.java)))
 		menuItemNewProject.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
-				uiManager.showDialog(ProjectWizardDialog::class.java)
+				uiManager.showDialog<ProjectWizardDialog>()
 			}
 		})
 		fileMenu.addItem(menuItemNewProject)
@@ -68,7 +70,7 @@ class EditorMenuBar {
 		menuItemNewScene.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				if (projectManager.currentProject != null) {
-					uiManager.showDialog(SceneWizardDialog::class.java)
+					uiManager.showDialog<SceneWizardDialog>()
 				} else {
 					MetaConfirmDialog("Project required", "Please open a project first").show(fileMenu.stage)
 				}
@@ -78,7 +80,7 @@ class EditorMenuBar {
 		val menuItemOpen = MenuItem(languageBundle["filemenu_open"], Image(assetProvider.getResource("ui/appbar.folder.open.png", Texture::class.java)))
 		menuItemOpen.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
-				uiManager.showDialog(OpenProjectDialog::class.java)
+				uiManager.showDialog<OpenProjectDialog>()
 			}
 		})
 		fileMenu.addItem(menuItemOpen)

@@ -4,6 +4,7 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.AssetDiscovererWindow
 
@@ -44,7 +45,7 @@ class AssetDiscoverer {
 			}
 		}
 		try {
-			val window = uiManager.getWindow(AssetDiscovererWindow::class.java)
+			val window = uiManager.getWindow<AssetDiscovererWindow>()
 			window.refresh()
 		} catch (e: Throwable) {
 			// Initialization order not clear, so the first time it throws a null pointer.

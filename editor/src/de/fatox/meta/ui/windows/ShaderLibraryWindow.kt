@@ -6,7 +6,9 @@ import com.kotcrab.vis.ui.widget.Separator
 import com.kotcrab.vis.ui.widget.VisImageButton
 import com.kotcrab.vis.ui.widget.VisScrollPane
 import com.kotcrab.vis.ui.widget.VisTable
+import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.api.graphics.GLShaderHandle
+import de.fatox.meta.api.ui.showDialog
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.shader.MetaShaderLibrary
@@ -37,11 +39,7 @@ class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
 
 	private fun createToolbar() {
 		val visImageButton = VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
-		visImageButton.addListener(object : MetaClickListener() {
-			override fun clicked(event: InputEvent, x: Float, y: Float) {
-				uiManager.showDialog(ShaderWizardDialog::class.java)
-			}
-		})
+		visImageButton.onClick { uiManager.showDialog<ShaderWizardDialog>() }
 		visImageButton.image.setScaling(Scaling.fill)
 		visImageButton.image.setSize(24f, 24f)
 		contentTable.row().size(26f)

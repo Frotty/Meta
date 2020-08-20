@@ -9,6 +9,7 @@ import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.MetaShaderCompData
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
@@ -61,7 +62,7 @@ class MetaShaderComposer : MetaNotifier() {
 	fun addComposition(composition: ShaderComposition?) {
 		if (composition != null) {
 			compositions.add(composition)
-			val window = uiManager.getWindow(ShaderComposerWindow::class.java)
+			val window = uiManager.getWindow<ShaderComposerWindow>()
 			window.addComposition(composition)
 			currentComposition = composition
 		}

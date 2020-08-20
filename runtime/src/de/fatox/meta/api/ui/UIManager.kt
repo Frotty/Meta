@@ -9,6 +9,7 @@ import com.kotcrab.vis.ui.widget.MenuBar
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaWindow
+import kotlin.reflect.KClass
 
 /**
  * Created by Frotty on 20.05.2016.
@@ -31,11 +32,11 @@ interface UIManager {
 	/**
 	 * @param windowClass The window to show
 	 */
-	fun <T : Window> showWindow(windowClass: Class<out T>): T
+	fun <T : Window> showWindow(windowClass: KClass<out T>): T
 
-	fun <T : MetaDialog> showDialog(dialogClass: Class<out T>): T
+	fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T
 	fun setMainMenuBar(menuBar: MenuBar?)
-	fun <T : Window> getWindow(windowClass: Class<out T>): T
+	fun <T : Window> getWindow(windowClass: KClass<out T>): T
 	fun closeWindow(window: Window)
 	fun updateWindow(window: Window)
 	fun bringWindowsToFront()
@@ -43,16 +44,18 @@ interface UIManager {
 	fun <T> metaGet(name: String, c: Class<T>): T?
 	fun metaSave(name: String, windowData: Any)
 	val currentlyActiveWindows: Array<Window>
-	val classMap: MutableMap<String, Class<out Window>>
-	val classMap2: MutableMap<Class<out Window>, String>
-	val windowMap: MutableMap<String, () -> Window>
+	val nameToClass: MutableMap<String, KClass<out Window>>
+	val classToName: MutableMap<KClass<out Window>, String>
+	val windowCreators: MutableMap<String, () -> Window>
 }
 
-inline fun <reified T: Window> UIManager.register(uniqueName: String = T::class.java.name, noinline creator: () -> T) {
-	classMap[uniqueName] = T::class.java
-	classMap2[T::class.java] = uniqueName
-	windowMap[uniqueName] = creator
+inline fun <reified T: Window> UIManager.register(uniqueName: String = T::class.qualifiedName ?: "", noinline creator: () -> T) {
+	require(nameToClass[uniqueName] == null) { "Name already registered: $uniqueName"}
+
+	nameToClass[uniqueName] = T::class
+	classToName[T::class] = uniqueName
+	windowCreators[uniqueName] = creator
 }
-inline fun <reified T : MetaWindow> UIManager.getWindow(config: T.() -> Unit = {}): T = getWindow(T::class.java).apply(config)
-inline fun <reified T : MetaWindow> UIManager.showWindow(config: T.() -> Unit = {}): T = showWindow(T::class.java).apply(config)
-inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = {}): T = showDialog(T::class.java).apply(config)
+inline fun <reified T : MetaWindow> UIManager.getWindow(config: T.() -> Unit = {}): T = getWindow(T::class).apply(config)
+inline fun <reified T : MetaWindow> UIManager.showWindow(config: T.() -> Unit = {}): T = showWindow(T::class).apply(config)
+inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = {}): T = showDialog(T::class).apply(config)

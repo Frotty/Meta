@@ -19,6 +19,7 @@ import de.fatox.meta.ui.windows.MetaDialog
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
+import kotlin.reflect.KClass
 
 /**
  * Created by Frotty on 20.05.2016.
@@ -36,9 +37,9 @@ class MetaUiManager : UIManager {
 	private var currentScreenId: String = "(none)"
 	override var posModifier: PosModifier = DummyPosModifier
 
-	override val classMap: MutableMap<String, Class<out Window>> = mutableMapOf()
-	override val classMap2: MutableMap<Class<out Window>, String> = mutableMapOf()
-	override val windowMap: MutableMap<String, () -> Window> = mutableMapOf()
+	override val nameToClass: MutableMap<String, KClass<out Window>> = mutableMapOf()
+	override val classToName: MutableMap<KClass<out Window>, String> = mutableMapOf()
+	override val windowCreators: MutableMap<String, () -> Window> = mutableMapOf()
 
 	override fun moveWindow(x: Int, y: Int) {
 		posModifier.modify(x, y)
@@ -54,7 +55,7 @@ class MetaUiManager : UIManager {
 
 		// Close or move currently shown windows
 		for (window: Window in displayedWindows) {
-			val name = classMap2[window.javaClass]!!
+			val name = classToName[window::class]!!
 			if (metaHas(name)) {
 				val metaWindowData = metaGet(name, MetaWindowData::class.java)!!
 				if (metaWindowData.displayed) {
@@ -83,9 +84,9 @@ class MetaUiManager : UIManager {
 		val list = metaData.getCachedHandle(currentScreenId).list()
 		outer@ for (fh: FileHandle in list) {
 			if (fh.name().endsWith("Window")) {
-				val windowClass: Class<out Window>? = classMap[fh.name()]
+				val windowClass: KClass<out Window>? = nameToClass[fh.name()]
 				if (windowClass != null) {
-					val metaWindowData = metaGet(classMap2[windowClass]!!, MetaWindowData::class.java)!!
+					val metaWindowData = metaGet(classToName[windowClass]!!, MetaWindowData::class.java)!!
 					for (displayedWindow in displayedWindows) {
 						if (displayedWindow!!.javaClass == windowClass) {
 							if (!metaWindowData.displayed) {
@@ -119,27 +120,27 @@ class MetaUiManager : UIManager {
 	 *
 	 * @param windowClass The window to show
 	 */
-	override fun <T : Window> showWindow(windowClass: Class<out T>): T {
-		log.debug("show window: " + classMap2[windowClass])
+	override fun <T : Window> showWindow(windowClass: KClass<out T>): T {
+		log.debug("show window: " + classToName[windowClass])
 		val window: T? = displayWindow(windowClass)
 		window!!.isVisible = true
-		if (metaHas(classMap2[windowClass]!!)) {
+		if (metaHas(classToName[windowClass]!!)) {
 			// There exists metadata for this window.
-			val windowData = metaGet(classMap2[windowClass]!!, MetaWindowData::class.java)!!
+			val windowData = metaGet(classToName[windowClass]!!, MetaWindowData::class.java)!!
 			windowData.set(window)
 			if (!windowData.displayed) {
 				windowData.displayed = true
-				metaSave(classMap2[windowClass]!!, windowData)
+				metaSave(classToName[windowClass]!!, windowData)
 			}
 		} else {
 			// First time the window has been shown on this screen
-			metaSave(classMap2[windowClass]!!, MetaWindowData(window))
+			metaSave(classToName[windowClass]!!, MetaWindowData(window))
 		}
 		return window
 	}
 
-	override fun <T : MetaDialog> showDialog(dialogClass: Class<out T>): T {
-		log.debug("show dialog: " + classMap2[dialogClass]!!)
+	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T {
+		log.debug("show dialog: " + classToName[dialogClass]!!)
 		// Dialogs are just Window subtypes so we show it as usual
 		val dialog: T = showWindow(dialogClass)
 		dialog.show()
@@ -156,7 +157,7 @@ class MetaUiManager : UIManager {
 		mainMenuBar = menuBar
 	}
 
-	override fun <T : Window> getWindow(windowClass: Class<out T>): T {
+	override fun <T : Window> getWindow(windowClass: KClass<out T>): T {
 		// TODO avoid NPE
 		return getDisplayedClass(windowClass)!!
 	}
@@ -165,17 +166,17 @@ class MetaUiManager : UIManager {
 		val displayedWindow = getDisplayedInstance(window)
 		if (displayedWindow != null) {
 			displayedWindows.removeValue(window, true)
-			val metaWindowData = metaGet(classMap2[window.javaClass]!!, MetaWindowData::class.java)
+			val metaWindowData = metaGet(classToName[window::class]!!, MetaWindowData::class.java)
 			if (metaWindowData != null) {
 				metaWindowData.displayed = false
-				metaSave(classMap2[displayedWindow.javaClass]!!, metaWindowData)
+				metaSave(classToName[displayedWindow::class]!!, metaWindowData)
 			}
 			cacheWindow(window, false)
 		}
 	}
 
 	override fun updateWindow(window: Window) {
-		val name = classMap2[window.javaClass]!!
+		val name = classToName[window::class]!!
 		if (metaHas(name)) {
 			val metaWindowData = metaGet(name, MetaWindowData::class.java)!!
 			metaWindowData.setFrom(window)
@@ -190,7 +191,7 @@ class MetaUiManager : UIManager {
 		mainMenuBar!!.table.toFront()
 	}
 
-	private fun <T : Window> displayWindow(windowClass: Class<out T>): T? {
+	private fun <T : Window> displayWindow(windowClass: KClass<out T>): T? {
 		// Check if this window is a singleton. If it is and it is displayed, return displayed instance
 		var theWindow = checkSingleton(windowClass)
 		if (theWindow != null) {
@@ -211,7 +212,7 @@ class MetaUiManager : UIManager {
 		} else {
 			try {
 				log.debug("try instance")
-				theWindow = windowMap[classMap2[windowClass]]!!.invoke() as T
+				theWindow = windowCreators[classToName[windowClass]]!!.invoke() as T
 			} catch (e: InstantiationException) {
 				e.printStackTrace()
 			} catch (e: IllegalAccessException) {
@@ -223,8 +224,8 @@ class MetaUiManager : UIManager {
 		return theWindow
 	}
 
-	private fun <T : Window> checkSingleton(windowClass: Class<out T>): T? {
-		if (windowClass.isAnnotationPresent(Singleton::class.java)) {
+	private fun <T : Window> checkSingleton(windowClass: KClass<out T>): T? {
+		if (windowClass.java.isAnnotationPresent(Singleton::class.java)) {
 			val displayedWindow: T? = getDisplayedClass(windowClass)
 			if (displayedWindow != null) {
 				return displayedWindow
@@ -233,7 +234,7 @@ class MetaUiManager : UIManager {
 		return null
 	}
 
-	private fun <T : Window> getDisplayedClass(windowClass: Class<out T>): T? {
+	private fun <T : Window> getDisplayedClass(windowClass: KClass<out T>): T? {
 		return displayedWindows.firstOrNull { it.javaClass == windowClass } as T?
 	}
 

@@ -9,6 +9,8 @@ import com.kotcrab.vis.ui.widget.VisTextButton
 import com.kotcrab.vis.ui.widget.VisTextField
 import com.kotcrab.vis.ui.widget.VisWindow
 import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.api.ui.getWindow
+import de.fatox.meta.api.ui.showWindow
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.AssetDiscovererWindow
 
@@ -42,8 +44,8 @@ class AssetSelectButton {
 		selectAssetButton = VisTextButton("...")
 		selectAssetButton!!.addListener(object : MetaClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
-				var window = uiManager.getWindow(AssetDiscovererWindow::class.java)
-				if (window == null) window = uiManager.showWindow(AssetDiscovererWindow::class.java)
+				var window = uiManager.getWindow<AssetDiscovererWindow>()
+				if (window == null) window = uiManager.showWindow()
 				window.enableSelectionMode { selected: FileHandle? ->
 					this@AssetSelectButton.file = selected
 					if (selectListener != null) {

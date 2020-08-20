@@ -11,6 +11,7 @@ import com.kotcrab.vis.ui.widget.VisSelectBox
 import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.RenderBufferData
+import de.fatox.meta.api.ui.showDialog
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import de.fatox.meta.shader.MetaShaderComposer
@@ -50,7 +51,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 		val visImageButton = VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
 		visImageButton.addListener(object : MetaClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
-				uiManager.showDialog(ShaderCompositionWizard::class.java)
+				uiManager.showDialog<ShaderCompositionWizard>()
 			}
 		})
 		visImageButton.image.setScaling(Scaling.fill)

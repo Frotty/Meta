@@ -32,9 +32,9 @@ class ProjectHomeTab(private val projectData: MetaProjectData) : MetaTab(true, f
 		super.onShow()
 		editorUI.metaToolbar.apply {
 			clear()
-			addAvailableWindow(AssetDiscovererWindow::class.java, null)
-			addAvailableWindow(ShaderLibraryWindow::class.java, null)
-			addAvailableWindow(ShaderComposerWindow::class.java, null)
+			addAvailableWindow(AssetDiscovererWindow::class, null)
+			addAvailableWindow(ShaderLibraryWindow::class, null)
+			addAvailableWindow(ShaderComposerWindow::class, null)
 		}
 	}
 

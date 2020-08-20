@@ -8,6 +8,7 @@ import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.VisTable
 import com.kotcrab.vis.ui.widget.VisTextButton
 import de.fatox.meta.api.model.GLShaderData
+import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.error.MetaError
 import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.ProjectManager
@@ -96,7 +97,7 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 					val fragFile = projectManager.relativize(fragmentSelect!!.file)
 					val shaderData = GLShaderData(shaderNameTF.textField.text, vertFile, fragFile)
 					val glShaderHandle = shaderLibrary.newShader(shaderData)!!
-					val window = uiManager.getWindow(ShaderLibraryWindow::class.java)
+					val window = uiManager.getWindow<ShaderLibraryWindow>()
 					window.addShader(glShaderHandle)
 				}
 				close()
