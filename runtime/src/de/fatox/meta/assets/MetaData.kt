@@ -25,18 +25,18 @@ class MetaData {
 
 	private val fileHandleCache = ObjectMap<String, FileHandle>()
 	private val fileCache = ObjectMap<String, File>()
-	private val jsonCache = ObjectMap<String, CacheObj<Any?>>()
+	private val jsonCache = ObjectMap<String, CacheObj<Any>>()
 	private val dataRoot: FileHandle
 	private val json = Json()
-	fun save(key: String, obj: Any?) {
+	fun save(key: String, obj: Any) {
 		save(dataRoot, key, obj)
 	}
 
-	fun save(target: FileHandle?, key: String, obj: Any?): FileHandle {
+	fun save(target: FileHandle, key: String, obj: Any): FileHandle {
 		val jsonString = json.toJson(obj)
 		val fileHandle = getCachedHandle(target, key)
 		fileHandle.writeBytes(jsonString.toByteArray(), false)
-		val cacheObj: CacheObj<Any?>? = jsonCache.get(key)
+		val cacheObj: CacheObj<Any>? = jsonCache.get(key)
 		if (cacheObj != null) {
 			cacheObj.created = TimeUtils.millis()
 			cacheObj.obj = obj
@@ -79,14 +79,14 @@ class MetaData {
 				}
 			}
 			jsonHandle = json.fromJson(type, cachedHandle)
-			jsonCache.put(key, CacheObj(jsonHandle))
+			jsonCache.put(key, CacheObj(jsonHandle as Any))
 		}
 		return jsonHandle
 	}
 
-	operator fun <T> get(target: FileHandle?, key: String, type: Class<T>?): T? {
+	operator fun <T> get(target: FileHandle, key: String, type: Class<T>?): T? {
 		val fileHandle = getCachedHandle(target, key)
-		return if (fileHandle != null && fileHandle.exists()) {
+		return if (fileHandle.exists()) {
 			json.fromJson(type, fileHandle.readString())
 		} else null
 	}
@@ -101,12 +101,9 @@ class MetaData {
 		} else null
 	}
 
-	fun getCachedHandle(parent: FileHandle?, key: String): FileHandle {
-		var fileHandle: FileHandle
-		if (fileHandleCache.containsKey(key)) {
-			fileHandle = fileHandleCache.get(key)
-		} else {
-			fileHandle = parent!!.child(key)
+	fun getCachedHandle(parent: FileHandle, key: String): FileHandle {
+		if (!fileHandleCache.containsKey(key)) {
+			var fileHandle: FileHandle = parent.child(key)
 			if (!fileHandle.exists()) {
 				val fileHandle2 = Gdx.files.external(GLOBAL_DATA_FOLDER_NAME + key)
 				if (fileHandle2.exists()) {
@@ -116,7 +113,7 @@ class MetaData {
 			fileHandleCache.put(key, fileHandle)
 			fileCache.put(key, fileHandle.file())
 		}
-		return fileHandle
+		return fileHandleCache.get(key)
 	}
 
 	fun has(name: String): Boolean {

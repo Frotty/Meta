@@ -8,6 +8,7 @@ import com.badlogic.gdx.utils.Array
 import com.kotcrab.vis.ui.widget.MenuBar
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.ui.windows.MetaDialog
+import de.fatox.meta.ui.windows.MetaWindow
 
 /**
  * Created by Frotty on 20.05.2016.
@@ -40,10 +41,18 @@ interface UIManager {
 	fun bringWindowsToFront()
 	fun metaHas(name: String): Boolean
 	fun <T> metaGet(name: String, c: Class<T>): T?
-	fun metaSave(name: String, windowData: Any?)
+	fun metaSave(name: String, windowData: Any)
 	val currentlyActiveWindows: Array<Window>
+	val classMap: MutableMap<String, Class<out Window>>
+	val classMap2: MutableMap<Class<out Window>, String>
+	val windowMap: MutableMap<String, () -> Window>
 }
 
-inline fun <reified T : Window> UIManager.getWindow(config: T.() -> Unit = {}): T = getWindow(T::class.java).apply(config)
-inline fun <reified T : Window> UIManager.showWindow(config: T.() -> Unit = {}): T = showWindow(T::class.java).apply(config)
+inline fun <reified T: Window> UIManager.register(uniqueName: String = T::class.java.name, noinline creator: () -> T) {
+	classMap[uniqueName] = T::class.java
+	classMap2[T::class.java] = uniqueName
+	windowMap[uniqueName] = creator
+}
+inline fun <reified T : MetaWindow> UIManager.getWindow(config: T.() -> Unit = {}): T = getWindow(T::class.java).apply(config)
+inline fun <reified T : MetaWindow> UIManager.showWindow(config: T.() -> Unit = {}): T = showWindow(T::class.java).apply(config)
 inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = {}): T = showDialog(T::class.java).apply(config)

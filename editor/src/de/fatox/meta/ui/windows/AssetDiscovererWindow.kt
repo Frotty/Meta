@@ -14,7 +14,6 @@ import de.fatox.meta.ui.FolderListAdapter
 import de.fatox.meta.ui.components.MetaClickListener
 import de.fatox.meta.ui.components.MetaIconTextButton
 
-
 /**
  * Created by Frotty on 07.06.2016.
  */

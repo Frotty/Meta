@@ -3,6 +3,7 @@ package de.fatox.meta.ui.windows
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
@@ -34,44 +35,38 @@ abstract class MetaWindow(
 	private var startDrag = false
 
 	init {
-		titleTable.left().padLeft(2f)
 		titleLabel.setAlignment(Align.left)
-		if (closeButton) {
-			addExitButton()
+
+		titleTable.apply {
+			left().padLeft(2f)
+			if (closeButton) {
+				val exitButton = VisImageButton("close-window").apply {
+					setColor(1f, 1f, 1f, 0.2f)
+					onChange { close() }
+					addListener(object : ClickListener() {
+						override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+							event.cancel()
+							return true
+						}
+					})
+				}
+				add(exitButton).padRight(-padRight + 0.7f)
+			}
+
+			// Separator
+			top()
+			row().height(2f)
+			add(Separator()).growX().padTop(2f).colspan(if (closeButton) 2 else 1)
+			padTop(2f)
 		}
-		// Separator
-		titleTable.top()
-		titleTable.row().height(2f)
-		titleTable.add(Separator()).growX().padTop(2f).colspan(if (closeButton) 2 else 1)
-		titleTable.padTop(2f)
+
 		if (resizable) {
 			padBottom(6f)
-			isResizable = true
+			super.setResizable(true)
 		}
 		contentTable.top().pad(5f, 1f, 1f, 1f)
 		add(contentTable).top().grow()
 		row()
-	}
-
-	private fun addExitButton() {
-		val titleLabel = titleLabel
-		val titleTable = titleTable
-
-		val closeButton = VisImageButton("close-window")
-		closeButton.setColor(1f, 1f, 1f, 0.2f)
-		titleTable.add(closeButton).padRight(-padRight + 0.7f)
-		closeButton.apply {
-			onChange { close() }
-			addListener(object : ClickListener() {
-				override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
-					event?.cancel()
-					return true
-				}
-			})
-		}
-
-		if (titleLabel.labelAlign == Align.center && titleTable.children.size == 2)
-			titleTable.getCell(titleLabel).padLeft(closeButton.width * 2)
 	}
 
 	fun setDefaultSize(width: Float, height: Float) {

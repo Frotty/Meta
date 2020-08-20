@@ -101,11 +101,11 @@ class MetaProjectManager : ProjectManager {
 	}
 
 	override fun <T> get(key: String, type: Class<T>): T {
-		return metaData[currentProjectRoot, key, type] as T
+		return metaData[currentProjectRoot!!, key, type] as T
 	}
 
 	override fun save(key: String, obj: Any): FileHandle {
-		return metaData.save(currentProjectRoot, key, obj)
+		return metaData.save(currentProjectRoot!!, key, obj)
 	}
 
 	override fun relativize(fh: FileHandle): String {

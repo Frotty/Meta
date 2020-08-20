@@ -10,6 +10,7 @@ import com.kotcrab.vis.ui.widget.MenuBar
 import com.kotcrab.vis.ui.widget.MenuItem
 import com.kotcrab.vis.ui.widget.Separator
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.ide.ProjectManager
@@ -50,11 +51,7 @@ class EditorMenuBar {
 
 	fun addAvailableWindow(windowClass: Class<out Window>, icon: Image?) {
 		val menuItem = MenuItem(windowClass.simpleName.substring(0, windowClass.simpleName.indexOf("Window")), icon)
-		menuItem.addListener(object : ChangeListener() {
-			override fun changed(event: ChangeEvent, actor: Actor) {
-				uiManager.showWindow(windowClass)
-			}
-		})
+		menuItem.onChange { uiManager.showWindow(windowClass) }
 		windowsMenu!!.addItem(menuItem)
 	}
 

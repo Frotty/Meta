@@ -12,10 +12,13 @@ import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.api.ui.register
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.ide.SceneManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.MetaEditorUI
+import de.fatox.meta.ui.dialogs.*
+import de.fatox.meta.ui.windows.*
 
 class MetaEditorScreen : ScreenAdapter() {
 	private val uiManager: UIManager by lazyInject()
@@ -31,7 +34,17 @@ class MetaEditorScreen : ScreenAdapter() {
 	private val fpsLogger = FPSLogger()
 	override fun show() {
 		if (!isInited) {
-
+			uiManager.register("X_Window") { AssetDiscovererWindow() }
+			uiManager.register { ShaderComposerWindow() }
+			uiManager.register { PrimitivesWindow() }
+			uiManager.register { SceneOptionsWindow() }
+			uiManager.register { CameraWindow() }
+			uiManager.register { ShaderCompositionWizard() }
+			uiManager.register { ShaderWizardDialog() }
+			uiManager.register { ProjectWizardDialog() }
+			uiManager.register { OpenProjectDialog() }
+			uiManager.register { SceneWizardDialog() }
+			uiManager.register { MetaKeyRebindDialog() }
 			uiManager.changeScreen(javaClass.name)
 			setupEditorUi()
 			isInited = true
