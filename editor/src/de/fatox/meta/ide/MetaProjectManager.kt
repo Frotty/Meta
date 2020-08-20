@@ -11,7 +11,6 @@ import de.fatox.meta.api.model.MetaProjectData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.tabs.ProjectHomeTab
 import java.nio.file.Paths

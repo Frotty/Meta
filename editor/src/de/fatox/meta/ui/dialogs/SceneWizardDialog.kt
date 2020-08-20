@@ -7,7 +7,6 @@ import de.fatox.meta.error.MetaError
 import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.SceneManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.ui.components.MetaInputValidator
 import de.fatox.meta.ui.components.MetaValidTextField
 import de.fatox.meta.ui.windows.MetaDialog

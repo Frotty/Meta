@@ -12,7 +12,6 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.listener.MetaNotifier
 import de.fatox.meta.ui.windows.ShaderComposerWindow
 import java.io.File
@@ -113,10 +112,8 @@ object MetaShaderComposer : MetaNotifier() {
 		notifyListeners()
 	}
 
-	companion object {
-		val META_COMP_SUFFIX = ".mco"
-		val META_COMP_PATH = "meta\\compositions\\"
-	}
+	const val META_COMP_SUFFIX = ".mco"
+	const val META_COMP_PATH = "meta\\compositions\\"
 
 	fun removeBufferHandle(handle: RenderBufferHandle) {
 		currentComposition?.let {

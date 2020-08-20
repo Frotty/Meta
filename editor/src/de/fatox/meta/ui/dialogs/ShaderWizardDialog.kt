@@ -13,7 +13,6 @@ import de.fatox.meta.error.MetaError
 import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.ui.components.AssetSelectButton
 import de.fatox.meta.ui.components.MetaInputValidator

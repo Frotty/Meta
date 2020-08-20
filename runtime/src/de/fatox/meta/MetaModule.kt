@@ -30,14 +30,14 @@ object MetaModule {
 			singleton<FontProvider>("default") { MetaFontProvider() }
 			singleton { MetaSoundPlayer() }
 			singleton<UIRenderer> { MetaUIRenderer() }
-			singleton<UIManager> { MetaUiManager() }
+			singleton<UIManager> { MetaUiManager }
 			singleton { ModelBuilder() }
 			singleton<MetaInputProcessor> { MetaInput }
 			singleton<EntityManager<Meta3DEntity>>("default") { MetaEntityManager() }
 			singleton("default") { MetaTaskManager() }
 			singleton("", "default")
 			singleton(Json(), "default")
-			singleton("default") { UiControlHelper() }
+			singleton("default") { UiControlHelper }
 			singleton("default") { FontInfo("Montserrat.ttf", "RobotoMono.ttf") }
 			singleton("default") { SpriteBatch(1000, inject("spritebatch-shader")).apply { enableBlending() } }
 			singleton {
