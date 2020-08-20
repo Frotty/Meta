@@ -27,7 +27,7 @@ object HashUtils {
 		digest.reset()
 		digest.update(input, 0, input.size - HASH_LENGTH)
 		val newHash = digest.digest()
-		val oldHash = input.copyOfRange(input.size - HASH_LENGTH + 1, input.size)
+		val oldHash = input.copyOfRange(input.size - HASH_LENGTH, input.size)
 		check(newHash.contentEquals(oldHash))
 		{ "game files invalid. expected: ${hex(oldHash)} actual: ${hex(newHash)}" }
 	}
