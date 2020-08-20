@@ -20,7 +20,7 @@ class MetaMusicPlayer {
 	private val metaData: MetaData by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
 
-	private val task: Task = object : Task() {
+	private var task: Task = object : Task() {
 		override fun run() {
 			updateMusic()
 		}
@@ -36,7 +36,7 @@ class MetaMusicPlayer {
 
 	fun start() {
 		// Start Timer to update music
-		timer.scheduleTask(task, 0f, 0.1f)
+		task = timer.scheduleTask(task, 0f, 0.1f)
 	}
 
 	private fun updateMusic() {
@@ -78,7 +78,7 @@ class MetaMusicPlayer {
 	}
 
 	private fun fadeInOut(volume: Float) {
-		if (currentMusic !== null && currentMusic!!.isPlaying) {
+		if (nextMusic !== null && currentMusic!!.isPlaying) {
 			currentMusic!!.volume *= 0.4f
 		} else if (currentMusic!!.volume >= startVolume && currentMusic!!.volume < volume) {
 			currentMusic!!.volume *= 3f
@@ -95,10 +95,9 @@ class MetaMusicPlayer {
 	}
 
 	private fun startMusic(music: Music) {
-		currentMusic = music.apply {
-			play()
-			volume = 1f
-		}
+		currentMusic = music
+		currentMusic!!.play()
+		currentMusic!!.volume = startVolume
 	}
 
 	private fun getMusic(musicPath: String): Music {
