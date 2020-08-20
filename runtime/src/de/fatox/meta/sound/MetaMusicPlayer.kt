@@ -97,7 +97,7 @@ class MetaMusicPlayer {
 	private fun startMusic(music: Music) {
 		currentMusic = music.apply {
 			play()
-			volume = startVolume
+			volume = 1f
 		}
 	}
 
