@@ -1,6 +1,7 @@
 package de.fatox.meta.sound
 
 import com.badlogic.gdx.audio.Music
+import com.badlogic.gdx.backends.lwjgl3.audio.mock.MockMusic
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.Timer
@@ -11,7 +12,7 @@ import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
-//object UninitializedMusic : MockMusic()
+object UninitializedMusic : MockMusic()
 
 /**
  * Created by Frotty on 09.11.2016.
@@ -27,8 +28,8 @@ class MetaMusicPlayer {
 	}
 	private val startVolume = 0.01f
 	private var musicEnabled = true
-	private var currentMusic: Music? = null
-	private var nextMusic: Music? = null
+	private var currentMusic: Music = UninitializedMusic
+	private var nextMusic: Music = UninitializedMusic
 	private val allPool = Array<Music>()
 	private val activePool = Array<Music>()
 	private val musicCache = ObjectMap<String, Music>()
@@ -43,18 +44,18 @@ class MetaMusicPlayer {
 		val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
 		val volume = audioVideoData.masterVolume * audioVideoData.musicVolume
 		if (!musicEnabled || volume <= startVolume) {
-			if (currentMusic !== null)
+			if (currentMusic !== UninitializedMusic)
 				currentMusic!!.volume = 0f
 			return
 		}
-		if (currentMusic === null || !currentMusic!!.isPlaying) {
-			if (nextMusic === null) {
+		if (currentMusic === UninitializedMusic || !currentMusic!!.isPlaying) {
+			if (nextMusic === UninitializedMusic) {
 				nextFromPool()
 			} else {
 				startMusic(nextMusic!!)
 			}
 		}
-		if (currentMusic !== null) {
+		if (currentMusic !== UninitializedMusic) {
 			if (currentMusic!!.volume < startVolume) {
 				finishMusic()
 			} else {
@@ -69,16 +70,16 @@ class MetaMusicPlayer {
 	private fun finishMusic() {
 		currentMusic!!.stop()
 		// Check if there is a track queued
-		if (nextMusic !== null) {
+		if (nextMusic !== UninitializedMusic) {
 			currentMusic = nextMusic
-			nextMusic = null
+			nextMusic = UninitializedMusic
 			currentMusic!!.play()
 			currentMusic!!.volume = startVolume
 		}
 	}
 
 	private fun fadeInOut(volume: Float) {
-		if (nextMusic !== null && currentMusic!!.isPlaying) {
+		if (nextMusic !== UninitializedMusic && currentMusic!!.isPlaying) {
 			currentMusic!!.volume *= 0.4f
 		} else if (currentMusic!!.volume >= startVolume && currentMusic!!.volume < volume) {
 			currentMusic!!.volume *= 3f
@@ -87,7 +88,7 @@ class MetaMusicPlayer {
 
 	fun playMusic(musicPath: String) {
 		val music = getMusic(musicPath)
-		if (currentMusic === null || !currentMusic!!.isPlaying) {
+		if (currentMusic === UninitializedMusic || !currentMusic!!.isPlaying) {
 			startMusic(music)
 		} else {
 			nextMusic = music
@@ -118,7 +119,7 @@ class MetaMusicPlayer {
 			activePool.shuffle()
 		}
 		if (activePool.size <= 0) return
-		if (currentMusic === null) {
+		if (currentMusic === UninitializedMusic) {
 			startMusic(activePool.pop())
 		} else {
 			nextMusic = activePool.pop()
@@ -132,15 +133,15 @@ class MetaMusicPlayer {
 	fun setMusicEnabled(musicEnabled: Boolean) {
 		this.musicEnabled = musicEnabled
 		if (!musicEnabled) {
-			nextMusic = null
+			nextMusic = UninitializedMusic
 			currentMusic!!.stop()
-			currentMusic = null
+			currentMusic = UninitializedMusic
 		}
 	}
 
 	private var vol = 1f
 	fun silenceMusic(musicEnabled: Boolean) {
-		if (currentMusic !== null) {
+		if (currentMusic !== UninitializedMusic) {
 			if (musicEnabled) {
 				currentMusic!!.volume = vol
 				if (!task.isScheduled) {
@@ -154,5 +155,5 @@ class MetaMusicPlayer {
 		}
 	}
 
-	val isMusicPlaying: Boolean get() = currentMusic !== null && currentMusic!!.isPlaying
+	val isMusicPlaying: Boolean get() = currentMusic !== UninitializedMusic && currentMusic!!.isPlaying
 }
