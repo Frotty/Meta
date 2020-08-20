@@ -19,8 +19,7 @@ import java.nio.file.Paths
 /**
  * Created by Frotty on 04.06.2016.
  */
-@Singleton
-class MetaProjectManager : ProjectManager {
+object MetaProjectManager : ProjectManager {
 	private val json: Json by lazyInject()
 	private val uiManager: UIManager by lazyInject()
 	private val editorUI: MetaEditorUI by lazyInject()

@@ -9,11 +9,9 @@ import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.listener.MetaNotifier
 
-@Singleton
-class MetaShaderLibrary : MetaNotifier() {
+object MetaShaderLibrary : MetaNotifier() {
 	private val projectManager: ProjectManager by lazyInject()
 	private val json: Json by lazyInject()
 
@@ -90,8 +88,6 @@ class MetaShaderLibrary : MetaNotifier() {
 		notifyListeners()
 	}
 
-	companion object {
-		private const val META_SHADER_SUFFIX = ".msh"
-		private const val INTERNAL_SHADER_PATH = "meta/shaders"
-	}
+	private const val META_SHADER_SUFFIX = ".msh"
+	private const val INTERNAL_SHADER_PATH = "meta/shaders"
 }

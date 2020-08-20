@@ -20,8 +20,7 @@ import java.io.File
 /**
  * Created by Frotty on 10.04.2017.
  */
-@Singleton
-class MetaShaderComposer : MetaNotifier() {
+object MetaShaderComposer : MetaNotifier() {
 	private val projectManager: ProjectManager by lazyInject()
 	private val json: Json by lazyInject()
 	private val uiManager: UIManager by lazyInject()

@@ -15,8 +15,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.injection.Singleton
 import kotlin.math.abs
 
-@Singleton
-class UiControlHelper {
+object UiControlHelper {
 	private val metaInput: MetaInputProcessor by lazyInject()
 
 	var activated = true

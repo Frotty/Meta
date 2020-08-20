@@ -24,8 +24,7 @@ import kotlin.reflect.KClass
 /**
  * Created by Frotty on 20.05.2016.
  */
-@Singleton
-class MetaUiManager : UIManager {
+object MetaUiManager : UIManager {
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val metaData: MetaData by lazyInject()
 	private val metaInput: MetaInputProcessor by lazyInject()
