@@ -24,8 +24,6 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.assets.XPKLoader.getList
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.util.function.Consumer
-
 
 class MetaAssetProvider : AssetProvider {
 	private val assetManager = AssetManager(MetaFileHandleResolver())
@@ -38,11 +36,11 @@ class MetaAssetProvider : AssetProvider {
 			for (itrHandle in folder.list()) {
 				if (itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) {
 					val list = getList(itrHandle)
-					list.forEach(Consumer { it: XPKFileHandle ->
+					list.forEach {
 						fileCache.put(it.name(), it)
 						fileCache.put(it.name().replace("/", "\\"), it)
 						log.debug("cache name: <" + it.name() + ">")
-					})
+					}
 				}
 			}
 			return true
