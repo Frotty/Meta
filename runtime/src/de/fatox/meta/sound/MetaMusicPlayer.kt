@@ -43,10 +43,12 @@ class MetaMusicPlayer {
 	private fun updateMusic() {
 		val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
 		val volume = audioVideoData.masterVolume * audioVideoData.musicVolume
+		println(currentMusic.volume)
 		if (!musicEnabled || volume <= startVolume) {
 			currentMusic.volume = 0f
 			return
 		}
+		println(currentMusic.volume)
 		if (currentMusic == UninitializedMusic || !currentMusic.isPlaying) {
 			if (nextMusic === UninitializedMusic) {
 				nextFromPool()
@@ -66,6 +68,7 @@ class MetaMusicPlayer {
 			}
 		}
 		println(currentMusic.volume)
+		println()
 	}
 
 	private fun finishMusic() {
@@ -80,10 +83,10 @@ class MetaMusicPlayer {
 	}
 
 	private fun fadeInOut(volume: Float) {
-		if (currentMusic.isPlaying) {
-			currentMusic.volume = currentMusic.volume * 0.4f
+		if (currentMusic !== UninitializedMusic && currentMusic.isPlaying) {
+			currentMusic.volume *= 0.4f
 		} else if (currentMusic.volume >= startVolume && currentMusic.volume < volume) {
-			currentMusic.volume = currentMusic.volume * 3f
+			currentMusic.volume *= 3f
 		}
 	}
 
