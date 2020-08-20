@@ -92,7 +92,7 @@ class MetaMusicPlayer {
 
 	fun playMusic(musicPath: String) {
 		val music = getMusic(musicPath)
-		if (!currentMusic.isPlaying) {
+		if (currentMusic === UninitializedMusic || !currentMusic.isPlaying) {
 			startMusic(music)
 		} else {
 			nextMusic = music
@@ -160,5 +160,5 @@ class MetaMusicPlayer {
 		}
 	}
 
-	val isMusicPlaying: Boolean get() = currentMusic.isPlaying
+	val isMusicPlaying: Boolean get() = currentMusic !== UninitializedMusic && currentMusic.isPlaying
 }
