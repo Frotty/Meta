@@ -95,7 +95,7 @@ class MetaMusicPlayer {
 	}
 
 	private fun startMusic(music: Music) {
-		println("startMusic")
+		println("startMusic $music, $currentMusic")
 		currentMusic = music.apply {
 			play()
 			volume = startVolume
