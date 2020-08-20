@@ -193,45 +193,18 @@ class MetaUiManager : UIManager {
 
 	private fun <T : Window> displayWindow(windowClass: KClass<out T>): T? {
 		// Check if this window is a singleton. If it is and it is displayed, return displayed instance
-		var theWindow = checkSingleton(windowClass)
-		if (theWindow != null) {
-			log.debug("singleton already displaying")
-			return theWindow
-		}
 		// Check for a cached instance
-		for (cachedWindow in cachedWindows) {
-			if (cachedWindow!!.javaClass == windowClass) {
-				log.debug("found cached")
-				theWindow = cachedWindow as T?
-				break
-			}
-		}
+		var theWindow: T? = null
 		// If there was no cached instance we create a new one
 		if (theWindow != null) {
 			cachedWindows.removeValue(theWindow, true)
 		} else {
-			try {
-				log.debug("try instance")
-				theWindow = windowCreators[classToName[windowClass]]!!.invoke() as T
-			} catch (e: InstantiationException) {
-				e.printStackTrace()
-			} catch (e: IllegalAccessException) {
-				e.printStackTrace()
-			}
+			log.debug("try instance")
+			theWindow = windowCreators[classToName[windowClass]]!!.invoke() as T
 		}
-		uiRenderer.addActor(theWindow!!)
+		uiRenderer.addActor(theWindow)
 		displayedWindows.add(theWindow)
 		return theWindow
-	}
-
-	private fun <T : Window> checkSingleton(windowClass: KClass<out T>): T? {
-		if (windowClass.java.isAnnotationPresent(Singleton::class.java)) {
-			val displayedWindow: T? = getDisplayedClass(windowClass)
-			if (displayedWindow != null) {
-				return displayedWindow
-			}
-		}
-		return null
 	}
 
 	private fun <T : Window> getDisplayedClass(windowClass: KClass<out T>): T? {

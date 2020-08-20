@@ -4,14 +4,12 @@ import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.kotcrab.vis.ui.widget.VisTextField
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.ui.components.MetaLabel
 
 /**
  * Created by Frotty on 20.05.2016.
  */
-@Singleton
-class CameraWindow : MetaWindow("Camera", true, true) {
+object CameraWindow : MetaWindow("Camera", true, true) {
 	private val xPosField: VisTextField
 	private val yPosField: VisTextField
 	private val zPosField: VisTextField

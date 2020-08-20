@@ -1,6 +1,5 @@
 package de.fatox.meta.ui.windows
 
-import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.utils.Scaling
 import com.kotcrab.vis.ui.widget.Separator
 import com.kotcrab.vis.ui.widget.VisImageButton
@@ -10,9 +9,7 @@ import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.ui.showDialog
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.shader.MetaShaderLibrary
-import de.fatox.meta.ui.components.MetaClickListener
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaTextButton
 import de.fatox.meta.ui.dialogs.ShaderWizardDialog
@@ -20,8 +17,7 @@ import de.fatox.meta.ui.dialogs.ShaderWizardDialog
 /**
  * Created by Frotty on 28.06.2016.
  */
-@Singleton
-class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
+object ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 
 	private val visTable: VisTable

@@ -9,7 +9,6 @@ import com.kotcrab.vis.ui.widget.*
 import de.fatox.meta.api.model.AssetDiscovererData
 import de.fatox.meta.ide.AssetDiscoverer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.ui.FolderListAdapter
 import de.fatox.meta.ui.components.MetaClickListener
 import de.fatox.meta.ui.components.MetaIconTextButton
@@ -17,8 +16,9 @@ import de.fatox.meta.ui.components.MetaIconTextButton
 /**
  * Created by Frotty on 07.06.2016.
  */
-@Singleton
-class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
+object AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
+	private const val TAG = "adwSettings"
+
 	private val assetDiscoverer: AssetDiscoverer by lazyInject()
 
 	private var adapter: FolderListAdapter<FolderModel>? = null
@@ -150,10 +150,6 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 
 	fun interface SelectListener {
 		fun onSelect(fileHandle: FileHandle?)
-	}
-
-	companion object {
-		private const val TAG = "adwSettings"
 	}
 
 	init {

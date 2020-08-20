@@ -24,8 +24,7 @@ import de.fatox.meta.ui.windows.ShaderLibraryWindow
 /**
  * Created by Frotty on 29.06.2016.
  */
-@Singleton
-class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
+object ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
 

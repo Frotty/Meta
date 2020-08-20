@@ -7,7 +7,6 @@ import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.VisSelectBox
 import de.fatox.meta.ide.SceneManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.ShaderComposition
 import de.fatox.meta.ui.MetaEditorUI
@@ -16,8 +15,7 @@ import de.fatox.meta.ui.tabs.SceneTab
 /**
  * Created by Frotty on 02.06.2016.
  */
-@Singleton
-class SceneOptionsWindow : MetaWindow("Scene Options", true, true) {
+object SceneOptionsWindow : MetaWindow("Scene Options", true, true) {
 	private val editorUI: MetaEditorUI by lazyInject()
 	private val shaderComposer: MetaShaderComposer by lazyInject()
 	private val sceneManager: SceneManager by lazyInject()

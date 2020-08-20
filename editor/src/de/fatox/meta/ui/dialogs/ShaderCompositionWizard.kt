@@ -16,8 +16,7 @@ import de.fatox.meta.ui.windows.MetaDialog
 /**
  * Created by Frotty on 29.06.2016.
  */
-@Singleton
-class ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
+object ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 	private val metaShaderComposer: MetaShaderComposer by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
 

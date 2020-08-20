@@ -9,7 +9,6 @@ import de.fatox.meta.Primitives
 import de.fatox.meta.api.graphics.Renderer
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.components.MetaClickListener
 import de.fatox.meta.ui.components.MetaIconTextButton
@@ -18,8 +17,7 @@ import de.fatox.meta.ui.tabs.SceneTab
 /**
  * Created by Frotty on 20.05.2016.
  */
-@Singleton
-class PrimitivesWindow : MetaWindow("Primitives", true, true) {
+object PrimitivesWindow : MetaWindow("Primitives", true, true) {
 	private val boxButton: MetaIconTextButton
 
 	private val metaEditorUI: MetaEditorUI by lazyInject()

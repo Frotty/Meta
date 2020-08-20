@@ -23,8 +23,7 @@ import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.util.isValidFolderName
 import de.fatox.meta.util.truncate
 
-@Singleton
-class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
+object ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 	private val createBtn: VisTextButton
 
 	private val languageBundle: LanguageBundle by lazyInject()

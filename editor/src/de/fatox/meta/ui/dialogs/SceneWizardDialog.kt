@@ -15,8 +15,7 @@ import de.fatox.meta.ui.windows.MetaDialog
 /**
  * Created by Frotty on 13.06.2016.
  */
-@Singleton
-class SceneWizardDialog : MetaDialog("Scene Wizard", true) {
+object SceneWizardDialog : MetaDialog("Scene Wizard", true) {
 	private val cancelBtn: VisTextButton
 	private val createBtn: VisTextButton
 

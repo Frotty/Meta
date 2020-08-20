@@ -13,7 +13,6 @@ import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.ui.showDialog
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.injection.Singleton
 import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.shader.ShaderComposition
@@ -26,8 +25,7 @@ import java.util.*
 /**
  * Created by Frotty on 29.07.2016.
  */
-@Singleton
-class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
+object ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val shaderComposer: MetaShaderComposer by lazyInject()
 
