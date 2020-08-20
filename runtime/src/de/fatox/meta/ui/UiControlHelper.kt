@@ -23,7 +23,7 @@ object UiControlHelper {
 	private var targets = Array<Actor>()
 
 	private val selectedColor: Color = Color.WHITE.cpy()
-	private var selectedActor: Actor = Actor()
+	var selectedActor: Actor = Actor()
 		set(value) {
 			field.color = selectedColor // TODO The color of the old actor should be set here?
 			field = value

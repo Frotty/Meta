@@ -9,6 +9,7 @@ import com.badlogic.gdx.utils.Align
 import com.kotcrab.vis.ui.widget.VisImageButton
 import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.VisTable
+import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.ui.components.MetaClickListener
 
 /**
@@ -16,30 +17,31 @@ import de.fatox.meta.ui.components.MetaClickListener
  */
 abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWindow(title, false, hasCloseButton) {
 	protected val buttonTable = VisTable()
-
-	@JvmField
 	protected val statusLabel = VisLabel()
-	var dialogListener: DialogListener? = null
+
+	var dialogListener: DialogListener = EmptyListener
 	private var buttonCount = 0
 
-	interface DialogListener {
+	fun interface DialogListener {
 		fun onResult(any: Any?)
 	}
 
-	fun <T : Button?> addButton(button: Button, align: Int, result: Any?): T {
-		button.addListener(object : MetaClickListener() {
-			override fun clicked(event: InputEvent, x: Float, y: Float) {
-				if (!button.isDisabled && dialogListener != null) {
-					dialogListener!!.onResult(result)
-				}
+	object EmptyListener : DialogListener {
+		override fun onResult(any: Any?) = Unit
+	}
+
+	fun <T : Button> addButton(button: T, align: Int, result: Any?): T {
+		button.onClick<Button> {
+			if (!button.isDisabled) {
+				dialogListener.onResult(result)
 			}
-		})
+		}
 		if (buttonCount > 0) {
 			buttonTable.add().growX()
 		}
 		buttonCount++
 		buttonTable.add(button).align(align)
-		return button as T
+		return button
 	}
 
 	open fun show() {
@@ -54,7 +56,7 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 		if (hasCloseButton) {
 			val btn = titleTable.cells[titleTable.cells.size - 1].actor
 			(btn as? VisImageButton)?.addListener { event: Event? ->
-				dialogListener!!.onResult(null)
+				dialogListener.onResult(null)
 				false
 			}
 		}
