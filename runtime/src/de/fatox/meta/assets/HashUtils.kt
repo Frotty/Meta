@@ -2,6 +2,7 @@ package de.fatox.meta.assets
 
 import java.math.BigInteger
 import java.nio.ByteBuffer
+import java.nio.channels.ReadableByteChannel
 import java.security.MessageDigest
 
 
@@ -10,6 +11,17 @@ object HashUtils {
 
 	private val buffer = ByteBuffer.allocate(1024 * 4 * 4)
 	private val digest: MessageDigest = MessageDigest.getInstance("SHA-1")
+
+	fun computeHash(channel: ReadableByteChannel): ByteArray {
+		buffer.rewind()
+		digest.reset()
+		while (channel.read(buffer) != -1) {
+			buffer.flip()
+			digest.update(buffer)
+			buffer.clear()
+		}
+		return digest.digest()
+	}
 
 	fun requireValidHash(input: ByteArray) {
 		digest.reset()
