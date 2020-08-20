@@ -23,7 +23,6 @@ class MetaMusicPlayer {
 
 	private val task: Task = object : Task() {
 		override fun run() {
-			println("update")
 			updateMusic()
 		}
 	}
@@ -44,8 +43,6 @@ class MetaMusicPlayer {
 	private fun updateMusic() {
 		val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
 		val volume = audioVideoData.masterVolume * audioVideoData.musicVolume
-		println(volume)
-		println(audioVideoData)
 		if (!musicEnabled || volume <= startVolume) {
 			currentMusic.volume = 0f
 			return
@@ -57,7 +54,6 @@ class MetaMusicPlayer {
 				startMusic(nextMusic)
 			}
 		}
-		println(currentMusic)
 		if (currentMusic !== UninitializedMusic) {
 			if (currentMusic.volume < startVolume) {
 				finishMusic()
@@ -99,6 +95,7 @@ class MetaMusicPlayer {
 	}
 
 	private fun startMusic(music: Music) {
+		println("startMusic")
 		currentMusic = music.apply {
 			play()
 			volume = startVolume
