@@ -12,6 +12,6 @@ import java.nio.ByteBuffer
 object MockAnimation : Animation<TextureRegion>(
 	Float.MAX_VALUE,
 	Array(arrayOf(TextureRegion(Texture(
-		Pixmap(Gdx2DPixmap(ByteBuffer.allocateDirect(0), longArrayOf(0,0,0,0)))
+		Pixmap(Gdx2DPixmap(ByteBuffer.allocateDirect(0), longArrayOf(0,0,0,1)))
 	))
 )))
