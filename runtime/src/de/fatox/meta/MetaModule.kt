@@ -55,7 +55,8 @@ object MetaModule {
 					ShaderProgram.prependVertexCode = "#version 300 es\n"
 					ShaderProgram.prependFragmentCode = "#version 300 es\n"
 				}
-				val vertexShader = """in vec4 ${ShaderProgram.POSITION_ATTRIBUTE};
+				val vertexShader = """
+in vec4 ${ShaderProgram.POSITION_ATTRIBUTE};
 in vec4 ${ShaderProgram.COLOR_ATTRIBUTE};
 in vec2 ${ShaderProgram.TEXCOORD_ATTRIBUTE}0;
 uniform mat4 u_projTrans;
