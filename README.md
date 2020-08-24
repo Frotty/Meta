@@ -6,7 +6,7 @@
 Conceptual 2D and 3D engine with scene and shader editor, build on top of libGDX.
 
 ## Concept
-Meta is supposed to be used along side libgdx and provide a more complete out of the box experience.
+Meta is supposed to be used alongside libgdx and provide a more complete out of the box experience.
 The philosophy stays the same however, so you should setup a libgdx project, then add meta to the gradle.build to get access to the runtime.
 This means you will have a pure code project, which you can augment with the editor.
 
@@ -27,13 +27,11 @@ The runtime contains all core components of the meta engine that will aid in the
 
 ### Dependency Injection
 Meta comes with a lightweight DI framework, focusing mainly on property injection.
-Dependencies are provided via modules like the renderer for the editor in this example
+Dependencies are provided via modules like the renderer for the editor in this example:
 
 ```kotlin
-@Provides
-@Singleton
-fun renderer() : Renderer {
-    return EditorSceneRenderer()
+MetaInject.global {
+    singleton<Renderer> { EditorSceneRenderer() }
 }
 ```
 
@@ -41,26 +39,16 @@ You can now inject this Singleton into any class.
 
 ```kotlin
 class GameScreen : ScreenAdapter {
-    @Inject
-    private lateinit var renderer: Renderer
-    
-    init {
-        
-    }
-    
+    private val renderer: Renderer by lazyInject() // shortcut for lazy { inject() }
+    // OR
+    private val renderer: Renderer = inject()
 }
 ```
 Dependency Injection allows for fast and managed object creation with easy customization and later plugin possibilities.
-Default injections are named so that when the user provides it's own provider, he can override the existing behaviour of that class.
+Default injections are named so that when the user provides their own provider, he can override the existing behaviour of that class.
 Inside a game the renderer could be replaced:
 ```kotlin
-@Provides
-@Singleton
-fun renderer() : Renderer {
-    return GameSceneRenderer()
+MetaInject.global {
+    singleton<Renderer> { GameSceneRenderer() }
 }
 ```
-
-
-
-
