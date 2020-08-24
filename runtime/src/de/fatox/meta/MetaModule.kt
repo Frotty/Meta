@@ -86,7 +86,7 @@ void main()
   fragData = v_color * texture(u_texture, v_texCoords);
 }"""
 				val shader = ShaderProgram(vertexShader, fragmentShader)
-				require(shader.isCompiled) { "Error compiling shader: " + shader.log }
+				require(shader.isCompiled) { "Error compiling shader: ${shader.log}" }
 				shader
 			}
 		}
