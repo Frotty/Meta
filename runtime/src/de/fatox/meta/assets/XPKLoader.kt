@@ -2,6 +2,7 @@ package de.fatox.meta.assets
 
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
+import de.fatox.meta.api.crypto.HashUtils
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
 

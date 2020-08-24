@@ -1,5 +1,6 @@
 package de.fatox.meta.assets
 
+import de.fatox.meta.api.crypto.HashUtils
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.ClosedChannelException
