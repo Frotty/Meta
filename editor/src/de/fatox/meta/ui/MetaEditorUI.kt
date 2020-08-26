@@ -29,7 +29,7 @@ class MetaEditorUI {
 		tabbedPane!!.addListener(object : TabbedPaneAdapter() {
 			override fun switchedTab(tab: Tab) {
 				tabbedPane!!.activeTab.onHide()
-				uiManager.changeScreen(tab.javaClass.name)
+				uiManager.changeTab(tab::class)
 				apply()
 				val content = tab.contentTable
 				tabTable.clearChildren()

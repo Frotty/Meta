@@ -45,4 +45,8 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
 		}
 	}
 
+	override fun ScreenConfig.screens() {
+		register { MetaEditorScreen() }
+	}
+
 }

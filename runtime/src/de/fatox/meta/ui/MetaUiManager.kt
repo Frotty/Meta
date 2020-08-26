@@ -1,11 +1,14 @@
 package de.fatox.meta.ui
 
+import com.badlogic.gdx.Screen
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.TimeUtils
 import com.kotcrab.vis.ui.widget.MenuBar
+import com.kotcrab.vis.ui.widget.tabbedpane.Tab
+import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.DummyPosModifier
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.PosModifier
@@ -38,6 +41,7 @@ object MetaUiManager : UIManager {
 	override val nameToClass: MutableMap<String, KClass<out Window>> = mutableMapOf()
 	override val classToName: MutableMap<KClass<out Window>, String> = mutableMapOf()
 	override val windowCreators: MutableMap<String, () -> Window> = mutableMapOf()
+	override val screenConfig: ScreenConfig by lazyInject()
 
 	override fun moveWindow(x: Int, y: Int) {
 		posModifier.modify(x, y)
@@ -47,8 +51,16 @@ object MetaUiManager : UIManager {
 		uiRenderer.resize(width, height)
 	}
 
-	override fun changeScreen(screenIdentifier: String) {
-		currentScreenId = screenIdentifier
+	override fun <T: Screen> changeScreen(screenClass: KClass<T>) {
+		changeScreen(screenConfig.classToName[screenClass]!!)
+	}
+
+	override fun <T: Tab> changeTab(tabClass: KClass<T>) {
+		changeScreen(tabClass.qualifiedName!!)
+	}
+
+	private fun changeScreen(screenId: String) {
+		currentScreenId = screenId
 		metaInput.changeScreen()
 
 		// Close or move currently shown windows

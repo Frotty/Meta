@@ -12,6 +12,7 @@ import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.api.ui.changeScreen
 import de.fatox.meta.api.ui.register
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.ide.SceneManager
@@ -45,11 +46,11 @@ class MetaEditorScreen : ScreenAdapter() {
 			uiManager.register { OpenProjectDialog() }
 			uiManager.register { SceneWizardDialog }
 			uiManager.register { MetaKeyRebindDialog() }
-			uiManager.changeScreen(javaClass.name)
+			uiManager.changeScreen<MetaEditorScreen>()
 			setupEditorUi()
 			isInited = true
 		} else {
-			uiManager.changeScreen(javaClass.name)
+			uiManager.changeScreen<MetaEditorScreen>()
 		}
 	}
 

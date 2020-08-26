@@ -2,10 +2,13 @@
 
 package de.fatox.meta.api.ui
 
+import com.badlogic.gdx.Screen
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.utils.Array
 import com.kotcrab.vis.ui.widget.MenuBar
+import com.kotcrab.vis.ui.widget.tabbedpane.Tab
+import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaWindow
@@ -25,7 +28,9 @@ interface UIManager {
 	 *
 	 * @param screenIdentifier name of the screen for the json persistence
 	 */
-	fun changeScreen(screenIdentifier: String)
+	fun <T: Screen> changeScreen(screenClass: KClass<T>)
+
+	fun <T: Tab> changeTab(tabClass: KClass<T>)
 
 	fun addTable(table: Table?, growX: Boolean, growY: Boolean)
 
@@ -47,6 +52,8 @@ interface UIManager {
 	val nameToClass: MutableMap<String, KClass<out Window>>
 	val classToName: MutableMap<KClass<out Window>, String>
 	val windowCreators: MutableMap<String, () -> Window>
+
+	val screenConfig: ScreenConfig
 }
 
 inline fun <reified T: Window> UIManager.register(uniqueName: String = T::class.qualifiedName ?: "", noinline creator: () -> T) {
@@ -59,3 +66,5 @@ inline fun <reified T: Window> UIManager.register(uniqueName: String = T::class.
 inline fun <reified T : MetaWindow> UIManager.getWindow(config: T.() -> Unit = {}): T = getWindow(T::class).apply(config)
 inline fun <reified T : MetaWindow> UIManager.showWindow(config: T.() -> Unit = {}): T = showWindow(T::class).apply(config)
 inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = {}): T = showDialog(T::class).apply(config)
+
+inline fun <reified T: Screen> UIManager.changeScreen() = changeScreen(T::class)

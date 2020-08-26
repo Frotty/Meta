@@ -4,9 +4,9 @@ import com.badlogic.gdx.Game
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.utils.TimeUtils
-import de.fatox.meta.api.DummyPosModifier
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -16,8 +16,31 @@ import javax.swing.JOptionPane
 import javax.swing.JScrollPane
 import javax.swing.JTextArea
 import javax.swing.UnsupportedLookAndFeelException
+import kotlin.reflect.KClass
 import javax.swing.UIManager as JavaUIManager
 
+class ScreenConfig {
+	internal val nameToClass: MutableMap<String, KClass<out Screen>> = mutableMapOf()
+	internal val classToName: MutableMap<KClass<out Screen>, String> = mutableMapOf()
+	internal val screenCreators: MutableMap<String, () -> Screen> = mutableMapOf()
+
+	@PublishedApi
+	internal fun <T : Screen> register(screenClass: KClass<T>, name: String, creator: () -> T) {
+		require(nameToClass[name] == null) { "Name already registered: $name" }
+
+		nameToClass[name] = screenClass
+		classToName[screenClass] = name
+		screenCreators[name] = creator
+	}
+}
+
+inline fun <reified T : Screen> ScreenConfig.register(
+	name: String = T::class.qualifiedName
+		?: "",
+	noinline creator: () -> T,
+) {
+	register(T::class, name, creator)
+}
 
 abstract class Meta(protected var modifier: PosModifier, vararg modules: Any) : Game() {
 	protected val firstScreen: Screen by lazyInject()
@@ -25,6 +48,8 @@ abstract class Meta(protected var modifier: PosModifier, vararg modules: Any) : 
 
 	private var lastChange: Long = 0
 	private lateinit var lastScreen: Screen
+
+	private val screenConfig = ScreenConfig()
 
 	init {
 		setUncaughtHandler()
@@ -64,14 +89,18 @@ abstract class Meta(protected var modifier: PosModifier, vararg modules: Any) : 
 
 	abstract fun config()
 
+	abstract fun ScreenConfig.screens()
+
 	override fun create() {
 		uiManager.posModifier = modifier
+		screenConfig.screens()
+		MetaInject.global { singleton { screenConfig } }
 		config()
 		changeScreen(firstScreen)
 	}
 
-	val lastScreenType: Class<*>
-		get() = lastScreen.javaClass
+	val lastScreenType: KClass<*> get() = lastScreen::class
+	val lastScreenName: String get() = screenConfig.classToName[lastScreenType]!!
 
 	companion object {
 		private val log: Logger = LoggerFactory.getLogger(Meta::class.java)
@@ -84,20 +113,18 @@ abstract class Meta(protected var modifier: PosModifier, vararg modules: Any) : 
 
 		fun registerMetaAnnotation(annotationClass: Class<*>?) {}
 		fun canChangeScreen(): Boolean {
-			return TimeUtils.millis() > metaInstance.lastChange + 150
+			return TimeUtils.millis() > instance.lastChange + 150
 		}
 
 		fun newLastScreen() {
-			try {
-				changeScreen(instance.lastScreen.javaClass.newInstance())
-			} catch (e: Exception) {
-				log.error("Failed to create last screen!", e)
-			}
+			changeScreen(
+				instance.screenConfig.screenCreators[instance.lastScreenName]!!()
+			)
 		}
 
 		fun changeScreen(newScreen: Screen) {
 			if (canChangeScreen()) {
-				metaInstance.lastChange = TimeUtils.millis()
+				instance.lastChange = TimeUtils.millis()
 				val oldScreen = instance.getScreen()
 				if (oldScreen != null && !oldScreen.javaClass.isInstance(newScreen)) {
 					instance.lastScreen = oldScreen
