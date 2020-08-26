@@ -206,7 +206,7 @@ object MetaUiManager : UIManager {
 	}
 
 	private fun <T : Window> getDisplayedClass(windowClass: KClass<out T>): T? {
-		return displayedWindows.firstOrNull { it.javaClass == windowClass } as T?
+		return displayedWindows.firstOrNull { it::class == windowClass } as T?
 	}
 
 	private fun getDisplayedInstance(window: Window): Window? {
