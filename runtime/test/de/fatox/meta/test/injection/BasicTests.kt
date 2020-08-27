@@ -1,6 +1,5 @@
 package de.fatox.meta.test.injection
 
-import de.fatox.meta.Meta.Companion.addModule
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.global
 import org.junit.jupiter.api.Assertions
@@ -10,7 +9,7 @@ import org.junit.jupiter.api.Test
 internal class BasicTests {
 	class NamedTestModule {
 		init {
-		    global {
+			global {
 				singleton("yeah", "someName")
 			}
 		}
@@ -18,7 +17,7 @@ internal class BasicTests {
 
 	@BeforeEach
 	fun prepare() {
-		addModule(NamedTestModule())
+		NamedTestModule()
 	}
 
 	class NamedTestSample {

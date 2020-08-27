@@ -107,11 +107,8 @@ abstract class Meta(protected var modifier: PosModifier) : Game() {
 		private lateinit var metaInstance: Meta
 		val instance: Meta by lazy { metaInstance }
 
-		fun addModule(module: Any) {
-			module
-		}
-
 		fun registerMetaAnnotation(annotationClass: Class<*>?) {}
+
 		fun canChangeScreen(): Boolean {
 			return TimeUtils.millis() > instance.lastChange + 150
 		}
