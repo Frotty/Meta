@@ -14,6 +14,29 @@ import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaWindow
 import kotlin.reflect.KClass
 
+class WindowConfig {
+	internal val nameToClass: MutableMap<String, KClass<out Window>> = mutableMapOf()
+	internal val classToName: MutableMap<KClass<out Window>, String> = mutableMapOf()
+	internal val creators: MutableMap<String, () -> Window> = mutableMapOf()
+
+	@PublishedApi
+	internal fun <T : MetaWindow> register(windowClass: KClass<T>, name: String, creator: () -> T) {
+		require(nameToClass[name] == null) { "Name already registered: $name" }
+
+		nameToClass[name] = windowClass
+		classToName[windowClass] = name
+		creators[name] = creator
+	}
+}
+
+inline fun <reified T : MetaWindow> WindowConfig.register(
+	name: String = T::class.qualifiedName
+		?: "",
+	noinline creator: () -> T,
+) {
+	register(T::class, name, creator)
+}
+
 /**
  * Created by Frotty on 20.05.2016.
  */
@@ -49,20 +72,11 @@ interface UIManager {
 	fun <T> metaGet(name: String, c: Class<T>): T?
 	fun metaSave(name: String, windowData: Any)
 	val currentlyActiveWindows: Array<Window>
-	val nameToClass: MutableMap<String, KClass<out Window>>
-	val classToName: MutableMap<KClass<out Window>, String>
-	val windowCreators: MutableMap<String, () -> Window>
+	val windowConfig: WindowConfig
 
 	val screenConfig: ScreenConfig
 }
 
-inline fun <reified T: Window> UIManager.register(uniqueName: String = T::class.qualifiedName ?: "", noinline creator: () -> T) {
-	require(nameToClass[uniqueName] == null) { "Name already registered: $uniqueName"}
-
-	nameToClass[uniqueName] = T::class
-	classToName[T::class] = uniqueName
-	windowCreators[uniqueName] = creator
-}
 inline fun <reified T : MetaWindow> UIManager.getWindow(config: T.() -> Unit = {}): T = getWindow(T::class).apply(config)
 inline fun <reified T : MetaWindow> UIManager.showWindow(config: T.() -> Unit = {}): T = showWindow(T::class).apply(config)
 inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = {}): T = showDialog(T::class).apply(config)

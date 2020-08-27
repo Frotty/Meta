@@ -7,6 +7,8 @@ import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.api.model.MetaAudioVideoData
+import de.fatox.meta.api.ui.WindowConfig
+import de.fatox.meta.api.ui.register
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -14,16 +16,13 @@ import de.fatox.meta.modules.MetaEditorModule
 import de.fatox.meta.modules.MetaUIModule
 import de.fatox.meta.screens.MetaEditorScreen
 import de.fatox.meta.screens.SplashScreen
+import de.fatox.meta.ui.dialogs.*
+import de.fatox.meta.ui.windows.*
 
 class EditorMeta(posM: PosModifier) : Meta(posM) {
 
 	private val metaData: MetaData by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
-
-	init {
-		addModule(MetaEditorModule())
-		addModule(MetaUIModule)
-	}
 
 	override fun config() {
 		uiManager.posModifier = this.modifier
@@ -43,6 +42,25 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
 				}
 			}
 		}
+	}
+
+	override fun WindowConfig.windows() {
+		register("X_Window") { AssetDiscovererWindow }
+		register { ShaderComposerWindow }
+		register { PrimitivesWindow }
+		register { SceneOptionsWindow }
+		register { CameraWindow }
+		register { ShaderCompositionWizard }
+		register { ShaderWizardDialog }
+		register { ProjectWizardDialog }
+		register { OpenProjectDialog() }
+		register { SceneWizardDialog }
+		register { MetaKeyRebindDialog() }
+	}
+
+	override fun MetaInject.injection() {
+		MetaEditorModule()
+		MetaUIModule
 	}
 
 	override fun ScreenConfig.screens() {

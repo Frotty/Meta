@@ -15,6 +15,7 @@ import de.fatox.meta.api.PosModifier
 import de.fatox.meta.api.model.MetaWindowData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.MetaDialog
@@ -38,9 +39,8 @@ object MetaUiManager : UIManager {
 	private var currentScreenId: String = "(none)"
 	override var posModifier: PosModifier = DummyPosModifier
 
-	override val nameToClass: MutableMap<String, KClass<out Window>> = mutableMapOf()
-	override val classToName: MutableMap<KClass<out Window>, String> = mutableMapOf()
-	override val windowCreators: MutableMap<String, () -> Window> = mutableMapOf()
+
+	override val windowConfig: WindowConfig by lazyInject()
 	override val screenConfig: ScreenConfig by lazyInject()
 
 	override fun moveWindow(x: Int, y: Int) {
@@ -65,7 +65,7 @@ object MetaUiManager : UIManager {
 
 		// Close or move currently shown windows
 		for (window: Window in displayedWindows) {
-			val name = classToName[window::class]!!
+			val name = windowConfig.classToName[window::class]!!
 			if (metaHas(name)) {
 				val metaWindowData = metaGet(name, MetaWindowData::class.java)!!
 				if (metaWindowData.displayed) {
@@ -94,9 +94,9 @@ object MetaUiManager : UIManager {
 		val list = metaData.getCachedHandle(currentScreenId).list()
 		outer@ for (fh: FileHandle in list) {
 			if (fh.name().endsWith("Window")) {
-				val windowClass: KClass<out Window>? = nameToClass[fh.name()]
+				val windowClass: KClass<out Window>? = windowConfig.nameToClass[fh.name()]
 				if (windowClass != null) {
-					val metaWindowData = metaGet(classToName[windowClass]!!, MetaWindowData::class.java)!!
+					val metaWindowData = metaGet(windowConfig.classToName[windowClass]!!, MetaWindowData::class.java)!!
 					for (displayedWindow in displayedWindows) {
 						if (displayedWindow!!.javaClass == windowClass) {
 							if (!metaWindowData.displayed) {
@@ -131,26 +131,26 @@ object MetaUiManager : UIManager {
 	 * @param windowClass The window to show
 	 */
 	override fun <T : Window> showWindow(windowClass: KClass<out T>): T {
-		log.debug("show window: " + classToName[windowClass])
+		log.debug("show window: " + windowConfig.classToName[windowClass])
 		val window: T? = displayWindow(windowClass)
 		window!!.isVisible = true
-		if (metaHas(classToName[windowClass]!!)) {
+		if (metaHas(windowConfig.classToName[windowClass]!!)) {
 			// There exists metadata for this window.
-			val windowData = metaGet(classToName[windowClass]!!, MetaWindowData::class.java)!!
+			val windowData = metaGet(windowConfig.classToName[windowClass]!!, MetaWindowData::class.java)!!
 			windowData.set(window)
 			if (!windowData.displayed) {
 				windowData.displayed = true
-				metaSave(classToName[windowClass]!!, windowData)
+				metaSave(windowConfig.classToName[windowClass]!!, windowData)
 			}
 		} else {
 			// First time the window has been shown on this screen
-			metaSave(classToName[windowClass]!!, MetaWindowData(window))
+			metaSave(windowConfig.classToName[windowClass]!!, MetaWindowData(window))
 		}
 		return window
 	}
 
 	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T {
-		log.debug("show dialog: " + classToName[dialogClass]!!)
+		log.debug("show dialog: " + windowConfig.classToName[dialogClass]!!)
 		// Dialogs are just Window subtypes so we show it as usual
 		val dialog: T = showWindow(dialogClass)
 		dialog.show()
@@ -176,17 +176,17 @@ object MetaUiManager : UIManager {
 		val displayedWindow = getDisplayedInstance(window)
 		if (displayedWindow != null) {
 			displayedWindows.removeValue(window, true)
-			val metaWindowData = metaGet(classToName[window::class]!!, MetaWindowData::class.java)
+			val metaWindowData = metaGet(windowConfig.classToName[window::class]!!, MetaWindowData::class.java)
 			if (metaWindowData != null) {
 				metaWindowData.displayed = false
-				metaSave(classToName[displayedWindow::class]!!, metaWindowData)
+				metaSave(windowConfig.classToName[displayedWindow::class]!!, metaWindowData)
 			}
 			cacheWindow(window, false)
 		}
 	}
 
 	override fun updateWindow(window: Window) {
-		val name = classToName[window::class]!!
+		val name = windowConfig.classToName[window::class]!!
 		if (metaHas(name)) {
 			val metaWindowData = metaGet(name, MetaWindowData::class.java)!!
 			metaWindowData.setFrom(window)
@@ -210,7 +210,7 @@ object MetaUiManager : UIManager {
 			cachedWindows.removeValue(theWindow, true)
 		} else {
 			log.debug("try instance")
-			theWindow = windowCreators[classToName[windowClass]]!!.invoke() as T
+			theWindow = windowConfig.creators[windowConfig.classToName[windowClass]]!!.invoke() as T
 		}
 		uiRenderer.addActor(theWindow)
 		displayedWindows.add(theWindow)

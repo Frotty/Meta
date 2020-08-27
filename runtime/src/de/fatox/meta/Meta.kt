@@ -6,6 +6,7 @@ import com.badlogic.gdx.Screen
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import org.slf4j.Logger
@@ -42,22 +43,18 @@ inline fun <reified T : Screen> ScreenConfig.register(
 	register(T::class, name, creator)
 }
 
-abstract class Meta(protected var modifier: PosModifier, vararg modules: Any) : Game() {
+abstract class Meta(protected var modifier: PosModifier) : Game() {
 	protected val firstScreen: Screen by lazyInject()
 	protected val uiManager: UIManager by lazyInject()
 
 	private var lastChange: Long = 0
 	private lateinit var lastScreen: Screen
 
-	private val screenConfig = ScreenConfig()
+	private val screenConfig: ScreenConfig by lazyInject()
 
 	init {
 		setUncaughtHandler()
 		metaInstance = this
-		for (module in modules) {
-			addModule(module)
-		}
-		addModule(MetaModule)
 	}
 
 	private fun setUncaughtHandler() {
@@ -88,13 +85,16 @@ abstract class Meta(protected var modifier: PosModifier, vararg modules: Any) : 
 	}
 
 	abstract fun config()
-
+	abstract fun MetaInject.injection()
 	abstract fun ScreenConfig.screens()
+	abstract fun WindowConfig.windows()
 
 	override fun create() {
+		MetaInject.injection()
+		MetaModule
 		uiManager.posModifier = modifier
-		screenConfig.screens()
-		MetaInject.global { singleton { screenConfig } }
+		MetaInject.global { singleton("default") { ScreenConfig().apply { screens() } } }
+		MetaInject.global { singleton("default") { WindowConfig().apply { windows() } } }
 		config()
 		changeScreen(firstScreen)
 	}

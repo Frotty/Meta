@@ -35,17 +35,6 @@ class MetaEditorScreen : ScreenAdapter() {
 	private val fpsLogger = FPSLogger()
 	override fun show() {
 		if (!isInited) {
-			uiManager.register("X_Window") { AssetDiscovererWindow }
-			uiManager.register { ShaderComposerWindow }
-			uiManager.register { PrimitivesWindow }
-			uiManager.register { SceneOptionsWindow }
-			uiManager.register { CameraWindow }
-			uiManager.register { ShaderCompositionWizard }
-			uiManager.register { ShaderWizardDialog }
-			uiManager.register { ProjectWizardDialog }
-			uiManager.register { OpenProjectDialog() }
-			uiManager.register { SceneWizardDialog }
-			uiManager.register { MetaKeyRebindDialog() }
 			uiManager.changeScreen<MetaEditorScreen>()
 			setupEditorUi()
 			isInited = true
