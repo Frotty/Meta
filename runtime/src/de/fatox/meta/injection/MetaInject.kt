@@ -76,12 +76,24 @@ open class MetaInject {
 		@PublishedApi
 		internal val scopes = mutableMapOf<String, MetaInject>()
 
-		inline fun global(context: MetaInject.() -> Unit): MetaInject {
+		inline fun global(clear: Boolean = false, context: MetaInject.() -> Unit): MetaInject {
+			if (clear) {
+				providers.clear()
+				singletons.clear()
+				singletonCache.clear()
+			}
 			return this.apply(context)
 		}
 
-		inline fun scope(name: String, context: MetaInject.() -> Unit = {}): MetaInject {
-			return scopes.getOrPut(name) { MetaInject() }.apply(context)
+		inline fun scope(clear: Boolean = false, name: String, context: MetaInject.() -> Unit = {}): MetaInject {
+			return scopes.getOrPut(name) { MetaInject() }.apply {
+				if (clear) {
+					providers.clear()
+					singletons.clear()
+					singletonCache.clear()
+				}
+				context()
+			}
 		}
 	}
 }
