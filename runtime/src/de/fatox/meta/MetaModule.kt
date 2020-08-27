@@ -36,7 +36,7 @@ object MetaModule {
 			singleton<EntityManager<Meta3DEntity>>("default") { MetaEntityManager() }
 			singleton("default") { MetaTaskManager() }
 			singleton("", "default")
-			singleton("default") { Json() }
+			singleton(Json(), "default")
 			singleton("default") { UiControlHelper }
 			singleton("default") { FontInfo("Montserrat.ttf", "RobotoMono.ttf") }
 			singleton("default") { SpriteBatch(1000, inject("spritebatch-shader")).apply { enableBlending() } }

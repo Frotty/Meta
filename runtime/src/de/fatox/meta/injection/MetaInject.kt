@@ -52,8 +52,10 @@ open class MetaInject {
 	}
 
 	inline fun <reified T : Any> singleton(singleton: T, name: String? = null) {
-		if (name == "default") singletonCache[InjectionKey(T::class, null)] = singleton
-		singletonCache[InjectionKey(T::class, name)] = singleton
+		if (name == "default") // Don't save default values in the cache directly
+			singleton(name) { singleton }
+		else
+			singletonCache[InjectionKey(T::class, name)] = singleton
 	}
 
 	companion object : MetaInject() {
