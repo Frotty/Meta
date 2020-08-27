@@ -51,14 +51,18 @@ open class MetaInject {
 	}
 
 	inline fun <reified T : Any> singleton(name: String? = null, noinline singleton: () -> T) {
-		check(singletonCache[InjectionKey(T::class, name)] == null) // Can't add a singleton that is already cached
+		// Can't add a singleton that is already cached
+		check(singletonCache[InjectionKey(T::class, name)] == null)
+		{ "Can not add singleton for ${T::class.qualifiedName} with name $name" }
 
 		if (name == "default") singletons[InjectionKey(T::class, null)] = singleton
 		singletons[InjectionKey(T::class, name)] = singleton
 	}
 
 	inline fun <reified T : Any> singleton(singleton: T, name: String? = null) {
-		check(singletonCache[InjectionKey(T::class, name)] == null) // Can't add a singleton that is already cached
+		// Can't add a singleton that is already cached
+		check(singletonCache[InjectionKey(T::class, name)] == null)
+		{ "Can not add singleton for ${T::class.qualifiedName} with name $name" }
 
 		if (name == "default") // Don't save default values in the cache directly
 			singleton(name) { singleton }
