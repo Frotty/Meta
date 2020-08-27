@@ -19,6 +19,10 @@ class InjectionKey(val kClass: KClass<*>, val name: String?) {
 	override fun hashCode(): Int {
 		return 31 * kClass.hashCode() + (name?.hashCode() ?: 0)
 	}
+
+	override fun toString(): String {
+		return "InjectionKey(kClass=${kClass.qualifiedName}, name=$name)"
+	}
 }
 
 open class MetaInject {
@@ -47,11 +51,15 @@ open class MetaInject {
 	}
 
 	inline fun <reified T : Any> singleton(name: String? = null, noinline singleton: () -> T) {
+		check(singletonCache[InjectionKey(T::class, name)] == null) // Can't add a singleton that is already cached
+
 		if (name == "default") singletons[InjectionKey(T::class, null)] = singleton
 		singletons[InjectionKey(T::class, name)] = singleton
 	}
 
 	inline fun <reified T : Any> singleton(singleton: T, name: String? = null) {
+		check(singletonCache[InjectionKey(T::class, name)] == null) // Can't add a singleton that is already cached
+
 		if (name == "default") // Don't save default values in the cache directly
 			singleton(name) { singleton }
 		else
