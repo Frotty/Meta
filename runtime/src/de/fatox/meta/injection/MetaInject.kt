@@ -55,7 +55,8 @@ open class MetaInject {
 		check(singletonCache[InjectionKey(T::class, name)] == null)
 		{ "Can not add singleton for ${T::class.qualifiedName} with name $name" }
 
-		if (name == "default") singletons[InjectionKey(T::class, null)] = singleton
+		if (name == "default" && singletons[InjectionKey(T::class, null)] == null)
+			singletons[InjectionKey(T::class, null)] = singleton
 		singletons[InjectionKey(T::class, name)] = singleton
 	}
 
