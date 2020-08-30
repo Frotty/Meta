@@ -58,6 +58,7 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
 		register { OpenProjectDialog() }
 		register { SceneWizardDialog }
 		register { MetaKeyRebindDialog() }
+		register {ShaderLibraryWindow}
 	}
 
 	override fun MetaInject.injection() {
