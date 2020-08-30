@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Scaling
 import com.kotcrab.vis.ui.widget.*
+import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.api.model.AssetDiscovererData
 import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.ide.AssetDiscoverer
@@ -96,17 +97,15 @@ object AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		var counter = 0f
 		for (file in assetDiscoverer.currentChildFiles!!) {
 			val fileButton = MetaIconTextButton(file.name(), assetProvider.getDrawable("ui/appbar.page.text.png"), 78)
-			fileButton.addListener(object : MetaClickListener() {
-				override fun clicked(event: InputEvent, x: Float, y: Float) {
-					if (selectionMode) {
-						listener!!.onSelect(file)
-						listener = null
-						selectionMode = false
-					} else {
-						assetDiscoverer.openFile(file)
-					}
+			fileButton.onClick {
+				if (selectionMode) {
+					listener!!.onSelect(file)
+					listener = null
+					selectionMode = false
+				} else {
+					assetDiscoverer.openFile(file)
 				}
-			})
+			}
 			visTable2.add(fileButton).top().size(78f, 78f)
 			counter += 78f
 			if (counter > width - 128) {
