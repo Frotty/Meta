@@ -3,8 +3,6 @@ package de.fatox.meta
 import com.badlogic.gdx.Gdx
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.error
-import java.io.PrintWriter
-import java.io.StringWriter
 import javax.swing.*
 
 private val log = MetaLoggerFactory.logger {}

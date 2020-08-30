@@ -6,17 +6,11 @@ import com.badlogic.gdx.Screen
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.api.extensions.MetaLoggerFactory
-import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import org.slf4j.Logger
-import java.io.PrintWriter
-import java.io.StringWriter
-import javax.swing.*
 import kotlin.reflect.KClass
-import javax.swing.UIManager as JavaUIManager
 
 class ScreenConfig {
 	internal val nameToClass: MutableMap<String, KClass<out Screen>> = mutableMapOf()

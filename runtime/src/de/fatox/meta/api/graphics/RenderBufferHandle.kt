@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
-import de.fatox.meta.api.extensions.info
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.graphics.buffer.MRTFrameBuffer
 import de.fatox.meta.graphics.buffer.MultisampleFBO
