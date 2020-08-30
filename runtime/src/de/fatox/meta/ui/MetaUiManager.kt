@@ -1,5 +1,6 @@
 package de.fatox.meta.ui
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -20,6 +21,7 @@ import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.MetaDialog
 import java.io.File

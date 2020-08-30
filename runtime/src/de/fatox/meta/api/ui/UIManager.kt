@@ -2,6 +2,7 @@
 
 package de.fatox.meta.api.ui
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
@@ -10,6 +11,10 @@ import com.kotcrab.vis.ui.widget.MenuBar
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.assets.MetaData
+import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaWindow
 import kotlin.reflect.KClass
@@ -35,10 +40,17 @@ class WindowConfig {
 }
 
 inline fun <reified T : MetaWindow> WindowConfig.register(
-	name: String = T::class.qualifiedName
-		?: "",
+	name: String = T::class.qualifiedName ?: "",
 	noinline creator: () -> T,
 ) {
+	val gameName: String = MetaInject.inject("gameName")
+	Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list().forEach {screenId->
+		if (screenId.isDirectory)
+			screenId.list().firstOrNull { it.name() == T::class.qualifiedName }?.let { windowId ->
+				println("Found legacy window name: ${windowId.name()}, replacing with $name")
+				windowId.moveTo(windowId.sibling(name))
+			}
+	}
 	register(T::class, name, creator)
 }
 

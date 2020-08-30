@@ -8,6 +8,7 @@ import de.fatox.meta.api.PosModifier
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.WindowConfig
+import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.reflect.KClass
@@ -28,10 +29,17 @@ class ScreenConfig {
 }
 
 inline fun <reified T : Screen> ScreenConfig.register(
-	name: String = T::class.qualifiedName
-		?: "",
+	name: String = T::class.qualifiedName ?: "",
 	noinline creator: () -> T,
 ) {
+	val gameName: String = MetaInject.inject("gameName")
+	Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list().forEach { screenId ->
+		if (screenId.isDirectory && screenId.name().equals(T::class.qualifiedName, ignoreCase = true)) {
+			println("Found legacy screen name: ${screenId.name()}, replacing with $name")
+			screenId.moveTo(screenId.sibling(name))
+		}
+	}
+
 	register(T::class, name, creator)
 }
 

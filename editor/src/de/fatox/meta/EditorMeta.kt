@@ -18,6 +18,7 @@ import de.fatox.meta.modules.MetaUIModule
 import de.fatox.meta.screens.MetaEditorScreen
 import de.fatox.meta.screens.SplashScreen
 import de.fatox.meta.ui.dialogs.*
+import de.fatox.meta.ui.tabs.ProjectHomeTab
 import de.fatox.meta.ui.windows.*
 
 class EditorMeta(posM: PosModifier) : Meta(posM) {
@@ -53,7 +54,7 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
 		register { CameraWindow }
 		register { ShaderCompositionWizard }
 		register { ShaderWizardDialog }
-		register { ProjectWizardDialog }
+		register("B_Dialog") { ProjectWizardDialog }
 		register { OpenProjectDialog() }
 		register { SceneWizardDialog }
 		register { MetaKeyRebindDialog() }
