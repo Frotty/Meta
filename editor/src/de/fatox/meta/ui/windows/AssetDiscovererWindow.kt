@@ -96,7 +96,7 @@ object AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		visTable2.row().height(78f)
 		var counter = 0f
 		for (file in assetDiscoverer.currentChildFiles!!) {
-			val fileButton = MetaIconTextButton(file.name(), assetProvider.getDrawable("ui/appbar.page.text.png"), 78)
+			val fileButton = MetaIconTextButton(file.name(), assetProvider.getDrawable("ui/appbar.page.text.png"), maxWidth = 78)
 			fileButton.onClick {
 				if (selectionMode) {
 					listener!!.onSelect(file)
