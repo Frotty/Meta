@@ -4,6 +4,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 object MetaLoggerFactory {
+	@Suppress("NOTHING_TO_INLINE")
 	inline fun logger(noinline context: () -> Unit): Logger {
 		val name = context.javaClass.name
 		val className = when {
@@ -39,7 +40,3 @@ inline fun Logger.debug(msg: () -> String) {
 inline fun Logger.trace(msg: () -> String) {
 	if (isTraceEnabled) trace(msg())
 }
-
-
-
-

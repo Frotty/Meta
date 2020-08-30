@@ -41,7 +41,6 @@ class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
 		}
 
 		if (f++ >= 1f) {
-			println(f)
 			f = -99999999f
 			cb.invoke()
 			uiRenderer.load()

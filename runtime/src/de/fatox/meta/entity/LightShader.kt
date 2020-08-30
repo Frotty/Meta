@@ -11,6 +11,10 @@ import com.badlogic.gdx.math.Matrix3
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.GdxRuntimeException
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
+
+private val log = MetaLoggerFactory.logger {}
 
 /**
  * Final composite Shader that turns the gbuffers into a composite texture,
@@ -42,10 +46,11 @@ class LightShader : Shader {
 		if (!program!!.isCompiled) {
 			throw GdxRuntimeException(program!!.log)
 		} else {
-			println("""
-	Shader compiled correctly. Appending log:
-	${program!!.log}
-	""".trimIndent())
+			log.debug { """
+				Shader compiled correctly. Appending log:
+				${program!!.log}
+				""".trimIndent()
+			}
 		}
 		u_InverseScreenSize = program!!.getUniformLocation("u_inverseScreenSize")
 		u_WorldTrans = program!!.getUniformLocation("u_worldTrans")

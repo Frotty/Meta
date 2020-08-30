@@ -3,9 +3,14 @@ package de.fatox.meta.api.graphics
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.utils.Array
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.api.extensions.info
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.graphics.buffer.MRTFrameBuffer
 import de.fatox.meta.graphics.buffer.MultisampleFBO
+
+private val log = MetaLoggerFactory.logger {}
 
 /**
  * Created by Frotty on 18.04.2017.
@@ -16,7 +21,7 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
 
 
 	fun rebuild(width: Int, height: Int) {
-		println("rebuilt width=$width height=$height")
+		log.debug { "rebuilt width=$width height=$height" }
 		mrtFrameBuffer?.dispose()
 		frameBuffer?.dispose()
 

@@ -27,7 +27,7 @@ class MetaControllerListener(private val metaInput: MetaInput) : ControllerListe
 	}
 
 	override fun buttonUp(controller: Controller, buttonCode: Int): Boolean {
-		println(buttonCode)
+		log.debug { "$buttonCode" }
 		return false
 	}
 
