@@ -9,6 +9,7 @@ import com.kotcrab.vis.ui.widget.LinkLabel.LinkLabelListener
 import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.get
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.TextWidget
@@ -43,11 +44,11 @@ class WelcomeTab : MetaTab(false, false) {
 		if (!metaData.has("lastProjects")) {
 			metaData.save("lastProjects", Array<String>())
 		}
-		val lastProjects: Array<String> = metaData.get("lastProjects", Array::class.java) as Array<String>
+		val lastProjects: Array<String> = metaData["lastProjects"]
 		for (lastProj in lastProjects) {
 			visTable.row()
 			val linkLabel = LinkLabel(lastProj.substring(0, lastProj.lastIndexOf("/")))
-			linkLabel.listener = LinkLabelListener { url: String? -> projectManager.loadProject(Gdx.files.absolute(lastProj)) }
+			linkLabel.listener = LinkLabelListener { projectManager.loadProject(Gdx.files.absolute(lastProj)) }
 			visTable.add(linkLabel).center().pad(2f)
 		}
 	}

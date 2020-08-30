@@ -1,36 +1,32 @@
-package de.fatox.meta.lang;
+package de.fatox.meta.lang
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.utils.I18NBundle;
-import de.fatox.meta.api.lang.AvailableLanguages;
-import de.fatox.meta.api.lang.LanguageBundle;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.utils.I18NBundle
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.api.extensions.error
+import de.fatox.meta.api.lang.AvailableLanguages
+import de.fatox.meta.api.lang.LanguageBundle
+import java.util.*
 
-import java.util.Locale;
+private val log = MetaLoggerFactory.logger {}
 
-public class MetaLanguageBundle implements LanguageBundle {
-	private static final Logger log = LoggerFactory.getLogger(MetaLanguageBundle.class);
-	private I18NBundle currentBundle;
+class MetaLanguageBundle : LanguageBundle {
+	private lateinit var currentBundle: I18NBundle
 
-	private AvailableLanguages currentLanguage;
+	private val currentLanguage: AvailableLanguages? = null
 
-	public MetaLanguageBundle() {
-		loadBundle(AvailableLanguages.EN);
-	}
-
-	@Override
-	public void loadBundle(AvailableLanguages lang) {
-		FileHandle baseFileHandle = Gdx.files.internal("lang/MetagineBundle");
-		Locale locale = new Locale(lang.toString().toLowerCase(), lang.toString(), "");
+	override fun loadBundle(lang: AvailableLanguages) {
+		val baseFileHandle = Gdx.files.internal("lang/MetagineBundle")
+		val locale = Locale(lang.toString().toLowerCase(), lang.toString(), "")
 		try {
-			currentBundle = I18NBundle.createBundle(baseFileHandle, locale);
-		} catch (Exception e) {
-			log.error(e.getLocalizedMessage());
+			currentBundle = I18NBundle.createBundle(baseFileHandle, locale)
+		} catch (e: Throwable) {
+			log.error(e) { e.localizedMessage }
+			return
 		}
-		log.debug("Loaded: " + lang);
-		log.debug("Current Locale: " + currentBundle.getLocale());
+		log.debug { "Loaded: $lang" }
+		log.debug { "Current Locale: ${currentBundle.locale}" }
 	}
 
 	/**
@@ -38,13 +34,15 @@ public class MetaLanguageBundle implements LanguageBundle {
 	 *
 	 * @param key
 	 */
-	@Override
-	public String get(String key) {
-		return currentBundle.get(key);
+	override fun get(key: String): String {
+		return currentBundle[key]
 	}
 
-	@Override
-	public String format(String key, Object... args) {
-		return currentBundle.format(key, args);
+	override fun format(key: String, vararg args: Any): String {
+		return currentBundle.format(key, *args)
+	}
+
+	init {
+		loadBundle(AvailableLanguages.EN)
 	}
 }

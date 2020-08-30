@@ -6,10 +6,9 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
 import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.toast.ToastTable
-
 import de.fatox.meta.api.model.MetaProjectData
-import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.get
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.tabs.ProjectHomeTab
@@ -20,7 +19,6 @@ import java.nio.file.Paths
  */
 object MetaProjectManager : ProjectManager {
 	private val json: Json by lazyInject()
-	private val uiManager: UIManager by lazyInject()
 	private val editorUI: MetaEditorUI by lazyInject()
 	private val metaData: MetaData by lazyInject()
 
@@ -32,22 +30,21 @@ object MetaProjectManager : ProjectManager {
 	}
 
 	override fun loadProject(projectFile: FileHandle): MetaProjectData {
-		var projectFile = projectFile
-		if (!projectFile.name().endsWith("metaproject.json")) {
-			projectFile = projectFile.child("metaproject.json")
-		}
-		val metaProjectData = json.fromJson(MetaProjectData::class.java, projectFile.readString())
-		currentProjectRoot = projectFile.parent()
+		val realFile = if (!projectFile.name().endsWith("metaproject.json")) {
+			projectFile.child("metaproject.json")
+		} else projectFile
+
+		val metaProjectData = json.fromJson(MetaProjectData::class.java, realFile.readString())
+		currentProjectRoot = realFile.parent()
 		createFolders(metaProjectData)
 		currentProject = metaProjectData
-		val lastProjects: Array<String>
-		if (metaData.has("lastProjects")) {
-			lastProjects = metaData.get("lastProjects", Array::class.java) as Array<String>
+		val lastProjects: Array<String> = if (metaData.has("lastProjects")) {
+			metaData["lastProjects"]
 		} else {
-			lastProjects = Array()
+			Array()
 		}
-		if (!lastProjects.contains(projectFile.path(), false)) {
-			lastProjects.add(projectFile.path())
+		if (!lastProjects.contains(realFile.path(), false)) {
+			lastProjects.add(realFile.path())
 			metaData.save("lastProjects", lastProjects)
 		}
 		for (listener in onLoadListeners) {
@@ -85,6 +82,7 @@ object MetaProjectManager : ProjectManager {
 				return true
 			}
 		} catch (e: Exception) {
+			return false
 		}
 		return false
 	}

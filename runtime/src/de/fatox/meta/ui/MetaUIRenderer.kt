@@ -16,12 +16,13 @@ import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.file.FileChooser
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
-private val log: Logger = LoggerFactory.getLogger(MetaUIRenderer::class.java)
+private val log = MetaLoggerFactory.logger {}
 
 class MetaUIRenderer : UIRenderer {
 	private val metaInput: MetaInputProcessor by lazyInject()
@@ -32,7 +33,7 @@ class MetaUIRenderer : UIRenderer {
 	private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
 
 	init {
-		log.debug("Injected MetaUi")
+		log.debug { "Injected MetaUi." }
 	}
 
 	override fun load() {
@@ -42,11 +43,11 @@ class MetaUIRenderer : UIRenderer {
 			VisUI.load()
 		}
 		FileChooser.setDefaultPrefsName("de.fatox.meta")
-		log.debug("Loaded VisUi")
+		log.debug { "Loaded VisUi." }
 		VisUI.setDefaultTitleAlign(Align.center)
 		stage.root.addCaptureListener(object : InputListener() {
-			override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
-				if (!(event!!.target is TextField || event.target is ScrollPane)) stage.scrollFocus = null
+			override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+				if (!(event.target is TextField || event.target is ScrollPane)) stage.scrollFocus = null
 				return false
 			}
 		})
@@ -57,7 +58,7 @@ class MetaUIRenderer : UIRenderer {
 		try {
 			stage.addActor(actor)
 		} catch (e: Throwable) {
-			log.error("Failed to add actor!", e)
+			log.error(e) { "Failed to add actor: $actor!" }
 		}
 	}
 

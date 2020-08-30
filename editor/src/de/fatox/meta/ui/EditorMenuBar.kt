@@ -10,6 +10,8 @@ import com.kotcrab.vis.ui.widget.MenuBar
 import com.kotcrab.vis.ui.widget.MenuItem
 import com.kotcrab.vis.ui.widget.Separator
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.info
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.api.ui.UIManager
@@ -20,12 +22,11 @@ import de.fatox.meta.ui.dialogs.OpenProjectDialog
 import de.fatox.meta.ui.dialogs.ProjectWizardDialog
 import de.fatox.meta.ui.dialogs.SceneWizardDialog
 import de.fatox.meta.ui.windows.MetaConfirmDialog
-import org.slf4j.LoggerFactory
 import kotlin.reflect.KClass
 
-class EditorMenuBar {
-	private val log = LoggerFactory.getLogger(EditorMenuBar::class.java)
+private val log = MetaLoggerFactory.logger {}
 
+class EditorMenuBar {
 	private val languageBundle: LanguageBundle by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
@@ -37,11 +38,11 @@ class EditorMenuBar {
 	init {
 
 		this.menuBar = MenuBar()
-		log.info("EditorMenuBar", "Created MenuBar")
+		log.info { "Created MenuBar" }
 		val fileMenu = createFileMenu()
 		menuBar.addMenu(fileMenu)
 		menuBar.addMenu(createWindowsMenu())
-		log.info("EditorMenuBar", "Added File Menu")
+		log.info { "Added File Menu" }
 		menuBar.table.add().growX()
 		menuBar.table.row().height(1f).left()
 		menuBar.table.add(Separator()).colspan(2).left().growX()

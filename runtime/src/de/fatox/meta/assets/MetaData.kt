@@ -9,6 +9,7 @@ import com.badlogic.gdx.utils.reflect.ClassReflection
 import com.badlogic.gdx.utils.reflect.ReflectionException
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import java.io.File
+import kotlin.reflect.KClass
 
 /**
  * Created by Frotty on 10.03.2017.
@@ -34,7 +35,7 @@ class MetaData {
 
 	fun save(target: FileHandle, key: String, obj: Any): FileHandle {
 		val jsonString = json.toJson(obj)
-		val fileHandle = getCachedHandle(target, key)
+		val fileHandle = getCachedHandle(key, target)
 		fileHandle.writeBytes(jsonString.toByteArray(), false)
 		val cacheObj: CacheObj<Any>? = jsonCache.get(key)
 		if (cacheObj != null) {
@@ -44,55 +45,45 @@ class MetaData {
 		return fileHandle
 	}
 
-	/** Loads and caches the filehandle descripted by the path, if it exists  */
-	operator fun get(key: String): FileHandle {
-		return getCachedHandle(dataRoot, key)
-	}
-
-	/** Caches and returns this object loaded from json at the default location  */
-	operator fun <T> get(type: Class<T>): T {
-		return getCachedJson(dataRoot, type.javaClass.simpleName, type)
-	}
-
 	/** Caches and returns this object loaded from json at the specified location  */
-	operator fun <T> get(key: String, type: Class<T>): T {
-		return getCachedJson(dataRoot, key, type)
+	operator fun <T : Any> get(key: String, type: KClass<out T>): T {
+		return getCachedJson(key, type, dataRoot)
 	}
 
-	private fun <T> getCachedJson(parent: FileHandle, key: String, type: Class<T>): T {
+	private fun <T : Any> getCachedJson(key: String, type: KClass<out T>, parent: FileHandle = dataRoot): T {
 		val jsonHandle: T
 		if (jsonCache.containsKey(key)) {
 			val cacheObj = jsonCache.get(key) as CacheObj<T>
 			val lastModified = getCachedFile(key)!!.lastModified()
 			if (cacheObj.created < lastModified) {
-				cacheObj.obj = json.fromJson(type, getCachedHandle(parent, key))
+				cacheObj.obj = json.fromJson(type.java, getCachedHandle(key, parent))
 				cacheObj.created = lastModified
 			}
 			jsonHandle = cacheObj.obj
 		} else {
-			val cachedHandle = getCachedHandle(parent, key)
+			val cachedHandle = getCachedHandle(key, parent)
 			if (!cachedHandle.exists()) {
 				try {
-					cachedHandle.writeBytes(json.toJson(ClassReflection.newInstance(type)).toByteArray(), false)
+					cachedHandle.writeBytes(json.toJson(ClassReflection.newInstance(type.java)).toByteArray(), false)
 				} catch (e: ReflectionException) {
 					e.printStackTrace()
 				}
 			}
-			jsonHandle = json.fromJson(type, cachedHandle)
+			jsonHandle = json.fromJson(type.java, cachedHandle)
 			jsonCache.put(key, CacheObj(jsonHandle as Any))
 		}
 		return jsonHandle
 	}
 
 	operator fun <T> get(target: FileHandle, key: String, type: Class<T>?): T? {
-		val fileHandle = getCachedHandle(target, key)
+		val fileHandle = getCachedHandle(key, target)
 		return if (fileHandle.exists()) {
 			json.fromJson(type, fileHandle.readString())
 		} else null
 	}
 
 	fun getCachedHandle(key: String): FileHandle {
-		return getCachedHandle(dataRoot, key)
+		return getCachedHandle(key, dataRoot)
 	}
 
 	fun getCachedFile(key: String): File? {
@@ -101,7 +92,7 @@ class MetaData {
 		} else null
 	}
 
-	fun getCachedHandle(parent: FileHandle, key: String): FileHandle {
+	fun getCachedHandle(key: String, parent: FileHandle = dataRoot): FileHandle {
 		if (!fileHandleCache.containsKey(key)) {
 			var fileHandle: FileHandle = parent.child(key)
 			if (!fileHandle.exists()) {
@@ -133,3 +124,5 @@ class MetaData {
 		dataRoot.mkdirs()
 	}
 }
+
+inline operator fun <reified T : Any> MetaData.get(key: String = T::class.simpleName!!): T = get(key, T::class)

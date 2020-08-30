@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.graphics.glutils.ShaderProgram.*
 import com.badlogic.gdx.utils.Json
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.entity.EntityManager
@@ -23,6 +24,7 @@ import de.fatox.meta.task.MetaTaskManager
 import de.fatox.meta.ui.MetaUIRenderer
 import de.fatox.meta.ui.MetaUiManager
 import de.fatox.meta.ui.UiControlHelper
+import org.intellij.lang.annotations.Language
 
 object MetaModule {
 	init {
@@ -48,30 +50,29 @@ object MetaModule {
 				}
 			}
 			singleton("spritebatch-shader") {
-				if (Gdx.app.type.equals(Application.ApplicationType.Desktop)) {
-					ShaderProgram.prependVertexCode = "#version 140\n"
-					ShaderProgram.prependFragmentCode = "#version 140\n"
+				if (Gdx.app.type == Application.ApplicationType.Desktop) {
+					prependVertexCode = "#version 140\n"
+					prependFragmentCode = "#version 140\n"
 				} else {
-					ShaderProgram.prependVertexCode = "#version 300 es\n"
-					ShaderProgram.prependFragmentCode = "#version 300 es\n"
+					prependVertexCode = "#version 300 es\n"
+					prependFragmentCode = "#version 300 es\n"
 				}
-				val vertexShader = """
-in vec4 ${ShaderProgram.POSITION_ATTRIBUTE};
-in vec4 ${ShaderProgram.COLOR_ATTRIBUTE};
-in vec2 ${ShaderProgram.TEXCOORD_ATTRIBUTE}0;
+				@Language("GLSL") val vertexShader = """
+in vec4 $POSITION_ATTRIBUTE;
+in vec4 $COLOR_ATTRIBUTE;
+in vec2 ${TEXCOORD_ATTRIBUTE}0;
 uniform mat4 u_projTrans;
 out vec4 v_color;
 out vec2 v_texCoords;
 
 void main()
 {
-   v_color = ${ShaderProgram.COLOR_ATTRIBUTE};
+   v_color = $COLOR_ATTRIBUTE;
    v_color.a = v_color.a * (255.0/254.0);
-   v_texCoords = ${ShaderProgram.TEXCOORD_ATTRIBUTE}0;
-   gl_Position =  u_projTrans * ${ShaderProgram.POSITION_ATTRIBUTE};
-}
-"""
-				val fragmentShader = """#ifdef GL_ES
+   v_texCoords = ${TEXCOORD_ATTRIBUTE}0;
+   gl_Position =  u_projTrans * $POSITION_ATTRIBUTE;
+}"""
+				@Language("GLSL") val fragmentShader = """#ifdef GL_ES
 #define LOWP lowp
 precision mediump float;
 #else

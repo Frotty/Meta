@@ -5,11 +5,13 @@ import com.kotcrab.vis.ui.widget.VisTable
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPaneAdapter
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.info
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.tabs.WelcomeTab
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+
+private val log = MetaLoggerFactory.logger {}
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -23,7 +25,7 @@ class MetaEditorUI {
 	private val tabTable = Table()
 	fun setup() {
 		metaToolbar = EditorMenuBar()
-		log.info("Toolbar created")
+		log.info { "Toolbar created" }
 		uiManager.setMainMenuBar(metaToolbar.menuBar)
 		tabbedPane = TabbedPane()
 		tabbedPane!!.addListener(object : TabbedPaneAdapter() {
@@ -82,5 +84,3 @@ class MetaEditorUI {
 		}
 	}
 }
-
-private val log: Logger = LoggerFactory.getLogger(MetaEditorUI::class.java)

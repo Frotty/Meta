@@ -5,19 +5,21 @@ import com.badlogic.gdx.controllers.Controller
 import com.badlogic.gdx.controllers.ControllerListener
 import com.badlogic.gdx.controllers.PovDirection
 import com.badlogic.gdx.math.Vector3
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
+
+private val log = MetaLoggerFactory.logger {}
 
 class MetaControllerListener(private val metaInput: MetaInput) : ControllerListener {
 	private var currentDownKey = -1
 	private val deadzone = 0.395f
 
 	override fun connected(controller: Controller) {
-		log.debug("Controller connected")
+		log.debug { "Controller connected." }
 	}
 
 	override fun disconnected(controller: Controller) {
-		log.debug("Controller disconnected")
+		log.debug { "Controller disconnected." }
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
@@ -99,5 +101,3 @@ class MetaControllerListener(private val metaInput: MetaInput) : ControllerListe
 		return false
 	}
 }
-
-private val log: Logger = LoggerFactory.getLogger(MetaControllerListener::class.java)

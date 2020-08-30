@@ -1,38 +1,29 @@
 buildscript {
-    ext.kotlinVersion = '1.4.0'
-
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        jcenter()
-        google()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-
-    }
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		maven { url "https://plugins.gradle.org/m2/" }
+		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+		jcenter()
+		google()
+	}
+	dependencies {
+		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+	}
 }
 
 allprojects {
+	version = '1.0'
+	ext.appName = "MetaRuntime"
 
-    version = '1.0'
-    ext {
-        appName = "MetaRuntime"
-        gdxVersion = '1.9.11'
-        aiVersion = '1.8.0'
-		junit5Version = "5.6.2"
-    }
-
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        jcenter()
-        google()
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-    }
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		jcenter()
+		google()
+		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+	}
 
 	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
 		kotlinOptions.jvmTarget = "1.8"
@@ -43,24 +34,20 @@ allprojects {
 }
 
 project(":desktop") {
-    apply plugin: "kotlin"
+	apply plugin: "kotlin"
 
-
-    dependencies {
-        implementation project(":editor")
-        implementation project(":runtime")
-        api "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-        api "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
-        api "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-controllers-platform:$gdxVersion:natives-desktop"
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-    }
+	dependencies {
+		implementation project(":editor")
+		implementation project(":runtime")
+		implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+		implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+		implementation "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
+		implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
+	}
 }
 
 project(":runtime") {
-    apply plugin: "kotlin"
+	apply plugin: "kotlin"
 
 	tasks {
 		test {
@@ -68,34 +55,33 @@ project(":runtime") {
 		}
 	}
 
-    dependencies {
-        api "com.badlogicgames.gdx:gdx:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
-        api "com.kotcrab.vis:vis-ui:1.4.6"
-        api group: 'org.tukaani', name: 'xz', version: '1.8'
-        api group: 'org.apache.commons', name: 'commons-compress', version: '1.20'
-		api group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-		api group: 'org.slf4j', name: 'slf4j-api', version: '1.7.28'
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-        compile group: 'org.lwjgl', name: 'lwjgl-opengl', version: '3.1.0'
+	dependencies {
+		api "com.badlogicgames.gdx:gdx:$gdxVersion"
+		api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+		api "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
+		api "com.kotcrab.vis:vis-ui:$visUiVersion"
+		api group: 'org.tukaani', name: 'xz', version: xzVersion
+		api group: 'org.apache.commons', name: 'commons-compress', version: commonsCompressVersion
+		api group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+		api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion
+		api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 		testImplementation "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
 		testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
 		testImplementation "org.junit.jupiter:junit-jupiter:$junit5Version"
 		testImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-    }
+	}
 }
 
 
 project(":editor") {
-    apply plugin: "kotlin"
+	apply plugin: "kotlin"
 
 
-    dependencies {
-        implementation project(":runtime")
-        api "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-    }
+	dependencies {
+		implementation project(":runtime")
+		implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+		implementation "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
+		implementation "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
+		implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+	}
 }

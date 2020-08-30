@@ -10,6 +10,7 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.get
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.get
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 object UninitializedMusic : MockMusic()
@@ -41,7 +42,7 @@ class MetaMusicPlayer {
 	}
 
 	private fun updateMusic() {
-		val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
+		val audioVideoData: MetaAudioVideoData = metaData["audioVideoData"]
 		val volume = audioVideoData.masterVolume * audioVideoData.musicVolume
 		if (!musicEnabled || volume <= startVolume) {
 			if (currentMusic !== UninitializedMusic)

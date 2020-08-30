@@ -21,9 +21,16 @@ import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.assets.XPKLoader.getList
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+
+private val log = MetaLoggerFactory.logger {}
+private val defaultTexParam: TextureParameter = TextureParameter().apply {
+	genMipMaps = true
+	minFilter = Texture.TextureFilter.MipMapLinearLinear
+}
+private val defaultModelParam: ModelParameters = ModelParameters().apply { textureParameter = defaultTexParam }
 
 class MetaAssetProvider : AssetProvider {
 	private val assetManager = AssetManager(MetaFileHandleResolver())
@@ -39,7 +46,7 @@ class MetaAssetProvider : AssetProvider {
 					list.forEach {
 						fileCache.put(it.name(), it)
 						fileCache.put(it.name().replace("/", "\\"), it)
-						log.debug("cache name: <" + it.name() + ">")
+						log.debug { "cache name: <${it.name()}>" }
 					}
 				}
 			}
@@ -65,9 +72,9 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun <T> load(name: String, type: Class<T>) {
-		log.debug("loading <$name>")
+		log.debug { "loading <$name>" }
 		if (fileCache.containsKey(name)) {
-			log.debug("pack cache contains filename")
+			log.debug { "pack cache contains filename" }
 			loadIntern(AssetDescriptor(fileCache[name], type))
 		} else {
 			loadIntern(AssetDescriptor(name, type))
@@ -79,11 +86,11 @@ class MetaAssetProvider : AssetProvider {
 			descriptor.type == Model::class.java ->
 				assetManager.load(descriptor.fileName, Model::class.java, defaultModelParam)
 			descriptor.type == Texture::class.java && !descriptor.fileName.contains("ui") -> {
-				log.debug("ui load")
+				log.debug { "ui load" }
 				assetManager.load(descriptor.fileName, Texture::class.java, defaultTexParam)
 			}
 			else -> {
-				log.debug("normal load")
+				log.debug { "normal load" }
 				assetManager.load(descriptor)
 			}
 		}
@@ -156,14 +163,5 @@ class MetaAssetProvider : AssetProvider {
 		override fun resolve(fileName: String): FileHandle {
 			return fileCache[fileName] ?: Gdx.files.internal(fileName)
 		}
-	}
-
-	companion object {
-		private val log: Logger = LoggerFactory.getLogger(MetaAssetProvider::class.java)
-		private val defaultTexParam: TextureParameter = TextureParameter().apply {
-			genMipMaps = true
-			minFilter = Texture.TextureFilter.MipMapLinearLinear
-		}
-		private val defaultModelParam: ModelParameters = ModelParameters().apply { textureParameter = defaultTexParam }
 	}
 }

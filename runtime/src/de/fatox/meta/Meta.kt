@@ -5,18 +5,16 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.io.PrintWriter
 import java.io.StringWriter
-import javax.swing.JOptionPane
-import javax.swing.JScrollPane
-import javax.swing.JTextArea
-import javax.swing.UnsupportedLookAndFeelException
+import javax.swing.*
 import kotlin.reflect.KClass
 import javax.swing.UIManager as JavaUIManager
 
@@ -43,6 +41,8 @@ inline fun <reified T : Screen> ScreenConfig.register(
 	register(T::class, name, creator)
 }
 
+private val log = MetaLoggerFactory.logger {}
+
 abstract class Meta(protected var modifier: PosModifier) : Game() {
 	protected val firstScreen: Screen by lazyInject()
 	protected val uiManager: UIManager by lazyInject()
@@ -58,30 +58,7 @@ abstract class Meta(protected var modifier: PosModifier) : Game() {
 	}
 
 	private fun setUncaughtHandler() {
-		Thread.setDefaultUncaughtExceptionHandler { _, exception ->
-			log.error(exception.message, exception)
-			try {
-				JavaUIManager.setLookAndFeel(JavaUIManager.getSystemLookAndFeelClassName())
-			} catch (e: ClassNotFoundException) {
-				e.printStackTrace()
-			} catch (e: InstantiationException) {
-				e.printStackTrace()
-			} catch (e: IllegalAccessException) {
-				e.printStackTrace()
-			} catch (e: UnsupportedLookAndFeelException) {
-				e.printStackTrace()
-			}
-			val sw = StringWriter()
-			exception.printStackTrace(PrintWriter(sw))
-			val jTextField = JTextArea()
-			jTextField.lineWrap = true
-			jTextField.columns = "Please report this crash with the following info:\n".length + 50
-			jTextField.rows = 30
-			jTextField.text = "Please report this crash with the following info:\n$sw"
-			jTextField.isEditable = false
-			val scroll = JScrollPane(jTextField)
-			JOptionPane.showMessageDialog(null, scroll, "Uncaught Exception", JOptionPane.ERROR_MESSAGE)
-		}
+		Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler)
 	}
 
 	abstract fun config()
@@ -103,7 +80,6 @@ abstract class Meta(protected var modifier: PosModifier) : Game() {
 	val lastScreenName: String get() = screenConfig.classToName[lastScreenType]!!
 
 	companion object {
-		private val log: Logger = LoggerFactory.getLogger(Meta::class.java)
 		private lateinit var metaInstance: Meta
 		val instance: Meta by lazy { metaInstance }
 

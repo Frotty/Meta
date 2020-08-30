@@ -19,6 +19,11 @@ class WindowConfig {
 	internal val classToName: MutableMap<KClass<out Window>, String> = mutableMapOf()
 	internal val creators: MutableMap<String, () -> Window> = mutableMapOf()
 
+	internal operator fun get(windowClass: KClass<out Window>) = classToName.getValue(windowClass)
+
+	internal inline fun <T : Window> create(name: String): T = creators.getValue(name)() as T
+	internal inline fun <T : Window> create(windowCass: KClass<out T>): T = creators.getValue(get(windowCass))() as T
+
 	@PublishedApi
 	internal fun <T : MetaWindow> register(windowClass: KClass<T>, name: String, creator: () -> T) {
 		require(nameToClass[name] == null) { "Name already registered: $name" }
@@ -51,9 +56,9 @@ interface UIManager {
 	 *
 	 * @param screenIdentifier name of the screen for the json persistence
 	 */
-	fun <T: Screen> changeScreen(screenClass: KClass<T>)
+	fun <T : Screen> changeScreen(screenClass: KClass<T>)
 
-	fun <T: Tab> changeTab(tabClass: KClass<T>)
+	fun <T : Tab> changeTab(tabClass: KClass<T>)
 
 	fun addTable(table: Table?, growX: Boolean, growY: Boolean)
 
@@ -69,7 +74,7 @@ interface UIManager {
 	fun updateWindow(window: Window)
 	fun bringWindowsToFront()
 	fun metaHas(name: String): Boolean
-	fun <T> metaGet(name: String, c: Class<T>): T?
+	fun <T : Any> metaGet(name: String, c: KClass<out T>): T?
 	fun metaSave(name: String, windowData: Any)
 	val currentlyActiveWindows: Array<Window>
 	val windowConfig: WindowConfig
@@ -77,8 +82,10 @@ interface UIManager {
 	val screenConfig: ScreenConfig
 }
 
+inline fun <reified T: Any> UIManager.metaGet(name: String) = metaGet(name, T::class)
+
 inline fun <reified T : MetaWindow> UIManager.getWindow(config: T.() -> Unit = {}): T = getWindow(T::class).apply(config)
 inline fun <reified T : MetaWindow> UIManager.showWindow(config: T.() -> Unit = {}): T = showWindow(T::class).apply(config)
 inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = {}): T = showDialog(T::class).apply(config)
 
-inline fun <reified T: Screen> UIManager.changeScreen() = changeScreen(T::class)
+inline fun <reified T : Screen> UIManager.changeScreen() = changeScreen(T::class)

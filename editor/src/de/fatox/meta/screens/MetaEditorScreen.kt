@@ -6,20 +6,17 @@ import com.badlogic.gdx.graphics.FPSLogger
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.changeScreen
-import de.fatox.meta.api.ui.register
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.get
 import de.fatox.meta.ide.SceneManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.MetaEditorUI
-import de.fatox.meta.ui.dialogs.*
-import de.fatox.meta.ui.windows.*
 
 class MetaEditorScreen : ScreenAdapter() {
 	private val uiManager: UIManager by lazyInject()
@@ -66,7 +63,7 @@ class MetaEditorScreen : ScreenAdapter() {
 		if (isInited && width > 120 && height > 0) {
 			uiManager.resize(width, height)
 			if (!Gdx.graphics.isFullscreen) {
-				val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
+				val audioVideoData: MetaAudioVideoData = metaData["audioVideoData"]
 				audioVideoData.width = width
 				audioVideoData.height = height
 				audioVideoData.x = uiManager.posModifier.x

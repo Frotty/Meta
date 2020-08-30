@@ -13,6 +13,7 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.get
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 class MetaSoundPlayer {
@@ -28,7 +29,7 @@ class MetaSoundPlayer {
 
 	fun playSound(soundDefinition: MetaSoundDefinition?, listenerPos: Vector2? = null, soundPos: Vector2 = Vector2.Zero): MetaSoundHandle? {
 		if (soundDefinition == null) return null
-		val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
+		val audioVideoData: MetaAudioVideoData = metaData["audioVideoData"]
 		val volume = audioVideoData.masterVolume * audioVideoData.soundVolume
 		if (volume <= 0) {
 			return null

@@ -2,7 +2,6 @@ package de.fatox.meta.api
 
 import com.badlogic.gdx.graphics.g2d.Animation
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.badlogic.gdx.utils.Array
 
 /**
  * Wraps a libGDX Animation, tracking state time and a queue of animations.

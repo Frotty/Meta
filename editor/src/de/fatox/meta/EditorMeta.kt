@@ -10,6 +10,7 @@ import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.register
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.get
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.modules.MetaEditorModule
@@ -33,7 +34,7 @@ class EditorMeta(posM: PosModifier) : Meta(posM) {
 				SplashScreen {
 					assetProvider.loadRawAssetsFromFolder(Gdx.files.internal("."))
 					array.forEach { assetProvider.loadPackedAssetsFromFolder(it) }
-					val audioVideoData = metaData.get("audioVideoData", MetaAudioVideoData::class.java)
+					val audioVideoData: MetaAudioVideoData = metaData["audioVideoData"]
 					Gdx.app.postRunnable {
 						uiManager.moveWindow(audioVideoData.x, audioVideoData.y)
 						audioVideoData.apply()

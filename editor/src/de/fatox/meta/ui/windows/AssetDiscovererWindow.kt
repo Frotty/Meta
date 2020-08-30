@@ -7,6 +7,7 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Scaling
 import com.kotcrab.vis.ui.widget.*
 import de.fatox.meta.api.model.AssetDiscovererData
+import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.ide.AssetDiscoverer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FolderListAdapter
@@ -39,7 +40,7 @@ object AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 	private fun loadLastFolder() {
 		assetDiscoverer.setRoot("")
 		if (uiManager.metaHas(TAG)) {
-			data = uiManager.metaGet(TAG, AssetDiscovererData::class.java)
+			data = uiManager.metaGet(TAG)
 			assetDiscoverer.openChild(data!!.lastFolder)
 		}
 	}
