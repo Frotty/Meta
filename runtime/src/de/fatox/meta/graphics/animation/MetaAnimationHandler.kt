@@ -18,7 +18,7 @@ class MetaAnimationHandler(
 	private val startingStateTime: Float = 0f,
 	override var stateTime: Float = startingStateTime,
 ) : AnimationHandler {
-	/** The animation queue filled by [queueAnimation]. */
+	/** The animation queue filled by [queue]. */
 	private val animationQueue: Array<Animation<TextureRegion>> = Array(startingQueueSize)
 
 	override var currentAnimation: Animation<TextureRegion> = defaultAnimation
@@ -27,19 +27,19 @@ class MetaAnimationHandler(
 	override var isPlaying: Boolean = false
 		private set
 
-	override fun playDefaultAnimation() {
+	override fun playDefault() {
 		stateTime = 0f
 		currentAnimation = defaultAnimation
 		isPlaying = true
 	}
 
-	override fun playAnimation(animation: Animation<TextureRegion>) {
+	override fun play(animation: Animation<TextureRegion>) {
 		stateTime = 0f
 		currentAnimation = animation
 		isPlaying = true
 	}
 
-	override fun queueAnimation(animation: Animation<TextureRegion>) {
+	override fun queue(animation: Animation<TextureRegion>) {
 		if (animationQueue.isEmpty || animationQueue.peek() !== animation) {
 			animationQueue.add(animation)
 		}
@@ -64,11 +64,11 @@ class MetaAnimationHandler(
 		stateTime = MathUtils.random(0f, currentAnimation.animationDuration) // TODO replace with own random
 	}
 
-	override fun freezeAnimation() {
+	override fun pause() {
 		isPlaying = false
 	}
 
-	override fun resetAnimation() {
+	override fun reset() {
 		isPlaying = false
 		stateTime = startingStateTime
 		animationQueue.clear()

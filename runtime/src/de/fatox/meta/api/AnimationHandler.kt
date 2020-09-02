@@ -28,21 +28,21 @@ interface AnimationHandler {
 	/**
 	 * Instantly plays the animation the handler was initialized with.
 	 */
-	fun playDefaultAnimation()
+	fun playDefault()
 
 	/**
-	 * Instantly plays the given animation.
+	 * Instantly plays the given animation from its start.
 	 *
 	 * @param animation The animation to be played instantly.
 	 */
-	fun playAnimation(animation: Animation<TextureRegion>)
+	fun play(animation: Animation<TextureRegion>)
 
 	/**
 	 * Queues the given animation to be played after the current one finishes, if it is not queued already.
 	 *
 	 * @param animation Animation<TextureRegion>
 	 */
-	fun queueAnimation(animation: Animation<TextureRegion>)
+	fun queue(animation: Animation<TextureRegion>)
 
 	/**
 	 * Updates the animation state by the given time.
@@ -57,16 +57,16 @@ interface AnimationHandler {
 	fun randomizeStateTime()
 
 	/**
-	 * Stops the current animation from playing.
+	 * Pauses the animation on the current frame.
 	 *
 	 * It will still stay as the last animation and return the same frame.
 	 */
-	fun freezeAnimation()
+	fun pause()
 
 	/**
-	 * Stops and resets
+	 * Resets everything managed by this handler to its initial state.
 	 */
-	fun resetAnimation()
+	fun reset()
 
 	/**
 	 * @return `true` if the animation queue is empty, `false` otherwise.
