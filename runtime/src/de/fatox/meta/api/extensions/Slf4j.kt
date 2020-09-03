@@ -17,26 +17,36 @@ object MetaLoggerFactory {
 	}
 }
 
-inline fun Logger.info(msg: () -> String) {
-	if (isInfoEnabled) info(msg())
+@PublishedApi
+@Suppress("NOTHING_TO_INLINE")
+internal inline fun (() -> Any?).safeToString(): String {
+	return try {
+		invoke().toString()
+	} catch (t: Throwable) {
+		"Log message invocation failed: $t"
+	}
 }
 
-inline fun Logger.warn(msg: () -> String) {
-	if (isWarnEnabled) warn(msg())
+inline fun Logger.info(msg: () -> Any?) {
+	if (isInfoEnabled) info(msg.safeToString())
 }
 
-inline fun Logger.error(msg: () -> String) {
-	if (isErrorEnabled) error(msg())
+inline fun Logger.warn(msg: () -> Any?) {
+	if (isWarnEnabled) warn(msg.safeToString())
 }
 
-inline fun Logger.error(t: Throwable, msg: () -> String) {
-	if (isErrorEnabled) error(msg(), t)
+inline fun Logger.error(msg: () -> Any?) {
+	if (isErrorEnabled) error(msg.safeToString())
 }
 
-inline fun Logger.debug(msg: () -> String) {
-	if (isDebugEnabled) debug(msg())
+inline fun Logger.error(t: Throwable, msg: () -> Any?) {
+	if (isErrorEnabled) error(msg.safeToString(), t)
 }
 
-inline fun Logger.trace(msg: () -> String) {
-	if (isTraceEnabled) trace(msg())
+inline fun Logger.debug(msg: () -> Any?) {
+	if (isDebugEnabled) debug(msg.safeToString())
+}
+
+inline fun Logger.trace(msg: () -> Any?) {
+	if (isTraceEnabled) trace(msg.safeToString())
 }
