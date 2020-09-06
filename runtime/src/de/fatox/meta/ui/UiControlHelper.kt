@@ -144,7 +144,7 @@ class UiControlHelper {
     }
 
     private fun getNext(left: Boolean, possibleTargets: Array<Actor>, index: Int): Actor {
-		if (possibleTargets.isEmpty) {
+		if (possibleTargets.isEmpty || index < 0) {
 			return selectedActor!!
 		}
 
