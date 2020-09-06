@@ -6,6 +6,9 @@ import com.badlogic.gdx.utils.Align
 import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.VisTextButton.VisTextButtonStyle
 import de.fatox.meta.util.GoldenRatio
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -23,4 +26,11 @@ open class MetaTextButton @JvmOverloads constructor(text: String = "", size: Int
 		pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20)
 		add(label).center().grow()
 	}
+}
+
+@Suppress("FunctionName")
+@OptIn(ExperimentalContracts::class)
+inline fun MetaTextButton(text: String = "", size: Int = 12, init: MetaTextButton.() -> Unit): MetaTextButton {
+	contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
+	return MetaTextButton(text, size).apply(init)
 }
