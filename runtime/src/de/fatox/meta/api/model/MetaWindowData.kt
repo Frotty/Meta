@@ -33,7 +33,9 @@ data class MetaWindowData(
 
 	fun set(metaWindow: Window) {
 		metaWindow.setPosition(x, y)
-		metaWindow.setSize(width, height)
+		if (metaWindow.isResizable) {
+			metaWindow.setSize(width, height)
+		}
 		metaWindow.invalidateHierarchy()
 	}
 }
