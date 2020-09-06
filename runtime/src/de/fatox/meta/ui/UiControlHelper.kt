@@ -135,7 +135,7 @@ object UiControlHelper {
 
 	private fun getNext(left: Boolean, possibleTargets: Array<Actor>, index: Int): Actor {
 		return when {
-			possibleTargets.isEmpty -> selectedActor
+			possibleTargets.isEmpty || index < 0 -> selectedActor
 			left -> {
 				if (index == 0)
 					possibleTargets.get(possibleTargets.size - 1)
