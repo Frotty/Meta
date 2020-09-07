@@ -173,8 +173,8 @@ object MetaUiManager : UIManager {
 	}
 
 	override fun <T : Window> getWindow(windowClass: KClass<out T>): T {
-		// TODO avoid NPE
-		return getDisplayedClass(windowClass)!!
+		return displayedWindows.firstOrNull { it::class == windowClass } as T?
+			?: windowConfig.create(windowClass).also { displayedWindows.add(it) }
 	}
 
 	override fun closeWindow(window: Window) {
@@ -220,10 +220,6 @@ object MetaUiManager : UIManager {
 		uiRenderer.addActor(theWindow)
 		displayedWindows.add(theWindow)
 		return theWindow
-	}
-
-	private fun <T : Window> getDisplayedClass(windowClass: KClass<out T>): T? {
-		return displayedWindows.firstOrNull { it::class == windowClass } as T?
 	}
 
 	private fun getDisplayedInstance(window: Window): Window? {
