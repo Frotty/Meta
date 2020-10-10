@@ -32,7 +32,9 @@ data class MetaWindowData(
 	}
 
 	fun set(metaWindow: Window) {
-		metaWindow.setPosition(x, y)
+		if (metaWindow.isMovable) {
+			metaWindow.setPosition(x, y)
+		}
 		if (metaWindow.isResizable) {
 			metaWindow.setSize(width, height)
 		}
