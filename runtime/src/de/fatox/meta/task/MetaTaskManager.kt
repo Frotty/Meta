@@ -4,7 +4,7 @@ import com.badlogic.gdx.utils.Array
 
 class MetaTaskManager {
 	private val taskHistoryStack = Array<MetaTask>()
-	private var currentIndex = 0
+	private var currentIndex = -1
 	fun runTask(metaTask: MetaTask) {
 		if (currentIndex < taskHistoryStack.size - 1) {
 			taskHistoryStack.setSize(currentIndex + 1)
@@ -15,7 +15,7 @@ class MetaTaskManager {
 	}
 
 	fun undoLastTask() {
-		if (taskHistoryStack.size > 0 && currentIndex > 0) {
+		if (taskHistoryStack.size > 0 && currentIndex >= 0) {
 			taskHistoryStack[currentIndex].undo()
 			currentIndex--
 		}
