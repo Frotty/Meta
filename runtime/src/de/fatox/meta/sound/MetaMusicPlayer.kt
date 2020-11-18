@@ -2,29 +2,53 @@ package de.fatox.meta.sound
 
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.backends.lwjgl3.audio.mock.MockMusic
+import com.badlogic.gdx.utils.*
 import com.badlogic.gdx.utils.Array
-import com.badlogic.gdx.utils.ObjectMap
-import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.utils.Timer.Task
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.get
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import org.slf4j.Logger
 
 object UninitializedMusic : MockMusic()
 
+private val log: Logger = MetaLoggerFactory.logger {}
+private const val MAX_RESTART_TIMES = 10
 /**
  * Created by Frotty on 09.11.2016.
  */
-class MetaMusicPlayer {
+class MetaMusicPlayer : Disposable {
 	private val metaData: MetaData by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
+	private var restartCount = 0
 
 	private val task: Task = object : Task() {
 		override fun run() {
-			updateMusic()
+			try {
+				updateMusic()
+			} catch (e: GdxRuntimeException) {
+				// TODO what to do to prevent restarting every time?
+				if (++restartCount > MAX_RESTART_TIMES) cancel()
+
+				log.error { "Failed to update music $restartCount time(s)!" }
+
+				// Dispose and reload current music. The call to updateMusic is skipped, as it is called on a timer.
+				if (currentMusic !== UninitializedMusic) {
+					val currentKey = musicCache.findKey(currentMusic, true)
+					log.error { "Failed to play: $currentKey" }
+					val newMusic = musicCache.put(currentKey, assetProvider[currentKey])
+					allPool.removeValue(currentMusic, true)
+					allPool.add(newMusic)
+					activePool.clear()
+					currentMusic.dispose()
+					currentMusic = UninitializedMusic
+				}
+			}
 		}
 	}
 	private val startVolume = 0.01f
@@ -157,4 +181,11 @@ class MetaMusicPlayer {
 	}
 
 	val isMusicPlaying: Boolean get() = currentMusic !== UninitializedMusic && currentMusic.isPlaying
+
+	override fun dispose() {
+		musicCache.clear()
+		activePool.clear()
+		allPool.forEach { it.dispose() }
+		allPool.clear()
+	}
 }
