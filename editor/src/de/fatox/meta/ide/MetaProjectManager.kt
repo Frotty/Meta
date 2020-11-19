@@ -13,6 +13,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.tabs.ProjectHomeTab
 import java.nio.file.Paths
+import kotlin.reflect.KClass
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -22,12 +23,11 @@ object MetaProjectManager : ProjectManager {
 	private val editorUI: MetaEditorUI by lazyInject()
 	private val metaData: MetaData by lazyInject()
 
-	private var currentProject: MetaProjectData? = null
-	private var currentProjectRoot: FileHandle? = null
+	override lateinit var currentProject: MetaProjectData
+	private set
+	override lateinit var currentProjectRoot: FileHandle
+	private set
 	private val onLoadListeners = Array<EventListener>()
-	override fun getCurrentProject(): MetaProjectData {
-		return currentProject!!
-	}
 
 	override fun loadProject(projectFile: FileHandle): MetaProjectData {
 		val realFile = if (!projectFile.name().endsWith("metaproject.json")) {
@@ -39,7 +39,7 @@ object MetaProjectManager : ProjectManager {
 		createFolders(metaProjectData)
 		currentProject = metaProjectData
 		val lastProjects: Array<String> = if (metaData.has("lastProjects")) {
-			metaData["lastProjects"]
+			metaData.get("lastProjects")
 		} else {
 			Array()
 		}
@@ -57,7 +57,7 @@ object MetaProjectManager : ProjectManager {
 
 	override fun saveProject(projectData: MetaProjectData) {
 		val root = currentProjectRoot
-		if (!root!!.exists()) {
+		if (!root.exists()) {
 			root.mkdirs()
 		}
 		var child = root.child(projectData.name)
@@ -87,26 +87,22 @@ object MetaProjectManager : ProjectManager {
 		return false
 	}
 
-	override fun getCurrentProjectRoot(): FileHandle {
-		return currentProjectRoot!!
-	}
-
 	private fun createFolders(projectData: MetaProjectData) {
-		currentProjectRoot!!.child("assets").mkdirs()
-		currentProjectRoot!!.child("scenes").mkdirs()
+		currentProjectRoot.child("assets").mkdirs()
+		currentProjectRoot.child("scenes").mkdirs()
 	}
 
-	override fun <T> get(key: String, type: Class<T>): T {
-		return metaData[currentProjectRoot!!, key, type] as T
+	override fun <T: Any> get(key: String, type: KClass<out T>): T {
+		return metaData.load(key, type, currentProjectRoot) as T
 	}
 
 	override fun save(key: String, obj: Any): FileHandle {
-		return metaData.save(currentProjectRoot!!, key, obj)
+		return metaData.save(key, obj, currentProjectRoot)
 	}
 
 	override fun relativize(fh: FileHandle): String {
 		val pathAbsolute = Paths.get(fh.file().absolutePath)
-		val pathBase = Paths.get(currentProjectRoot!!.file().absolutePath)
+		val pathBase = Paths.get(currentProjectRoot.file().absolutePath)
 		val pathRelative = pathBase.relativize(pathAbsolute)
 		return pathRelative.toString()
 	}

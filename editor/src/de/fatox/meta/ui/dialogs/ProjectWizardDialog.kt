@@ -113,15 +113,13 @@ object ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 		contentTable.add(visTable).top().growX()
 		createBtn.isDisabled = true
 		pack()
-		dialogListener = object : DialogListener {
-			override fun onResult(any: Any?) {
-				if (any as Boolean) {
-					val metaProjectData = MetaProjectData(projectNameTF!!.textField.text)
-					projectManager.newProject(rootfile, metaProjectData)
-					projectManager.loadProject(projectManager.currentProjectRoot)
-				}
-				close()
+		dialogListener = DialogListener { any ->
+			if (any as Boolean) {
+				val metaProjectData = MetaProjectData(projectNameTF!!.textField.text)
+				projectManager.newProject(rootfile!!, metaProjectData)
+				projectManager.loadProject(projectManager.currentProjectRoot)
 			}
+			close()
 		}
 	}
 }

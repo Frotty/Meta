@@ -1,6 +1,5 @@
 package de.fatox.meta.ui
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -21,7 +20,6 @@ import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.assets.MetaData
-import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.MetaDialog
 import java.io.File
@@ -123,9 +121,10 @@ object MetaUiManager : UIManager {
 
 	override fun addTable(table: Table?, growX: Boolean, growY: Boolean) {
 		contentTable.row()
-		val add = contentTable.add(table)
-		if (growX) add.growX()
-		if (growY) add.growY()
+		contentTable.add(table).apply {
+			if (growX) growX()
+			if (growY) growY()
+		}
 		contentTable.invalidate()
 	}
 

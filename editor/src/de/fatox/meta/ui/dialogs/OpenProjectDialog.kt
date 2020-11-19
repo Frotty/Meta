@@ -48,7 +48,7 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 						if (file.size == 1) {
 							rootfile = file[0]
 							folderButton!!.setText(file[0].pathWithoutExtension().truncate(30))
-							if (projectManager.verifyProjectFile(rootfile)) {
+							if (projectManager.verifyProjectFile(rootfile!!)) {
 								openBtn.isDisabled = false
 							}
 						}
@@ -74,13 +74,11 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 		visTable.add(folderButton).growX()
 		visTable.row()
 		contentTable.add(visTable).top().growX()
-		dialogListener = object : DialogListener {
-			override fun onResult(any: Any?) {
-				if (any != null && any as Boolean) {
-					projectManager.loadProject(rootfile)
-				}
-				close()
+		dialogListener = DialogListener { any ->
+			if (any != null && any as Boolean) {
+				projectManager.loadProject(rootfile!!)
 			}
+			close()
 		}
 	}
 }

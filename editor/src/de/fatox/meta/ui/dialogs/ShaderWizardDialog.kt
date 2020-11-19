@@ -18,6 +18,7 @@ import de.fatox.meta.ui.components.AssetSelectButton
 import de.fatox.meta.ui.components.MetaInputValidator
 import de.fatox.meta.ui.components.MetaValidTextField
 import de.fatox.meta.ui.windows.MetaDialog
+import de.fatox.meta.ui.windows.MetaDialog.DialogListener
 import de.fatox.meta.ui.windows.ShaderLibraryWindow
 
 /**
@@ -88,18 +89,16 @@ object ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 		createBtn.isDisabled = true
 		setDefaultSize(300f, 450f)
 		setupTable()
-		dialogListener = object : DialogListener {
-			override fun onResult(any: Any?) {
-				if (any as Boolean) {
-					val vertFile = projectManager.relativize(vertexSelect!!.file)
-					val fragFile = projectManager.relativize(fragmentSelect!!.file)
-					val shaderData = GLShaderData(shaderNameTF.textField.text, vertFile, fragFile)
-					val glShaderHandle = shaderLibrary.newShader(shaderData)!!
-					val window = uiManager.getWindow<ShaderLibraryWindow>()
-					window.addShader(glShaderHandle)
-				}
-				close()
+		dialogListener = DialogListener { any ->
+			if (any as Boolean) {
+				val vertFile = projectManager.relativize(vertexSelect!!.file!!)
+				val fragFile = projectManager.relativize(fragmentSelect!!.file!!)
+				val shaderData = GLShaderData(shaderNameTF.textField.text, vertFile, fragFile)
+				val glShaderHandle = shaderLibrary.newShader(shaderData)!!
+				val window = uiManager.getWindow<ShaderLibraryWindow>()
+				window.addShader(glShaderHandle)
 			}
+			close()
 		}
 	}
 }

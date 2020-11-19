@@ -53,7 +53,7 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 	init {
 		if (hasCloseButton) {
 			val btn = titleTable.cells[titleTable.cells.size - 1].actor
-			(btn as? VisImageButton)?.addListener { event: Event? ->
+			(btn as? VisImageButton)?.addListener {
 				dialogListener.onResult(null)
 				false
 			}

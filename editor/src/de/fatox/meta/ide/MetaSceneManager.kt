@@ -51,7 +51,6 @@ class MetaSceneManager : SceneManager {
 	}
 
 	init {
-
 		assetDiscoverer.addOpenListener(EXTENSION) { sceneFile: FileHandle -> loadScene(sceneFile) }
 	}
 }

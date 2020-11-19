@@ -4,12 +4,18 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.ObjectMap
+import com.badlogic.gdx.utils.SerializationException
 import com.badlogic.gdx.utils.TimeUtils
 import com.badlogic.gdx.utils.reflect.ClassReflection
 import com.badlogic.gdx.utils.reflect.ReflectionException
-import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.api.extensions.error
+import de.fatox.meta.injection.MetaInject.Companion.inject
 import java.io.File
 import kotlin.reflect.KClass
+
+private val log = MetaLoggerFactory.logger {}
 
 /**
  * Created by Frotty on 10.03.2017.
@@ -18,111 +24,123 @@ import kotlin.reflect.KClass
  * MetaData can be accessed via #.get and will be cached.
  */
 class MetaData {
-	internal class CacheObj<T>(var obj: T) {
-		var created = TimeUtils.millis()
-	}
+	internal class CacheObj<T : Any>(var obj: T, var created: Long = TimeUtils.millis())
 
-	private val gameName: String by lazyInject("gameName")
-
+	private val gameName: String = inject("gameName")
 	private val fileHandleCache = ObjectMap<String, FileHandle>()
 	private val fileCache = ObjectMap<String, File>()
 	private val jsonCache = ObjectMap<String, CacheObj<Any>>()
-	private val dataRoot: FileHandle
 	private val json = Json()
-	fun save(key: String, obj: Any) {
-		save(dataRoot, key, obj)
-	}
 
-	fun save(target: FileHandle, key: String, obj: Any): FileHandle {
-		val jsonString = json.toJson(obj)
-		val fileHandle = getCachedHandle(key, target)
-		fileHandle.writeBytes(jsonString.toByteArray(), false)
-		val cacheObj: CacheObj<Any>? = jsonCache.get(key)
-		if (cacheObj != null) {
-			cacheObj.created = TimeUtils.millis()
-			cacheObj.obj = obj
+	private val dataRoot: FileHandle =
+		Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME).also { it.mkdirs() }
+
+	/**
+	 * @param key String
+	 * @param obj T
+	 * @param target FileHandle
+	 * @return The cached [FileHandle] of the serialized [obj].
+	 */
+	fun <T : Any> save(key: String, obj: T, target: FileHandle = dataRoot): FileHandle {
+		log.debug {
+			"""
+				Save the following:
+					key:    $key
+					type:   ${obj::class.simpleName}
+					target: $target
+				""".trimIndent()
 		}
-		return fileHandle
+		// Update object in json cache, if it exists
+		jsonCache.get(key)?.let {
+			it.obj = obj
+			it.created = TimeUtils.millis()
+		}
+
+		// Get the file handle and (over) write the serialized json object to it
+		return getCachedHandle(key, target).also { it.writeBytes(json.toJson(obj).toByteArray(), false) }
 	}
 
-	/** Caches and returns this object loaded from json at the specified location  */
-	operator fun <T : Any> get(key: String, type: KClass<out T>): T {
-		return getCachedJson(key, type, dataRoot)
-	}
-
-	private fun <T : Any> getCachedJson(key: String, type: KClass<out T>, parent: FileHandle = dataRoot): T {
-		val jsonHandle: T
-		if (jsonCache.containsKey(key)) {
-			val cacheObj = jsonCache.get(key) as CacheObj<T>
-			val lastModified = getCachedFile(key)!!.lastModified()
-			if (cacheObj.created < lastModified) {
-				cacheObj.obj = json.fromJson(type.java, getCachedHandle(key, parent))
-				cacheObj.created = lastModified
+	/**
+	 * Caches and returns this object loaded from json at the specified location.
+	 *
+	 * @param key String
+	 * @param type KClass<out T>
+	 * @param parent FileHandle
+	 * @return T
+	 */
+	operator fun <T : Any> get(key: String, type: KClass<out T>, parent: FileHandle = dataRoot): T {
+		return try {
+			log.debug {
+				"""
+				Try to load the following from the json cache:
+					key:    $key
+					type:   ${type.simpleName}
+					parent: $parent
+				""".trimIndent()
 			}
-			jsonHandle = cacheObj.obj
-		} else {
-			val cachedHandle = getCachedHandle(key, parent)
-			if (!cachedHandle.exists()) {
-				try {
-					cachedHandle.writeBytes(json.toJson(ClassReflection.newInstance(type.java)).toByteArray(), false)
-				} catch (e: ReflectionException) {
-					e.printStackTrace()
+
+			if (jsonCache.containsKey(key)) { // Data exists in cache
+				log.debug { "Found key in json cache: $key" }
+				@Suppress("UNCHECKED_CAST")
+				(jsonCache.get(key) as CacheObj<T>).let {
+					// Update cache when file is newer than the cached data
+					val lastModified = fileCache.get(key)?.lastModified() ?: 0L
+					if (it.created < lastModified) {
+						log.debug { "File is newer than the cached data, updating cache!" }
+						it.obj = json.fromJson(type.java, getCachedHandle(key, parent))
+						it.created = lastModified
+					}
+					it.obj
 				}
+			} else { // Data does not exists in cache
+				log.debug { "Did not find key in json cache: $key" }
+				val cachedHandle = getCachedHandle(key, parent)
+				if (!cachedHandle.exists()) {
+					try {
+						cachedHandle.writeBytes(
+							json.toJson(ClassReflection.newInstance(type.java)).toByteArray(),
+							false
+						)
+					} catch (e: ReflectionException) {
+						e.printStackTrace()
+					}
+				}
+				json.fromJson(type.java, cachedHandle).also { jsonCache.put(key, CacheObj(it)) }
 			}
-			jsonHandle = json.fromJson(type.java, cachedHandle)
-			jsonCache.put(key, CacheObj(jsonHandle as Any))
+		} catch (e: SerializationException) {
+			log.error { "Failed to load key: $key" }
+			log.debug { "Fallback to new instance creation!" }
+			// Overwrite corrupted file with new instance
+			ClassReflection.newInstance(type.java).also { save(key, it) }
 		}
-		return jsonHandle
 	}
 
-	operator fun <T> get(target: FileHandle, key: String, type: Class<T>?): T? {
-		val fileHandle = getCachedHandle(key, target)
-		return if (fileHandle.exists()) {
-			json.fromJson(type, fileHandle.readString())
-		} else null
-	}
-
-	fun getCachedHandle(key: String): FileHandle {
-		return getCachedHandle(key, dataRoot)
-	}
-
-	fun getCachedFile(key: String): File? {
-		return if (fileCache.containsKey(key)) {
-			fileCache.get(key)
-		} else null
+	fun <T : Any> load(key: String, type: KClass<out T>, target: FileHandle = dataRoot): T? {
+		return getCachedHandle(key, target).let { if (it.exists()) json.fromJson(type.java, it.readString()) else null }
 	}
 
 	fun getCachedHandle(key: String, parent: FileHandle = dataRoot): FileHandle {
 		if (!fileHandleCache.containsKey(key)) {
-			var fileHandle: FileHandle = parent.child(key)
-			if (!fileHandle.exists()) {
+			var child: FileHandle = parent.child(key)
+			if (!child.exists()) {
 				val fileHandle2 = Gdx.files.external(GLOBAL_DATA_FOLDER_NAME + key)
 				if (fileHandle2.exists()) {
-					fileHandle = fileHandle2
+					child = fileHandle2
 				}
 			}
-			fileHandleCache.put(key, fileHandle)
-			fileCache.put(key, fileHandle.file())
+			fileHandleCache.put(key, child)
+			fileCache.put(key, child.file())
 		}
 		return fileHandleCache.get(key)
 	}
 
-	fun has(name: String): Boolean {
-		return has(dataRoot, name)
-	}
-
-	fun has(fileHandle: FileHandle, name: String): Boolean {
+	fun has(name: String, fileHandle: FileHandle = dataRoot): Boolean {
 		return fileHandleCache.containsKey(name) || fileHandle.child(name).exists()
 	}
 
 	companion object {
 		const val GLOBAL_DATA_FOLDER_NAME = ".meta"
 	}
-
-	init {
-		dataRoot = Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME)
-		dataRoot.mkdirs()
-	}
 }
 
-inline operator fun <reified T : Any> MetaData.get(key: String = T::class.simpleName!!): T = get(key, T::class)
+inline operator fun <reified T : Any> MetaData.get(key: String): T = get(key, T::class)
