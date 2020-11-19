@@ -11,6 +11,7 @@ import com.badlogic.gdx.utils.reflect.ReflectionException
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.error
+import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import java.io.File
 import kotlin.reflect.KClass
@@ -70,7 +71,7 @@ class MetaData {
 	 */
 	operator fun <T : Any> get(key: String, type: KClass<out T>, parent: FileHandle = dataRoot): T {
 		return try {
-			log.debug {
+			log.trace {
 				"""
 				Try to load the following from the json cache:
 					key:    $key
@@ -80,7 +81,7 @@ class MetaData {
 			}
 
 			if (jsonCache.containsKey(key)) { // Data exists in cache
-				log.debug { "Found key in json cache: $key" }
+				log.trace { "Found key in json cache: $key" }
 				@Suppress("UNCHECKED_CAST")
 				(jsonCache.get(key) as CacheObj<T>).let {
 					// Update cache when file is newer than the cached data
@@ -102,7 +103,7 @@ class MetaData {
 							false
 						)
 					} catch (e: ReflectionException) {
-						e.printStackTrace()
+						log.error("Failed to create class from type: ${type.simpleName}", e)
 					}
 				}
 				json.fromJson(type.java, cachedHandle).also { jsonCache.put(key, CacheObj(it)) }
