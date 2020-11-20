@@ -38,4 +38,8 @@ interface MetaInputProcessor : InputProcessor {
 	fun setExclusiveProcessor(exclusiveProcessor: InputProcessor?)
 	fun addGlobalAdapter(processor: InputProcessor)
 	fun removeAdapterFromScreen(camControl: ArcCamControl)
+	val isLeftCtrlDown: Boolean
+	val isRightCtrlDown: Boolean
+	val isLeftShiftDown: Boolean
+	val isRightShiftDown: Boolean
 }

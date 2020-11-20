@@ -1,6 +1,7 @@
 package de.fatox.meta.input
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.controllers.Controllers
 import com.badlogic.gdx.utils.Array
@@ -14,6 +15,15 @@ object MetaInput : MetaInputProcessor {
 	private var exclusiveProcessor: InputProcessor? = null
 	private val globalProcessors = Array<InputProcessor>()
 	private val screenProcessors = Array<InputProcessor>()
+
+	override var isLeftCtrlDown = false
+		private set
+	override var isRightCtrlDown = false
+		private set
+	override var isLeftShiftDown = false
+		private set
+	override var isRightShiftDown = false
+		private set
 
 	init {
 		Gdx.input.inputProcessor = this
@@ -68,6 +78,13 @@ object MetaInput : MetaInputProcessor {
 	}
 
 	override fun keyDown(keycode: Int): Boolean {
+		when (keycode) {
+			Input.Keys.CONTROL_LEFT -> isLeftCtrlDown = true
+			Input.Keys.CONTROL_RIGHT -> isRightCtrlDown = true
+			Input.Keys.SHIFT_LEFT -> isLeftShiftDown = true
+			Input.Keys.SHIFT_RIGHT -> isRightShiftDown = true
+		}
+
 		if (exclusiveProcessor != null) {
 			exclusiveProcessor!!.keyDown(keycode)
 			return false
@@ -92,6 +109,13 @@ object MetaInput : MetaInputProcessor {
 	}
 
 	override fun keyUp(keycode: Int): Boolean {
+		when (keycode) {
+			Input.Keys.CONTROL_LEFT -> isLeftCtrlDown = false
+			Input.Keys.CONTROL_RIGHT -> isRightCtrlDown = false
+			Input.Keys.SHIFT_LEFT -> isLeftShiftDown = false
+			Input.Keys.SHIFT_RIGHT -> isRightShiftDown = false
+		}
+
 		if (exclusiveProcessor != null) {
 			exclusiveProcessor!!.keyUp(keycode)
 			return false
