@@ -8,7 +8,6 @@ import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.camera.ArcCamControl
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.input.MetaInput
 import de.fatox.meta.shader.MetaSceneHandle
 import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.components.SceneWidget
@@ -35,7 +34,7 @@ class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
 	}
 
 	override fun onShow() {
-		metaInput.addAdapterForScreen(camControl)
+		metaInput.addScreenInputProcessor(camControl)
 		editorUI.metaToolbar.clear()
 		editorUI.metaToolbar.addAvailableWindow(AssetDiscovererWindow::class, null)
 		editorUI.metaToolbar.addAvailableWindow(ShaderLibraryWindow::class, null)
@@ -45,7 +44,7 @@ class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
 	}
 
 	override fun onHide() {
-		metaInput.removeAdapterFromScreen(camControl)
+		metaInput.removeScreenInputProcessor(camControl)
 	}
 
 	init {

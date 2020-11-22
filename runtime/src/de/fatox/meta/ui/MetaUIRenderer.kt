@@ -51,7 +51,7 @@ class MetaUIRenderer : UIRenderer {
 				return false
 			}
 		})
-		metaInput.addGlobalAdapter(stage)
+		metaInput.addGlobalInputProcessor(stage)
 	}
 
 	override fun addActor(actor: Actor) {

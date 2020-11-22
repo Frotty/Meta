@@ -14,7 +14,7 @@ class MetaKeyRebindDialog : MetaDialog("Rebind Key", true) {
 
 	override fun show() {
 		super.show()
-		metaInput.setExclusiveProcessor(RebindProcessor(this))
+		metaInput.exclusiveProcessor = RebindProcessor(this)
 	}
 
 	class RebindProcessor(val metaKeyRebindDialog: MetaKeyRebindDialog) : InputAdapter() {

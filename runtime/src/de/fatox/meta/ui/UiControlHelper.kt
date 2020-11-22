@@ -10,7 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.MetaInputProcessor
-import de.fatox.meta.api.registerGlobalKeyListener
+import de.fatox.meta.api.addGlobalKeyListener
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.abs
 
@@ -52,23 +52,23 @@ object UiControlHelper {
 	private val helper = Vector2()
 
 	init {
-		metaInput.registerGlobalKeyListener(Input.Keys.RIGHT) {
+		metaInput.addGlobalKeyListener(Input.Keys.RIGHT) {
 			if (activated && canMove)
 				selectedActor = getNextX(left = false)
 		}
-		metaInput.registerGlobalKeyListener(Input.Keys.LEFT) {
+		metaInput.addGlobalKeyListener(Input.Keys.LEFT) {
 			if (activated && canMove)
 				selectedActor = getNextX(left = true)
 		}
-		metaInput.registerGlobalKeyListener(Input.Keys.DOWN) {
+		metaInput.addGlobalKeyListener(Input.Keys.DOWN) {
 			if (activated && canMove)
 				selectedActor = getNextY(up = false)
 		}
-		metaInput.registerGlobalKeyListener(Input.Keys.UP) {
+		metaInput.addGlobalKeyListener(Input.Keys.UP) {
 			if (activated && canMove)
 				selectedActor = getNextY(up = true)
 		}
-		metaInput.registerGlobalKeyListener(Input.Keys.ENTER) {
+		metaInput.addGlobalKeyListener(Input.Keys.ENTER) {
 			if (activated) {
 				val inputEvent = InputEvent().apply {
 					button = Input.Buttons.LEFT
