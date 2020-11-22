@@ -139,16 +139,16 @@ object MetaInput : MetaInputProcessor {
 		return false
 	}
 
-	override fun scrolled(amount: Int): Boolean {
+	override fun scrolled(amountX: Float, amountY: Float): Boolean {
 		if (exclusiveProcessor != null) {
-			exclusiveProcessor!!.scrolled(amount)
+			exclusiveProcessor!!.scrolled(amountX, amountY)
 			return true
 		}
 		for (processor in globalProcessors) {
-			if (processor.scrolled(amount)) return true
+			if (processor.scrolled(amountX, amountY)) return true
 		}
 		for (processor in screenProcessors) {
-			if (processor.scrolled(amount)) return true
+			if (processor.scrolled(amountX, amountY)) return true
 		}
 		return true
 	}

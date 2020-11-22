@@ -124,11 +124,11 @@ class ArcCamControl : InputProcessor {
 		return false
 	}
 
-	override fun scrolled(amount: Int): Boolean {
+	override fun scrolled(amountX: Float, amountY: Float): Boolean {
 		return if (fastZoomMode) {
-			zoom(amount * translateUnits * 10)
+			zoom(amountY * translateUnits * 10)
 		} else {
-			zoom(amount * translateUnits)
+			zoom(amountY * translateUnits)
 		}
 	}
 
