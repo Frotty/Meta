@@ -200,6 +200,8 @@ object MetaInput : MetaInputProcessor {
 			exclusiveProcessor.scrolled(amountX, amountY)
 			return true
 		}
+		for (listener in globalScrollListeners) listener.onScroll()
+		for (listener in screenScrollListeners) listener.onScroll()
 		for (processor in globalProcessors) if (processor.scrolled(amountX, amountY)) return true
 		for (processor in screenProcessors) if (processor.scrolled(amountX, amountY)) return true
 		return true
