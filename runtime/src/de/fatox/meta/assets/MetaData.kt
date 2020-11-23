@@ -43,22 +43,42 @@ class MetaData {
 	 * @return The cached [FileHandle] of the serialized [obj].
 	 */
 	fun <T : Any> save(key: String, obj: T, target: FileHandle = dataRoot): FileHandle {
-		log.debug {
-			"""
+		// Get the file handle and (over) write the serialized json object to it
+		return getCachedHandle(key, target).also { fileHandle: FileHandle ->
+			val newBytes = json.toJson(obj).toByteArray()
+			val oldBytes = fileHandle.readBytes()
+
+			log.trace {
+				"""
+					New bytes (max 100):
+						${newBytes.joinToString(limit = 100)}
+					Old bytes (max 100):
+						${oldBytes.joinToString(limit = 100)}
+				""".trimIndent()
+			}
+
+			// Only save if obj is different
+			if (oldBytes.contentEquals(newBytes)) return@also
+
+			log.debug {
+				"""
 				Save the following:
 					key:    $key
 					type:   ${obj::class.simpleName}
 					target: $target
 				""".trimIndent()
-		}
-		// Update object in json cache, if it exists
-		jsonCache.get(key)?.let {
-			it.obj = obj
-			it.created = TimeUtils.millis()
-		}
+			}
 
-		// Get the file handle and (over) write the serialized json object to it
-		return getCachedHandle(key, target).also { it.writeBytes(json.toJson(obj).toByteArray(), false) }
+			fileHandle.writeBytes(newBytes, false)
+
+			// Update object in json cache, if it exists
+			jsonCache.get(key)?.let {
+				log.debug { "Update json cache!" }
+
+				it.obj = obj
+				it.created = fileHandle.lastModified()
+			}
+		}
 	}
 
 	/**

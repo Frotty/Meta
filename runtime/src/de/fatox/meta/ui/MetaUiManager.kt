@@ -42,7 +42,6 @@ object MetaUiManager : UIManager {
 	private var currentScreenId: String = "(none)"
 	override var posModifier: PosModifier = DummyPosModifier
 
-
 	override val windowConfig: WindowConfig by lazyInject()
 	override val screenConfig: ScreenConfig by lazyInject()
 
@@ -68,7 +67,7 @@ object MetaUiManager : UIManager {
 
 		// Close or move currently shown windows
 		for (window: Window in displayedWindows) {
-			val name = windowConfig[window::class]
+			val name = windowConfig.nameOf(window::class)
 			if (metaHas(name)) {
 				val metaWindowData = metaGet<MetaWindowData>(name)!!
 				if (metaWindowData.displayed) {
@@ -99,7 +98,7 @@ object MetaUiManager : UIManager {
 			if (fh.name().endsWith("Window")) {
 				val windowClass: KClass<out Window>? = windowConfig.nameToClass[fh.name()]
 				if (windowClass != null) {
-					val metaWindowData = metaGet(windowConfig[windowClass], MetaWindowData::class)!!
+					val metaWindowData = metaGet(windowConfig.nameOf(windowClass), MetaWindowData::class)!!
 					for (displayedWindow in displayedWindows) {
 						if (displayedWindow!!.javaClass == windowClass) {
 							if (!metaWindowData.displayed) {
@@ -135,30 +134,33 @@ object MetaUiManager : UIManager {
 	 * @param windowClass The window to show
 	 */
 	override fun <T : Window> showWindow(windowClass: KClass<out T>): T {
-		log.debug { "show window: ${windowConfig[windowClass]}" }
-		val window: T? = displayWindow(windowClass)
-		window!!.isVisible = true
-		if (metaHas(windowConfig[windowClass])) {
+		log.debug { "Show window: ${windowConfig.nameOf(windowClass)}" }
+
+		val window: T = windowConfig.create(windowClass)
+		window.isVisible = true
+		if (displayedWindows.contains(window, true)) return window
+
+		uiRenderer.addActor(window)
+		displayedWindows.add(window)
+		if (metaHas(windowConfig.nameOf(windowClass))) {
 			// There exists metadata for this window.
-			val windowData = metaGet<MetaWindowData>(windowConfig[windowClass])!!
+			val windowData: MetaWindowData = metaGet(windowConfig.nameOf(windowClass))!!
 			windowData.set(window)
 			if (!windowData.displayed) {
 				windowData.displayed = true
-				metaSave(windowConfig[windowClass], windowData)
+				metaSave(windowConfig.nameOf(windowClass), windowData)
 			}
 		} else {
 			// First time the window has been shown on this screen
-			metaSave(windowConfig[windowClass], MetaWindowData(window))
+			metaSave(windowConfig.nameOf(windowClass), MetaWindowData(window))
 		}
 		return window
 	}
 
 	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T {
-		log.debug { "Show dialog: ${windowConfig[dialogClass]}" }
+		log.debug { "Show dialog: ${windowConfig.nameOf(dialogClass)}" }
 		// Dialogs are just Window subtypes so we show it as usual
-		val dialog: T = showWindow(dialogClass)
-		dialog.show()
-		return dialog
+		return showWindow(dialogClass).apply { show() }
 	}
 
 	override fun setMainMenuBar(menuBar: MenuBar?) {
@@ -177,20 +179,19 @@ object MetaUiManager : UIManager {
 	}
 
 	override fun closeWindow(window: Window) {
-		val displayedWindow = getDisplayedInstance(window)
-		if (displayedWindow != null) {
+		displayedWindows.firstOrNull { it === window }?.let { displayedWindow ->
 			displayedWindows.removeValue(window, true)
-			val metaWindowData = metaGet<MetaWindowData>(windowConfig[window::class])
-			if (metaWindowData != null) {
-				metaWindowData.displayed = false
-				metaSave(windowConfig[displayedWindow::class], metaWindowData)
+			val name = windowConfig.nameOf(displayedWindow::class)
+			if (metaHas(name)) metaGet<MetaWindowData>(name)?.let {
+				it.displayed = false
+				metaSave(name, it)
 			}
 			cacheWindow(window, false)
 		}
 	}
 
 	override fun updateWindow(window: Window) {
-		val name = windowConfig[window::class]
+		val name = windowConfig.nameOf(window::class)
 		if (metaHas(name)) {
 			val metaWindowData = metaGet<MetaWindowData>(name)!!
 			metaWindowData.setFrom(window)
@@ -205,29 +206,9 @@ object MetaUiManager : UIManager {
 		mainMenuBar!!.table.toFront()
 	}
 
-	private fun <T : Window> displayWindow(windowClass: KClass<out T>): T? {
-		// Check if this window is a singleton. If it is and it is displayed, return displayed instance
-		// Check for a cached instance
-		var theWindow: T? = null
-		// If there was no cached instance we create a new one
-		if (theWindow != null) {
-			cachedWindows.removeValue(theWindow, true)
-		} else {
-			log.debug { "Try window instance." }
-			theWindow = windowConfig.create(windowClass)
-		}
-		uiRenderer.addActor(theWindow)
-		displayedWindows.add(theWindow)
-		return theWindow
-	}
-
-	private fun getDisplayedInstance(window: Window): Window? {
-		return displayedWindows.firstOrNull { it == window }
-	}
-
-	private fun cacheWindow(window: Window?, forceClose: Boolean) {
+	private fun cacheWindow(window: Window, forceClose: Boolean) {
 		cachedWindows.add(window)
-		window!!.isVisible = false
+		window.isVisible = false
 		if (forceClose) {
 			window.remove()
 		}
