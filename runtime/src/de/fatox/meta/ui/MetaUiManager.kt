@@ -62,6 +62,8 @@ object MetaUiManager : UIManager {
 	}
 
 	private fun changeScreen(screenId: String) {
+		log.debug { "Change screen to: $screenId" }
+
 		currentScreenId = screenId
 		metaInput.changeScreen()
 
@@ -80,7 +82,7 @@ object MetaUiManager : UIManager {
 				cacheWindow(window, true)
 			}
 		}
-		displayedWindows.removeAll(cachedWindows, true)
+		displayedWindows.clear()
 		contentTable.remove()
 		contentTable.clear()
 		if (mainMenuBar != null) {
@@ -175,7 +177,9 @@ object MetaUiManager : UIManager {
 
 	override fun <T : Window> getWindow(windowClass: KClass<out T>): T {
 		return displayedWindows.firstOrNull { it::class == windowClass } as T?
-			?: windowConfig.create(windowClass).also { displayedWindows.add(it) }
+			?: windowConfig.create(windowClass).also {
+				if (!displayedWindows.contains(it, true)) displayedWindows.add(it)
+			}
 	}
 
 	override fun closeWindow(window: Window) {
