@@ -18,7 +18,6 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
 	private var mrtFrameBuffer: MRTFrameBuffer? = null
 	private var frameBuffer: MultisampleFBO? = null
 
-
 	fun rebuild(width: Int, height: Int) {
 		log.debug { "rebuilt width=$width height=$height" }
 		mrtFrameBuffer?.dispose()
@@ -67,7 +66,6 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
 			frameBuffer != null -> singleArray.apply { set(0, frameBuffer!!.colorBufferTexture) }
 			else -> emptyArray
 		}
-
 
 	fun begin() {
 		if (mrtFrameBuffer != null) {

@@ -6,5 +6,4 @@ interface Renderer {
 	fun rebuild(width: Int, height: Int)
 
 	fun rebuildCache()
-
 }

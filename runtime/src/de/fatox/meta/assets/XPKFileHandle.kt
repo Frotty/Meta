@@ -36,7 +36,6 @@ class XPKFileHandle(
 				throw GdxRuntimeException("Cannot open a stream to a directory: $file ($type)", ex)
 			throw GdxRuntimeException("Error reading file: $file ($type)", ex)
 		}
-
 	}
 
 	override fun name(): String = name

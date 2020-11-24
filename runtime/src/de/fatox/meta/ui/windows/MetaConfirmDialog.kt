@@ -14,7 +14,10 @@ class MetaConfirmDialog(title: String = "", message: String?) : MetaWindow(title
 	fun show(stage: Stage) {
 		pack()
 		setColor(1f, 1f, 1f, 0f)
-		setPosition(((stage.width - width) / 2).roundToInt().toFloat(), ((stage.height - height) / 2).roundToInt().toFloat())
+		setPosition(
+			((stage.width - width) / 2).roundToInt().toFloat(),
+			((stage.height - height) / 2).roundToInt().toFloat()
+		)
 		stage.addActor(this)
 		addAction(Actions.alpha(0.925f, 0.5f))
 	}

@@ -27,7 +27,11 @@ class MetaSoundPlayer {
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val metaData: MetaData by lazyInject()
 
-	fun playSound(soundDefinition: MetaSoundDefinition?, listenerPos: Vector2? = null, soundPos: Vector2 = Vector2.Zero): MetaSoundHandle? {
+	fun playSound(
+		soundDefinition: MetaSoundDefinition?,
+		listenerPos: Vector2? = null,
+		soundPos: Vector2 = Vector2.Zero
+	): MetaSoundHandle? {
 		if (soundDefinition == null) return null
 		val audioVideoData: MetaAudioVideoData = metaData["audioVideoData"]
 		val volume = audioVideoData.masterVolume * audioVideoData.soundVolume
@@ -48,7 +52,8 @@ class MetaSoundPlayer {
 		}
 		if (soundDefinition.sound === UninitializedSound) {
 			// Load sound if it is played for the first time
-			val sound = Gdx.audio.newSound(metaAssetProvider.getResource(soundDefinition.soundName, FileHandle::class.java))
+			val sound =
+				Gdx.audio.newSound(metaAssetProvider.getResource(soundDefinition.soundName, FileHandle::class.java))
 			soundDefinition.sound = sound
 		}
 		// Play or loop sound
@@ -57,11 +62,19 @@ class MetaSoundPlayer {
 		if (listenerPos != null) {
 			val mappedVolume = soundHandle.calcVolume(listenerPos, false)
 			val mappedPan = soundHandle.calcPan(listenerPos)
-			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(mappedVolume, 1f, mappedPan) else soundDefinition.sound.play(mappedVolume, 1f, mappedPan)
+			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(
+				mappedVolume,
+				1f,
+				mappedPan
+			) else soundDefinition.sound.play(mappedVolume, 1f, mappedPan)
 			soundHandle.setHandleId(id)
 			dynamicHandles.add(soundHandle)
 		} else {
-			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(volume, 1f, 0f) else soundDefinition.sound.play(volume, 1f, 0f)
+			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(
+				volume,
+				1f,
+				0f
+			) else soundDefinition.sound.play(volume, 1f, 0f)
 			soundHandle.setHandleId(id)
 		}
 		handleList.add(soundHandle)
@@ -79,7 +92,11 @@ class MetaSoundPlayer {
 		}
 	}
 
-	private fun isInAudibleRange(sound: MetaSoundDefinition, listenerPosition: Vector2, soundPosition: Vector2): Boolean {
+	private fun isInAudibleRange(
+		sound: MetaSoundDefinition,
+		listenerPosition: Vector2,
+		soundPosition: Vector2
+	): Boolean {
 		return listenerPosition.dst2(soundPosition) <= sound.soundRange2 || soundInScreen(soundPosition)
 	}
 
@@ -89,7 +106,11 @@ class MetaSoundPlayer {
 		return project.x > 0 && project.x < Gdx.graphics.width && project.y > 0 && project.y < Gdx.graphics.height
 	}
 
-	fun playSound(path: String, listenerPosition: Vector2? = null, soundPosition: Vector2 = Vector2.Zero): MetaSoundHandle? {
+	fun playSound(
+		path: String,
+		listenerPosition: Vector2? = null,
+		soundPosition: Vector2 = Vector2.Zero
+	): MetaSoundHandle? {
 		if (!soundDefinitions.containsKey(path)) {
 			soundDefinitions.put(path, MetaSoundDefinition(path))
 		}

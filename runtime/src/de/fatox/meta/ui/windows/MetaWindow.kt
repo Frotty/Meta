@@ -43,7 +43,13 @@ abstract class MetaWindow(
 					setColor(1f, 1f, 1f, 0.2f)
 					onChange { close() }
 					addListener(object : ClickListener() {
-						override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+						override fun touchDown(
+							event: InputEvent,
+							x: Float,
+							y: Float,
+							pointer: Int,
+							button: Int
+						): Boolean {
 							event.cancel()
 							return true
 						}

@@ -19,6 +19,7 @@ object UninitializedMusic : MockMusic()
 
 private val log: Logger = MetaLoggerFactory.logger {}
 private const val MAX_RESTART_TIMES = 10
+
 /**
  * Created by Frotty on 09.11.2016.
  */

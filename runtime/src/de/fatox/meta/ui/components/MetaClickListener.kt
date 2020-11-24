@@ -19,7 +19,6 @@ package de.fatox.meta.ui.components
  * limitations under the License.
  */
 
-
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input.Buttons
 import com.badlogic.gdx.scenes.scene2d.Actor
@@ -145,6 +144,7 @@ abstract class MetaClickListener(val button: Int = Buttons.LEFT) : InputListener
 		touchDownX = -1f
 		touchDownY = -1f
 	}
+
 	/** Returns true if a touch is over the actor or within the tap square or has been very recently. This allows the UI to show a
 	 * press and release that was so fast it occurred within a single frame.  */
 	val isVisualPressed: Boolean

@@ -46,7 +46,8 @@ class LightShader : Shader {
 		if (!program!!.isCompiled) {
 			throw GdxRuntimeException(program!!.log)
 		} else {
-			log.debug { """
+			log.debug {
+				"""
 				Shader compiled correctly. Appending log:
 				${program!!.log}
 				""".trimIndent()
@@ -115,7 +116,7 @@ class LightShader : Shader {
 		program!!.setUniformMatrix(u_ViewTrans, camera.view)
 		program!!.setUniformMatrix(u_ProjViewTrans, camera.combined)
 		//        program.setUniformf("u_nearDistance", camera.near);
-//        program.setUniformf("u_farDistance", camera.far);
+		//        program.setUniformf("u_farDistance", camera.far);
 		program!!.setUniformf(u_FarDistance, camera.far)
 		program!!.setUniformf(u_CamPos, camera.position)
 	}

@@ -6,7 +6,6 @@ import de.fatox.meta.api.crypto.HashUtils
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
 
-
 object XPKLoader {
 	const val EXTENSION = "xpk"
 
@@ -59,6 +58,4 @@ object XPKLoader {
 		}
 		return null
 	}
-
-
 }

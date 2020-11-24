@@ -13,7 +13,8 @@ import kotlin.contracts.contract
 /**
  * Created by Frotty on 04.06.2016.
  */
-open class MetaTextButton @JvmOverloads constructor(text: String = "", size: Int = 12) : Button(VisUI.getSkin().get(VisTextButtonStyle::class.java)) {
+open class MetaTextButton @JvmOverloads constructor(text: String = "", size: Int = 12) :
+	Button(VisUI.getSkin().get(VisTextButtonStyle::class.java)) {
 	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE).apply { setAlignment(Align.center) }
 
 	fun setText(text: String = "") {

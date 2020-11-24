@@ -37,7 +37,16 @@ class LightEntity(override var position: Vector3, radius: Float, color: Vector3)
 
 	init {
 		if (model == null) {
-			model = modelBuilder.createSphere(2f, 2f, 2f, 20, 20, Material(), (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal or VertexAttributes.Usage.ColorUnpacked or VertexAttributes.Usage.TextureCoordinates.toLong().toInt()).toLong())
+			model = modelBuilder.createSphere(
+				2f,
+				2f,
+				2f,
+				20,
+				20,
+				Material(),
+				(VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal or VertexAttributes.Usage.ColorUnpacked or VertexAttributes.Usage.TextureCoordinates.toLong()
+					.toInt()).toLong()
+			)
 			model!!.materials[0].set(blendingAttribute)
 			model!!.materials[0].set(IntAttribute.createCullFace(GL20.GL_FRONT))
 		}

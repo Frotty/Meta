@@ -2,10 +2,8 @@ package de.fatox.meta.test
 
 import com.badlogic.gdx.Input
 import de.fatox.meta.api.MetaInputProcessor
-
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.input.Hotkey
-import de.fatox.meta.input.MetaInput
 import org.junit.jupiter.api.Test
 import java.awt.Robot
 import java.awt.event.KeyEvent

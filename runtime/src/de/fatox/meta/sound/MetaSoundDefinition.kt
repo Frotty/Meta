@@ -26,7 +26,6 @@ class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
 
 	private val soundPlayer: MetaSoundPlayer by lazyInject()
 
-
 	fun play(listenerPosition: Vector2?, soundPosition: Vector2): MetaSoundHandle? {
 		return soundPlayer.playSound(this, listenerPosition, soundPosition)
 	}

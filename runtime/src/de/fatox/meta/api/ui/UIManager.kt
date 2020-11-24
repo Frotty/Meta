@@ -3,9 +3,13 @@
 package de.fatox.meta.api.ui
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
+import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
 import com.kotcrab.vis.ui.widget.MenuBar
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
@@ -13,6 +17,7 @@ import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.PosModifier
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.ui.components.MetaClickListener
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaWindow
 import kotlin.reflect.KClass
@@ -112,3 +117,31 @@ inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = 
 	showDialog(T::class).apply(config)
 
 inline fun <reified T : Screen> UIManager.changeScreen() = changeScreen(T::class)
+
+inline fun <reified T : Actor, reified W : MetaWindow> UIManager.showWindowOnClick(
+	actor: T,
+	button: Int = Input.Buttons.LEFT,
+	crossinline config: W.() -> Unit = {},
+): T {
+	if (this is Disableable) preventShowWindowObservers.add { isDisabled = it }
+	actor.addListener(object : MetaClickListener(button) {
+		override fun clicked(event: InputEvent, x: Float, y: Float) {
+			showWindow(config)
+		}
+	})
+	return actor
+}
+
+inline fun <reified T : Actor, reified D : MetaDialog> UIManager.showDialogOnClick(
+	actor: T,
+	button: Int = Input.Buttons.LEFT,
+	crossinline config: D.() -> Unit = {},
+): T {
+	if (this is Disableable) preventShowWindowObservers.add { isDisabled = it }
+	actor.addListener(object : MetaClickListener(button) {
+		override fun clicked(event: InputEvent, x: Float, y: Float) {
+			showDialog(config)
+		}
+	})
+	return actor
+}

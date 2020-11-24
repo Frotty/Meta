@@ -18,7 +18,6 @@ abstract class MetaTask(val name: String) {
 		}
 	}
 
-
 	abstract fun execute()
 	abstract fun undo()
 }

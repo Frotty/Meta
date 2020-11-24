@@ -12,5 +12,4 @@ class MetaValidTextField(description: String?, private val errorLabel: VisLabel)
 		inputValidator.setErrorLabel(errorLabel)
 		textField.addValidator(inputValidator)
 	}
-
 }

@@ -48,7 +48,7 @@ class MetaData {
 		// Get the file handle and (over) write the serialized json object to it
 		return getCachedHandle(key, target).also { fileHandle: FileHandle ->
 			val newBytes = json.toJson(obj).toByteArray()
-			val oldBytes = if(fileHandle.exists()) fileHandle.readBytes() else emptyByteArray
+			val oldBytes = if (fileHandle.exists()) fileHandle.readBytes() else emptyByteArray
 
 			log.trace {
 				"""

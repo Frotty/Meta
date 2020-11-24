@@ -9,24 +9,24 @@ class MetaShortcut(callback: MetaTask?, vararg keycodes: Int) {
 	private val missingKeys: Int = keycodes.size
 
 	init {
-// TODO use new metaInput
-//        for(int code : keycodes) {
-//            metaInput.registerKeyListener(code, new KeyListener() {
-//                @Override
-//                void onEvent() {
-//                }
-//                @Override
-//                public void onDown() {
-//                    missingKeys--;
-//                    if(missingKeys <= 0) {
-//                        callback.execute();
-//                    }
-//                }
-//                @Override
-//                public void onUp() {
-//                    missingKeys++;
-//                }
-//            });
-//        }
+		// TODO use new metaInput
+		//        for(int code : keycodes) {
+		//            metaInput.registerKeyListener(code, new KeyListener() {
+		//                @Override
+		//                void onEvent() {
+		//                }
+		//                @Override
+		//                public void onDown() {
+		//                    missingKeys--;
+		//                    if(missingKeys <= 0) {
+		//                        callback.execute();
+		//                    }
+		//                }
+		//                @Override
+		//                public void onUp() {
+		//                    missingKeys++;
+		//                }
+		//            });
+		//        }
 	}
 }

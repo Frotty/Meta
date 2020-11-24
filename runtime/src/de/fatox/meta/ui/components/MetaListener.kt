@@ -54,7 +54,6 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 	val isOver: Boolean
 		get() = over || isPressed
 
-
 	override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
 		if (isPressed) return false
 		isPressed = true
@@ -111,7 +110,6 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 		isPressed = false
 	}
 
-
 	/** Returns true if the specified position is over the specified actor or within the tap square.  */
 	fun isOver(actor: Actor, x: Float, y: Float): Boolean {
 		val hit = actor.hit(x, y, true)
@@ -119,7 +117,9 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 	}
 
 	fun inTapSquare(x: Float, y: Float): Boolean {
-		return if (touchDownX == -1f && touchDownY == -1f) false else Math.abs(x - touchDownX) < tapSquareSize && Math.abs(y - touchDownY) < tapSquareSize
+		return if (touchDownX == -1f && touchDownY == -1f) false else Math.abs(x - touchDownX) < tapSquareSize && Math.abs(
+			y - touchDownY
+		) < tapSquareSize
 	}
 
 	/** Returns true if a touch is within the tap square.  */
@@ -143,5 +143,4 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 		/** Time in seconds [.isVisualPressed] reports true after a press resulting in a click is released.  */
 		var visualPressedDuration = 0.1f
 	}
-
 }

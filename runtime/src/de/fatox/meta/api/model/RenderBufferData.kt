@@ -14,5 +14,4 @@ data class RenderBufferData(var metaShaderPath: String = "") {
 		GEOMETRY,
 		FULLSCREEN
 	}
-
 }

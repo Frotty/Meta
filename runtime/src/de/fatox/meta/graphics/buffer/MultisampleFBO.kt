@@ -94,7 +94,18 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 			}
 			Gdx.gl30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, framebufferHandle)
 			Gdx.gl30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, nonMultisampledFbo!!.framebufferHandle)
-			Gdx.gl30.glBlitFramebuffer(0, 0, getWidth(), getHeight(), 0, 0, getWidth(), getHeight(), GL30.GL_COLOR_BUFFER_BIT, GL30.GL_NEAREST)
+			Gdx.gl30.glBlitFramebuffer(
+				0,
+				0,
+				getWidth(),
+				getHeight(),
+				0,
+				0,
+				getWidth(),
+				getHeight(),
+				GL30.GL_COLOR_BUFFER_BIT,
+				GL30.GL_NEAREST
+			)
 			Gdx.gl30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, 0)
 			Gdx.gl30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, 0)
 			FrameBuffer.unbind()
@@ -122,9 +133,31 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 			intBuffer.rewind()
 			Gdx.gl30.glDrawBuffers(1, intBuffer)
 			if (i == textureAttachments - 1 && textureAttachments > 1) {
-				Gdx.gl30.glBlitFramebuffer(0, 0, getWidth(), getHeight(), 0, 0, getWidth(), getHeight(), GL30.GL_DEPTH_BUFFER_BIT, GL30.GL_NEAREST)
+				Gdx.gl30.glBlitFramebuffer(
+					0,
+					0,
+					getWidth(),
+					getHeight(),
+					0,
+					0,
+					getWidth(),
+					getHeight(),
+					GL30.GL_DEPTH_BUFFER_BIT,
+					GL30.GL_NEAREST
+				)
 			} else {
-				Gdx.gl30.glBlitFramebuffer(0, 0, getWidth(), getHeight(), 0, 0, getWidth(), getHeight(), GL30.GL_COLOR_BUFFER_BIT, GL30.GL_NEAREST)
+				Gdx.gl30.glBlitFramebuffer(
+					0,
+					0,
+					getWidth(),
+					getHeight(),
+					0,
+					0,
+					getWidth(),
+					getHeight(),
+					GL30.GL_COLOR_BUFFER_BIT,
+					GL30.GL_NEAREST
+				)
 			}
 		}
 		FrameBuffer.unbind()
@@ -152,7 +185,14 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 		try {
 			val texture = Gdx.gl.glGenTexture()
 			Gdx.gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, texture)
-			GL32.glTexImage2DMultisample(GL32.GL_TEXTURE_2D_MULTISAMPLE, 2, attachmentSpec.internalFormat, getWidth(), getHeight(), true)
+			GL32.glTexImage2DMultisample(
+				GL32.GL_TEXTURE_2D_MULTISAMPLE,
+				2,
+				attachmentSpec.internalFormat,
+				getWidth(),
+				getHeight(),
+				true
+			)
 			Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_MIN_FILTER, Texture.TextureFilter.Nearest.glEnum.toFloat())
 			Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_MAG_FILTER, Texture.TextureFilter.Nearest.glEnum.toFloat())
 			Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_WRAP_S, Texture.TextureWrap.ClampToEdge.glEnum.toFloat())
@@ -180,7 +220,8 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 		if (!defaultFramebufferHandleInitialized) {
 			defaultFramebufferHandleInitialized = true
 			if (Gdx.app.type == ApplicationType.iOS) {
-				val intbuf = ByteBuffer.allocateDirect(16 * Integer.SIZE / 8).order(ByteOrder.nativeOrder()).asIntBuffer()
+				val intbuf =
+					ByteBuffer.allocateDirect(16 * Integer.SIZE / 8).order(ByteOrder.nativeOrder()).asIntBuffer()
 				gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, intbuf)
 				defaultFramebufferHandle = intbuf[0]
 			} else {
@@ -195,17 +236,35 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 		if (bufferBuilder.hasDepthRenderBuffer) {
 			depthbufferHandle = gl.glGenRenderbuffer()
 			gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, depthbufferHandle)
-			Gdx.gl30.glRenderbufferStorageMultisample(GL20.GL_RENDERBUFFER, 4, bufferBuilder.depthRenderBufferSpec!!.internalFormat, width, height)
+			Gdx.gl30.glRenderbufferStorageMultisample(
+				GL20.GL_RENDERBUFFER,
+				4,
+				bufferBuilder.depthRenderBufferSpec!!.internalFormat,
+				width,
+				height
+			)
 		}
 		if (bufferBuilder.hasStencilRenderBuffer) {
 			stencilbufferHandle = gl.glGenRenderbuffer()
 			gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, stencilbufferHandle)
-			Gdx.gl30.glRenderbufferStorageMultisample(GL20.GL_RENDERBUFFER, 4, bufferBuilder.stencilRenderBufferSpec!!.internalFormat, width, height)
+			Gdx.gl30.glRenderbufferStorageMultisample(
+				GL20.GL_RENDERBUFFER,
+				4,
+				bufferBuilder.stencilRenderBufferSpec!!.internalFormat,
+				width,
+				height
+			)
 		}
 		if (bufferBuilder.hasPackedStencilDepthRenderBuffer) {
 			depthStencilPackedBufferHandle = gl.glGenRenderbuffer()
 			gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, depthStencilPackedBufferHandle)
-			Gdx.gl30.glRenderbufferStorageMultisample(GL20.GL_RENDERBUFFER, 4, bufferBuilder.packedStencilDepthRenderBufferSpec!!.internalFormat, width, height)
+			Gdx.gl30.glRenderbufferStorageMultisample(
+				GL20.GL_RENDERBUFFER,
+				4,
+				bufferBuilder.packedStencilDepthRenderBufferSpec!!.internalFormat,
+				width,
+				height
+			)
 		}
 		isMRT = bufferBuilder.textureAttachmentSpecs.size > 1
 		isMRT = true
@@ -215,8 +274,13 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 				val texture = createTexture(attachmentSpec)
 				textureAttachments++
 				if (attachmentSpec.isColorTexture) {
-					gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0 + colorTextureCounter, GL32.GL_TEXTURE_2D_MULTISAMPLE,
-						texture, 0)
+					gl.glFramebufferTexture2D(
+						GL20.GL_FRAMEBUFFER,
+						GL30.GL_COLOR_ATTACHMENT0 + colorTextureCounter,
+						GL32.GL_TEXTURE_2D_MULTISAMPLE,
+						texture,
+						0
+					)
 					imBuilder
 						.addColorTextureAttachment(
 							GL30.GL_RGBA8,
@@ -225,10 +289,22 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 						)
 					colorTextureCounter++
 				} else if (attachmentSpec.isDepth) {
-					gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL20.GL_DEPTH_ATTACHMENT, GL30.GL_TEXTURE_2D, texture, 0)
+					gl.glFramebufferTexture2D(
+						GL20.GL_FRAMEBUFFER,
+						GL20.GL_DEPTH_ATTACHMENT,
+						GL30.GL_TEXTURE_2D,
+						texture,
+						0
+					)
 					imBuilder.addDepthTextureAttachment(GL30.GL_DEPTH_COMPONENT32F, GL30.GL_FLOAT)
 				} else if (attachmentSpec.isStencil) {
-					gl.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL20.GL_STENCIL_ATTACHMENT, GL20.GL_TEXTURE_2D, texture, 0)
+					gl.glFramebufferTexture2D(
+						GL20.GL_FRAMEBUFFER,
+						GL20.GL_STENCIL_ATTACHMENT,
+						GL20.GL_TEXTURE_2D,
+						texture,
+						0
+					)
 				}
 			}
 		} else {
@@ -236,7 +312,13 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 			textureAttachments = 1
 			imBuilder.addColorTextureAttachment(GL30.GL_RGBA8, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE)
 			gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, texture)
-			Gdx.gl30.glFramebufferTexture2D(GL20.GL_FRAMEBUFFER, GL20.GL_COLOR_ATTACHMENT0, GL32.GL_TEXTURE_2D_MULTISAMPLE, texture, 0)
+			Gdx.gl30.glFramebufferTexture2D(
+				GL20.GL_FRAMEBUFFER,
+				GL20.GL_COLOR_ATTACHMENT0,
+				GL32.GL_TEXTURE_2D_MULTISAMPLE,
+				texture,
+				0
+			)
 		}
 		if (isMRT) {
 			val buffer = BufferUtils.newIntBuffer(colorTextureCounter)
@@ -247,13 +329,28 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 			Gdx.gl30.glDrawBuffers(colorTextureCounter, buffer)
 		}
 		if (bufferBuilder.hasDepthRenderBuffer) {
-			gl.glFramebufferRenderbuffer(GL20.GL_FRAMEBUFFER, GL20.GL_DEPTH_ATTACHMENT, GL20.GL_RENDERBUFFER, depthbufferHandle)
+			gl.glFramebufferRenderbuffer(
+				GL20.GL_FRAMEBUFFER,
+				GL20.GL_DEPTH_ATTACHMENT,
+				GL20.GL_RENDERBUFFER,
+				depthbufferHandle
+			)
 		}
 		if (bufferBuilder.hasStencilRenderBuffer) {
-			gl.glFramebufferRenderbuffer(GL20.GL_FRAMEBUFFER, GL20.GL_STENCIL_ATTACHMENT, GL20.GL_RENDERBUFFER, stencilbufferHandle)
+			gl.glFramebufferRenderbuffer(
+				GL20.GL_FRAMEBUFFER,
+				GL20.GL_STENCIL_ATTACHMENT,
+				GL20.GL_RENDERBUFFER,
+				stencilbufferHandle
+			)
 		}
 		if (bufferBuilder.hasPackedStencilDepthRenderBuffer) {
-			gl.glFramebufferRenderbuffer(GL20.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL20.GL_RENDERBUFFER, depthStencilPackedBufferHandle)
+			gl.glFramebufferRenderbuffer(
+				GL20.GL_FRAMEBUFFER,
+				GL30.GL_DEPTH_STENCIL_ATTACHMENT,
+				GL20.GL_RENDERBUFFER,
+				depthStencilPackedBufferHandle
+			)
 		}
 		gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, 0)
 		gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, 0)
@@ -288,7 +385,7 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	override fun dispose() {
 		val gl = Gdx.gl20
 
-//        Gdx.gl.glDeleteTexture (textureHandle);
+		//        Gdx.gl.glDeleteTexture (textureHandle);
 		if (hasDepthStencilPackedBuffer) {
 			gl.glDeleteRenderbuffer(depthStencilPackedBufferHandle)
 		} else {
@@ -335,7 +432,12 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	 * Unbinds the framebuffer, all drawing will be performed to the normal framebuffer from here on.
 	 */
 	@JvmOverloads
-	fun end(x: Int = 0, y: Int = 0, width: Int = Gdx.graphics.backBufferWidth, height: Int = Gdx.graphics.backBufferHeight) {
+	fun end(
+		x: Int = 0,
+		y: Int = 0,
+		width: Int = Gdx.graphics.backBufferWidth,
+		height: Int = Gdx.graphics.backBufferHeight
+	) {
 		unbind()
 		Gdx.gl20.glViewport(x, y, width, height)
 	}

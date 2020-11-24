@@ -162,7 +162,6 @@ object Sync {
 			private const val DAMPEN_THRESHOLD = 10 * 1000L * 1000L // 10ms
 			private const val DAMPEN_FACTOR = 0.9f // don't change: 0.9f is exactly right!
 		}
-
 	}
 
 	/** number of nano seconds in a second  */

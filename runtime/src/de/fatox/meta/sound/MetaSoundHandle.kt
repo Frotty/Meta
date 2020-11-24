@@ -62,7 +62,6 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 		definition.sound.stop(handleId)
 	}
 
-
 	fun debugRender() {
 		shapeRenderer.color = Color.CHARTREUSE
 		shapeRenderer.circle(soundPos.x + 16, soundPos.y + 16, 14f)

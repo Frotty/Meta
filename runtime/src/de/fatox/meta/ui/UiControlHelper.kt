@@ -107,7 +107,8 @@ object UiControlHelper {
 		while (iterator.hasNext()) {
 			val next = iterator.next()
 			if (abs(next.y - selectedActor.y) > selectedActor.height * 2.75f
-				|| (next is Disableable && next.isDisabled)) {
+				|| (next is Disableable && next.isDisabled)
+			) {
 				iterator.remove()
 			}
 		}
@@ -126,7 +127,8 @@ object UiControlHelper {
 		while (iterator.hasNext()) {
 			val next = iterator.next()
 			if (abs(next.x - selectedActor.x) > selectedActor.width * 1.25f
-				|| (next is Disableable && next.isDisabled)) {
+				|| (next is Disableable && next.isDisabled)
+			) {
 				iterator.remove()
 			}
 		}

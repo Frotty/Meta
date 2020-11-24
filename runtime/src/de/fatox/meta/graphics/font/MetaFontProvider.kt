@@ -22,7 +22,8 @@ class MetaFontProvider : FontProvider {
 	private var monoGenerator: FreeTypeFontGenerator
 
 	init {
-		normalGenerator = FreeTypeFontGenerator(assetProvider.getResource(fontInfo.normalFontPath, FileHandle::class.java))
+		normalGenerator =
+			FreeTypeFontGenerator(assetProvider.getResource(fontInfo.normalFontPath, FileHandle::class.java))
 		monoGenerator = FreeTypeFontGenerator(assetProvider.getResource(fontInfo.monoFontPath, FileHandle::class.java))
 	}
 

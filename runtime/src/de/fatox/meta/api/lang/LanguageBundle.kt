@@ -1,6 +1,5 @@
 package de.fatox.meta.api.lang
 
-
 interface LanguageBundle {
 	fun loadBundle(lang: AvailableLanguages)
 

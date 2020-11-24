@@ -11,17 +11,17 @@ import com.badlogic.gdx.math.Vector3
  * Created by Frotty on 29.06.2016.
  */
 abstract class MetaGLShader(var shaderHandle: GLShaderHandle) : Shader {
-//    private val metaErrorHandler = MetaErrorHandler()
+	//    private val metaErrorHandler = MetaErrorHandler()
 
 	var shaderProgram: ShaderProgram = ShaderProgram(shaderHandle.vertexHandle, shaderHandle.fragmentHandle)
 
 	init {
 		if (!shaderProgram.isCompiled) {
-//            metaErrorHandler.add(object : MetaError("Shader compilation failed", "") {
-//                override fun gotoError() {
-//
-//                }
-//            })
+			//            metaErrorHandler.add(object : MetaError("Shader compilation failed", "") {
+			//                override fun gotoError() {
+			//
+			//                }
+			//            })
 			throw RuntimeException()
 		}
 	}

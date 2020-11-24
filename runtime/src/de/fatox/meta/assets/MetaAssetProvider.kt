@@ -64,7 +64,6 @@ class MetaAssetProvider : AssetProvider {
 					fileCache.put(itrHandle.name(), itrHandle)
 					fileCache.put(itrHandle.name().replace("/", "\\"), itrHandle)
 				}
-
 			}
 			return true
 		}

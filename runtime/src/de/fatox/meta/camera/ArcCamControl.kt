@@ -117,7 +117,11 @@ class ArcCamControl : InputProcessor {
 					deltaX *= distance / 100
 					deltaY *= distance / 100
 				}
-				temp.set(target).add(sin(rotationAngle) * deltaY + cos(rotationAngle) * -deltaX, 0f, cos(rotationAngle) * deltaY + sin(rotationAngle) * deltaX)
+				temp.set(target).add(
+					sin(rotationAngle) * deltaY + cos(rotationAngle) * -deltaX,
+					0f,
+					cos(rotationAngle) * deltaY + sin(rotationAngle) * deltaX
+				)
 			}
 			update()
 		}

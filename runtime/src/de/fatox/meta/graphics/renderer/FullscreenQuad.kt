@@ -28,10 +28,33 @@ class FullscreenQuad(height: Float) : Disposable {
 
 	private fun createFullscreenQuad(height: Float): Mesh {
 		val nheight = 1f - (1f - height) * 0.5f
-		val verts = floatArrayOf(-1f, -1f, 0f, 0f, 0f, 1f, -1f, 0f, 1f, 0f, 1f, height, 0f, 1f, nheight, -1f, height, 0f, 0f, nheight)
-		val mesh = Mesh(true, 4, 0,
+		val verts = floatArrayOf(
+			-1f,
+			-1f,
+			0f,
+			0f,
+			0f,
+			1f,
+			-1f,
+			0f,
+			1f,
+			0f,
+			1f,
+			height,
+			0f,
+			1f,
+			nheight,
+			-1f,
+			height,
+			0f,
+			0f,
+			nheight
+		)
+		val mesh = Mesh(
+			true, 4, 0,
 			VertexAttribute(VertexAttributes.Usage.Position, 3, ShaderProgram.POSITION_ATTRIBUTE),
-			VertexAttribute(VertexAttributes.Usage.TextureCoordinates, 2, ShaderProgram.TEXCOORD_ATTRIBUTE + "0"))
+			VertexAttribute(VertexAttributes.Usage.TextureCoordinates, 2, ShaderProgram.TEXCOORD_ATTRIBUTE + "0")
+		)
 		mesh.setVertices(verts)
 		return mesh
 	}
