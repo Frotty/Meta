@@ -123,7 +123,7 @@ inline fun <reified W : MetaWindow> UIManager.showWindowOnClick(
 	button: Int = Input.Buttons.LEFT,
 	crossinline config: W.() -> Unit = {},
 ): Actor {
-	if (this is Disableable) preventShowWindowObservers.add { isDisabled = it }
+	if (actor is Disableable) preventShowWindowObservers.add { actor.isDisabled = it }
 	actor.addListener(object : MetaClickListener(button) {
 		override fun clicked(event: InputEvent, x: Float, y: Float) {
 			showWindow(config)
@@ -137,7 +137,7 @@ inline fun <reified D : MetaDialog> UIManager.showDialogOnClick(
 	button: Int = Input.Buttons.LEFT,
 	crossinline config: D.() -> Unit = {},
 ): Actor {
-	if (this is Disableable) preventShowWindowObservers.add { isDisabled = it }
+	if (actor is Disableable) preventShowWindowObservers.add { actor.isDisabled = it }
 	actor.addListener(object : MetaClickListener(button) {
 		override fun clicked(event: InputEvent, x: Float, y: Float) {
 			showDialog(config)
