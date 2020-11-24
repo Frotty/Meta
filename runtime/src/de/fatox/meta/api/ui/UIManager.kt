@@ -118,11 +118,11 @@ inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = 
 
 inline fun <reified T : Screen> UIManager.changeScreen() = changeScreen(T::class)
 
-inline fun <reified W : MetaWindow, reified T : Actor> UIManager.showWindowOnClick(
-	actor: T,
+inline fun <reified W : MetaWindow> UIManager.showWindowOnClick(
+	actor: Actor,
 	button: Int = Input.Buttons.LEFT,
 	crossinline config: W.() -> Unit = {},
-): T {
+): Actor {
 	if (this is Disableable) preventShowWindowObservers.add { isDisabled = it }
 	actor.addListener(object : MetaClickListener(button) {
 		override fun clicked(event: InputEvent, x: Float, y: Float) {
@@ -132,11 +132,11 @@ inline fun <reified W : MetaWindow, reified T : Actor> UIManager.showWindowOnCli
 	return actor
 }
 
-inline fun <reified D : MetaDialog, reified T : Actor> UIManager.showDialogOnClick(
-	actor: T,
+inline fun <reified D : MetaDialog> UIManager.showDialogOnClick(
+	actor: Actor,
 	button: Int = Input.Buttons.LEFT,
 	crossinline config: D.() -> Unit = {},
-): T {
+): Actor {
 	if (this is Disableable) preventShowWindowObservers.add { isDisabled = it }
 	actor.addListener(object : MetaClickListener(button) {
 		override fun clicked(event: InputEvent, x: Float, y: Float) {
