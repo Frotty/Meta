@@ -73,6 +73,8 @@ object MetaUiManager : UIManager {
 		currentScreenId = screenId
 		metaInput.changeScreen()
 
+		if (preventShowWindow) restoreOtherWindowsAndAllowNew()
+
 		// Close or move currently shown windows
 		for (window: Window in displayedWindows) {
 			val name = windowConfig.nameOf(window::class)
