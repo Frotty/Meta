@@ -118,7 +118,7 @@ inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = 
 
 inline fun <reified T : Screen> UIManager.changeScreen() = changeScreen(T::class)
 
-inline fun <reified T : Actor, reified W : MetaWindow> UIManager.showWindowOnClick(
+inline fun <reified W : MetaWindow, reified T : Actor> UIManager.showWindowOnClick(
 	actor: T,
 	button: Int = Input.Buttons.LEFT,
 	crossinline config: W.() -> Unit = {},
@@ -132,7 +132,7 @@ inline fun <reified T : Actor, reified W : MetaWindow> UIManager.showWindowOnCli
 	return actor
 }
 
-inline fun <reified T : Actor, reified D : MetaDialog> UIManager.showDialogOnClick(
+inline fun <reified D : MetaDialog, reified T : Actor> UIManager.showDialogOnClick(
 	actor: T,
 	button: Int = Input.Buttons.LEFT,
 	crossinline config: D.() -> Unit = {},
