@@ -36,6 +36,8 @@ class MetaData {
 	private val dataRoot: FileHandle =
 		Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME).also { it.mkdirs() }
 
+	private val emptyByteArray = ByteArray(0)
+
 	/**
 	 * @param key String
 	 * @param obj T
@@ -46,7 +48,7 @@ class MetaData {
 		// Get the file handle and (over) write the serialized json object to it
 		return getCachedHandle(key, target).also { fileHandle: FileHandle ->
 			val newBytes = json.toJson(obj).toByteArray()
-			val oldBytes = fileHandle.readBytes()
+			val oldBytes = if(fileHandle.exists()) fileHandle.readBytes() else emptyByteArray
 
 			log.trace {
 				"""
