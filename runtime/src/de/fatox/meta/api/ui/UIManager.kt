@@ -81,6 +81,8 @@ interface UIManager {
 	 */
 	fun <T : Window> showWindow(windowClass: KClass<out T>): T
 
+	fun hideOtherWindowsAndPreventNew(window: Window)
+	fun restoreOtherWindowsAndAllowNew()
 	fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T
 	fun setMainMenuBar(menuBar: MenuBar?)
 	fun <T : Window> getWindow(windowClass: KClass<out T>): T
@@ -92,6 +94,8 @@ interface UIManager {
 	fun metaSave(name: String, windowData: Any)
 	val currentlyActiveWindows: Array<Window>
 	val windowConfig: WindowConfig
+	val preventShowWindowObservers: Array<(Boolean) -> Unit>
+	val preventShowWindow: Boolean
 
 	val screenConfig: ScreenConfig
 }

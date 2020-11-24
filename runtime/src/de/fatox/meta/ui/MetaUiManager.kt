@@ -23,6 +23,7 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.MetaDialog
 import java.io.File
+import kotlin.properties.Delegates
 import kotlin.reflect.KClass
 
 private val log = MetaLoggerFactory.logger {}
@@ -40,9 +41,17 @@ object MetaUiManager : UIManager {
 	private var mainMenuBar: MenuBar? = null
 	private val contentTable = Table()
 	private var currentScreenId: String = "(none)"
+	override var preventShowWindow by Delegates.observable(false) { _, _, newValue ->
+		preventShowWindowObservers.forEach { it(newValue) }
+	}
+		private set
+	override val preventShowWindowObservers: Array<(Boolean) -> Unit> = Array()
+	private val hiddenWindows = Array<Window>()
+
 	override var posModifier: PosModifier = DummyPosModifier
 
 	override val windowConfig: WindowConfig by lazyInject()
+
 	override val screenConfig: ScreenConfig by lazyInject()
 
 	override fun moveWindow(x: Int, y: Int) {
@@ -138,31 +147,53 @@ object MetaUiManager : UIManager {
 	override fun <T : Window> showWindow(windowClass: KClass<out T>): T {
 		log.debug { "Show window: ${windowConfig.nameOf(windowClass)}" }
 
-		val window: T = windowConfig.create(windowClass)
-		window.isVisible = true
-		if (displayedWindows.contains(window, true)) return window
+		return windowConfig.create(windowClass).apply { if (!preventShowWindow) display() }
+	}
 
-		uiRenderer.addActor(window)
-		displayedWindows.add(window)
-		if (metaHas(windowConfig.nameOf(windowClass))) {
+	private fun <T : Window> T.display(): T {
+		isVisible = true
+		if (displayedWindows.contains(this, true)) return this
+
+		uiRenderer.addActor(this)
+		displayedWindows.add(this)
+		val configName = windowConfig.nameOf(this::class)
+		if (metaHas(configName)) {
 			// There exists metadata for this window.
-			val windowData: MetaWindowData = metaGet(windowConfig.nameOf(windowClass))!!
-			windowData.set(window)
+			val windowData: MetaWindowData = metaGet(configName)!!
+			windowData.set(this)
 			if (!windowData.displayed) {
 				windowData.displayed = true
-				metaSave(windowConfig.nameOf(windowClass), windowData)
+				metaSave(configName, windowData)
 			}
 		} else {
 			// First time the window has been shown on this screen
-			metaSave(windowConfig.nameOf(windowClass), MetaWindowData(window))
+			metaSave(configName, MetaWindowData(this))
 		}
-		return window
+		return this
+	}
+
+	override fun hideOtherWindowsAndPreventNew(window: Window) {
+		preventShowWindow = true
+		displayedWindows.filterNot { it === window }.forEach {
+			if (it.isVisible) {
+				it.isVisible = false
+				hiddenWindows.add(it)
+			}
+		}
+	}
+
+	override fun restoreOtherWindowsAndAllowNew() {
+		if (preventShowWindow) {
+			preventShowWindow = false
+			hiddenWindows.forEach { it.isVisible = true }
+			hiddenWindows.clear()
+		}
 	}
 
 	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T {
 		log.debug { "Show dialog: ${windowConfig.nameOf(dialogClass)}" }
 		// Dialogs are just Window subtypes so we show it as usual
-		return showWindow(dialogClass).apply { show() }
+		return showWindow(dialogClass).apply { if (!preventShowWindow) show() }
 	}
 
 	override fun setMainMenuBar(menuBar: MenuBar?) {
