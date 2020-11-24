@@ -21,7 +21,12 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
  *
  * @author Nathan Sweet
  */
-class MetaLabel @JvmOverloads constructor(text: CharSequence, size: Int, color: Color? = Color.WHITE, monospace: Boolean = false) : Widget() {
+class MetaLabel @JvmOverloads constructor(
+	text: CharSequence,
+	size: Int,
+	color: Color? = Color.WHITE,
+	monospace: Boolean = false
+) : Widget() {
 	val glyphLayout = GlyphLayout()
 	private val prefSize = Vector2()
 	val text = StringBuilder()
@@ -192,7 +197,9 @@ class MetaLabel @JvmOverloads constructor(text: CharSequence, size: Int, color: 
 	 */
 	fun setAlignment(labelAlign: Int, lineAlign: Int) {
 		this.labelAlign = labelAlign
-		if (lineAlign and Align.left != 0) this.lineAlign = Align.left else if (lineAlign and Align.right != 0) this.lineAlign = Align.right else this.lineAlign = Align.center
+		if (lineAlign and Align.left != 0) this.lineAlign =
+			Align.left else if (lineAlign and Align.right != 0) this.lineAlign = Align.right else this.lineAlign =
+			Align.center
 		invalidate()
 	}
 
