@@ -5,15 +5,16 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.kotcrab.vis.ui.widget.Tooltip
 import de.fatox.meta.ui.components.MetaClickListener
 
 inline fun <reified T : Actor> T.onClick(
 	button: Int = Input.Buttons.LEFT,
-	crossinline action: MetaClickListener.(event: InputEvent) -> Unit,
+	crossinline action: ClickListener.(event: InputEvent) -> Unit,
 ): T {
-	addListener(object : MetaClickListener(button) {
+	addListener(object : ClickListener(button) {
 		override fun clicked(event: InputEvent, x: Float, y: Float) {
 			action(event)
 		}
