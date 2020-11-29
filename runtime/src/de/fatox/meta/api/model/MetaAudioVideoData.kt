@@ -5,23 +5,24 @@ import com.badlogic.gdx.Gdx
 /**
  * Created by Frotty on 05.11.2016.
  */
-data class MetaAudioVideoData(var profile: String = "default") {
-	var hd = true
-	var resizeable = true
-	var borderless = false
-	var fullscreen = false
-	var x = 32
-	var y = 32
-	var width = 1280
-	var height = 720
-	var displayMode = 0
-	var vsyncEnabled = true
-	var maxFps = 128
-	var videoDebug = false
-
-	var masterVolume = 0.5f
-	var musicVolume = 1f
-	var soundVolume = 1f
+data class MetaAudioVideoData(
+	var profile: String = "default",
+	var hd: Boolean = true,
+	var resizeable: Boolean = true,
+	var borderless: Boolean = false,
+	var fullscreen: Boolean = false,
+	var x: Int = 32,
+	var y: Int = 32,
+	var width: Int = 1280,
+	var height: Int = 720,
+	var displayMode: Int = 0,
+	var vsyncEnabled: Boolean = true,
+	var maxFps: Int = 128,
+	var videoDebug: Boolean = false,
+	var masterVolume: Float = 0.5f,
+	var musicVolume: Float = 1f,
+	var soundVolume: Float = 1f
+) {
 
 	fun apply() {
 		if (fullscreen) {
