@@ -26,7 +26,7 @@ data class MetaAudioVideoData(
 
 	fun apply() {
 		if (fullscreen) {
-			if (!Gdx.graphics.isFullscreen) {
+			if (Gdx.graphics.supportsDisplayModeChange()) {
 				Gdx.graphics.setFullscreenMode(Gdx.graphics.displayModes[displayMode])
 			}
 		} else {
