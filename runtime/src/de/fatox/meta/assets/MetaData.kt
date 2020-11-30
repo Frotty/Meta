@@ -83,6 +83,8 @@ class MetaData {
 		}
 	}
 
+	fun <T : Any> save(key: MetaDataKey<T>, obj: T): FileHandle = save(key.name, obj)
+
 	/**
 	 * Caches and returns this object loaded from json at the specified location.
 	 *
@@ -157,16 +159,23 @@ class MetaData {
 		return fileHandleCache.get(key)
 	}
 
+	fun getCachedHandle(key: MetaDataKey<*>, parent: FileHandle = dataRoot): FileHandle =
+		getCachedHandle(key.name, parent)
+
 	fun has(name: String, fileHandle: FileHandle = dataRoot): Boolean {
 		return fileHandleCache.containsKey(name) || fileHandle.child(name).exists()
 	}
+
+	fun has(key: MetaDataKey<*>, fileHandle: FileHandle = dataRoot): Boolean = has(key.name, fileHandle)
 
 	companion object {
 		const val GLOBAL_DATA_FOLDER_NAME = ".meta"
 	}
 }
 
-inline class MetaDataKey<T: Any>(val name: String)
+inline class MetaDataKey<T : Any>(val name: String)
 
 inline operator fun <reified T : Any> MetaData.get(key: String): T = get(key, T::class)
 inline operator fun <reified T : Any> MetaData.get(key: MetaDataKey<T>): T = get(key.name)
+
+inline fun <reified T : Any> MetaData.load(key: MetaDataKey<T>): T? = load(key.name, T::class)
