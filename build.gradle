@@ -30,6 +30,7 @@ allprojects {
 		kotlinOptions {
 			freeCompilerArgs += "-progressive"
 			freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+			freeCompilerArgs += "-Xinline-classes"
 			freeCompilerArgs += "-Xjvm-default=all"
 		}
 	}

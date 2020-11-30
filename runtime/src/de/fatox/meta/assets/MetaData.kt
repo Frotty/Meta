@@ -166,4 +166,7 @@ class MetaData {
 	}
 }
 
+inline class MetaDataKey<T: Any>(val name: String)
+
 inline operator fun <reified T : Any> MetaData.get(key: String): T = get(key, T::class)
+inline operator fun <reified T : Any> MetaData.get(key: MetaDataKey<T>): T = get(key.name)
