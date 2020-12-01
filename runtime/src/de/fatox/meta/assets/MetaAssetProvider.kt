@@ -21,7 +21,6 @@ import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.api.ResourceKey
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.assets.XPKLoader.getList
