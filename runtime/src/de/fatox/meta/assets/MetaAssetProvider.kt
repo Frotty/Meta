@@ -21,6 +21,7 @@ import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.ResourceKey
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.assets.XPKLoader.getList
@@ -70,7 +71,7 @@ class MetaAssetProvider : AssetProvider {
 		return false
 	}
 
-	override fun <T> load(name: String, type: Class<T>) {
+	override fun <T: Any> load(name: String, type: Class<T>) {
 		log.debug { "loading <$name>" }
 		if (fileCache.containsKey(name)) {
 			log.debug { "pack cache contains filename" }
@@ -80,7 +81,7 @@ class MetaAssetProvider : AssetProvider {
 		}
 	}
 
-	private fun <T> loadIntern(descriptor: AssetDescriptor<T>) {
+	private fun <T: Any> loadIntern(descriptor: AssetDescriptor<T>) {
 		when {
 			descriptor.type == Model::class.java ->
 				assetManager.load(descriptor.fileName, Model::class.java, defaultModelParam)
@@ -110,7 +111,7 @@ class MetaAssetProvider : AssetProvider {
 		}
 	}
 
-	override fun <T> getResource(fileName: String, type: Class<T>, index: Int): T {
+	override fun <T: Any> getResource(fileName: String, type: Class<T>, index: Int): T {
 		return when {
 			type == FileHandle::class.java -> {
 				if (fileCache.containsKey(fileName))

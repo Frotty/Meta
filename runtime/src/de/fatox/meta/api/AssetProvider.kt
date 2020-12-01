@@ -13,15 +13,20 @@ interface AssetProvider {
 	fun loadRawAssetsFromFolder(folder: FileHandle): Boolean
 
 	/** Loads some asset. Loading happens async. Use #get after loading has finished. */
-	fun <T> load(name: String, type: Class<T>)
+	fun <T : Any> load(name: String, type: Class<T>)
+
+	/** Loads some asset. Loading happens async. Use #get after loading has finished. */
+	fun <T : Any> load(key: ResourceKey<T>, type: Class<T>) = load(key.name, type)
 
 	/** Returns an instance of the loaded asset. Index is the libgdx packed frame index.*/
-	fun <T> getResource(fileName: String, type: Class<T>, index: Int = -1): T
+	fun <T : Any> getResource(fileName: String, type: Class<T>, index: Int = -1): T
 
-	// For java interop
-	fun <T> getResource(fileName: String, type: Class<T>): T = getResource(fileName, type, -1)
+	/** Returns an instance of the loaded asset. Index is the libgdx packed frame index.*/
+	fun <T : Any> getResource(key: ResourceKey<T>, type: Class<T>, index: Int = -1): T =
+		getResource(key.name, type, index)
 
 	fun getDrawable(name: String): Drawable
+	fun getDrawable(key: ResourceKey<TextureRegion>): Drawable = getDrawable(key.name)
 
 	/** Blocks the thread until all load tasks are finished. */
 	fun finish()
@@ -35,6 +40,18 @@ interface AssetProvider {
 }
 
 inline fun <reified T : Any> AssetProvider.load(name: String): Unit = load(name, T::class.java)
+inline fun <reified T : Any> AssetProvider.load(key: ResourceKey<T>): Unit = load(key, T::class.java)
+
+inline fun <reified T : Any> AssetProvider.getResource(fileName: String, index: Int = -1): T =
+	getResource(fileName, T::class.java, index)
+
+inline fun <reified T : Any> AssetProvider.getResource(key: ResourceKey<T>, index: Int = -1): T =
+	getResource(key, T::class.java, index)
 
 inline operator fun <reified T : Any> AssetProvider.get(fileName: String, index: Int = -1): T =
 	getResource(fileName, T::class.java, index)
+
+inline operator fun <reified T : Any> AssetProvider.get(key: ResourceKey<T>, index: Int = -1): T =
+	getResource(key, T::class.java, index)
+
+inline class ResourceKey<T : Any>(val name: String)
