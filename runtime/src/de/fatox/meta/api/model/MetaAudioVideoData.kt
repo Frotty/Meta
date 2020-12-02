@@ -56,7 +56,7 @@ data class MetaAudioVideoData(
 	var masterVolume: Float = 0.5f,
 	var musicVolume: Float = 1f,
 	var soundVolume: Float = 1f,
-	var metaDisplayMode: MetaDisplayMode = Gdx.graphics.displayMode.toMetaDisplayMode()
+	var metaDisplayMode: MetaDisplayMode = MetaDisplayMode()
 ) {
 	fun apply() {
 		if (fullscreen && Gdx.graphics.supportsDisplayModeChange()) {
