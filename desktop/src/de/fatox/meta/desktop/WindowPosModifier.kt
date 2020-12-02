@@ -32,10 +32,10 @@ class WindowPosModifier : PosModifier {
 		}
 	}
 
-	override val x: Int get() = currentWindow?.positionX ?: 2
-	override val y: Int get() = currentWindow?.positionY ?: 12
+	override val x: Int get() = currentWindow?.positionX ?: 0
+	override val y: Int get() = currentWindow?.positionY ?: 0
 
 	override fun modify(x: Int, y: Int) {
-		currentWindow?.let { GLFW.glfwSetWindowPos(it.windowHandle, x, y) }
+		currentWindow?.setPosition(x, y)
 	}
 }

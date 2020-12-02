@@ -6,10 +6,10 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Graphics
 
 
 data class MetaDisplayMode(
-	val width: Int,
-	val height: Int,
-	val refreshRate: Int,
-	val bitsPerPixel: Int,
+	val width: Int = 0,
+	val height: Int = 0,
+	val refreshRate: Int = 0,
+	val bitsPerPixel: Int = 0,
 	val monitorIndex: Int = 0 // Simplified to index, might cause problems when having more than two monitors
 ) {
 	constructor(dm: Graphics.DisplayMode) : this(
