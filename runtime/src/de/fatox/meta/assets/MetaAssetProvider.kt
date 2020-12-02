@@ -122,7 +122,7 @@ class MetaAssetProvider : AssetProvider {
 			type == TextureRegion::class.java -> {
 				atlasCache.asSequence().map {
 					if (index <= 0) it.findRegion(fileName) else it.findRegion(fileName, index)
-				}.firstOrNull() as T? ?: getResource(fileName, Texture::class.java).let { TextureRegion(it) } as T?
+				}.firstOrNull() as T? ?: TextureRegion(getResource(fileName, Texture::class.java)) as T?
 			}
 			fileCache.containsKey(fileName) -> {
 				loadIntern(AssetDescriptor(fileCache[fileName], type))
