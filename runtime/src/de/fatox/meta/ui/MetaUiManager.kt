@@ -207,9 +207,7 @@ object MetaUiManager : UIManager {
 
 	override fun <T : Window> getWindow(windowClass: KClass<out T>): T {
 		return displayedWindows.firstOrNull { it::class == windowClass } as T?
-			?: windowConfig.create(windowClass).also {
-				if (!displayedWindows.contains(it, true)) displayedWindows.add(it)
-			}
+			?: windowConfig.create(windowClass)
 	}
 
 	override fun closeWindow(window: Window) {
