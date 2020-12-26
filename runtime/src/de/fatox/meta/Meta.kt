@@ -4,8 +4,8 @@ import com.badlogic.gdx.Game
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.utils.TimeUtils
+import de.fatox.meta.api.DummyPosModifier
 import de.fatox.meta.api.PosModifier
-import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.assets.MetaData
@@ -43,23 +43,17 @@ inline fun <reified T : Screen> ScreenConfig.register(
 	register(T::class, name, creator)
 }
 
-private val log = MetaLoggerFactory.logger {}
-
-abstract class Meta(protected var modifier: PosModifier) : Game() {
+abstract class Meta(protected val modifier: PosModifier = DummyPosModifier) : Game() {
 	protected val firstScreen: Screen by lazyInject()
 	protected val uiManager: UIManager by lazyInject()
+	private val screenConfig: ScreenConfig by lazyInject()
 
 	private var lastChange: Long = 0
 	private lateinit var lastScreen: Screen
 
-	private val screenConfig: ScreenConfig by lazyInject()
+	protected val lastScreenName: String get() = screenConfig.classToName[lastScreen::class]!!
 
 	init {
-		setUncaughtHandler()
-		metaInstance = this
-	}
-
-	private fun setUncaughtHandler() {
 		Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler)
 	}
 
@@ -68,7 +62,13 @@ abstract class Meta(protected var modifier: PosModifier) : Game() {
 	abstract fun ScreenConfig.screens()
 	abstract fun WindowConfig.windows()
 
-	override fun create() {
+	open fun iconified(isIconified: Boolean): Unit = Unit
+	open fun maximized(isMaximized: Boolean): Unit = Unit
+	open fun onFocusLost(): Unit = Unit
+	open fun onFocusGained(): Unit = Unit
+
+	final override fun create() {
+		instance = this
 		MetaInject.injection()
 		MetaModule
 		uiManager.posModifier = modifier
@@ -78,34 +78,32 @@ abstract class Meta(protected var modifier: PosModifier) : Game() {
 		changeScreen(firstScreen)
 	}
 
-	val lastScreenType: KClass<*> get() = lastScreen::class
-	val lastScreenName: String get() = screenConfig.classToName[lastScreenType]!!
+	interface ScreenManager {
+		fun canChangeScreen(): Boolean
+		fun newLastScreen()
+		fun changeScreen(newScreen: Screen)
+	}
 
-	companion object {
-		private lateinit var metaInstance: Meta
-		val instance: Meta by lazy { metaInstance }
+	companion object : ScreenManager {
+		@JvmStatic
+		lateinit var instance: Meta
+			private set
 
-		fun registerMetaAnnotation(annotationClass: Class<*>?) {}
+		override fun canChangeScreen(): Boolean = TimeUtils.millis() > instance.lastChange + 150
 
-		fun canChangeScreen(): Boolean {
-			return TimeUtils.millis() > instance.lastChange + 150
+		override fun newLastScreen() {
+			changeScreen(instance.screenConfig.screenCreators[instance.lastScreenName]!!())
 		}
 
-		fun newLastScreen() {
-			changeScreen(
-				instance.screenConfig.screenCreators[instance.lastScreenName]!!()
-			)
-		}
+		override fun changeScreen(newScreen: Screen) {
+			if (!canChangeScreen()) return
 
-		fun changeScreen(newScreen: Screen) {
-			if (canChangeScreen()) {
-				instance.lastChange = TimeUtils.millis()
-				val oldScreen = instance.getScreen()
-				if (oldScreen != null && !oldScreen.javaClass.isInstance(newScreen)) {
-					instance.lastScreen = oldScreen
-				}
-				Gdx.app.postRunnable { instance.setScreen(newScreen) }
+			instance.lastChange = TimeUtils.millis()
+			val oldScreen: Screen? = instance.getScreen()
+			if (oldScreen != null && !oldScreen.javaClass.isInstance(newScreen)) {
+				instance.lastScreen = oldScreen
 			}
+			Gdx.app.postRunnable { instance.setScreen(newScreen) }
 		}
 	}
 }
