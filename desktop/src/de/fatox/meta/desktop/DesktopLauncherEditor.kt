@@ -11,7 +11,7 @@ object DesktopLauncherEditor {
 		config.setResizable(true)
 		config.setTitle("Meta")
 		config.setWindowIcon("meta-icon.png")
-		val editorMeta = EditorMeta(WindowPosModifier())
+		val editorMeta = EditorMeta(DesktopWindowPosModifier())
 		MetaDesktopLauncher.init(config, editorMeta)
 	}
 }
