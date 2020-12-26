@@ -51,7 +51,7 @@ abstract class Meta(protected val modifier: PosModifier = DummyPosModifier) : Ga
 	private var lastChange: Long = 0
 	private lateinit var lastScreen: Screen
 
-	protected val lastScreenName: String get() = screenConfig.classToName[lastScreen::class]!!
+	private val lastScreenName: String get() = screenConfig.classToName[lastScreen::class]!!
 
 	init {
 		Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler)
@@ -82,6 +82,7 @@ abstract class Meta(protected val modifier: PosModifier = DummyPosModifier) : Ga
 		fun canChangeScreen(): Boolean
 		fun newLastScreen()
 		fun changeScreen(newScreen: Screen)
+		fun isTypeOfLastScreen(type: KClass<out Screen>): Boolean
 	}
 
 	companion object : ScreenManager {
@@ -89,12 +90,15 @@ abstract class Meta(protected val modifier: PosModifier = DummyPosModifier) : Ga
 		lateinit var instance: Meta
 			private set
 
+		@JvmStatic
 		override fun canChangeScreen(): Boolean = TimeUtils.millis() > instance.lastChange + 150
 
+		@JvmStatic
 		override fun newLastScreen() {
 			changeScreen(instance.screenConfig.screenCreators[instance.lastScreenName]!!())
 		}
 
+		@JvmStatic
 		override fun changeScreen(newScreen: Screen) {
 			if (!canChangeScreen()) return
 
@@ -105,5 +109,8 @@ abstract class Meta(protected val modifier: PosModifier = DummyPosModifier) : Ga
 			}
 			Gdx.app.postRunnable { instance.setScreen(newScreen) }
 		}
+
+		@JvmStatic
+		override fun isTypeOfLastScreen(type: KClass<out Screen>): Boolean = instance.lastScreen::class === type
 	}
 }

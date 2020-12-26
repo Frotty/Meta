@@ -7,11 +7,14 @@ object DesktopLauncherEditor {
 
 	@JvmStatic
 	fun main(arg: Array<String>) {
-		val config = Lwjgl3ApplicationConfiguration()
-		config.setResizable(true)
-		config.setTitle("Meta")
-		config.setWindowIcon("meta-icon.png")
-		val editorMeta = EditorMeta(DesktopWindowPosModifier())
-		MetaDesktopLauncher.init(config, editorMeta)
+		val posModifier = DesktopWindowPosModifier()
+		val config = Lwjgl3ApplicationConfiguration().apply {
+			setResizable(true)
+			setTitle("Meta")
+			setWindowIcon("meta-icon.png")
+			setWindowListener(posModifier)
+		}
+
+		MetaDesktopLauncher.init(config, EditorMeta(posModifier))
 	}
 }
