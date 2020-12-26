@@ -66,8 +66,8 @@ class MetaEditorScreen : ScreenAdapter() {
 				val audioVideoData: MetaAudioVideoData = metaData["audioVideoData"]
 				audioVideoData.width = width
 				audioVideoData.height = height
-				audioVideoData.x = uiManager.posModifier.x
-				audioVideoData.y = uiManager.posModifier.y
+				audioVideoData.x = uiManager.windowHandler.x
+				audioVideoData.y = uiManager.windowHandler.y
 				metaData.save("audioVideoData", audioVideoData)
 			}
 		}

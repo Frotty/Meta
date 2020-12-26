@@ -5,7 +5,7 @@ import com.badlogic.gdx.Screen
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.register
@@ -20,13 +20,13 @@ import de.fatox.meta.screens.SplashScreen
 import de.fatox.meta.ui.dialogs.*
 import de.fatox.meta.ui.windows.*
 
-class EditorMeta(posM: PosModifier) : Meta(posM) {
+class EditorMeta(posM: WindowHandler) : Meta(posM) {
 
 	private val metaData: MetaData by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
 
 	override fun config() {
-		uiManager.posModifier = this.modifier
+		uiManager.windowHandler = this.modifier
 		val array = Array<FileHandle>()
 		array.add(Gdx.files.internal("data/"))
 		MetaInject.global {

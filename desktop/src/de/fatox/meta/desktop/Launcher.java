@@ -9,7 +9,7 @@ public class Launcher {
 		config.setResizable(true);
 		config.setTitle("Meta");
 		config.setWindowIcon("meta-icon.png");
-		EditorMeta editorMeta = new EditorMeta(new DesktopWindowPosModifier());
+		EditorMeta editorMeta = new EditorMeta(new DesktopWindowWindowHandler());
 		MetaDesktopLauncher.INSTANCE.init(config, editorMeta);
 	}
 }

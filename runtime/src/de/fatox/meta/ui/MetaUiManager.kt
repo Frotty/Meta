@@ -9,9 +9,9 @@ import com.badlogic.gdx.utils.TimeUtils
 import com.kotcrab.vis.ui.widget.MenuBar
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import de.fatox.meta.ScreenConfig
-import de.fatox.meta.api.DummyPosModifier
+import de.fatox.meta.api.NoWindowHandler
 import de.fatox.meta.api.MetaInputProcessor
-import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.model.MetaWindowData
@@ -45,14 +45,14 @@ object MetaUiManager : UIManager {
 	override val preventShowWindowObservers: Array<(Boolean) -> Unit> = Array()
 	private val hiddenWindows = Array<Window>()
 
-	override var posModifier: PosModifier = DummyPosModifier
+	override var windowHandler: WindowHandler = NoWindowHandler
 
 	override val windowConfig: WindowConfig by lazyInject()
 
 	override val screenConfig: ScreenConfig by lazyInject()
 
 	override fun moveWindow(x: Int, y: Int) {
-		posModifier.modify(x, y)
+		windowHandler.modify(x, y)
 	}
 
 	override fun resize(width: Int, height: Int) {

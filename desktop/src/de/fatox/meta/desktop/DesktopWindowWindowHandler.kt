@@ -5,22 +5,27 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Graphics
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Window
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener
 import de.fatox.meta.Meta
-import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import org.slf4j.Logger
 
 private val log: Logger = MetaLoggerFactory.logger {}
 
-class DesktopWindowPosModifier : PosModifier, Lwjgl3WindowListener {
+class DesktopWindowWindowHandler : WindowHandler, Lwjgl3WindowListener {
 	private lateinit var currentWindow: Lwjgl3Window
 
 	override val x: Int get() = currentWindow.positionX
 	override val y: Int get() = currentWindow.positionY
 
 	override fun modify(x: Int, y: Int) {
-		log.debug { "Modify $currentWindow from ${this.x},${this.y} to $x,$y" }
+		log.debug { "Modify $currentWindow from ${this.x},${this.y} to $x,$y!" }
 		currentWindow.setPosition(x, y)
+	}
+
+	override fun iconify() {
+		log.debug { "Iconify $currentWindow!" }
+		currentWindow.iconifyWindow()
 	}
 
 	override fun created(window: Lwjgl3Window) {

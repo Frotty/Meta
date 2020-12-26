@@ -4,8 +4,8 @@ import com.badlogic.gdx.Game
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.utils.TimeUtils
-import de.fatox.meta.api.DummyPosModifier
-import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.NoWindowHandler
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.assets.MetaData
@@ -43,7 +43,7 @@ inline fun <reified T : Screen> ScreenConfig.register(
 	register(T::class, name, creator)
 }
 
-abstract class Meta(protected val modifier: PosModifier = DummyPosModifier) : Game() {
+abstract class Meta(protected val modifier: WindowHandler = NoWindowHandler) : Game() {
 	protected val firstScreen: Screen by lazyInject()
 	protected val uiManager: UIManager by lazyInject()
 	private val screenConfig: ScreenConfig by lazyInject()
@@ -71,7 +71,7 @@ abstract class Meta(protected val modifier: PosModifier = DummyPosModifier) : Ga
 		instance = this
 		MetaInject.injection()
 		MetaModule
-		uiManager.posModifier = modifier
+		uiManager.windowHandler = modifier
 		MetaInject.global { singleton("default") { ScreenConfig().apply { screens() } } }
 		MetaInject.global { singleton("default") { WindowConfig().apply { windows() } } }
 		config()

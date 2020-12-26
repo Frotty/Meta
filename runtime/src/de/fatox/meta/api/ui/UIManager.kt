@@ -14,7 +14,7 @@ import com.badlogic.gdx.utils.Array
 import com.kotcrab.vis.ui.widget.MenuBar
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import de.fatox.meta.ScreenConfig
-import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.ui.components.MetaClickListener
@@ -65,7 +65,7 @@ inline fun <reified T : MetaWindow> WindowConfig.register(
  * Created by Frotty on 20.05.2016.
  */
 interface UIManager {
-	var posModifier: PosModifier
+	var windowHandler: WindowHandler
 	fun moveWindow(x: Int, y: Int)
 	fun resize(width: Int, height: Int)
 

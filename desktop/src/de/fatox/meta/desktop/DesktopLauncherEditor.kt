@@ -7,7 +7,7 @@ object DesktopLauncherEditor {
 
 	@JvmStatic
 	fun main(arg: Array<String>) {
-		val posModifier = DesktopWindowPosModifier()
+		val posModifier = DesktopWindowWindowHandler()
 		val config = Lwjgl3ApplicationConfiguration().apply {
 			setResizable(true)
 			setTitle("Meta")
