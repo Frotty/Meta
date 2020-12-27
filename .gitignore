@@ -38,8 +38,9 @@ com_crashlytics_export_strings.xml
 .metadata/
 /android/bin/
 /runtime/bin/
-/desktop/bin/
+/runtime-desktop/bin/
 /editor/bin/
+/editor-desktop/bin/
 /ios/bin/
 /ios-moe/bin/
 *.tmp
@@ -62,34 +63,38 @@ com_crashlytics_export_strings.xml
 /ios-moe/nbproject/private/
 
 /build/
-/android/build/
 /runtime/build/
-/desktop/build/
+/runtime-desktop/build/
 /editor/build/
+/editor-desktop/build/
+/androdi/build/
 /ios/build/
 /ios-moe/build/
 
 /nbbuild/
 /android/nbbuild/
 /runtime/nbbuild/
-/desktop/nbbuild/
+/runtime-desktop/nbbuild/
 /editor/nbbuild/
+/editor-desktop/nbbuild/
 /ios/nbbuild/
 /ios-moe/nbbuild/
 
 /dist/
 /android/dist/
 /runtime/dist/
-/desktop/dist/
+/runtime-desktop/dist/
 /editor/dist/
+/runtime-editor/dist/
 /ios/dist/
 /ios-moe/dist/
 
 /nbdist/
 /android/nbdist/
 /runtime/nbdist/
-/desktop/nbdist/
+/runtime-desktop/nbdist/
 /editor/nbdist/
+/editor-desktop/nbdist/
 /ios/nbdist/
 /ios-moe/nbdist/
 
