@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color

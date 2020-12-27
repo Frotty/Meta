@@ -7,9 +7,9 @@ import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import java.io.InputStream
 
 class XPKFileHandle(
-	val siblings: Array<XPKFileHandle>,
+	private val siblings: Array<XPKFileHandle>,
 	var length: Int,
-	val sevenZFile: XPKByteChannel,
+	private val sevenZFile: XPKByteChannel,
 	private val entry: SevenZArchiveEntry,
 	val name: String,
 ) : FileHandle() {

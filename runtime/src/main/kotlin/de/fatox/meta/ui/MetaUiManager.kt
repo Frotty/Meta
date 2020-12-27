@@ -9,8 +9,8 @@ import com.badlogic.gdx.utils.TimeUtils
 import com.kotcrab.vis.ui.widget.MenuBar
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import de.fatox.meta.ScreenConfig
-import de.fatox.meta.api.NoWindowHandler
 import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.NoWindowHandler
 import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
@@ -108,7 +108,7 @@ object MetaUiManager : UIManager {
 			if (fh.name().endsWith("Window")) {
 				val windowClass: KClass<out Window>? = windowConfig.nameToClass[fh.name()]
 				if (windowClass != null) {
-					val metaWindowData = metaGet(windowConfig.nameOf(windowClass), MetaWindowData::class)!!
+					val metaWindowData = metaGet(windowConfig.nameOf(windowClass), MetaWindowData::class)
 					for (displayedWindow in displayedWindows) {
 						if (displayedWindow!!.javaClass == windowClass) {
 							if (!metaWindowData.displayed) {
