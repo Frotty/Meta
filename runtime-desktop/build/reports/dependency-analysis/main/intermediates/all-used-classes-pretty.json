@@ -1,0 +1,234 @@
+[
+  {
+    "theClass": "com.badlogic.gdx.Application",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.Application$ApplicationType",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.Gdx",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.Graphics",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.Graphics$DisplayMode",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.Graphics$Monitor",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.audio.Sound",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.backends.lwjgl3.Lwjgl3Graphics$Lwjgl3DisplayMode",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.backends.lwjgl3.Lwjgl3Graphics$Lwjgl3Monitor",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.backends.lwjgl3.Lwjgl3Window",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.backends.lwjgl3.audio.OpenALSound",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.graphics.GL20",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.graphics.GL30",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.graphics.Texture$TextureFilter",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.graphics.Texture$TextureWrap",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.graphics.glutils.FrameBuffer",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.graphics.glutils.GLFrameBuffer$FrameBufferBuilder",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.graphics.glutils.GLFrameBuffer$GLFrameBufferBuilder",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.utils.Array",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.utils.Array$ArrayIterator",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.utils.BufferUtils",
+    "variants": []
+  },
+  {
+    "theClass": "com.badlogic.gdx.utils.GdxRuntimeException",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.Meta",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.Meta$Companion",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.api.GraphicsHandler",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.api.MonitorHandler",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.api.SoundHandler",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.api.WindowHandler",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.api.extensions.MetaLoggerFactory",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopGraphicsHandler",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopGraphicsHandlerKt",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopGraphicsHandlerKt$log$1",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopMonitorHandler",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopMonitorHandlerKt",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopMonitorHandlerKt$log$1",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopSoundHandler",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopSoundHandlerKt",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopSoundHandlerKt$log$1",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopWindowHandler",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopWindowHandlerKt",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.desktop.DesktopWindowHandlerKt$log$1",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.graphics.buffer.MultisampleFBO",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.graphics.buffer.MultisampleFBO$Companion",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.graphics.buffer.MultisampleFBO$FrameBufferRenderBufferAttachmentSpec",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.graphics.buffer.MultisampleFBO$FrameBufferTextureAttachmentSpec",
+    "variants": []
+  },
+  {
+    "theClass": "de.fatox.meta.graphics.buffer.MultisampleFBO$GLFrameBufferBuilder",
+    "variants": []
+  },
+  {
+    "theClass": "kotlin.Metadata",
+    "variants": []
+  },
+  {
+    "theClass": "kotlin.Unit",
+    "variants": []
+  },
+  {
+    "theClass": "kotlin.jvm.functions.Function0",
+    "variants": []
+  },
+  {
+    "theClass": "kotlin.jvm.internal.Intrinsics",
+    "variants": []
+  },
+  {
+    "theClass": "kotlin.jvm.internal.Lambda",
+    "variants": []
+  },
+  {
+    "theClass": "kotlin.ranges.RangesKt",
+    "variants": []
+  },
+  {
+    "theClass": "kotlin.text.StringsKt",
+    "variants": []
+  },
+  {
+    "theClass": "org.jetbrains.annotations.NotNull",
+    "variants": []
+  },
+  {
+    "theClass": "org.lwjgl.opengl.GL32",
+    "variants": []
+  },
+  {
+    "theClass": "org.slf4j.Logger",
+    "variants": []
+  },
+  {
+    "theClass": "org.slf4j.LoggerFactory",
+    "variants": []
+  }
+]

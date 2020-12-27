@@ -1,0 +1,16 @@
+{
+  "projectPath": ":runtime-desktop",
+  "dependencyAdvice": [
+    {
+      "dependency": {
+        "identifier": "com.badlogicgames.gdx:gdx-controllers-lwjgl3",
+        "resolvedVersion": "1.9.12",
+        "configurationName": "api"
+      },
+      "usedTransitiveDependencies": [],
+      "fromConfiguration": "api"
+    }
+  ],
+  "pluginAdvice": [],
+  "shouldFail": false
+}

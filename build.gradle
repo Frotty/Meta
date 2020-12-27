@@ -2,29 +2,30 @@ buildscript {
 	repositories {
 		mavenLocal()
 		mavenCentral()
-		maven { url "https://plugins.gradle.org/m2/" }
-		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-		jcenter()
 		google()
+		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+		jcenter()
+
 	}
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+		classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
 	}
 }
 
 allprojects {
-	version = '1.0'
-	ext.appName = "MetaRuntime"
+	apply plugin: 'eclipse'
+	apply plugin: 'idea'
+	apply plugin: "com.autonomousapps.dependency-analysis"
+}
 
-	repositories {
-		mavenLocal()
-		mavenCentral()
-		jcenter()
-		google()
-		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+configure(subprojects) {
+	apply plugin: 'kotlin'
+	sourceCompatibility = 8.0
+	compileJava {
+		options.incremental = true
 	}
-
 	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
 		kotlinOptions.jvmTarget = "1.8"
 		kotlinOptions {
@@ -36,55 +37,17 @@ allprojects {
 	}
 }
 
-project(":desktop") {
-	apply plugin: "kotlin"
-
-	dependencies {
-		implementation project(":editor")
-		implementation project(":runtime")
-		implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
-		implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-		implementation "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
-		implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
+subprojects {
+	version = '1.0.0-SNAPSHOT'
+	ext.appName = 'MetaRuntime'
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+		maven { url 'https://jitpack.io' }
+		jcenter()
 	}
 }
 
-project(":runtime") {
-	apply plugin: "kotlin"
-
-	tasks {
-		test {
-			useJUnitPlatform()
-		}
-	}
-
-	dependencies {
-		api "com.badlogicgames.gdx:gdx:$gdxVersion"
-		api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-		api "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
-		api "com.kotcrab.vis:vis-ui:$visUiVersion"
-		api group: 'org.tukaani', name: 'xz', version: xzVersion
-		api group: 'org.apache.commons', name: 'commons-compress', version: commonsCompressVersion
-		api group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
-		api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion
-		api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-		testImplementation "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
-		testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
-		testImplementation "org.junit.jupiter:junit-jupiter:$junit5Version"
-		testImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-	}
-}
-
-
-project(":editor") {
-	apply plugin: "kotlin"
-
-
-	dependencies {
-		implementation project(":runtime")
-		implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
-		implementation "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
-		implementation "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
-		implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-	}
-}
+eclipse.project.name = 'MetaRuntime' + '-parent'

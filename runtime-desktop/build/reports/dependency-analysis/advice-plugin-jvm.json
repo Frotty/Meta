@@ -1,0 +1,1 @@
+[{"redundantPlugin":"java-library","reason":"this project has both java-library and org.jetbrains.kotlin.jvm applied, which is redundant. You can remove java-library"}]

@@ -1,0 +1,45 @@
+apply plugin: 'application'
+
+sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
+mainClassName = 'de.fatox.meta.desktop.DesktopLauncherEditorKt'
+eclipse.project.name = appName + '-editor-desktop'
+sourceCompatibility = 8.0
+
+dependencies {
+	implementation project(":editor")
+	implementation project(":runtime-desktop")
+
+	implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+	implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+	implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
+
+	// Used by reflection, do not remove!
+	implementation "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
+
+	// Explicit transitive dependencies
+	implementation project(":runtime")
+	implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+}
+
+import org.gradle.internal.os.OperatingSystem
+
+run {
+	workingDir = rootProject.file('assets').path
+	setIgnoreExitValue(true)
+
+	if (OperatingSystem.current() == OperatingSystem.MAC_OS) {
+		// Required to run LWJGL3 Java apps on MacOS
+		jvmArgs += "-XstartOnFirstThread"
+	}
+}
+jar {
+	archiveBaseName = 'MetaEditor'
+	dependsOn configurations.runtimeClasspath
+	from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+	manifest {
+		attributes 'Main-Class': project.mainClassName
+	}
+	doLast {
+		file(archivePath).setExecutable(true, false)
+	}
+}

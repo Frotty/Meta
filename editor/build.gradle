@@ -1,6 +1,17 @@
-apply plugin: "kotlin"
-
-sourceCompatibility = 1.8
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+eclipse.project.name = appName + '-editor'
 
-sourceSets.main.java.srcDirs = [ "src/" ]
+dependencies {
+	api project(":runtime")
+
+	// Explicit transitive dependencies
+	api "com.badlogicgames.gdx:gdx:$gdxVersion"
+	api "com.kotcrab.vis:vis-ui:$visUiVersion"
+	implementation "org.slf4j:slf4j-api:$slf4jVersion"
+}
+
+tasks {
+	test {
+		useJUnitPlatform()
+	}
+}

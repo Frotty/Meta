@@ -1,0 +1,373 @@
+[
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-jemalloc",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-jemalloc\\3.2.3\\d6ffcb4224d3ccd3c31bd80093f71e69a7133a6a\\lwjgl-jemalloc-3.2.3-natives-macos.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-glfw",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-glfw\\3.2.3\\b4d8a3477cdc2edcf7a5f1e822926be846223f54\\lwjgl-glfw-3.2.3-natives-windows.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl\\3.2.3\\17a59ba0fe8d474ec9dbe0d5db40d2cfe59c4c08\\lwjgl-3.2.3.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-openal",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-openal\\3.2.3\\5c30ef08c829252e542f9fbc04772d51013326c5\\lwjgl-openal-3.2.3-natives-linux-arm32.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "com.badlogicgames.jlayer:jlayer",
+      "resolvedVersion": "1.0.1-gdx"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\com.badlogicgames.jlayer\\jlayer\\1.0.1-gdx\\7cca83cec5c1b2f011362f4d85aabd71a73b049d\\jlayer-1.0.1-gdx.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.apache.commons:commons-compress",
+      "resolvedVersion": "1.20"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.apache.commons\\commons-compress\\1.20\\b8df472b31e1f17c232d2ad78ceb1c84e00c641b\\commons-compress-1.20.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-opengl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-opengl\\3.2.3\\e81cfc73ec8708e5e791ed770e4ec3edfc1bbab1\\lwjgl-opengl-3.2.3-natives-windows.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.jetbrains.kotlin:kotlin-stdlib-jdk7",
+      "resolvedVersion": "1.4.21"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib-jdk7\\1.4.21\\26b6082f9296911bdcb8e72a7cc68692c7025a03\\kotlin-stdlib-jdk7-1.4.21.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.slf4j:slf4j-api",
+      "resolvedVersion": "1.7.30",
+      "configurationName": "implementation"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.slf4j\\slf4j-api\\1.7.30\\b5a4b6d16ab13e34a88fae84c35cd5d68cac922c\\slf4j-api-1.7.30.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "com.badlogicgames.gdx:gdx-freetype-platform",
+      "resolvedVersion": "1.9.12",
+      "configurationName": "implementation"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\com.badlogicgames.gdx\\gdx-freetype-platform\\1.9.12\\d7dbccdb8a12233aba7ede3ba2898f1ea9b65fa8\\gdx-freetype-platform-1.9.12-natives-desktop.jar"
+  },
+  {
+    "dependency": {
+      "identifier": ":runtime",
+      "configurationName": "api"
+    },
+    "file": "C:\\Users\\Pie\\IdeaProjects\\Meta\\runtime\\build\\libs\\runtime-1.0.0-SNAPSHOT.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-glfw",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-glfw\\3.2.3\\795d81329f65679ee6d299373cbea7fffc56b6ed\\lwjgl-glfw-3.2.3-natives-windows-x86.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl\\3.2.3\\3180d363040744dfe0c6a0dd5d018cedae476e9a\\lwjgl-3.2.3-natives-linux-arm32.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.jcraft:jorbis",
+      "resolvedVersion": "0.0.17"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.jcraft\\jorbis\\0.0.17\\8872d22b293e8f5d7d56ff92be966e6dc28ebdc6\\jorbis-0.0.17.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-jemalloc",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-jemalloc\\3.2.3\\3423fd0d4c7c1916c8f46b2075c4c2df02f22675\\lwjgl-jemalloc-3.2.3-natives-windows.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-openal",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-openal\\3.2.3\\67ddd2a090589dfe6c4659d7f8b125b43f7b822b\\lwjgl-openal-3.2.3-natives-macos.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-openal",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-openal\\3.2.3\\869ddd9dbbf92a7d1be7f5942ca0adbde068d999\\lwjgl-openal-3.2.3-natives-linux.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-openal",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-openal\\3.2.3\\bc72c90b6feaa303ca838b138e1b9f679a66139c\\lwjgl-openal-3.2.3-natives-linux-arm64.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-jemalloc",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-jemalloc\\3.2.3\\d7e5cecbf045b7b7863343273ffea94e0e2f6994\\lwjgl-jemalloc-3.2.3-natives-linux-arm32.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-jemalloc",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-jemalloc\\3.2.3\\a176b1ca8c29b5986782785dad3295ba4cbfc6e5\\lwjgl-jemalloc-3.2.3-natives-windows-x86.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-opengl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-opengl\\3.2.3\\aceb5d9ca264beed6d41c87e001632491dae165f\\lwjgl-opengl-3.2.3-natives-linux-arm64.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "com.badlogicgames.gdx:gdx-controllers-lwjgl3",
+      "resolvedVersion": "1.9.12",
+      "configurationName": "api"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\com.badlogicgames.gdx\\gdx-controllers-lwjgl3\\1.9.12\\40eff40b194e822811a6a7adcc303a512111118c\\gdx-controllers-lwjgl3-1.9.12.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.jetbrains.kotlin:kotlin-stdlib-common",
+      "resolvedVersion": "1.4.21"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib-common\\1.4.21\\7f48a062aa4b53215998780f7c245a4276828e1d\\kotlin-stdlib-common-1.4.21.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-openal",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-openal\\3.2.3\\ec898e8ce11b5886f4f532a1536283ef2817758d\\lwjgl-openal-3.2.3-natives-windows.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-glfw",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-glfw\\3.2.3\\5149002edd12c9a7f62fb053d0ca8ea05a45f83\\lwjgl-glfw-3.2.3-natives-linux-arm64.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl\\3.2.3\\3d9d36c93446c7a1c90bc7aec8fa89c7988bf82b\\lwjgl-3.2.3-natives-linux.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-jemalloc",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-jemalloc\\3.2.3\\bbc0a4672f5589e868ce3883da5a0c0b86e5b6ee\\lwjgl-jemalloc-3.2.3-natives-linux-arm64.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "com.kotcrab.vis:vis-ui",
+      "resolvedVersion": "1.4.8"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\com.kotcrab.vis\\vis-ui\\1.4.8\\a688a77b1353bf099fc5efdd47bf0a456a047b65\\vis-ui-1.4.8.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-opengl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-opengl\\3.2.3\\4925362a5f2412cb6467e6d6c6de26b9e1ccfc71\\lwjgl-opengl-3.2.3-natives-linux-arm32.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl\\3.2.3\\35f506c5d368017a3cc5590da3d6d3a0760fb606\\lwjgl-3.2.3-natives-macos.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-opengl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-opengl\\3.2.3\\efa3326c11336d3e74c9c8aeceb2420328d28e6b\\lwjgl-opengl-3.2.3-natives-macos.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-jemalloc",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-jemalloc\\3.2.3\\8d2dca364c11781de596fbcdee6782752e318cfb\\lwjgl-jemalloc-3.2.3-natives-linux.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-opengl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-opengl\\3.2.3\\ce32c782312e876bdcf3d4efb0d4f66d2936596c\\lwjgl-opengl-3.2.3-natives-windows-x86.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-glfw",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-glfw\\3.2.3\\aab1a5a1e21eca87f4acd5ba055f6bfd5d90951c\\lwjgl-glfw-3.2.3-natives-linux-arm32.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.jetbrains:annotations",
+      "resolvedVersion": "13.0"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains\\annotations\\13.0\\919f0dfe192fb4e063e7dacadee7f8bb9a2672a9\\annotations-13.0.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl\\3.2.3\\368463bfc8ba25fa68a89a16ee535f0a229e86bc\\lwjgl-3.2.3-natives-linux-arm64.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl\\3.2.3\\b311f19999076b41b039f9b050984ac5118ec52b\\lwjgl-3.2.3-natives-windows-x86.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-opengl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-opengl\\3.2.3\\bdd534a323d0c8f54969b95e424b6ac8984f7d6e\\lwjgl-opengl-3.2.3.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-glfw",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-glfw\\3.2.3\\58661272eacb9116336c88b4aadccf1f17c09b\\lwjgl-glfw-3.2.3-natives-macos.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-opengl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-opengl\\3.2.3\\7f14db5da9aa7951efe88993f519d7d38ad6e46b\\lwjgl-opengl-3.2.3-natives-linux.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "com.badlogicgames.gdx:gdx-backend-lwjgl3",
+      "resolvedVersion": "1.9.12",
+      "configurationName": "api"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\com.badlogicgames.gdx\\gdx-backend-lwjgl3\\1.9.12\\54c8e924f4ccf5909616dd171467d009e54bbc00\\gdx-backend-lwjgl3-1.9.12.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-glfw",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-glfw\\3.2.3\\62b044d9b0a057444bef2ab70b9afc288ec09dba\\lwjgl-glfw-3.2.3-natives-linux.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-glfw",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-glfw\\3.2.3\\5e520d5c290c8b012545a8d34fa5db5ab051ea53\\lwjgl-glfw-3.2.3.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "com.badlogicgames.gdx:gdx-platform",
+      "resolvedVersion": "1.9.12",
+      "configurationName": "implementation"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\com.badlogicgames.gdx\\gdx-platform\\1.9.12\\6b5da746f38d84818fe376f57f6b5cf93a39f75b\\gdx-platform-1.9.12-natives-desktop.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-jemalloc",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-jemalloc\\3.2.3\\b6fd0932171ba3f2eaa4547beddca3a3e645342d\\lwjgl-jemalloc-3.2.3.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl\\3.2.3\\27f32cd35349684745951e04388e8e00d681cdcd\\lwjgl-3.2.3-natives-windows.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "com.badlogicgames.gdx:gdx-controllers",
+      "resolvedVersion": "1.9.12"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\com.badlogicgames.gdx\\gdx-controllers\\1.9.12\\f8b16e22cc193114f7c4b095207b708fcbff95fe\\gdx-controllers-1.9.12.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "com.badlogicgames.gdx:gdx",
+      "resolvedVersion": "1.9.12",
+      "configurationName": "api"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\com.badlogicgames.gdx\\gdx\\1.9.12\\e2d132e76ef94b27d309ab0ea9fe06a8e2d0a80\\gdx-1.9.12.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.jetbrains.kotlin:kotlin-stdlib-jdk8",
+      "resolvedVersion": "1.4.21",
+      "configurationName": "api"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib-jdk8\\1.4.21\\3ad7f99fb330947a12451ea16767d192d763600a\\kotlin-stdlib-jdk8-1.4.21.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-openal",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-openal\\3.2.3\\106742e805803ab9eab8e343f0fb31a3d263903c\\lwjgl-openal-3.2.3.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.jetbrains.kotlin:kotlin-stdlib",
+      "resolvedVersion": "1.4.21"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\1.4.21\\4a668382d7c38688d3490afde93b6a113ed46698\\kotlin-stdlib-1.4.21.jar"
+  },
+  {
+    "dependency": {
+      "identifier": "org.lwjgl:lwjgl-openal",
+      "resolvedVersion": "3.2.3"
+    },
+    "file": "C:\\Users\\Pie\\.gradle\\caches\\modules-2\\files-2.1\\org.lwjgl\\lwjgl-openal\\3.2.3\\6a5d841a1630aa52917900051008d8251f9dd1f8\\lwjgl-openal-3.2.3-natives-windows-x86.jar"
+  }
+]
