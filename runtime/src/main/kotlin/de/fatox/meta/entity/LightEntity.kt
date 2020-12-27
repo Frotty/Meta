@@ -18,7 +18,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
  */
 class LightEntity(override var position: Vector3, radius: Float, color: Vector3) : Entity<Vector3> {
 	var color: Vector3
-	var intensity = 0f
+	var intensity: Float = 0f
 	var radius: Float
 	var volumeSphere: ModelInstance
 
@@ -50,7 +50,6 @@ class LightEntity(override var position: Vector3, radius: Float, color: Vector3)
 			model!!.materials[0].set(blendingAttribute)
 			model!!.materials[0].set(IntAttribute.createCullFace(GL20.GL_FRONT))
 		}
-		this.position = position
 		this.color = color
 		this.radius = radius
 		volumeSphere = ModelInstance(model, position)

@@ -13,8 +13,8 @@ import de.fatox.meta.api.extensions.onClick
  * Created by Frotty on 04.06.2016.
  */
 abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWindow(title, false, hasCloseButton) {
-	protected val buttonTable = VisTable()
-	protected val statusLabel = VisLabel()
+	protected val buttonTable: VisTable = VisTable()
+	protected val statusLabel: VisLabel = VisLabel()
 
 	var dialogListener: DialogListener = EmptyListener
 	private var buttonCount = 0
@@ -24,7 +24,7 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 	}
 
 	object EmptyListener : DialogListener {
-		override fun onResult(any: Any?) = Unit
+		override fun onResult(any: Any?): Unit = Unit
 	}
 
 	fun <T : Button> addButton(button: T, align: Int, result: Any?): T {

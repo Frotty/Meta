@@ -16,7 +16,7 @@ interface AssetProvider {
 	fun <T : Any> load(name: String, type: Class<T>)
 
 	/** Loads some asset. Loading happens async. Use #get after loading has finished. */
-	fun <T : Any> load(key: AssetKey<T>, type: Class<T>) = load(key.name, type)
+	fun <T : Any> load(key: AssetKey<T>, type: Class<T>): Unit = load(key.name, type)
 
 	/** Returns an instance of the loaded asset. Index is the libgdx packed frame index.*/
 	fun <T : Any> getResource(fileName: String, type: Class<T>, index: Int = -1): T

@@ -6,20 +6,21 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.utils.TimeUtils
+import kotlin.math.abs
 
 class MetaListener(private val cb: () -> Unit) : InputListener() {
-	var tapSquareSize = 14f
-	var touchDownX = -1f
+	var tapSquareSize: Float = 14f
+	var touchDownX: Float = -1f
 		private set
-	var touchDownY = -1f
+	var touchDownY: Float = -1f
 		private set
 
 	/** The pointer that initially pressed this button or -1 if the button is not pressed.  */
-	var pressedPointer = -1
+	var pressedPointer: Int = -1
 		private set
 
 	/** The button that initially pressed this button or -1 if the button is not pressed.  */
-	var pressedButton = -1
+	var pressedButton: Int = -1
 		private set
 	/** @see .setButton
 	 */
@@ -117,7 +118,7 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 	}
 
 	fun inTapSquare(x: Float, y: Float): Boolean {
-		return if (touchDownX == -1f && touchDownY == -1f) false else Math.abs(x - touchDownX) < tapSquareSize && Math.abs(
+		return if (touchDownX == -1f && touchDownY == -1f) false else abs(x - touchDownX) < tapSquareSize && abs(
 			y - touchDownY
 		) < tapSquareSize
 	}
@@ -141,6 +142,6 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 
 	companion object {
 		/** Time in seconds [.isVisualPressed] reports true after a press resulting in a click is released.  */
-		var visualPressedDuration = 0.1f
+		var visualPressedDuration: Float = 0.1f
 	}
 }

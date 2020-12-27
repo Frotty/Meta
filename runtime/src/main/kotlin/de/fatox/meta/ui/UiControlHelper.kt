@@ -17,8 +17,8 @@ import kotlin.math.abs
 object UiControlHelper {
 	private val metaInput: MetaInputProcessor by lazyInject()
 
-	var activated = true
-	var canMove = true
+	var activated: Boolean = true
+	var canMove: Boolean = true
 
 	private var targets = Array<Actor>()
 

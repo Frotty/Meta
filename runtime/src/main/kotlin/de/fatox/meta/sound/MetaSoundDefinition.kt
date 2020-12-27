@@ -6,7 +6,7 @@ import de.fatox.meta.Meta
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 object UninitializedSound : Sound {
-	override fun dispose() = Unit
+	override fun dispose(): Unit = Unit
 
 	override fun play(): Long = 0L
 
@@ -20,25 +20,25 @@ object UninitializedSound : Sound {
 
 	override fun loop(volume: Float, pitch: Float, pan: Float): Long = 0L
 
-	override fun stop() = Unit
+	override fun stop(): Unit = Unit
 
-	override fun stop(soundId: Long) = Unit
+	override fun stop(soundId: Long): Unit = Unit
 
-	override fun pause() = Unit
+	override fun pause(): Unit = Unit
 
-	override fun pause(soundId: Long) = Unit
+	override fun pause(soundId: Long): Unit = Unit
 
-	override fun resume() = Unit
+	override fun resume(): Unit = Unit
 
-	override fun resume(soundId: Long) = Unit
+	override fun resume(soundId: Long): Unit = Unit
 
-	override fun setLooping(soundId: Long, looping: Boolean) = Unit
+	override fun setLooping(soundId: Long, looping: Boolean): Unit = Unit
 
-	override fun setPitch(soundId: Long, pitch: Float) = Unit
+	override fun setPitch(soundId: Long, pitch: Float): Unit = Unit
 
-	override fun setVolume(soundId: Long, volume: Float) = Unit
+	override fun setVolume(soundId: Long, volume: Float): Unit = Unit
 
-	override fun setPan(soundId: Long, pan: Float, volume: Float) = Unit
+	override fun setPan(soundId: Long, pan: Float, volume: Float): Unit = Unit
 }
 
 class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
@@ -49,11 +49,11 @@ class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
 
 			this.duration = (Meta.instance.soundHandler.duration(value) * 1000L).toLong()
 		}
-	var isLooping = false
-	var soundRange2 = DEFAULT_SOUND_RANGE2
+	var isLooping: Boolean = false
+	var soundRange2: Float = DEFAULT_SOUND_RANGE2
 		private set
-	var volume = DEFAULT_SOUND_VOLUME
-	var duration = DEFAULT_SOUND_DURATION
+	var volume: Float = DEFAULT_SOUND_VOLUME
+	var duration: Long = DEFAULT_SOUND_DURATION
 		private set
 
 	private val soundPlayer: MetaSoundPlayer by lazyInject()
@@ -72,7 +72,7 @@ class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
 
 	companion object {
 		const val DEFAULT_SOUND_DURATION: Long = 2000
-		const val DEFAULT_SOUND_VOLUME = 0.4f
-		const val DEFAULT_SOUND_RANGE2 = 600f * 600f
+		const val DEFAULT_SOUND_VOLUME: Float = 0.4f
+		const val DEFAULT_SOUND_RANGE2: Float = 600f * 600f
 	}
 }

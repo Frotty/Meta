@@ -38,7 +38,7 @@ object MetaUiManager : UIManager {
 	private var mainMenuBar: MenuBar? = null
 	private val contentTable = Table()
 	private var currentScreenId: String = "(none)"
-	override var preventShowWindow by Delegates.observable(false) { _, _, newValue ->
+	override var preventShowWindow: Boolean by Delegates.observable(false) { _, _, newValue ->
 		preventShowWindowObservers.forEach { it(newValue) }
 	}
 		private set
@@ -250,7 +250,7 @@ object MetaUiManager : UIManager {
 		return metaData.has(currentScreenId + File.separator + name)
 	}
 
-	override fun <T : Any> metaGet(name: String, c: KClass<out T>): T? {
+	override fun <T : Any> metaGet(name: String, c: KClass<out T>): T {
 		return metaData[currentScreenId + File.separator + name, c]
 	}
 

@@ -9,10 +9,10 @@ import com.badlogic.gdx.math.collision.BoundingBox
 import de.fatox.meta.api.entity.Entity
 
 class Meta3DEntity(override val position: Vector3 = Vector3(), modelBase: Model?, scale: Float) : Entity<Vector3> {
-	val center = Vector3()
-	val dimensions = Vector3()
-	var radius = 0f
-	var scale = 1f
+	val center: Vector3 = Vector3()
+	val dimensions: Vector3 = Vector3()
+	var radius: Float = 0f
+	var scale: Float = 1f
 	var actorModel: ModelInstance
 	private fun calculateBounds() {
 		actorModel.transform.scale(scale, scale, scale)

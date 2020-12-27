@@ -15,31 +15,31 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import org.slf4j.Logger
 
 object UninitializedMusic : Music {
-	override fun dispose() = Unit
+	override fun dispose(): Unit = Unit
 
-	override fun play() = Unit
+	override fun play(): Unit = Unit
 
-	override fun pause() = Unit
+	override fun pause(): Unit = Unit
 
-	override fun stop() = Unit
+	override fun stop(): Unit = Unit
 
 	override fun isPlaying(): Boolean = false
 
-	override fun setLooping(isLooping: Boolean) = Unit
+	override fun setLooping(isLooping: Boolean): Unit = Unit
 
 	override fun isLooping(): Boolean = false
 
-	override fun setVolume(volume: Float) = Unit
+	override fun setVolume(volume: Float): Unit = Unit
 
 	override fun getVolume(): Float = 0f
 
-	override fun setPan(pan: Float, volume: Float) = Unit
+	override fun setPan(pan: Float, volume: Float): Unit = Unit
 
-	override fun setPosition(position: Float) = Unit
+	override fun setPosition(position: Float): Unit = Unit
 
 	override fun getPosition(): Float = 0f
 
-	override fun setOnCompletionListener(listener: Music.OnCompletionListener?) = Unit
+	override fun setOnCompletionListener(listener: Music.OnCompletionListener?): Unit = Unit
 }
 
 private val log: Logger = MetaLoggerFactory.logger {}

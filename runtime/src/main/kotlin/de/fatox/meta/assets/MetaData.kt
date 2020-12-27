@@ -169,7 +169,7 @@ class MetaData {
 	fun has(key: MetaDataKey<*>, fileHandle: FileHandle = dataRoot): Boolean = has(key.name, fileHandle)
 
 	companion object {
-		const val GLOBAL_DATA_FOLDER_NAME = ".meta"
+		const val GLOBAL_DATA_FOLDER_NAME: String = ".meta"
 	}
 }
 

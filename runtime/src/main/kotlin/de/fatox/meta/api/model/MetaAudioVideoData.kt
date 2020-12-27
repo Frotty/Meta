@@ -19,7 +19,7 @@ data class MetaDisplayMode(
 		dm.monitorIndex
 	)
 
-	fun equalsDisplayMode(dm: Graphics.DisplayMode) =
+	fun equalsDisplayMode(dm: Graphics.DisplayMode): Boolean =
 		width == dm.width &&
 			height == dm.height &&
 			refreshRate == dm.refreshRate &&
@@ -29,7 +29,7 @@ data class MetaDisplayMode(
 private inline val Graphics.DisplayMode.monitorIndex
 	get() = Meta.instance.monitorHandler.monitorIndex(this)
 
-fun Graphics.DisplayMode.toMetaDisplayMode() = MetaDisplayMode(this)
+fun Graphics.DisplayMode.toMetaDisplayMode(): MetaDisplayMode = MetaDisplayMode(this)
 
 /**
  * Created by Frotty on 05.11.2016.

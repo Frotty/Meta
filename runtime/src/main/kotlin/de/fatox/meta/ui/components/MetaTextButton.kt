@@ -4,7 +4,6 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.utils.Align
 import com.kotcrab.vis.ui.VisUI
-import com.kotcrab.vis.ui.widget.VisTextButton
 import com.kotcrab.vis.ui.widget.VisTextButton.VisTextButtonStyle
 import de.fatox.meta.util.GoldenRatio
 import kotlin.contracts.ExperimentalContracts

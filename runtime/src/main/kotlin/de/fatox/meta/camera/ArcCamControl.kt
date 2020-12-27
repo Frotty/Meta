@@ -18,16 +18,16 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
  */
 class ArcCamControl : InputProcessor {
 	/** The button for moving the target.  */
-	var moveCameraButton = Buttons.RIGHT
-	var resetCameraButton = Buttons.MIDDLE
+	var moveCameraButton: Int = Buttons.RIGHT
+	var resetCameraButton: Int = Buttons.MIDDLE
 
 	/** The units to translate the camera when moved the full width or height of the screen.  */
-	var translateUnits = 0.2f // FIXME auto calculate this based on the target
+	var translateUnits: Float = 0.2f // FIXME auto calculate this based on the target
 
 	/** The key which must be pressed to enter rotation mode.  */
-	var rotateMode = Input.Keys.CONTROL_LEFT
-	protected var rotateModeOn = false
-	protected var fastZoomMode = false
+	var rotateMode: Int = Input.Keys.CONTROL_LEFT
+	protected var rotateModeOn: Boolean = false
+	protected var fastZoomMode: Boolean = false
 
 	/** The camera.  */
 	val camera: PerspectiveCamera by lazyInject()
@@ -174,7 +174,7 @@ class ArcCamControl : InputProcessor {
 		private val temp = Vector3()
 
 		@JvmField
-		var yes = true
+		var yes: Boolean = true
 		private fun cos(aoa: Float): Float {
 			return kotlin.math.cos(aoa * DEG_TO_RAD.toDouble()).toFloat()
 		}

@@ -1,3 +1,5 @@
+@file:JvmName("HexUtils")
+
 package de.fatox.meta.api.encoding
 
 import com.badlogic.gdx.utils.StringBuilder

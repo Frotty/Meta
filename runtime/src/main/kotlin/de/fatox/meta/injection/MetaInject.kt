@@ -72,10 +72,10 @@ open class MetaInject {
 	}
 
 	companion object : MetaInject() {
-		var lazyType = LazyThreadSafetyMode.NONE
+		var lazyType: LazyThreadSafetyMode = LazyThreadSafetyMode.NONE
 
 		@PublishedApi
-		internal val scopes = mutableMapOf<String, MetaInject>()
+		internal val scopes: MutableMap<String, MetaInject> = mutableMapOf()
 
 		inline fun global(clear: Boolean = false, context: MetaInject.() -> Unit): MetaInject {
 			if (clear) {

@@ -47,39 +47,39 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	/**
 	 * the color buffer texture
 	 */
-	var textureAttachments = 0
+	var textureAttachments: Int = 0
 	/**
 	 * @return The OpenGL handle of the framebuffer (see [GL20.glGenFramebuffer])
 	 */
 	/**
 	 * the framebuffer handle
 	 */
-	var framebufferHandle = 0
+	var framebufferHandle: Int = 0
 
 	/**
 	 * the depthbuffer render object handle
 	 */
-	var depthbufferHandle = 0
+	var depthbufferHandle: Int = 0
 
 	/**
 	 * the stencilbuffer render object handle
 	 */
-	var stencilbufferHandle = 0
+	var stencilbufferHandle: Int = 0
 
 	/**
 	 * the depth stencil packed render buffer object handle
 	 */
-	var depthStencilPackedBufferHandle = 0
+	var depthStencilPackedBufferHandle: Int = 0
 
 	/**
 	 * if has depth stencil packed buffer
 	 */
-	var hasDepthStencilPackedBuffer = false
+	var hasDepthStencilPackedBuffer: Boolean = false
 
 	/**
 	 * if multiple texture attachments are present
 	 */
-	var isMRT = false
+	var isMRT: Boolean = false
 	var nonMultisampledFbo: FrameBuffer? = null
 	val colorBufferTexture: Texture?
 		get() {
@@ -240,9 +240,6 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	 * @param width  the width of the viewport in pixels
 	 * @param height the height of the viewport in pixels
 	 */
-	/**
-	 * Unbinds the framebuffer, all drawing will be performed to the normal framebuffer from here on.
-	 */
 	@JvmOverloads
 	fun end(
 		x: Int = 0,
@@ -292,10 +289,10 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 
 
 	class FrameBufferTextureAttachmentSpec(var internalFormat: Int, var format: Int, var type: Int) {
-		var isFloat = false
-		var isGpuOnly = false
-		var isDepth = false
-		var isStencil = false
+		var isFloat: Boolean = false
+		var isGpuOnly: Boolean = false
+		var isDepth: Boolean = false
+		var isStencil: Boolean = false
 		val isColorTexture: Boolean
 			get() = !isDepth && !isStencil
 	}
@@ -303,13 +300,13 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	class FrameBufferRenderBufferAttachmentSpec(var internalFormat: Int)
 
 	abstract class GLFrameBufferBuilder<U : MultisampleFBO?>(var width: Int, var height: Int) {
-		var textureAttachmentSpecs = Array<FrameBufferTextureAttachmentSpec>()
+		var textureAttachmentSpecs: Array<FrameBufferTextureAttachmentSpec> = Array<FrameBufferTextureAttachmentSpec>()
 		var stencilRenderBufferSpec: FrameBufferRenderBufferAttachmentSpec? = null
 		var depthRenderBufferSpec: FrameBufferRenderBufferAttachmentSpec? = null
 		var packedStencilDepthRenderBufferSpec: FrameBufferRenderBufferAttachmentSpec? = null
-		var hasStencilRenderBuffer = false
-		var hasDepthRenderBuffer = false
-		var hasPackedStencilDepthRenderBuffer = false
+		var hasStencilRenderBuffer: Boolean = false
+		var hasDepthRenderBuffer: Boolean = false
+		var hasPackedStencilDepthRenderBuffer: Boolean = false
 		fun addColorTextureAttachment(internalFormat: Int, format: Int, type: Int): GLFrameBufferBuilder<U> {
 			textureAttachmentSpecs.add(FrameBufferTextureAttachmentSpec(internalFormat, format, type))
 			return this
@@ -387,17 +384,17 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 		 * the frame buffers
 		 */
 		val buffers: MutableMap<Application, Array<MultisampleFBO>?> = HashMap()
-		const val GL_DEPTH24_STENCIL8_OES = 0x88F0
+		const val GL_DEPTH24_STENCIL8_OES: Int = 0x88F0
 
 		/**
 		 * the default framebuffer handle, a.k.a screen.
 		 */
-		var defaultFramebufferHandle = 0
+		var defaultFramebufferHandle: Int = 0
 
 		/**
 		 * true if we have polled for the default handle already.
 		 */
-		var defaultFramebufferHandleInitialized = false
+		var defaultFramebufferHandleInitialized: Boolean = false
 
 		/**
 		 * Unbinds the framebuffer, all drawing will be performed to the normal framebuffer from here on.

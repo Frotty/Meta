@@ -7,7 +7,7 @@ import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
 
 object XPKLoader {
-	const val EXTENSION = "xpk"
+	const val EXTENSION: String = "xpk"
 
 	fun getList(fileHandle: FileHandle): Array<XPKFileHandle> {
 		val fileBytes = fileHandle.file().readBytes()

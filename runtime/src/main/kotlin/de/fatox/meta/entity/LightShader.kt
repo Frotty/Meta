@@ -20,6 +20,7 @@ private val log = MetaLoggerFactory.logger {}
  * Final composite Shader that turns the gbuffers into a composite texture,
  * which is then rendered to a fullscreen Quad.
  */
+@Suppress("PrivatePropertyName")
 class LightShader : Shader {
 	var program: ShaderProgram? = null
 		private set
@@ -74,8 +75,8 @@ class LightShader : Shader {
 	}
 
 	private val tmpM = Matrix3()
-	val temp = Matrix4()
-	var tempV = Vector3()
+	val temp: Matrix4 = Matrix4()
+	var tempV: Vector3 = Vector3()
 	private var camera: Camera? = null
 	private var context: RenderContext? = null
 	override fun render(renderable: Renderable) {

@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.StringBuilder
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import kotlin.math.roundToInt
 
 /**
  * A text label, with optional word wrapping.
@@ -27,18 +28,18 @@ class MetaLabel @JvmOverloads constructor(
 	color: Color? = Color.WHITE,
 	monospace: Boolean = false
 ) : Widget() {
-	val glyphLayout = GlyphLayout()
+	val glyphLayout: GlyphLayout = GlyphLayout()
 	private val prefSize = Vector2()
-	val text = StringBuilder()
+	val text: StringBuilder = StringBuilder()
 	private var font: BitmapFont
 	private var size = size.toFloat()
 
 	/** Allows subclasses to access the cache in [.draw].  */
 	protected var bitmapFontCache: BitmapFontCache
 		private set
-	var labelAlign = Align.left
+	var labelAlign: Int = Align.left
 		private set
-	var lineAlign = Align.left
+	var lineAlign: Int = Align.left
 		private set
 	private var wrap = false
 	private var lastPrefHeight = 0f
@@ -261,7 +262,7 @@ class MetaLabel @JvmOverloads constructor(
 	}
 
 	private fun updateFont() {
-		font = metaFontProvider.getFont(Math.round(size), mono)
+		font = metaFontProvider.getFont(size.roundToInt(), mono)
 		setText(text)
 		bitmapFontCache = font.newFontCache()
 		layout()

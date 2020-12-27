@@ -26,7 +26,7 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 
 	val startTime: Long = TimeUtils.millis()
 
-	var isDone = false
+	var isDone: Boolean = false
 		get() = field || !definition.isLooping && TimeUtils.timeSinceMillis(startTime) > definition.duration
 		private set
 
@@ -35,7 +35,7 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 		stop()
 	}
 
-	val isPlaying = true
+	val isPlaying: Boolean = true
 
 	fun calcPan(listenerPos: Vector2): Float {
 		val audibleRange = Gdx.graphics.height * 0.4f
@@ -75,6 +75,6 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 		if (!isPlaying) {
 			stop()
 		}
-		audioVideoData = metaData.get<MetaAudioVideoData>("audioVideoData")
+		audioVideoData = metaData["audioVideoData"]
 	}
 }

@@ -13,5 +13,5 @@ object NoGraphicsHandler : GraphicsHandler {
 		attachmentSpec: MultisampleFBO.FrameBufferTextureAttachmentSpec
 	): Int = -1
 
-	override fun build(fbo: MultisampleFBO) = Unit
+	override fun build(fbo: MultisampleFBO): Unit = Unit
 }
