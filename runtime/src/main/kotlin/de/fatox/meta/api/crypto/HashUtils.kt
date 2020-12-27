@@ -2,13 +2,11 @@
 
 package de.fatox.meta.api.crypto
 
-import de.fatox.meta.api.encoding.encodeToString
+import java.io.IOException
 import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.nio.channels.ReadableByteChannel
 import java.security.MessageDigest
-import java.util.*
-import kotlin.jvm.Throws
 
 /**
  * The length of the used digest algorithm in bytes.
@@ -19,14 +17,34 @@ const val HASH_LENGTH: Int = 20
 /** The used digest algorithm. */
 private const val HASH_ALGORITHM = "SHA-1"
 
-/** Number of bytes processed at once from [toBase64EncodedHash]. */
+/** Number of bytes processed at once from [hash]. */
 private const val KIBIBYTE_16: Int = 1024 * 16
 
 private val buffer: ByteBuffer = ByteBuffer.allocate(KIBIBYTE_16)
 private val mDigest: MessageDigest = MessageDigest.getInstance(HASH_ALGORITHM)
 
+@Throws(IllegalStateException::class)
+private fun MessageDigest.resetAndDigest(
+	input: ByteArray,
+	output: ByteArray = ByteArray(HASH_LENGTH),
+	inputOffset: Int = 0,
+	inputLength: Int = input.size,
+	outputOffset: Int = 0,
+): ByteArray {
+	reset()
+	update(input, inputOffset, inputLength)
+	val writtenBytes = digest(output, outputOffset, HASH_LENGTH)
+
+	// Sanity check for the current state. Since we only allow SHA-1 the hash length is predetermined and this check
+	// MUST always succeed.
+	check(writtenBytes == HASH_LENGTH)
+
+	return output
+}
+
 inline class Hash(val value: ByteArray)
-inline class EncodedHash(val value: String)
+inline class Base64EncodedHash(val value: String)
+inline class HexEncodedHash(val value: String)
 
 /**
  * Converts a [byte array][ByteArray] to a hex string.
@@ -38,6 +56,7 @@ inline class EncodedHash(val value: String)
 private fun ByteArray.toHexString(): String = "%040x".format(BigInteger(1, this))
 
 /** Computes a hash from the data in the given [ReadableByteChannel]. */
+@Throws(IOException::class)
 fun ReadableByteChannel.hash(): Hash {
 	buffer.rewind()
 	mDigest.reset()
@@ -60,9 +79,7 @@ fun ReadableByteChannel.hash(): Hash {
  */
 @Throws(IllegalStateException::class)
 fun requireValidHash(input: ByteArray) {
-	mDigest.reset()
-	mDigest.update(input, 0, input.size - HASH_LENGTH)
-	val newHash = mDigest.digest()
+	val newHash = mDigest.resetAndDigest(input, inputLength = input.size - HASH_LENGTH)
 	val oldHash = input.copyOfRange(input.size - HASH_LENGTH, input.size)
 	check(newHash.contentEquals(oldHash)) {
 		"""
@@ -74,7 +91,10 @@ fun requireValidHash(input: ByteArray) {
 }
 
 /** Computes a hash from the data in the given [String]. */
-fun String.toEncodedHash(): EncodedHash {
-	mDigest.reset()
-	return Hash(mDigest.digest(toByteArray())).encodeToString()
-}
+fun String.hash(): Hash = toByteArray(Charsets.UTF_8).hash()
+
+/** Computes a hash from the data in the given [ByteArray]. */
+fun ByteArray.hash(): Hash = Hash(mDigest.resetAndDigest(this))
+
+/** Returns `true` if [this hash][this] equals the [expected hash][expected], `false` otherwise */
+fun Hash.verify(expected: Hash): Boolean = value.contentEquals(expected.value)

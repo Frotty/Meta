@@ -1,23 +1,22 @@
 @file:JvmName("Base64Utils")
-@file:Suppress("NOTHING_TO_INLINE")
 
 package de.fatox.meta.api.encoding
 
-import de.fatox.meta.api.crypto.EncodedHash
+import com.badlogic.gdx.utils.StringBuilder
+import de.fatox.meta.api.crypto.Base64EncodedHash
 import de.fatox.meta.api.crypto.Hash
+import de.fatox.meta.api.crypto.HexEncodedHash
 import java.util.*
 
-@PublishedApi
-internal val BASE64_ENCODER: Base64.Encoder = Base64.getEncoder()
+private val BASE64_ENCODER: Base64.Encoder = Base64.getEncoder()
 
-@PublishedApi
-internal val BASE64_DECODER: Base64.Decoder = Base64.getDecoder()
+private val BASE64_DECODER: Base64.Decoder = Base64.getDecoder()
 
-@PublishedApi
-internal inline fun CompressedByteArray.encode(): EncodedByteArray = EncodedByteArray(BASE64_ENCODER.encode(byteArray))
+fun CompressedByteArray.encode(): EncodedByteArray = EncodedByteArray(BASE64_ENCODER.encode(byteArray))
 
-@PublishedApi
-internal inline fun String.decode(): CompressedByteArray = CompressedByteArray(BASE64_DECODER.decode(this))
+fun String.decode(): CompressedByteArray = CompressedByteArray(BASE64_DECODER.decode(this))
 
-internal inline fun Hash.encodeToString(): EncodedHash =
-	EncodedHash(BASE64_ENCODER.encode(value).toString(Charsets.UTF_8))
+fun Hash.toBase64(): Base64EncodedHash =
+	Base64EncodedHash(BASE64_ENCODER.encode(value).toString(Charsets.UTF_8))
+
+fun Base64EncodedHash.decode(): Hash = Hash(BASE64_DECODER.decode(value.toByteArray(Charsets.UTF_8)))
