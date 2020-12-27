@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
@@ -37,8 +35,7 @@ class MetaLabel @JvmOverloads constructor(
 	private var size = size.toFloat()
 
 	/** Allows subclasses to access the cache in [.draw].  */
-	protected var bitmapFontCache: BitmapFontCache
-		private set
+	private var bitmapFontCache: BitmapFontCache
 	var labelAlign: Int = Align.left
 		private set
 	var lineAlign: Int = Align.left
@@ -133,14 +130,16 @@ class MetaLabel @JvmOverloads constructor(
 			textWidth = width
 			textHeight = font.data.capHeight
 		}
-		if (labelAlign and Align.top != 0) {
-			y += if (bitmapFontCache.font.isFlipped) 0f else height - textHeight
-			y += font.descent
-		} else if (labelAlign and Align.bottom != 0) {
-			y += if (bitmapFontCache.font.isFlipped) height - textHeight else 0f
-			y -= font.descent
-		} else {
-			y += (height - textHeight) / 2
+		when {
+			labelAlign and Align.top != 0 -> {
+				y += if (bitmapFontCache.font.isFlipped) 0f else height - textHeight
+				y += font.descent
+			}
+			labelAlign and Align.bottom != 0 -> {
+				y += if (bitmapFontCache.font.isFlipped) height - textHeight else 0f
+				y -= font.descent
+			}
+			else -> y += (height - textHeight) / 2
 		}
 		if (!bitmapFontCache.font.isFlipped) y += textHeight
 		layout.setText(font, text, 0, text.length, Color.WHITE, textWidth, lineAlign, wrap, ellipsis)
@@ -200,9 +199,11 @@ class MetaLabel @JvmOverloads constructor(
 	 */
 	fun setAlignment(labelAlign: Int, lineAlign: Int) {
 		this.labelAlign = labelAlign
-		if (lineAlign and Align.left != 0) this.lineAlign =
-			Align.left else if (lineAlign and Align.right != 0) this.lineAlign = Align.right else this.lineAlign =
-			Align.center
+		when {
+			lineAlign and Align.left != 0 -> this.lineAlign = Align.left
+			lineAlign and Align.right != 0 -> this.lineAlign = Align.right
+			else -> this.lineAlign = Align.center
+		}
 		invalidate()
 	}
 

@@ -16,8 +16,9 @@ class Gizmo {
 		val modelBuilder = ModelBuilder()
 		val material = Material(ColorAttribute.createDiffuse(Color.GREEN))
 		val attributes =
-			(VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal or VertexAttributes.Usage.ColorUnpacked.toLong()
-				.toInt()).toLong()
+			(VertexAttributes.Usage.Position or
+				VertexAttributes.Usage.Normal or
+				VertexAttributes.Usage.ColorUnpacked.toLong().toInt()).toLong()
 		val xArrow = modelBuilder.createArrow(Vector3.Zero, Vector3.X, material, attributes)
 		val yArrow = modelBuilder.createArrow(Vector3.Zero, Vector3.Y, material, attributes)
 		val zArrow = modelBuilder.createArrow(Vector3.Zero, Vector3.Z, material, attributes)

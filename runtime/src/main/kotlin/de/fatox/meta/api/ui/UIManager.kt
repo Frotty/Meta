@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package de.fatox.meta.api.ui
 
 import com.badlogic.gdx.Gdx

@@ -82,6 +82,7 @@ abstract class Meta(
 		changeScreen(firstScreen)
 	}
 
+	@Suppress("unused")
 	companion object {
 		@JvmStatic
 		lateinit var instance: Meta

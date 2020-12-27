@@ -26,8 +26,8 @@ class ArcCamControl : InputProcessor {
 
 	/** The key which must be pressed to enter rotation mode.  */
 	var rotateMode: Int = Input.Keys.CONTROL_LEFT
-	protected var rotateModeOn: Boolean = false
-	protected var fastZoomMode: Boolean = false
+	private var rotateModeOn: Boolean = false
+	private var fastZoomMode: Boolean = false
 
 	/** The camera.  */
 	val camera: PerspectiveCamera by lazyInject()
@@ -143,12 +143,10 @@ class ArcCamControl : InputProcessor {
 	}
 
 	override fun keyDown(keycode: Int): Boolean {
-		if (keycode == Input.Keys.CONTROL_LEFT) {
-			rotateModeOn = true
-		} else if (keycode == Input.Keys.SHIFT_LEFT) {
-			fastZoomMode = true
-		} else {
-			yes = !yes
+		when (keycode) {
+			Input.Keys.CONTROL_LEFT -> rotateModeOn = true
+			Input.Keys.SHIFT_LEFT -> fastZoomMode = true
+			else -> yes = !yes
 		}
 		return false
 	}

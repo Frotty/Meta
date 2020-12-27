@@ -1,11 +1,11 @@
 package de.fatox.meta.ui
 
 import com.badlogic.gdx.utils.Array
-import com.kotcrab.vis.ui.util.adapter.ArrayAdapter
-import com.kotcrab.vis.ui.widget.VisTable
-import com.kotcrab.vis.ui.util.adapter.SimpleListAdapter.SimpleListAdapterStyle
-import de.fatox.meta.ui.components.MetaTextButton
 import com.kotcrab.vis.ui.VisUI
+import com.kotcrab.vis.ui.util.adapter.ArrayAdapter
+import com.kotcrab.vis.ui.util.adapter.SimpleListAdapter.SimpleListAdapterStyle
+import com.kotcrab.vis.ui.widget.VisTable
+import de.fatox.meta.ui.components.MetaTextButton
 
 class FolderListAdapter<ItemT>(array: Array<ItemT>?) : ArrayAdapter<ItemT, VisTable>(array) {
     private val style: SimpleListAdapterStyle

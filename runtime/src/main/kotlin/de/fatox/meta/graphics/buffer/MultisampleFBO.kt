@@ -160,16 +160,12 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	}
 
 	private fun checkError(error: Int) {
-		if (error == GL20.GL_INVALID_ENUM) {
-			System.err.println("Invalid enum")
-		} else if (error == GL20.GL_INVALID_VALUE) {
-			System.err.println("Invalid val")
-		} else if (error == GL20.GL_INVALID_OPERATION) {
-			System.err.println("Invalid op")
-		} else if (error == GL20.GL_INVALID_FRAMEBUFFER_OPERATION) {
-			System.err.println("Invalid fbo op")
-		} else if (error == GL20.GL_OUT_OF_MEMORY) {
-			System.err.println("Out of memory")
+		when (error) {
+			GL20.GL_INVALID_ENUM -> System.err.println("Invalid enum")
+			GL20.GL_INVALID_VALUE -> System.err.println("Invalid val")
+			GL20.GL_INVALID_OPERATION -> System.err.println("Invalid op")
+			GL20.GL_INVALID_FRAMEBUFFER_OPERATION -> System.err.println("Invalid fbo op")
+			GL20.GL_OUT_OF_MEMORY -> System.err.println("Out of memory")
 		}
 	}
 
@@ -232,6 +228,7 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	fun setFrameBufferViewport() {
 		Gdx.gl20.glViewport(0, 0, bufferBuilder.width, bufferBuilder.height)
 	}
+
 	/**
 	 * Unbinds the framebuffer and sets viewport sizes, all drawing will be performed to the normal framebuffer from here on.
 	 *
@@ -285,8 +282,6 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	fun getWidth(): Int {
 		return bufferBuilder.width
 	}
-
-
 
 	class FrameBufferTextureAttachmentSpec(var internalFormat: Int, var format: Int, var type: Int) {
 		var isFloat: Boolean = false

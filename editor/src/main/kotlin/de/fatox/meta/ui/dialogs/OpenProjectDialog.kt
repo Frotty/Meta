@@ -3,6 +3,7 @@ package de.fatox.meta.ui.dialogs
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import com.kotcrab.vis.ui.widget.Tooltip
@@ -15,9 +16,9 @@ import com.kotcrab.vis.ui.widget.file.FileTypeFilter
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.ui.components.MetaClickListener
 import de.fatox.meta.ui.components.MetaTextButton
 import de.fatox.meta.ui.windows.MetaDialog
+import de.fatox.meta.ui.windows.MetaDialog.DialogListener
 import de.fatox.meta.util.truncate
 
 /**
@@ -35,7 +36,7 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 	private fun createFolderButton() {
 		folderLabel = VisLabel(languageBundle["newproj_dia_proj_root"])
 		folderButton = MetaTextButton(languageBundle["newproj_dia_select_project"])
-		folderButton!!.addListener(object : MetaClickListener() {
+		folderButton!!.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				fileChooser.selectionMode = FileChooser.SelectionMode.FILES
 				val fileTypeFilter = FileTypeFilter(false)

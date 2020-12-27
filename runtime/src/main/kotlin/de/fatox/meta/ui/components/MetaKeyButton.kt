@@ -5,9 +5,9 @@ import com.badlogic.gdx.Input
 class MetaKeyButton(private var keyCode: Int) : MetaTextButton(Input.Keys.toString(keyCode)) {
 
 	init {
-		addListener(MetaListener({
+		addListener(MetaListener {
 			// TODO dialog
-		}))
+		})
 	}
 
 	fun setFromKeyCode(keyCode: Int) {

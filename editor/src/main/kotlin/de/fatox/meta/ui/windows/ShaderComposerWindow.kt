@@ -3,6 +3,7 @@ package de.fatox.meta.ui.windows
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Scaling
@@ -16,7 +17,6 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.shader.ShaderComposition
-import de.fatox.meta.ui.components.MetaClickListener
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.RenderBufferButton
 import de.fatox.meta.ui.dialogs.ShaderCompositionWizard
@@ -47,7 +47,7 @@ object ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 
 	private fun setupEmpty() {
 		val visImageButton = VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
-		visImageButton.addListener(object : MetaClickListener() {
+		visImageButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				uiManager.showDialog<ShaderCompositionWizard>()
 			}
@@ -84,7 +84,7 @@ object ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 
 	private fun setupNewBufferButton() {
 		addButton = VisImageButton(assetProvider.getDrawable("ui/appbar.layer.add.png"))
-		addButton!!.addListener(object : MetaClickListener() {
+		addButton!!.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				onAddBuffer()
 			}

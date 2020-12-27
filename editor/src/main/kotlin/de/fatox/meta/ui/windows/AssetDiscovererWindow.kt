@@ -1,7 +1,6 @@
 package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Scaling
@@ -12,7 +11,6 @@ import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.ide.AssetDiscoverer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FolderListAdapter
-import de.fatox.meta.ui.components.MetaClickListener
 import de.fatox.meta.ui.components.MetaIconTextButton
 
 /**

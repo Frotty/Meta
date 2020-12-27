@@ -1,14 +1,14 @@
 package de.fatox.meta.shader
 
-import de.fatox.meta.graphics.renderer.FullscreenShader
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Camera
+import com.badlogic.gdx.graphics.g3d.Renderable
+import com.badlogic.gdx.graphics.g3d.Shader
+import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.Matrix4
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.utils.GdxRuntimeException
-import com.badlogic.gdx.graphics.g3d.Shader
-import com.badlogic.gdx.graphics.g3d.Renderable
-import com.badlogic.gdx.graphics.Camera
-import com.badlogic.gdx.graphics.g3d.utils.RenderContext
+import de.fatox.meta.graphics.renderer.FullscreenShader
 
 /**
  * Created by Frotty on 20.05.2016.

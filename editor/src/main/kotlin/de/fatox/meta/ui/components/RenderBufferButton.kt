@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
 import com.kotcrab.vis.ui.VisUI
@@ -116,7 +117,7 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
 		moveLeftBtn.image.setScaling(Scaling.fill)
 		table.add(moveLeftBtn).size(26f)
 		val deleteBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.delete.png"))
-		deleteBtn.addListener(object : MetaClickListener() {
+		deleteBtn.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				shaderComposer.removeBufferHandle(handle)
 			}

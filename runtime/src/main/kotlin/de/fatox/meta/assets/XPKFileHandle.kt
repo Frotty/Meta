@@ -8,12 +8,12 @@ import java.io.InputStream
 
 class XPKFileHandle(
 	private val siblings: Array<XPKFileHandle>,
-	var length: Int,
+	private var length: Int,
 	private val sevenZFile: XPKByteChannel,
 	private val entry: SevenZArchiveEntry,
 	val name: String,
 ) : FileHandle() {
-	val path: String = name.substringBeforeLast('\\')
+	private val path: String = name.substringBeforeLast('\\')
 	private val fileName: String = name.substringAfterLast('\\')
 	val array: ByteArray? by lazy(LazyThreadSafetyMode.NONE) { XPKLoader.loadEntry(sevenZFile, entry) }
 

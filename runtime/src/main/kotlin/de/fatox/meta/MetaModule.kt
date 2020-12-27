@@ -41,7 +41,9 @@ object MetaModule {
 			singleton(Json(), "default")
 			singleton("default") { UiControlHelper }
 			singleton("default") { FontInfo("Montserrat.ttf", "RobotoMono.ttf") }
-			singleton("default") { SpriteBatch(1000, inject("spritebatch-shader")).apply { enableBlending() } }
+			singleton("default") {
+				SpriteBatch(1000, inject("spritebatch-shader")).apply { enableBlending() }
+			}
 			singleton {
 				PerspectiveCamera(67f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat()).apply {
 					position.set(0f, 50f, 50f)
@@ -57,7 +59,9 @@ object MetaModule {
 					prependVertexCode = "#version 300 es\n"
 					prependFragmentCode = "#version 300 es\n"
 				}
-				@Language("GLSL") val vertexShader = """
+				@Suppress("SpellCheckingInspection")
+				@Language("GLSL") val vertexShader =
+					"""
 in vec4 $POSITION_ATTRIBUTE;
 in vec4 $COLOR_ATTRIBUTE;
 in vec2 ${TEXCOORD_ATTRIBUTE}0;
@@ -71,8 +75,14 @@ void main()
    v_color.a = v_color.a * (255.0/254.0);
    v_texCoords = ${TEXCOORD_ATTRIBUTE}0;
    gl_Position =  u_projTrans * $POSITION_ATTRIBUTE;
-}"""
-				@Language("GLSL") val fragmentShader = """#ifdef GL_ES
+}
+""".trimMargin()
+
+				@Suppress("SpellCheckingInspection")
+				@Language("GLSL")
+				val fragmentShader =
+					"""
+#ifdef GL_ES
 #define LOWP lowp
 precision mediump float;
 #else
@@ -84,8 +94,9 @@ uniform sampler2D u_texture;
 out vec4 fragData;
 void main()
 {
-  fragData = v_color * texture(u_texture, v_texCoords);
-}"""
+	fragData = v_color * texture(u_texture, v_texCoords);
+}
+""".trimMargin()
 				val shader = ShaderProgram(vertexShader, fragmentShader)
 				require(shader.isCompiled) { "Error compiling shader: ${shader.log}" }
 				shader
