@@ -6,15 +6,15 @@ dependencies {
 	api "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
 	implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
 	api "com.kotcrab.vis:vis-ui:$visUiVersion"
-	api "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
+	implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 
 	api group: 'org.apache.commons', name: 'commons-compress', version: commonsCompressVersion
 	implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
 	api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion
 
-	testApi "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
-	testApi "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-	testApi "org.junit.jupiter:junit-jupiter:$junit5Version"
+	testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+	testImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
+	testImplementation "org.junit.jupiter:junit-jupiter:$junit5Version"
 }
 
 tasks {

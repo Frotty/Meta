@@ -19,8 +19,6 @@ allprojects {
 	apply plugin: 'idea'
 	apply plugin: "com.autonomousapps.dependency-analysis"
 	apply plugin: 'maven-publish'
-	group = 'com.github.Frotty'
-	version = '1.0.0-SNAPSHOT'
 	ext.appName = 'Meta'
 }
 
@@ -31,6 +29,21 @@ configure(subprojects) {
 	compileJava {
 		options.incremental = true
 	}
+}
+
+subprojects {
+	group = 'com.github.Frotty'
+	version = '1.0.0-SNAPSHOT'
+
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+		maven { url 'https://jitpack.io' }
+		jcenter()
+	}
+
 	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
 		kotlinOptions.jvmTarget = "1.8"
 		kotlinOptions {
@@ -39,17 +52,6 @@ configure(subprojects) {
 			freeCompilerArgs += "-Xinline-classes"
 			freeCompilerArgs += "-Xjvm-default=all"
 		}
-	}
-}
-
-subprojects {
-	repositories {
-		mavenLocal()
-		mavenCentral()
-		maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
-		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-		maven { url 'https://jitpack.io' }
-		jcenter()
 	}
 }
 
