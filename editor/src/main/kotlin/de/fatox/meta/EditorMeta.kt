@@ -16,7 +16,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.modules.MetaEditorModule
 import de.fatox.meta.modules.MetaUIModule
 import de.fatox.meta.screens.MetaEditorScreen
-import de.fatox.meta.screens.SplashScreen
+import de.fatox.meta.api.SplashScreen
 import de.fatox.meta.ui.dialogs.*
 import de.fatox.meta.ui.windows.*
 

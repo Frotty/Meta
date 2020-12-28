@@ -1,4 +1,4 @@
-package de.fatox.meta.listener
+package de.fatox.meta.api
 
 import com.badlogic.gdx.utils.ObjectSet
 

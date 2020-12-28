@@ -12,7 +12,7 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.listener.MetaNotifier
+import de.fatox.meta.api.MetaNotifier
 import de.fatox.meta.ui.windows.ShaderComposerWindow
 import java.io.File
 

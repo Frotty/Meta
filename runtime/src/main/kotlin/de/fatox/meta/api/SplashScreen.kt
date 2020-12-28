@@ -1,4 +1,4 @@
-package de.fatox.meta.screens
+package de.fatox.meta.api
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.ScreenAdapter
