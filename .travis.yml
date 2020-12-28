@@ -13,5 +13,8 @@ cache:
         - $HOME/.m2
         - $HOME/.gradle
 
+before_install:
+    - chmod +x gradlew
+
 script:
     - ./gradlew editor-desktop:clean editor-desktop:test

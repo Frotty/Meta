@@ -17,7 +17,8 @@ buildscript {
 allprojects {
 	apply plugin: 'eclipse'
 	apply plugin: 'idea'
-	apply plugin: "com.autonomousapps.dependency-analysis"
+	// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
+	//apply plugin: "com.autonomousapps.dependency-analysis"
 	apply plugin: 'maven-publish'
 	ext.appName = 'Meta'
 }
@@ -26,9 +27,7 @@ allprojects {
 configure(subprojects) {
 	apply plugin: 'kotlin'
 	sourceCompatibility = JavaVersion.VERSION_1_8
-	compileJava {
-		options.incremental = true
-	}
+
 }
 
 subprojects {
