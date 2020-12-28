@@ -4,18 +4,14 @@ android:
     - build-tools-23.0.1
     - android-20
 jdk:
-  - oraclejdk8
+  - openjdk8
+
+sudo: false
 
 cache:
-  directories:
-    - $HOME/.gradle/wrapper
-    - $HOME/.gradle/caches/modules-2/files-2.1
-
-
-before_install:
-  - chmod +x gradlew
-  - export JAVA8_HOME=/usr/lib/jvm/java-8-oracle
-  - export JAVA_HOME=$JAVA8_HOME
+    directories:
+        - $HOME/.m2
+        - $HOME/.gradle
 
 script:
-  - ./gradlew editor-desktop:clean editor-desktop:test
+    - ./gradlew editor-desktop:clean editor-desktop:test
