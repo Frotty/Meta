@@ -1,10 +1,10 @@
 language: android
 android:
-  components:
-    - build-tools-23.0.1
-    - android-20
+    components:
+        - build-tools-23.0.1
+        - android-20
 jdk:
-  - openjdk8
+    - openjdk8
 
 sudo: false
 
@@ -16,5 +16,4 @@ cache:
 before_install:
     - chmod +x gradlew
 
-script:
-    - ./gradlew editor-desktop:clean editor-desktop:test
+script: ./gradlew editor-desktop:clean editor-desktop:test
