@@ -22,7 +22,8 @@ allprojects {
 
 configure(subprojects) {
 	apply plugin: 'kotlin'
-	sourceCompatibility = 8.0
+	apply plugin: 'maven'
+	sourceCompatibility = JavaVersion.VERSION_1_8
 	compileJava {
 		options.incremental = true
 	}
