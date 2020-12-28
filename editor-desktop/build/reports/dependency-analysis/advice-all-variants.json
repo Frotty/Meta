@@ -1,1 +1,0 @@
-{"projectPath":":editor-desktop","dependencyAdvice":[{"dependency":{"identifier":"com.badlogicgames.gdx:gdx-controllers-lwjgl3","resolvedVersion":"1.9.12","configurationName":"implementation"},"usedTransitiveDependencies":[],"fromConfiguration":"implementation"}],"pluginAdvice":[],"shouldFail":false}

@@ -1,4 +1,0 @@
-Unused dependencies which should be removed:
-- api("com.badlogicgames.gdx:gdx-controllers-lwjgl3:1.9.12")
-
-See console report at C:\Users\Pie\IdeaProjects\Meta\runtime-desktop\build\reports\dependency-analysis\main\advice-console.txt
