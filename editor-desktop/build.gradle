@@ -36,6 +36,10 @@ jar {
 	archiveBaseName = 'MetaEditor'
 	dependsOn configurations.runtimeClasspath
 	from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+	copy {
+		from sourceSets.main.resources.srcDirs
+		into "$project.buildDir/libs/data/"
+	}
 	manifest {
 		attributes 'Main-Class': project.mainClassName
 	}
