@@ -10,9 +10,10 @@ buildscript {
 	}
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-		classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
+		//classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
 	}
 }
+
 
 allprojects {
 	apply plugin: 'eclipse'
@@ -23,11 +24,19 @@ allprojects {
 	ext.appName = 'Meta'
 }
 
+
+
 // If we add android exclude the project here
 configure(subprojects) {
 	apply plugin: 'kotlin'
 	sourceCompatibility = JavaVersion.VERSION_1_8
-
+	publishing {
+		publications {
+			mavenJava(MavenPublication) {
+				from components.java
+			}
+		}
+	}
 }
 
 subprojects {
