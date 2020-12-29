@@ -1,36 +1,32 @@
 package de.fatox.meta.test.injection
 
-import de.fatox.meta.injection.Named
-import org.junit.Assert
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.injection.MetaInject.Companion.global
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
-class BasicTests {
-    class NamedTestModule {
-        @Provides
-        @Named("someName")
-        @Singleton
-        fun someString(): String {
-            return "yeah"
-        }
-    }
+internal class BasicTests {
+	class NamedTestModule {
+		init {
+			global {
+				singleton("yeah", "someName")
+			}
+		}
+	}
 
-    @Before
-    fun prepare() {
-        Meta.addModule(NamedTestModule())
-    }
+	@BeforeEach
+	fun prepare() {
+		NamedTestModule()
+	}
 
-    class NamedTestSample {
-        @Inject
-        @Named("someName")
-        var s: String? = null
+	class NamedTestSample {
+		val s: String = MetaInject.inject("someName")
+	}
 
-        init {
-            Meta.inject(this)
-        }
-    }
-
-    @Test
-    fun testNamed() {
-        val namedTestSample = NamedTestSample()
-        Assert.assertEquals("yeah", namedTestSample.s)
-    }
+	@Test
+	fun testNamed() {
+		val namedTestSample = NamedTestSample()
+		Assertions.assertEquals("yeah", namedTestSample.s)
+	}
 }
