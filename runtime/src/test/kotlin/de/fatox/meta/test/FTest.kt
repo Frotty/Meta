@@ -1,12 +1,10 @@
-package de.fatox.meta.test;
+package de.fatox.meta.test
 
+import org.junit.Test
 
-import org.junit.Test;
-
-public class FTest {
-
+class FTest {
     @Test
-    public void test() {
-        System.out.println("test");
+    fun test() {
+        println("test")
     }
 }

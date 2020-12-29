@@ -1,16 +1,12 @@
-package de.fatox.meta.test;
+package de.fatox.meta.test
 
-import com.badlogic.gdx.backends.headless.HeadlessApplication;
-import com.badlogic.gdx.backends.headless.HeadlessApplicationConfiguration;
-import de.fatox.meta.Meta;
-import org.junit.Before;
+import com.badlogic.gdx.backends.headless.HeadlessApplication
 
-public abstract class MetaTest {
-
+abstract class MetaTest {
     @Before
-    public void prepare() {
-        final HeadlessApplicationConfiguration config = new HeadlessApplicationConfiguration();
-        new HeadlessApplication(new TestApp(), config);
-        Meta.inject(this);
+    fun prepare() {
+        val config = HeadlessApplicationConfiguration()
+        HeadlessApplication(TestApp(), config)
+        Meta.inject(this)
     }
 }

@@ -1,44 +1,36 @@
-package de.fatox.meta.test.injection;
+package de.fatox.meta.test.injection
 
-import de.fatox.meta.Meta;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Named;
-import de.fatox.meta.injection.Provides;
-import de.fatox.meta.injection.Singleton;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import de.fatox.meta.injection.Named
+import org.junit.Assert
 
-public class BasicTests {
-
-    public static class NamedTestModule {
-
+class BasicTests {
+    class NamedTestModule {
         @Provides
         @Named("someName")
         @Singleton
-        public String someString() {
-            return "yeah";
+        fun someString(): String {
+            return "yeah"
         }
     }
 
     @Before
-    public void prepare() {
-        Meta.addModule(new NamedTestModule());
+    fun prepare() {
+        Meta.addModule(NamedTestModule())
     }
 
-    public static class NamedTestSample {
+    class NamedTestSample {
         @Inject
         @Named("someName")
-        public String s;
+        var s: String? = null
 
-        public NamedTestSample() {
-            Meta.inject(this);
+        init {
+            Meta.inject(this)
         }
     }
 
     @Test
-    public void testNamed() {
-        NamedTestSample namedTestSample = new NamedTestSample();
-        Assert.assertEquals("yeah", namedTestSample.s);
+    fun testNamed() {
+        val namedTestSample = NamedTestSample()
+        Assert.assertEquals("yeah", namedTestSample.s)
     }
 }
