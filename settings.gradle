@@ -1,1 +1,1 @@
-include 'editor-desktop', 'runtime', 'editor'
+include 'editor', 'editor-desktop', 'runtime', 'runtime-desktop'

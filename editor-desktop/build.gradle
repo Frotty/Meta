@@ -1,38 +1,49 @@
-apply plugin: "kotlin"
+apply plugin: 'application'
 
-sourceCompatibility = 1.8
-//sourceSets.main.java.srcDirs += [ "src/" ]
-sourceSets.main.resources.srcDirs = ["../runtime/assets"]
+sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
+mainClassName = 'de.fatox.meta.desktop.DesktopLauncherEditorKt'
+eclipse.project.name = appName + '-editor-desktop'
+sourceCompatibility = JavaVersion.VERSION_1_8
 
-project.ext.mainClassName = "de.fatox.meta.desktop.DesktopLauncher"
-project.ext.assetsDir = new File("../runtime/assets")
+dependencies {
+	implementation project(":editor")
+	implementation project(":runtime-desktop")
 
-task run(dependsOn: classes, type: JavaExec) {
-    main = project.mainClassName
-    classpath = sourceSets.main.runtimeClasspath
-    standardInput = System.in
-    workingDir = project.assetsDir
-    ignoreExitValue = true
+	implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+	implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+	implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
+
+	// Used by reflection, do not remove!
+	implementation "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
+
+	// Explicit transitive dependencies
+	implementation project(":runtime")
+	implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
 }
 
-task debug(dependsOn: classes, type: JavaExec) {
-    main = project.mainClassName
-    classpath = sourceSets.main.runtimeClasspath
-    standardInput = System.in
-    workingDir = project.assetsDir
-    ignoreExitValue = true
-    debug = true
+import org.gradle.internal.os.OperatingSystem
+
+run {
+	workingDir = rootProject.file('assets').path
+	setIgnoreExitValue(true)
+
+	if (OperatingSystem.current() == OperatingSystem.MAC_OS) {
+		// Required to run LWJGL3 Java apps on MacOS
+		jvmArgs += "-XstartOnFirstThread"
+	}
 }
-
-task dist(type: Jar) {
-    manifest {
-        attributes 'Main-Class': project.mainClassName
-    }
-    from {
-        configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    with jar
+jar {
+	archiveBaseName = 'MetaEditor'
+	dependsOn configurations.runtimeClasspath
+	from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+	copy {
+		from sourceSets.main.resources.srcDirs
+		into "$project.buildDir/libs/data/"
+	}
+	manifest {
+		attributes 'Main-Class': project.mainClassName
+	}
+	doLast {
+		file(archiveFile.get().asFile).setExecutable(true, false)
+	}
 }
-
-
-dist.dependsOn classes
