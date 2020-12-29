@@ -1,50 +1,50 @@
 package de.fatox.meta.desktop
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Window
-import com.badlogic.gdx.utils.reflect.ClassReflection
-import com.badlogic.gdx.utils.reflect.ReflectionException
-import de.fatox.meta.api.PosModifier
-import org.lwjgl.glfw.GLFW
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener
+import de.fatox.meta.Meta
+import de.fatox.meta.api.WindowHandler
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
+import org.slf4j.Logger
 
-class DesktopWindowHandler : PosModifier {
+private val log: Logger = MetaLoggerFactory.logger {}
 
-    override fun modify(x: Int, y: Int) {
-        try {
-            val field = ClassReflection.getDeclaredField(Lwjgl3Application::class.java, "currentWindow")
-            field.isAccessible = true
-            val result = field.get(Gdx.app) as Lwjgl3Window
-            GLFW.glfwSetWindowPos(result.windowHandle, x, y)
-        } catch (e: ReflectionException) {
-            e.printStackTrace()
-        }
+class DesktopWindowHandler : WindowHandler, Lwjgl3WindowListener {
+	private lateinit var currentWindow: Lwjgl3Window
 
-    }
+	override val x: Int get() = currentWindow.positionX
+	override val y: Int get() = currentWindow.positionY
 
-    override fun getX(): Int {
-        try {
-            val field = ClassReflection.getDeclaredField(Lwjgl3Application::class.java, "currentWindow")
-            field.isAccessible = true
-            val result = field.get(Gdx.app) as Lwjgl3Window
-            return result.positionX
-        } catch (e: ReflectionException) {
-            e.printStackTrace()
-        }
+	override fun modify(x: Int, y: Int) {
+		log.debug { "Modify $currentWindow from ${this.x},${this.y} to $x,$y!" }
+		currentWindow.setPosition(x, y)
+	}
 
-        return 2
-    }
+	override fun iconify() {
+		log.debug { "Iconify $currentWindow!" }
+		currentWindow.iconifyWindow()
+	}
 
-    override fun getY(): Int {
-        try {
-            val field = ClassReflection.getDeclaredField(Lwjgl3Application::class.java, "currentWindow")
-            field.isAccessible = true
-            val result = field.get(Gdx.app) as Lwjgl3Window
-            return result.positionY
-        } catch (e: ReflectionException) {
-            e.printStackTrace()
-        }
+	override fun created(window: Lwjgl3Window) {
+		currentWindow = window
+	}
 
-        return 12
-    }
+	override fun iconified(isIconified: Boolean) = Meta.instance.iconified(isIconified)
+
+	override fun maximized(isMaximized: Boolean) =  Meta.instance.maximized(isMaximized)
+
+	override fun focusLost() = Meta.instance.onFocusLost()
+
+	override fun focusGained() = Meta.instance.onFocusGained()
+
+	override fun closeRequested(): Boolean {
+		Gdx.app.exit()
+		return true
+	}
+
+	override fun filesDropped(files: Array<out String>) = Unit
+
+	override fun refreshRequested() = Unit
 }
