@@ -1,15 +1,20 @@
-package de.fatox.meta.desktop;
+package de.fatox.meta.desktop
 
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import de.fatox.meta.EditorMeta;
+import de.fatox.meta.desktop.MetaDesktopLauncher.init
+import kotlin.jvm.JvmStatic
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
+import de.fatox.meta.EditorMeta
+import de.fatox.meta.desktop.DesktopWindowHandler
+import de.fatox.meta.desktop.MetaDesktopLauncher
 
-public class Launcher {
-	public static void main(String[] args) {
-		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-		config.setResizable(true);
-		config.setTitle("Meta");
-		config.setWindowIcon("meta-icon.png");
-		EditorMeta editorMeta = new EditorMeta(new DesktopWindowHandler());
-		MetaDesktopLauncher.INSTANCE.init(config, editorMeta);
-	}
+object Launcher {
+    @JvmStatic
+    fun main(args: Array<String>) {
+        val config = Lwjgl3ApplicationConfiguration()
+        config.setResizable(true)
+        config.setTitle("Meta")
+        config.setWindowIcon("meta-icon.png")
+        val editorMeta = EditorMeta(DesktopWindowHandler())
+        init(config, editorMeta)
+    }
 }
