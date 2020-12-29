@@ -3,15 +3,14 @@ package de.fatox.meta.desktop
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import de.fatox.meta.EditorMeta
 
-object DesktopLauncherEditor {
+fun main() {
+	val posModifier = DesktopWindowHandler()
+	val config = Lwjgl3ApplicationConfiguration().apply {
+		setResizable(true)
+		setTitle("Meta")
+		setWindowIcon("meta-icon.png")
+		setWindowListener(posModifier)
+	}
 
-    @JvmStatic
-    fun main(arg: Array<String>) {
-        val config = Lwjgl3ApplicationConfiguration()
-        config.setResizable(true)
-        config.setTitle("Meta")
-        config.setWindowIcon("meta-icon.png")
-        val editorMeta = EditorMeta(WindowPosModifier())
-        MetaDesktopLauncher.init(config, editorMeta)
-    }
+	MetaDesktopLauncher.init(config, EditorMeta(posModifier))
 }

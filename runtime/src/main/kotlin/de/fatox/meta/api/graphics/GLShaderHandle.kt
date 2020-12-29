@@ -16,11 +16,11 @@ class GLShaderHandle(
 	fragmentHandle: FileHandle,
 	var data: GLShaderData,
 ) {
-	var fragmentHandle = fragmentHandle
+	var fragmentHandle: FileHandle = fragmentHandle
 		set(value) {
 			field = value.also { data.fragmentFilePath = it.path() }
 		}
-	var vertexHandle = vertexHandle
+	var vertexHandle: FileHandle = vertexHandle
 		set(value) {
 			field = value.also { data.vertexFilePath = it.path() }
 		}

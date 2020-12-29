@@ -8,7 +8,7 @@ import com.badlogic.gdx.utils.reflect.ReflectionException
 import de.fatox.meta.api.PosModifier
 import org.lwjgl.glfw.GLFW
 
-class WindowPosModifier : PosModifier {
+class DesktopWindowHandler : PosModifier {
 
     override fun modify(x: Int, y: Int) {
         try {
