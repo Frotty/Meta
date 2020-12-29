@@ -1,4 +1,4 @@
-package de.fatox.meta.assets
+package de.fatox.meta.api.crypto
 
 import java.io.IOException
 import java.math.BigInteger
