@@ -21,44 +21,33 @@ import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.assets.XPKLoader.getList
-import org.slf4j.LoggerFactory
-import java.util.function.Consumer
+
+private val log = MetaLoggerFactory.logger {}
+private val defaultTexParam: TextureParameter = TextureParameter().apply {
+	genMipMaps = true
+	minFilter = Texture.TextureFilter.MipMapLinearLinear
+}
+private val defaultModelParam: ModelParameters = ModelParameters().apply { textureParameter = defaultTexParam }
 
 class MetaAssetProvider : AssetProvider {
-	internal inner class MetaFileHandleResolver : FileHandleResolver {
-		override fun resolve(fileName: String): FileHandle {
-			return if (fileCache.containsKey(fileName)) fileCache[fileName] else Gdx.files.internal(fileName)
-		}
-	}
-
 	private val assetManager = AssetManager(MetaFileHandleResolver())
 	private val atlasCache = Array<TextureAtlas>()
 	private val animCache = IntMap<Array<out TextureRegion>>()
 	private val fileCache = ObjectMap<String, FileHandle>()
-
-	companion object {
-		private val log = LoggerFactory.getLogger(MetaAssetProvider::class.java)
-		private val defaultTexParam = TextureParameter()
-		private val defaultModelParam = ModelParameters()
-
-		init {
-			defaultTexParam.genMipMaps = true
-			defaultTexParam.minFilter = Texture.TextureFilter.MipMapLinearLinear
-			defaultModelParam.textureParameter = defaultTexParam
-		}
-	}
 
 	override fun loadPackedAssetsFromFolder(folder: FileHandle): Boolean {
 		if (folder.isDirectory) {
 			for (itrHandle in folder.list()) {
 				if (itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) {
 					val list = getList(itrHandle)
-					list.forEach(Consumer { it: XPKFileHandle ->
+					list.forEach {
 						fileCache.put(it.name(), it)
 						fileCache.put(it.name().replace("/", "\\"), it)
-						log.debug("cache name: <" + it.name() + ">")
-					})
+						log.debug { "cache name: <${it.name()}>" }
+					}
 				}
 			}
 			return true
@@ -75,51 +64,53 @@ class MetaAssetProvider : AssetProvider {
 					fileCache.put(itrHandle.name(), itrHandle)
 					fileCache.put(itrHandle.name().replace("/", "\\"), itrHandle)
 				}
-
 			}
 			return true
 		}
 		return false
 	}
 
-	override fun <T> load(name: String, type: Class<T>) {
-		log.debug("loading <$name>")
+	override fun <T: Any> load(name: String, type: Class<T>) {
+		log.debug { "loading <$name>" }
 		if (fileCache.containsKey(name)) {
-			log.debug("pack cache contains filename")
+			log.debug { "pack cache contains filename" }
 			loadIntern(AssetDescriptor(fileCache[name], type))
 		} else {
 			loadIntern(AssetDescriptor(name, type))
 		}
 	}
 
-	private fun <T> loadIntern(descr: AssetDescriptor<T>) {
-		if (descr.type == Model::class.java) {
-			assetManager.load(descr.fileName, Model::class.java, defaultModelParam)
-		} else if (descr.type == Texture::class.java && !descr.fileName.contains("ui")) {
-			log.debug("ui load")
-			assetManager.load(descr.fileName, Texture::class.java, defaultTexParam)
-		} else {
-			log.debug("normal load")
-			assetManager.load(descr)
+	private fun <T: Any> loadIntern(descriptor: AssetDescriptor<T>) {
+		when {
+			descriptor.type == Model::class.java ->
+				assetManager.load(descriptor.fileName, Model::class.java, defaultModelParam)
+			descriptor.type == Texture::class.java && !descriptor.fileName.contains("ui") -> {
+				log.debug { "ui load" }
+				assetManager.load(descriptor.fileName, Texture::class.java, defaultTexParam)
+			}
+			else -> {
+				log.debug { "normal load" }
+				assetManager.load(descriptor)
+			}
 		}
 		assetManager.finishLoading()
-		if (descr.type == Model::class.java) {
-			val model = assetManager.get(descr.fileName, Model::class.java)
+		if (descriptor.type == Model::class.java) {
+			val model = assetManager.get(descriptor.fileName, Model::class.java)
 			val attribute = model.materials.first()[TextureAttribute.Diffuse] as TextureAttribute
 			attribute.textureDescription.texture.bind()
 			Gdx.gl30.glTexParameterf(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_MAX_ANISOTROPY_EXT, 16f)
 		}
-		if (descr.type == Texture::class.java) {
-			val texture = assetManager.get(descr.fileName, Texture::class.java)
+		if (descriptor.type == Texture::class.java) {
+			val texture = assetManager.get(descriptor.fileName, Texture::class.java)
 			texture.bind()
 			Gdx.gl30.glTexParameterf(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_MAX_ANISOTROPY_EXT, 16f)
 		}
-		if (descr.type == TextureAtlas::class.java) {
-			atlasCache.add(assetManager.get(descr.fileName, TextureAtlas::class.java))
+		if (descriptor.type == TextureAtlas::class.java) {
+			atlasCache.add(assetManager.get(descriptor.fileName, TextureAtlas::class.java))
 		}
 	}
 
-	override fun <T> get(fileName: String, type: Class<T>, index: Int): T? {
+	override fun <T: Any> getResource(fileName: String, type: Class<T>, index: Int): T {
 		return when {
 			type == FileHandle::class.java -> {
 				if (fileCache.containsKey(fileName))
@@ -131,54 +122,45 @@ class MetaAssetProvider : AssetProvider {
 			type == TextureRegion::class.java -> {
 				atlasCache.asSequence().map {
 					if (index <= 0) it.findRegion(fileName) else it.findRegion(fileName, index)
-				}.firstOrNull() as T? ?: get(fileName, Texture::class.java)?.let { TextureRegion(it) } as T?
+				}.firstOrNull() as T? ?: TextureRegion(getResource(fileName, Texture::class.java)) as T?
 			}
 			fileCache.containsKey(fileName) -> {
 				loadIntern(AssetDescriptor(fileCache[fileName], type))
-				get(fileName, type)
+				getResource(fileName, type)
 			}
 			else -> {
 				load(fileName, type)
-				get(fileName, type)
+				getResource(fileName, type)
 			}
-		}
-	}
-
-	override fun <T> get(fileName: String, type: Class<T>): T? {
-		return get(fileName, type, -1)
-	}
-
-	override fun get(fileName: String): FileHandle? {
-		return null
+		} ?: throw GdxRuntimeException("Resource not found: $fileName")
 	}
 
 	override fun getDrawable(name: String): Drawable {
-		return TextureRegionDrawable(get(name, TextureRegion::class.java))
+		return TextureRegionDrawable(getResource(name, TextureRegion::class.java))
 	}
 
 	override fun finish() {
 		assetManager.finishLoading()
 	}
 
-	/**
-	 * Returns a cached list of TextureRegions that represent the animation of the given texture
-	 *
-	 * @param baseName name of the texture
-	 * @param frames   limit frames of animations, all frames if not specified
-	 * @return
-	 */
-	fun loadAnimationFrames(baseName: String, frames: Int = -1): Array<out TextureRegion> {
-		val key = baseName.hashCode() + 31 * frames
+	override fun loadAnimationFrames(baseName: String, frames: Int): Array<out TextureRegion> {
+		val key = 31 * baseName.hashCode() + frames
 		if (!animCache.containsKey(key)) {
 			// Since we use asSequence() map is lazily evaluated, thus only calling it when necessary.
 			val regions: Array<AtlasRegion> = atlasCache.asSequence().map { it.findRegions(baseName) }.first()
 
 			if (regions.size > 0) {
 				if (frames > -1) regions.setSize(frames) // limit to the request number of frames
-				val unused: Array<out TextureRegion>? = animCache.put(key, regions) as Array<out TextureRegion>?
+				animCache.put(key, regions)
 			} else
-				throw GdxRuntimeException("couldn't load " + baseName)
+				throw GdxRuntimeException("couldn't load $baseName")
 		}
 		return animCache[key]
+	}
+
+	internal inner class MetaFileHandleResolver : FileHandleResolver {
+		override fun resolve(fileName: String): FileHandle {
+			return fileCache[fileName] ?: Gdx.files.internal(fileName)
+		}
 	}
 }

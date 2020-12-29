@@ -9,53 +9,47 @@ import com.kotcrab.vis.ui.widget.LinkLabel.LinkLabelListener
 import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.get
 import de.fatox.meta.ide.ProjectManager
-import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.TextWidget
 
 /**
  * Created by Frotty on 05.06.2016.
  */
 class WelcomeTab : MetaTab(false, false) {
-    private val visTable = VisTable()
+	private val visTable = VisTable()
 
-    @Inject
-    private val metaData: MetaData? = null
+	private val metaData: MetaData by lazyInject()
+	private val projectManager: ProjectManager by lazyInject()
 
-    @Inject
-    private val projectManager: ProjectManager? = null
-    override fun getTabTitle(): String {
-        return "Home"
-    }
+	override fun getTabTitle(): String {
+		return "Home"
+	}
 
-    override fun getContentTable(): Table {
-        return visTable
-    }
+	override fun getContentTable(): Table {
+		return visTable
+	}
 
-    override fun onShow() {
-        super.onShow()
-    }
-
-    init {
-        visTable.top()
-        visTable.row().height(128f)
-        visTable.add(TextWidget("Meta"))
-        visTable.row().height(64f)
-        visTable.add()
-        visTable.row()
-        val visLabel = VisLabel("Welcome to the Meta Engine\nCreate or load a project\n\nRecent projects:")
-        visLabel.setAlignment(Align.center)
-        visTable.add(visLabel).pad(16f)
-        if (!metaData!!.has("lastProjects")) {
-            metaData.save("lastProjects", Array<String>())
-        }
-        val lastProjects: Array<String> = metaData.get("lastProjects", Array::class.java)
-        for (lastProj in lastProjects) {
-            visTable.row()
-            val linkLabel = LinkLabel(lastProj.substring(0, lastProj.lastIndexOf("/")))
-            linkLabel.listener =
-                LinkLabelListener { url: String? -> projectManager!!.loadProject(Gdx.files.absolute(lastProj)) }
-            visTable.add(linkLabel).center().pad(2f)
-        }
-    }
+	init {
+		visTable.top()
+		visTable.row().height(128f)
+		visTable.add(TextWidget("Meta"))
+		visTable.row().height(64f)
+		visTable.add()
+		visTable.row()
+		val visLabel = VisLabel("Welcome to the Meta Engine\nCreate or load a project\n\nRecent projects:")
+		visLabel.setAlignment(Align.center)
+		visTable.add(visLabel).pad(16f)
+		if (!metaData.has("lastProjects")) {
+			metaData.save("lastProjects", Array<String>())
+		}
+		val lastProjects: Array<String> = metaData["lastProjects"]
+		for (lastProj in lastProjects) {
+			visTable.row()
+			val linkLabel = LinkLabel(lastProj.substring(0, lastProj.lastIndexOf("/")))
+			linkLabel.listener = LinkLabelListener { projectManager.loadProject(Gdx.files.absolute(lastProj)) }
+			visTable.add(linkLabel).center().pad(2f)
+		}
+	}
 }

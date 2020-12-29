@@ -6,6 +6,7 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener
 import de.fatox.meta.Meta
 import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
 import org.slf4j.Logger
 
 private val log: Logger = MetaLoggerFactory.logger {}

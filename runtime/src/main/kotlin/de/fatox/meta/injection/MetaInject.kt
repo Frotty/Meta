@@ -19,6 +19,10 @@ class InjectionKey(val kClass: KClass<*>, val name: String?) {
 	override fun hashCode(): Int {
 		return 31 * kClass.hashCode() + (name?.hashCode() ?: 0)
 	}
+
+	override fun toString(): String {
+		return "InjectionKey(kClass=${kClass.qualifiedName}, name=$name)"
+	}
 }
 
 open class MetaInject {
@@ -47,27 +51,50 @@ open class MetaInject {
 	}
 
 	inline fun <reified T : Any> singleton(name: String? = null, noinline singleton: () -> T) {
-		if (name == "default") singletons[InjectionKey(T::class, null)] = singleton
+		// Can't add a singleton that is already cached
+		check(singletonCache[InjectionKey(T::class, name)] == null)
+		{ "Can not add singleton for ${T::class.qualifiedName} with name $name" }
+
+		if (name == "default" && singletons[InjectionKey(T::class, null)] == null)
+			singletons[InjectionKey(T::class, null)] = singleton
 		singletons[InjectionKey(T::class, name)] = singleton
 	}
 
 	inline fun <reified T : Any> singleton(singleton: T, name: String? = null) {
-		if (name == "default") singletonCache[InjectionKey(T::class, null)] = singleton
-		singletonCache[InjectionKey(T::class, name)] = singleton
+		// Can't add a singleton that is already cached
+		check(singletonCache[InjectionKey(T::class, name)] == null)
+		{ "Can not add singleton for ${T::class.qualifiedName} with name $name" }
+
+		if (name == "default") // Don't save default values in the cache directly
+			singleton(name) { singleton }
+		else
+			singletonCache[InjectionKey(T::class, name)] = singleton
 	}
 
 	companion object : MetaInject() {
-		var lazyType = LazyThreadSafetyMode.NONE
+		var lazyType: LazyThreadSafetyMode = LazyThreadSafetyMode.NONE
 
 		@PublishedApi
-		internal val scopes = mutableMapOf<String, MetaInject>()
+		internal val scopes: MutableMap<String, MetaInject> = mutableMapOf()
 
-		inline fun global(context: MetaInject.() -> Unit): MetaInject {
+		inline fun global(clear: Boolean = false, context: MetaInject.() -> Unit): MetaInject {
+			if (clear) {
+				providers.clear()
+				singletons.clear()
+				singletonCache.clear()
+			}
 			return this.apply(context)
 		}
 
-		inline fun scope(name: String, context: MetaInject.() -> Unit = {}): MetaInject {
-			return scopes.getOrPut(name) { MetaInject() }.apply(context)
+		inline fun scope(clear: Boolean = false, name: String, context: MetaInject.() -> Unit = {}): MetaInject {
+			return scopes.getOrPut(name) { MetaInject() }.apply {
+				if (clear) {
+					providers.clear()
+					singletons.clear()
+					singletonCache.clear()
+				}
+				context()
+			}
 		}
 	}
 }

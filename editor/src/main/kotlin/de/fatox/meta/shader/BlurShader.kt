@@ -14,12 +14,9 @@ import de.fatox.meta.graphics.renderer.FullscreenShader
  * Created by Frotty on 20.05.2016.
  */
 class BlurShader : FullscreenShader() {
-    private var program: ShaderProgram? = null
+    override var program: ShaderProgram? = null
+        private set
     private val s_inputTex = 0
-    override fun getProgram(): ShaderProgram? {
-        return program
-    }
-
     private val temp = Matrix4()
     override fun init() {
         val vert = Gdx.files.internal("shaders/ssaoblur.vert").readString()

@@ -5,76 +5,43 @@ import com.badlogic.gdx.graphics.g2d.Animation.PlayMode
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.utils.Array
-
-interface IAnimationHandler {
-	val stateTime: Float
-	val currentAnimation: Animation<TextureRegion>
-	val isPlaying: Boolean
-
-	/**
-	 * @return The to be rendered frame of the animation
-	 */
-	val currentFrame: TextureRegion
-	val isFinished: Boolean
-
-	/**
-	 * Plays the given animation instantly
-	 */
-	fun playAnimation(animation: Animation<TextureRegion>)
-
-	/**
-	 * Queues the given animation to be played after the current one finishes,
-	 * if it is not queued already.
-	 */
-	fun queueAnimation(animation: Animation<TextureRegion>)
-
-	/**
-	 * Internally updates the animation
-	 */
-	fun update(delta: Float)
-
-	/**
-	 * Randomizes the timeState
-	 */
-	fun randomizeState()
-
-	/**
-	 * Stops the current animation from playing.
-	 * It will still stay as the last animation and return the same frame.
-	 */
-	fun stopAnimation()
-	fun hasNoQueue(): Boolean
-	fun hasQueue(): Boolean
-}
+import de.fatox.meta.api.AnimationHandler
 
 /**
- * Wraps a libGDX Animation, tracking state time and a queue of animations.
- * Queued animations will play once the current animation has finished.
+ * Default [AnimationHandler] implementation.
+ *
+ * @constructor Creates a new instance of [AnimationHandler].
  */
-class AnimationHandler(
-	currentAnimation: Animation<TextureRegion> = MockAnimation,
-	var animQueue: Array<Animation<TextureRegion>> = Array(2),
-	override var stateTime: Float = 0f
-) : IAnimationHandler {
-	override var currentAnimation: Animation<TextureRegion> = currentAnimation
+class MetaAnimationHandler(
+	private val defaultAnimation: Animation<TextureRegion>,
+	private val startingQueueSize: Int = 2,
+	private val startingStateTime: Float = 0f,
+	override var stateTime: Float = startingStateTime,
+) : AnimationHandler {
+	/** The animation queue filled by [queue]. */
+	private val animationQueue: Array<Animation<TextureRegion>> = Array(startingQueueSize)
+
+	override var currentAnimation: Animation<TextureRegion> = defaultAnimation
 		private set
 
-	override var isPlaying = false
+	override var isPlaying: Boolean = false
 		private set
 
-	override val currentFrame: TextureRegion get() = currentAnimation.getKeyFrame(stateTime)
+	override fun playDefault() {
+		stateTime = 0f
+		currentAnimation = defaultAnimation
+		isPlaying = true
+	}
 
-	override val isFinished: Boolean get() = currentAnimation.isAnimationFinished(stateTime)
-
-	override fun playAnimation(animation: Animation<TextureRegion>) {
+	override fun play(animation: Animation<TextureRegion>) {
 		stateTime = 0f
 		currentAnimation = animation
 		isPlaying = true
 	}
 
-	override fun queueAnimation(animation: Animation<TextureRegion>) {
-		if (animQueue.size == 0 || animQueue.peek() !== animation) {
-			animQueue.add(animation)
+	override fun queue(animation: Animation<TextureRegion>) {
+		if (animationQueue.isEmpty || animationQueue.peek() !== animation) {
+			animationQueue.add(animation)
 		}
 	}
 
@@ -83,8 +50,8 @@ class AnimationHandler(
 
 		stateTime += delta
 		if (currentAnimation.playMode == PlayMode.NORMAL && currentAnimation.isAnimationFinished(stateTime)) {
-			if (animQueue.size > 0) {
-				currentAnimation = animQueue.pop()
+			if (animationQueue.size > 0) {
+				currentAnimation = animationQueue.pop()
 				stateTime = 0f
 			} else {
 				stateTime = currentAnimation.animationDuration
@@ -93,15 +60,23 @@ class AnimationHandler(
 		}
 	}
 
-	override fun randomizeState() {
-		stateTime = MathUtils.random(0f, currentAnimation.animationDuration)
+	override fun randomizeStateTime() {
+		stateTime = MathUtils.random(0f, currentAnimation.animationDuration) // TODO replace with own random
 	}
 
-	override fun stopAnimation() {
+	override fun pause() {
 		isPlaying = false
 	}
 
-	override fun hasNoQueue(): Boolean = animQueue.size == 0
+	override fun reset() {
+		isPlaying = false
+		stateTime = startingStateTime
+		animationQueue.clear()
+		animationQueue.setSize(startingQueueSize)
+		currentAnimation = defaultAnimation
+	}
 
-	override fun hasQueue(): Boolean = animQueue.size > 0
+	override fun isQueueEmpty(): Boolean = animationQueue.isEmpty
+
+	override fun isQueueNotEmpty(): Boolean = animationQueue.notEmpty()
 }

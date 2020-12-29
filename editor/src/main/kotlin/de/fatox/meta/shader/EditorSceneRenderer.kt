@@ -11,7 +11,6 @@ import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Array
-import de.fatox.meta.Meta
 import de.fatox.meta.Primitives
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.graphics.Renderer
@@ -19,23 +18,18 @@ import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.graphics.renderer.FullscreenQuad
-import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.MetaLabel
 
 /**
  * Created by Frotty on 17.04.2017.
  */
 class EditorSceneRenderer : Renderer {
-	@Inject
-	private lateinit var batch: SpriteBatch
-	@Inject
-	private lateinit var shaderComposer: MetaShaderComposer
-	@Inject
-	private lateinit var cam: PerspectiveCamera
-	@Inject
-	private lateinit var primitives: Primitives
-	@Inject
-	private lateinit var uiManager: UIManager
+	private val batch: SpriteBatch by lazyInject()
+	private val shaderComposer: MetaShaderComposer by lazyInject()
+	private val cam: PerspectiveCamera by lazyInject()
+	private val primitives: Primitives by lazyInject()
+	private val uiManager: UIManager by lazyInject()
 
 	private val grid: Meta3DEntity
 
@@ -54,12 +48,11 @@ class EditorSceneRenderer : Renderer {
 	private var lastComposition: ShaderComposition? = null
 
 	init {
-		Meta.inject(this)
-		grid = Meta3DEntity(Vector3.Zero, primitives.terraingrid, 1f)
+
+		grid = Meta3DEntity(Vector3.Zero, primitives.terrainGrid, 1f)
 	}
 
 	override fun render(x: Float, y: Float) {
-
 		if (sceneHandle != null) {
 			if (sceneHandle?.shaderComposition == null) {
 				val table = Table()

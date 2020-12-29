@@ -5,19 +5,19 @@ import com.badlogic.gdx.utils.Array
 /**
  * A MetaTask is any action that should be reversible and actions that are not instant
  */
-abstract class MetaTask {
-    private val listeners = Array<TaskListener>()
-    fun run() {
-        for (listener in listeners) {
-            listener.onStart()
-        }
-        execute()
-        for (listener in listeners) {
-            listener.onFinish()
-        }
-    }
+abstract class MetaTask(val name: String) {
+	private val listeners = Array<TaskListener>()
 
-    abstract val name: String?
-    abstract fun execute()
-    abstract fun undo()
+	fun run() {
+		for (listener in listeners) {
+			listener.onStart()
+		}
+		execute()
+		for (listener in listeners) {
+			listener.onFinish()
+		}
+	}
+
+	abstract fun execute()
+	abstract fun undo()
 }

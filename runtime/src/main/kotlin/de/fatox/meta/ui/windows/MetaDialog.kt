@@ -1,71 +1,67 @@
 package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.scenes.scene2d.Event
-import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.utils.Align
 import com.kotcrab.vis.ui.widget.VisImageButton
 import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.VisTable
-import de.fatox.meta.ui.components.MetaClickListener
+import de.fatox.meta.api.extensions.onClick
 
 /**
  * Created by Frotty on 04.06.2016.
  */
-abstract class MetaDialog(title: String?, hasCloseButton: Boolean) : MetaWindow(title!!, false, hasCloseButton) {
-    protected val buttonTable = VisTable()
-    @kotlin.jvm.JvmField
-	protected val statusLabel = VisLabel()
-    protected var dialogListener: DialogListener? = null
-    private var buttonCount = 0
+abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWindow(title, false, hasCloseButton) {
+	protected val buttonTable: VisTable = VisTable()
+	protected val statusLabel: VisLabel = VisLabel()
 
-    interface DialogListener {
-        fun onResult(`object`: Any?)
-    }
+	var dialogListener: DialogListener = EmptyListener
+	private var buttonCount = 0
 
-    fun <T : Button?> addButton(button: Button, align: Int, result: Any?): T {
-        button.addListener(object : MetaClickListener() {
-            override fun clicked(event: InputEvent, x: Float, y: Float) {
-                if (!button.isDisabled && dialogListener != null) {
-                    dialogListener!!.onResult(result)
-                }
-            }
-        })
-        if (buttonCount > 0) {
-            buttonTable.add().growX()
-        }
-        buttonCount++
-        buttonTable.add(button).align(align)
-        return button as T
-    }
+	fun interface DialogListener {
+		fun onResult(any: Any?)
+	}
 
-    open fun show() {
-        // Set color invisible for fade in to work
-        centerWindow()
-        setColor(1f, 1f, 1f, 0f)
-        addAction(Actions.alpha(0.95f, 0.75f))
-        Gdx.input.isCursorCatched = false
-    }
+	object EmptyListener : DialogListener {
+		override fun onResult(any: Any?): Unit = Unit
+	}
 
-    fun setDialogListener(dialogListener: DialogListener?) {
-        this.dialogListener = dialogListener
-    }
+	fun <T : Button> addButton(button: T, align: Int, result: Any?): T {
+		button.onClick<Button> {
+			if (!button.isDisabled) {
+				dialogListener.onResult(result)
+			}
+		}
+		if (buttonCount > 0) {
+			buttonTable.add().growX()
+		}
+		buttonCount++
+		buttonTable.add(button).align(align)
+		return button
+	}
 
-    init {
-        if (hasCloseButton) {
-            val btn = titleTable.cells[titleTable.cells.size - 1].actor
-            (btn as? VisImageButton)?.addListener { event: Event? ->
-                dialogListener!!.onResult(null)
-                false
-            }
-        }
-        contentTable.top().padTop(4f)
-        statusLabel.setAlignment(Align.center)
-        statusLabel.wrap = true
-        add(statusLabel).growX()
-        row()
-        add(buttonTable).bottom().growX()
-    }
+	open fun show() {
+		// Set color invisible for fade in to work
+		centerWindow()
+		setColor(1f, 1f, 1f, 0f)
+		addAction(Actions.alpha(0.95f, 0.75f))
+		Gdx.input.isCursorCatched = false
+	}
+
+	init {
+		if (hasCloseButton) {
+			val btn = titleTable.cells[titleTable.cells.size - 1].actor
+			(btn as? VisImageButton)?.addListener {
+				dialogListener.onResult(null)
+				false
+			}
+		}
+		contentTable.top().padTop(4f)
+		statusLabel.setAlignment(Align.center)
+		statusLabel.wrap = true
+		add(statusLabel).growX()
+		row()
+		add(buttonTable).bottom().growX()
+	}
 }

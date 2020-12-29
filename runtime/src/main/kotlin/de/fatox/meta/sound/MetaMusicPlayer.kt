@@ -1,163 +1,217 @@
 package de.fatox.meta.sound
 
 import com.badlogic.gdx.audio.Music
+import com.badlogic.gdx.utils.*
 import com.badlogic.gdx.utils.Array
-import com.badlogic.gdx.utils.ObjectMap
-import com.badlogic.gdx.utils.Timer
-import de.fatox.meta.Meta.Companion.inject
+import com.badlogic.gdx.utils.Timer.Task
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.error
+import de.fatox.meta.api.get
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.assets.MetaData
-import de.fatox.meta.injection.Inject
+import de.fatox.meta.assets.get
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import org.slf4j.Logger
+
+object UninitializedMusic : Music {
+	override fun dispose(): Unit = Unit
+
+	override fun play(): Unit = Unit
+
+	override fun pause(): Unit = Unit
+
+	override fun stop(): Unit = Unit
+
+	override fun isPlaying(): Boolean = false
+
+	override fun setLooping(isLooping: Boolean): Unit = Unit
+
+	override fun isLooping(): Boolean = false
+
+	override fun setVolume(volume: Float): Unit = Unit
+
+	override fun getVolume(): Float = 0f
+
+	override fun setPan(pan: Float, volume: Float): Unit = Unit
+
+	override fun setPosition(position: Float): Unit = Unit
+
+	override fun getPosition(): Float = 0f
+
+	override fun setOnCompletionListener(listener: Music.OnCompletionListener?): Unit = Unit
+}
+
+private val log: Logger = MetaLoggerFactory.logger {}
+private const val MAX_RESTART_TIMES = 10
 
 /**
  * Created by Frotty on 09.11.2016.
  */
-class MetaMusicPlayer {
-    @Inject
-    private val metaData: MetaData? = null
+class MetaMusicPlayer : Disposable {
+	private val metaData: MetaData by lazyInject()
+	private val assetProvider: AssetProvider by lazyInject()
+	private var restartCount = 0
 
-    @Inject
-    private val assetProvider: AssetProvider? = null
-    private var task: Timer.Task? = null
-    private val startVolume = 0.01f
-    private var musicEnabled = true
-    private var currentMusic: Music? = null
-    private var nextMusic: Music? = null
-    private val allPool = Array<Music?>()
-    private val activePool = Array<Music?>()
-    private val musicCache = ObjectMap<String, Music?>()
-    private val timer = Timer()
-    fun start() {
-        // Start Timer to update music
-        task = timer.scheduleTask(object : Timer.Task() {
-            override fun run() {
-                updateMusic()
-            }
-        }, 0f, 0.1f)
-    }
+	private val task: Task = object : Task() {
+		override fun run() {
+			try {
+				updateMusic()
+			} catch (e: GdxRuntimeException) {
+				// TODO what to do to prevent restarting every time?
+				if (++restartCount > MAX_RESTART_TIMES) cancel()
 
-    private fun updateMusic() {
-        val audioVideoData = metaData!!.get("audioVideoData", MetaAudioVideoData::class.java)
-        val volume = audioVideoData!!.masterVolume * audioVideoData.musicVolume
-        if (!musicEnabled || volume <= startVolume) {
-            if (currentMusic != null) {
-                currentMusic!!.volume = 0f
-            }
-            return
-        }
-        if (currentMusic == null || !currentMusic!!.isPlaying) {
-            if (nextMusic == null) {
-                nextFromPool()
-            } else {
-                startMusic(nextMusic)
-            }
-        }
-        if (currentMusic != null) {
-            if (currentMusic!!.volume < startVolume) {
-                finishMusic()
-            } else {
-                fadeInOut(volume)
-                if (currentMusic!!.volume > volume) {
-                    currentMusic!!.volume = volume
-                }
-            }
-        }
-    }
+				log.error { "Failed to update music $restartCount time(s)!" }
 
-    private fun finishMusic() {
-        currentMusic!!.stop()
-        // Check if there is a track queued
-        if (nextMusic != null) {
-            currentMusic = nextMusic
-            nextMusic = null
-            currentMusic!!.play()
-            currentMusic!!.volume = startVolume
-        }
-    }
+				// Dispose and reload current music. The call to updateMusic is skipped, as it is called on a timer.
+				if (currentMusic !== UninitializedMusic) {
+					val currentKey = musicCache.findKey(currentMusic, true)
+					log.error { "Failed to play: $currentKey" }
+					val newMusic = musicCache.put(currentKey, assetProvider[currentKey])
+					allPool.removeValue(currentMusic, true)
+					allPool.add(newMusic)
+					activePool.clear()
+					currentMusic.dispose()
+					currentMusic = UninitializedMusic
+				}
+			}
+		}
+	}
+	private val startVolume = 0.01f
+	private var musicEnabled = true
+	private var currentMusic: Music = UninitializedMusic
+	private var nextMusic: Music = UninitializedMusic
+	private val allPool = Array<Music>()
+	private val activePool = Array<Music>()
+	private val musicCache = ObjectMap<String, Music>()
+	private val timer = Timer()
 
-    private fun fadeInOut(volume: Float) {
-        if (nextMusic != null && currentMusic!!.isPlaying) {
-            currentMusic!!.volume = currentMusic!!.volume * 0.4f
-        } else if (currentMusic!!.volume >= startVolume && currentMusic!!.volume < volume) {
-            currentMusic!!.volume = currentMusic!!.volume * 3f
-        }
-    }
+	fun start() {
+		// Start Timer to update music
+		timer.scheduleTask(task, 0f, 0.1f)
+	}
 
-    fun playMusic(musicPath: String) {
-        val music = getMusic(musicPath)
-        if (currentMusic == null || !currentMusic!!.isPlaying) {
-            startMusic(music)
-        } else {
-            nextMusic = music
-        }
-    }
+	private fun updateMusic() {
+		val audioVideoData: MetaAudioVideoData = metaData["audioVideoData"]
+		val volume = audioVideoData.masterVolume * audioVideoData.musicVolume
+		if (!musicEnabled || volume <= startVolume) {
+			if (currentMusic !== UninitializedMusic)
+				currentMusic.volume = 0f
+			return
+		}
+		if (currentMusic === UninitializedMusic || !currentMusic.isPlaying) {
+			if (nextMusic === UninitializedMusic) {
+				nextFromPool()
+			} else {
+				startMusic(nextMusic)
+			}
+		}
+		if (currentMusic !== UninitializedMusic) {
+			if (currentMusic.volume < startVolume) {
+				finishMusic()
+			} else {
+				fadeInOut(volume)
+				if (currentMusic.volume > volume) {
+					currentMusic.volume = volume
+				}
+			}
+		}
+	}
 
-    private fun startMusic(music: Music?) {
-        currentMusic = music
-        currentMusic!!.play()
-        currentMusic!!.volume = startVolume
-    }
+	private fun finishMusic() {
+		currentMusic.stop()
+		// Check if there is a track queued
+		if (nextMusic !== UninitializedMusic) {
+			currentMusic = nextMusic
+			nextMusic = UninitializedMusic
+			currentMusic.play()
+			currentMusic.volume = startVolume
+		}
+	}
 
-    private fun getMusic(musicPath: String): Music? {
-        if (!musicCache.containsKey(musicPath)) {
-            val music = assetProvider!!.get(musicPath, Music::class.java)
-            musicCache.put(musicPath, music)
-        }
-        return musicCache.get(musicPath)
-    }
+	private fun fadeInOut(volume: Float) {
+		if (nextMusic !== UninitializedMusic && currentMusic.isPlaying) {
+			currentMusic.volume *= 0.4f
+		} else if (currentMusic.volume >= startVolume && currentMusic.volume < volume) {
+			currentMusic.volume *= 3f
+		}
+	}
 
-    fun addMusicToPool(musicName: String) {
-        val music = getMusic(musicName)
-        allPool.add(music)
-    }
+	fun playMusic(musicPath: String) {
+		val music = getMusic(musicPath)
+		if (currentMusic === UninitializedMusic || !currentMusic.isPlaying) {
+			startMusic(music)
+		} else {
+			nextMusic = music
+		}
+	}
 
-    fun nextFromPool() {
-        if (activePool.size == 0 && allPool.size > 0) {
-            activePool.addAll(allPool)
-            activePool.shuffle()
-        }
-        if (activePool.size <= 0) return
-        if (currentMusic == null) {
-            startMusic(activePool.pop())
-        } else {
-            nextMusic = activePool.pop()
-        }
-    }
+	private fun startMusic(music: Music) {
+		currentMusic = music
+		currentMusic.play()
+		currentMusic.volume = startVolume
+	}
 
-    fun isMusicEnabled(): Boolean {
-        return musicEnabled
-    }
+	private fun getMusic(musicPath: String): Music {
+		if (!musicCache.containsKey(musicPath)) {
+			musicCache.put(musicPath, assetProvider[musicPath])
+		}
+		return musicCache.get(musicPath)
+	}
 
-    fun setMusicEnabled(musicEnabled: Boolean) {
-        this.musicEnabled = musicEnabled
-        if (!musicEnabled) {
-            nextMusic = null
-            currentMusic!!.stop()
-            currentMusic = null
-        }
-    }
+	fun addMusicToPool(musicName: String) {
+		val music = getMusic(musicName)
+		allPool.add(music)
+	}
 
-    private var vol = 1f
-    fun silenceMusic(musicEnabled: Boolean) {
-        if (currentMusic != null) {
-            if (musicEnabled) {
-                currentMusic!!.volume = vol
-                if (!task!!.isScheduled) {
-                    timer.scheduleTask(task, 0f, 0.1f)
-                }
-            } else {
-                vol = currentMusic!!.volume
-                currentMusic!!.volume = 0f
-                task!!.cancel()
-            }
-        }
-    }
+	fun nextFromPool() {
+		if (activePool.size == 0 && allPool.size > 0) {
+			activePool.addAll(allPool)
+			activePool.shuffle()
+		}
+		if (activePool.size <= 0) return
+		if (currentMusic === UninitializedMusic) {
+			startMusic(activePool.pop())
+		} else {
+			nextMusic = activePool.pop()
+		}
+	}
 
-    val isMusicPlaying: Boolean
-        get() = currentMusic != null && currentMusic!!.isPlaying
+	fun isMusicEnabled(): Boolean {
+		return musicEnabled
+	}
 
-    init {
-        inject(this)
-    }
+	fun setMusicEnabled(musicEnabled: Boolean) {
+		this.musicEnabled = musicEnabled
+		if (!musicEnabled) {
+			nextMusic = UninitializedMusic
+			currentMusic.stop()
+			currentMusic = UninitializedMusic
+		}
+	}
+
+	private var vol = 1f
+	fun silenceMusic(musicEnabled: Boolean) {
+		if (currentMusic !== UninitializedMusic) {
+			if (musicEnabled) {
+				currentMusic.volume = vol
+				if (!task.isScheduled) {
+					timer.scheduleTask(task, 0f, 0.1f)
+				}
+			} else {
+				vol = currentMusic.volume
+				currentMusic.volume = 0f
+				task.cancel()
+			}
+		}
+	}
+
+	val isMusicPlaying: Boolean get() = currentMusic !== UninitializedMusic && currentMusic.isPlaying
+
+	override fun dispose() {
+		musicCache.clear()
+		activePool.clear()
+		allPool.forEach { it.dispose() }
+		allPool.clear()
+	}
 }

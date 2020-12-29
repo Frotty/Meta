@@ -6,24 +6,21 @@ import com.badlogic.gdx.utils.Array
 /**
  * A MetaTask is any action that should be reversible and actions that are not instant
  */
-abstract class MetaTaskQueue(private val progressBar: ProgressBar, vararg tasks: MetaTask?) : MetaTask() {
-    private var currentTask: MetaTask? = null
-    private val tasks = Array<MetaTask>()
-    fun add(task: MetaTask, startIfEmpty: Boolean) {
-        tasks.add(task)
-        if (currentTask == null && startIfEmpty && tasks.size == 1) {
-            start()
-        }
-    }
+abstract class MetaTaskQueue(private val progressBar: ProgressBar, name: String, vararg tasks: MetaTask) :
+	MetaTask(name) {
+	private val tasks: Array<MetaTask> = Array(tasks)
+	private lateinit var currentTask: MetaTask
 
-    fun start() {
-        currentTask = tasks.pop()
-        currentTask.execute()
-    }
+	fun add(task: MetaTask, startIfEmpty: Boolean) {
+		tasks.add(task)
+		if (::currentTask.isInitialized && startIfEmpty && tasks.size == 1) {
+			start()
+		}
+	}
 
-    fun onTaskFinished(task: MetaTask?) {}
+	fun start() {
+		currentTask = tasks.pop().also { it.execute() }
+	}
 
-    init {
-        this.tasks.addAll(*tasks)
-    }
+	fun onTaskFinished(task: MetaTask?) {}
 }

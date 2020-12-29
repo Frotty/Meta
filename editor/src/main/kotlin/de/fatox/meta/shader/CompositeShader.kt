@@ -14,15 +14,12 @@ import de.fatox.meta.graphics.renderer.FullscreenShader
  * Created by Frotty on 20.05.2016.
  */
 class CompositeShader : FullscreenShader() {
-    private var program: ShaderProgram? = null
+    override var program: ShaderProgram? = null
+        private set
     private val s_albedoTex = 0
     private var s_depthTex = 0
     private var u_nearDistance = 0
     private var u_farDistance = 0
-    override fun getProgram(): ShaderProgram? {
-        return program
-    }
-
     private val temp = Matrix4()
     override fun init() {
         val vert = Gdx.files.internal("shaders/composite.vert").readString()

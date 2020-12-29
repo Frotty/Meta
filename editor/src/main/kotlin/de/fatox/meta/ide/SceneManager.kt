@@ -8,7 +8,7 @@ import de.fatox.meta.shader.MetaSceneHandle
  * Created by Frotty on 15.06.2016.
  */
 interface SceneManager {
-    fun createNew(name: String): MetaSceneHandle
-    fun loadScene(projectFile: FileHandle)
-    fun saveScene(sceneData: MetaSceneData?)
+	fun createNew(name: String): MetaSceneHandle
+	fun loadScene(projectFile: FileHandle)
+	fun saveScene(sceneData: MetaSceneData)
 }

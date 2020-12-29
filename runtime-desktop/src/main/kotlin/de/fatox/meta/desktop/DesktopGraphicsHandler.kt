@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.glutils.GLFrameBuffer
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.GdxRuntimeException
+import com.sun.org.apache.xpath.internal.operations.Mult
 import de.fatox.meta.api.GraphicsHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.graphics.buffer.MultisampleFBO

@@ -1,23 +1,24 @@
 package de.fatox.meta.api
 
-interface PosModifier {
-    fun modify(x: Int, y: Int)
+interface WindowHandler {
+	/** Current X position of the current window. Defaults to zero if unknown. */
+	val x: Int
 
-    fun getX(): Int
-    fun getY(): Int
+	/** Current Y position of the current window. Defaults to zero if unknown. */
+	val y: Int
+
+	/** Tries to set the current window position to the given coordinates ([x], [y]). */
+	fun modify(x: Int, y: Int)
+
+	/** Tries to iconify the current window. */
+	fun iconify()
 }
 
-class DummyPosModifier : PosModifier {
-    override fun getX(): Int {
-        return -1
-    }
+object NoWindowHandler : WindowHandler {
+	override val x: Int = 0
+	override val y: Int = 0
 
-    override fun getY(): Int {
-        return -1
-    }
+	override fun modify(x: Int, y: Int): Unit = Unit
 
-    override fun modify(x: Int, y: Int) {
-
-    }
-
+	override fun iconify(): Unit = Unit
 }

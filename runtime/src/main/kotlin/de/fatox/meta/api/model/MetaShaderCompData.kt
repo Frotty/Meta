@@ -8,8 +8,7 @@ import com.badlogic.gdx.utils.Array
  * The order and execution of the buffer defines their composition.
  */
 data class MetaShaderCompData(var name: String = "Unnamed ShaderComp") {
-    val renderBuffers: Array<RenderBufferData> = Array()
-
+	val renderBuffers: Array<RenderBufferData> = Array()
 }
 
 

@@ -5,7 +5,6 @@ import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.util.adapter.ArrayAdapter
 import com.kotcrab.vis.ui.util.adapter.SimpleListAdapter.SimpleListAdapterStyle
 import com.kotcrab.vis.ui.widget.VisTable
-import de.fatox.meta.Meta.Companion.inject
 import de.fatox.meta.ui.components.MetaTextButton
 
 class FolderListAdapter<ItemT>(array: Array<ItemT>?) : ArrayAdapter<ItemT, VisTable>(array) {
@@ -27,7 +26,6 @@ class FolderListAdapter<ItemT>(array: Array<ItemT>?) : ArrayAdapter<ItemT, VisTa
     }
 
     init {
-        inject(this)
         style = VisUI.getSkin().get("default", SimpleListAdapterStyle::class.java)
     }
 }

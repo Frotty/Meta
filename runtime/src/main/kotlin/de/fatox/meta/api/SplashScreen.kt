@@ -6,38 +6,44 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
-    private val spriteBatch: SpriteBatch by lazyInject()
-    private val uiRenderer: UIRenderer by lazyInject()
+	private val spriteBatch: SpriteBatch by lazyInject()
+	private val uiRenderer: UIRenderer by lazyInject()
 
-    private var sprite: Sprite? = null
-    private var f = 0f
+	private val sprite: Sprite by lazy(LazyThreadSafetyMode.NONE) {
+		Sprite(Texture(Gdx.files.internal("textures/meta_logo2.png")))
+	}
+	private var f = 0f
 
-    override fun show() {
-        val internal = Gdx.files.internal("textures/meta_logo2.png")
-        sprite = Sprite(Texture(internal))
-        val width = Gdx.graphics.width
-        val height = Gdx.graphics.height
-        sprite?.setPosition(width / 2 - sprite!!.width / 2, height / 2 - sprite!!.height / 2)
-    }
+	override fun show() {
+		val width = Gdx.graphics.width
+		val height = Gdx.graphics.height
+		sprite.setPosition(width / 2 - sprite.width / 2, height / 2 - sprite.height / 2)
+	}
 
-    override fun render(delta: Float) {
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
-		Gdx.gl.glClearColor(0.2f, 0.2f, 0.2f, 0f)
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        spriteBatch.begin()
-        sprite?.draw(spriteBatch)
-        spriteBatch.end()
-        if (f >= 1f) {
-            f = -99999999f
-            cb.invoke()
-            uiRenderer.load()
-        }
-        f += 1
-    }
+	override fun dispose() {
+		sprite.texture.dispose()
+	}
 
+	override fun render(delta: Float) {
+		Gdx.gl.apply {
+			glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+			glClearColor(0.2f, 0.2f, 0.2f, 0f)
+			glClear(GL20.GL_COLOR_BUFFER_BIT)
+		}
 
+		spriteBatch.use {
+			sprite.draw(spriteBatch)
+		}
+
+		if (f++ >= 1f) {
+			f = -99999999f
+			cb.invoke()
+			uiRenderer.load()
+		}
+	}
 }

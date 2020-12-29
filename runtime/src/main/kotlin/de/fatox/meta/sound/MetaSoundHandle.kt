@@ -6,78 +6,75 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.TimeUtils
-import de.fatox.meta.Meta.Companion.inject
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.assets.MetaData
-import de.fatox.meta.injection.Inject
+import de.fatox.meta.assets.get
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 class MetaSoundHandle(private val definition: MetaSoundDefinition) {
-    @Inject
-    private val shapeRenderer: ShapeRenderer? = null
+	private val shapeRenderer: ShapeRenderer by lazyInject()
+	private val metaData: MetaData by lazyInject()
 
-    @Inject
-    private val metaData: MetaData? = null
-    private val audioVideoData: MetaAudioVideoData?
-    private var handleId: Long = 0
+	private val audioVideoData: MetaAudioVideoData
+	private var handleId: Long = 0
 
-    // For 2d positioning
-    private var soundPos: Vector2? = null
-    val startTime: Long
-    private var done = false
-    val isPlaying = true
-    fun calcPan(listenerPos: Vector2): Float {
-        val audibleRange = Gdx.graphics.height * 0.4f
-        val xPan = soundPos!!.x - listenerPos.x
-        return MathUtils.clamp(xPan / audibleRange, -1f, 1f) * 0.90f
-    }
+	// For 2d positioning
+	var soundPos: Vector2 = Vector2.Zero.cpy()
+		set(value) {
+			this.soundPos.set(value)
+		}
 
-    fun calcVolume(listenerPos: Vector2, terminate: Boolean): Float {
-        val audibleRange = Gdx.graphics.height * 0.4f
-        val audibleRangeSquared = audibleRange * audibleRange
-        val distSquared = listenerPos.dst2(soundPos)
-        val volumeMod = audioVideoData!!.masterVolume * audioVideoData.soundVolume
-        if (terminate && distSquared > audibleRangeSquared) {
-            setDone()
-        }
-        return volumeMod * definition.volume * MathUtils.clamp(1 - distSquared / audibleRangeSquared, 0f, 1f)
-    }
+	val startTime: Long = TimeUtils.millis()
 
-    fun setSoundPosition(listenerPos: Vector2?, soundPos: Vector2?) {
-        this.soundPos = soundPos
-    }
+	var isDone: Boolean = false
+		get() = field || !definition.isLooping && TimeUtils.timeSinceMillis(startTime) > definition.duration
+		private set
 
-    fun calcVolAndPan(listenerPos: Vector2) {
-        definition.sound.setPan(handleId, calcPan(listenerPos), calcVolume(listenerPos, true))
-    }
+	fun setDone() {
+		isDone = true
+		stop()
+	}
 
-    fun stop() {
-        definition.sound.stop(handleId)
-    }
+	val isPlaying: Boolean = true
 
-    fun setDone() {
-        done = true
-        stop()
-    }
+	fun calcPan(listenerPos: Vector2): Float {
+		val audibleRange = Gdx.graphics.height * 0.4f
+		val xPan = soundPos.x - listenerPos.x
+		return MathUtils.clamp(xPan / audibleRange, -1f, 1f) * 0.90f
+	}
 
-    fun isDone(): Boolean {
-        return done || !definition.isLooping && TimeUtils.timeSinceMillis(startTime) > definition.duration
-    }
+	fun calcVolume(listenerPos: Vector2, terminate: Boolean): Float {
+		val audibleRange = Gdx.graphics.height * 0.4f
+		val audibleRangeSquared = audibleRange * audibleRange
+		val distSquared = listenerPos.dst2(soundPos)
+		val volumeMod = audioVideoData.masterVolume * audioVideoData.soundVolume
+		if (terminate && distSquared > audibleRangeSquared) {
+			setDone()
+		}
+		return volumeMod * definition.volume * MathUtils.clamp(1 - distSquared / audibleRangeSquared, 0f, 1f)
+	}
 
-    fun debugRender() {
-        shapeRenderer!!.color = Color.CHARTREUSE
-        shapeRenderer.circle(soundPos!!.x + 16, soundPos!!.y + 16, 14f)
-    }
+	fun calcVolAndPan(listenerPos: Vector2) {
+		definition.sound.setPan(handleId, calcPan(listenerPos), calcVolume(listenerPos, true))
+	}
 
-    fun setHandleId(handleId: Long) {
-        this.handleId = handleId
-    }
+	fun stop() {
+		definition.sound.stop(handleId)
+	}
 
-    init {
-        startTime = TimeUtils.millis()
-        if (!isPlaying) {
-            stop()
-        }
-        inject(this)
-        audioVideoData = metaData!!.get("audioVideoData", MetaAudioVideoData::class.java)
-    }
+	fun debugRender() {
+		shapeRenderer.color = Color.CHARTREUSE
+		shapeRenderer.circle(soundPos.x + 16, soundPos.y + 16, 14f)
+	}
+
+	fun setHandleId(handleId: Long) {
+		this.handleId = handleId
+	}
+
+	init {
+		if (!isPlaying) {
+			stop()
+		}
+		audioVideoData = metaData["audioVideoData"]
+	}
 }

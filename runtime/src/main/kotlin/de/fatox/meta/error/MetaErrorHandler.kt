@@ -1,32 +1,27 @@
 package de.fatox.meta.error
 
 import com.badlogic.gdx.utils.Array
-import de.fatox.meta.Meta.Companion.inject
 import de.fatox.meta.api.lang.LanguageBundle
-import de.fatox.meta.injection.Inject
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 class MetaErrorHandler {
-    @Inject
-    private val languageBundle: LanguageBundle? = null
-    private val errors = Array<MetaError>()
-    fun add(metaError: MetaError) {
-        errors.add(metaError)
-    }
+	private val languageBundle: LanguageBundle by lazyInject()
 
-    fun hasErrors(): Boolean {
-        return errors.size > 0
-    }
+	private val errors = Array<MetaError>()
+	fun add(metaError: MetaError) {
+		errors.add(metaError)
+	}
 
-    val labelText: String?
-        get() = if (hasErrors()) {
-            if (errors.size > 1) {
-                languageBundle!!.format("error_found", errors.size)
-            } else {
-                errors[0].name
-            }
-        } else ""
+	fun hasErrors(): Boolean {
+		return errors.size > 0
+	}
 
-    init {
-        inject(this)
-    }
+	val labelText: String
+		get() = if (hasErrors()) {
+			if (errors.size > 1) {
+				languageBundle.format("error_found", errors.size)
+			} else {
+				errors[0].name
+			}
+		} else ""
 }

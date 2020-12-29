@@ -1,47 +1,19 @@
-/*
- * Copyright (c) 2002-2012 LWJGL Project
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- * * Redistributions of source code must retain the above copyright
- *   notice, this list of conditions and the following disclaimer.
- *
- * * Redistributions in binary form must reproduce the above copyright
- *   notice, this list of conditions and the following disclaimer in the
- *   documentation and/or other materials provided with the distribution.
- *
- * * Neither the name of 'LWJGL' nor the names of
- *   its contributors may be used to endorse or promote products derived
- *   from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 package de.fatox.meta.api.graphics
 
-import org.lwjgl.glfw.GLFW
+import com.badlogic.gdx.utils.TimeUtils
 import kotlin.math.max
 
 /**
- * A highly accurate sync method that continually adapts to the system
- * it runs on to provide reliable results.
+ * A highly accurate sync method that continually adapts to the system it runs on to provide reliable results.
  *
  * @author Riven
  * @author kappaOne
  */
 object Sync {
+	/** number of nano seconds in a second  */
+	private const val NANOS_IN_SECOND = 1000L * 1000L * 1000L
+	private const val RESOLUTION = 1000L
+
 	/** The time to sleep/yield until the next frame  */
 	private var nextFrame: Long = 0
 
@@ -85,6 +57,7 @@ object Sync {
 				t0 = t1
 			}
 		} catch (e: InterruptedException) {
+			// Do nothing!
 		}
 
 		// schedule next frame, drop frame(s) if already too late for next frame
@@ -99,22 +72,23 @@ object Sync {
 	 */
 	private fun initialise() {
 		initialised = true
-		sleepDurations.init(1000 * 1000.toLong())
-		yieldDurations.init(((-(time - time) * 1.333).toInt()).toLong())
+		sleepDurations.init((1000 * 1000).toLong())
+		yieldDurations.init((-(time - time) * 1.333).toInt().toLong())
 		nextFrame = time
 		val osName = System.getProperty("os.name")
 		if (osName.startsWith("Win")) {
 			// On windows the sleep functions can be highly inaccurate by
-			// over 10ms making it unusable. However it can be forced to
+			// over 10ms making in unusable. However it can be forced to
 			// be a bit more accurate by running a separate sleeping daemon
 			// thread.
-			val timerAccuracyThread = Thread(Runnable {
+			val timerAccuracyThread = Thread {
 				try {
 					Thread.sleep(Long.MAX_VALUE)
 				} catch (e: Exception) {
+					// Do nothing!
 				}
-			})
-			timerAccuracyThread.name = "LWJGL3 Timer"
+			}
+			timerAccuracyThread.name = "LWJGL Timer"
 			timerAccuracyThread.isDaemon = true
 			timerAccuracyThread.start()
 		}
@@ -125,8 +99,7 @@ object Sync {
 	 *
 	 * @return will return the current time in nano's
 	 */
-	private val time: Long
-		get() = (GLFW.glfwGetTime() * NANOS_IN_SECOND).toLong()
+	private val time: Long get() = TimeUtils.millis() * NANOS_IN_SECOND / RESOLUTION
 
 	private class RunningAvg(slotCount: Int) {
 		private val slots: LongArray = LongArray(slotCount)
@@ -144,8 +117,8 @@ object Sync {
 
 		fun avg(): Long {
 			var sum: Long = 0
-			for (slot in slots) {
-				sum += slot
+			for (i in slots.indices) {
+				sum += slots[i]
 			}
 			return sum / slots.size
 		}
@@ -153,7 +126,7 @@ object Sync {
 		fun dampenForLowResTicker() {
 			if (avg() > DAMPEN_THRESHOLD) {
 				for (i in slots.indices) {
-					slots[i] *= DAMPEN_FACTOR.toLong()
+					slots[i] = (slots[i] * DAMPEN_FACTOR).toLong()
 				}
 			}
 		}
@@ -162,9 +135,5 @@ object Sync {
 			private const val DAMPEN_THRESHOLD = 10 * 1000L * 1000L // 10ms
 			private const val DAMPEN_FACTOR = 0.9f // don't change: 0.9f is exactly right!
 		}
-
 	}
-
-	/** number of nano seconds in a second  */
-	private const val NANOS_IN_SECOND = 1000L * 1000L * 1000L
 }
