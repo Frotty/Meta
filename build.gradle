@@ -41,7 +41,7 @@ allprojects {
 	}
 }
 
-project(":desktop") {
+project(":editor-desktop") {
     apply plugin: "kotlin"
 
 
