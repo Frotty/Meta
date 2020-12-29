@@ -3,7 +3,6 @@ package de.fatox.meta.modules
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.kotcrab.vis.ui.widget.file.FileChooser
-import de.fatox.meta.Meta
 import de.fatox.meta.Primitives
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.Renderer
