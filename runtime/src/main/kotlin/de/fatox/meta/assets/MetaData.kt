@@ -1,17 +1,135 @@
-package de.fatox.meta.assets;
+package de.fatox.meta.assets
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.utils.Json;
-import com.badlogic.gdx.utils.ObjectMap;
-import com.badlogic.gdx.utils.TimeUtils;
-import com.badlogic.gdx.utils.reflect.ClassReflection;
-import com.badlogic.gdx.utils.reflect.ReflectionException;
-import de.fatox.meta.Meta;
-import de.fatox.meta.injection.Inject;
-import de.fatox.meta.injection.Named;
-
-import java.io.File;
+import de.fatox.meta.ui.windows.MetaWindow.contentTable
+import de.fatox.meta.ui.windows.MetaWindow.close
+import de.fatox.meta.Meta.Companion.inject
+import de.fatox.meta.api.graphics.FontProvider.getFont
+import de.fatox.meta.api.ui.UIRenderer.addActor
+import de.fatox.meta.api.PosModifier.modify
+import de.fatox.meta.api.ui.UIRenderer.resize
+import de.fatox.meta.api.model.MetaWindowData.displayed
+import de.fatox.meta.api.model.MetaWindowData.set
+import de.fatox.meta.api.model.MetaWindowData.setFrom
+import de.fatox.meta.api.lang.LanguageBundle.format
+import de.fatox.meta.api.model.MetaAudioVideoData.masterVolume
+import de.fatox.meta.api.model.MetaAudioVideoData.musicVolume
+import de.fatox.meta.api.AssetProvider.get
+import de.fatox.meta.api.model.MetaAudioVideoData.soundVolume
+import de.fatox.meta.assets.MetaAssetProvider.get
+import de.fatox.meta.api.ui.UIRenderer.getCamera
+import de.fatox.meta.ui.windows.MetaWindow
+import com.kotcrab.vis.ui.widget.VisTable
+import com.kotcrab.vis.ui.widget.VisLabel
+import de.fatox.meta.ui.windows.MetaDialog.DialogListener
+import de.fatox.meta.ui.components.MetaClickListener
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.kotcrab.vis.ui.widget.VisImageButton
+import com.badlogic.gdx.utils.Align
+import de.fatox.meta.ui.components.MetaTextButton
+import kotlin.jvm.JvmOverloads
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.BitmapFontCache
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.ui.components.MetaLabel
+import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
+import de.fatox.meta.Meta
+import com.kotcrab.vis.ui.VisUI
+import com.kotcrab.vis.ui.widget.VisTextButton.VisTextButtonStyle
+import de.fatox.meta.util.GoldenRatio
+import com.kotcrab.vis.ui.widget.VisImage
+import com.kotcrab.vis.ui.util.InputValidator
+import de.fatox.meta.error.MetaErrorHandler
+import com.kotcrab.vis.ui.widget.VisValidatableTextField
+import de.fatox.meta.ui.components.MetaInputValidator
+import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.input.MetaInput
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.DummyPosModifier
+import de.fatox.meta.api.model.MetaWindowData
+import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.utils.reflect.ClassReflection
+import de.fatox.meta.ui.MetaUiManager
+import de.fatox.meta.ui.windows.MetaDialog
+import java.lang.InstantiationException
+import java.lang.IllegalAccessException
+import com.badlogic.gdx.utils.TimeUtils
+import kotlin.jvm.Synchronized
+import de.fatox.meta.task.TaskListener
+import de.fatox.meta.task.MetaTask
+import com.badlogic.gdx.Game
+import de.fatox.meta.api.lang.LanguageBundle
+import de.fatox.meta.error.MetaError
+import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.utils.IntMap
+import de.fatox.meta.camera.ArcCamControl
+import com.badlogic.gdx.controllers.Controllers
+import de.fatox.meta.input.MetaControllerListener
+import com.badlogic.gdx.controllers.ControllerListener
+import com.badlogic.gdx.controllers.Controller
+import com.badlogic.gdx.controllers.PovDirection
+import com.badlogic.gdx.math.Vector3
+import de.fatox.meta.assets.MetaAssetProvider
+import de.fatox.meta.api.AssetProvider
+import com.badlogic.gdx.utils.ObjectMap
+import de.fatox.meta.api.model.MetaAudioVideoData
+import de.fatox.meta.sound.MetaSoundDefinition
+import com.badlogic.gdx.math.MathUtils
+import de.fatox.meta.sound.MetaSoundHandle
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import de.fatox.meta.sound.MetaSoundPlayer
+import java.lang.NoSuchMethodException
+import java.lang.reflect.InvocationTargetException
+import de.fatox.meta.assets.MetaData.CacheObj
+import com.badlogic.gdx.utils.Json
+import java.nio.channels.ReadableByteChannel
+import de.fatox.meta.assets.HashUtils
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
+import java.lang.RuntimeException
+import java.io.IOException
+import java.math.BigInteger
+import java.nio.channels.SeekableByteChannel
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.Throws
+import de.fatox.meta.assets.XPKByteChannel
+import java.util.Arrays
+import java.nio.channels.ClosedChannelException
+import de.fatox.meta.entity.Meta3DEntity
+import com.badlogic.gdx.graphics.VertexAttributes
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.Input.Buttons
+import de.fatox.meta.api.entity.EntityManager
+import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute
+import de.fatox.meta.entity.LightEntity
+import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute
+import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.utils.GdxRuntimeException
+import com.badlogic.gdx.math.Matrix3
+import com.badlogic.gdx.math.Matrix4
+import com.badlogic.gdx.graphics.g3d.Renderable
+import com.badlogic.gdx.graphics.g3d.RenderableProvider
+import de.fatox.meta.graphics.buffer.MultisampleFBO
+import com.badlogic.gdx.graphics.glutils.FrameBuffer
+import java.nio.IntBuffer
+import java.lang.Exception
+import com.badlogic.gdx.Application.ApplicationType
+import java.nio.ByteOrder
+import com.badlogic.gdx.graphics.glutils.GLFrameBuffer
+import java.lang.IllegalStateException
+import com.badlogic.gdx.graphics.Pixmap
+import java.util.HashMap
+import com.badlogic.gdx.graphics.VertexAttribute
+import com.badlogic.gdx.utils.reflect.ReflectionException
+import de.fatox.meta.injection.*
+import java.io.File
+import java.lang.reflect.ParameterizedType
+import java.util.LinkedHashSet
+import java.util.HashSet
 
 /**
  * Created by Frotty on 10.03.2017.
@@ -19,134 +137,125 @@ import java.io.File;
  * De-/serializes config classes from a .meta sub folder in the game's data folder inside user home
  * MetaData can be accessed via #.get and will be cached.
  */
-public class MetaData {
-    static class CacheObj<T> {
-        T obj;
-        long created = TimeUtils.millis();
-
-        public CacheObj(T obj) {
-            this.obj = obj;
-        }
+class MetaData {
+    internal class CacheObj<T>(var obj: T) {
+        var created = TimeUtils.millis()
     }
 
     @Inject
-	@Named("gameName")
-	private String gameName;
-
-    public static final String GLOBAL_DATA_FOLDER_NAME = ".meta";
-
-    private final ObjectMap<String, FileHandle> fileHandleCache = new ObjectMap<>();
-	private final ObjectMap<String, File> fileCache = new ObjectMap<>();
-    private final ObjectMap<String, CacheObj<? extends Object>> jsonCache = new ObjectMap<>();
-    private final FileHandle dataRoot;
-
-	public MetaData() {
-		Meta.inject(this);
-		dataRoot = Gdx.files.external("." + gameName).child(GLOBAL_DATA_FOLDER_NAME);
-		dataRoot.mkdirs();
-	}
-
-    private final Json json = new Json();
-
-    public void save(String key, Object obj) {
-        save(dataRoot, key, obj);
+    @Named("gameName")
+    private val gameName: String? = null
+    private val fileHandleCache = ObjectMap<String?, FileHandle>()
+    private val fileCache = ObjectMap<String?, File>()
+    private val jsonCache = ObjectMap<String, CacheObj<out Any>>()
+    private val dataRoot: FileHandle
+    private val json = Json()
+    fun save(key: String?, obj: Any?) {
+        save(dataRoot, key, obj)
     }
 
-    public FileHandle save(FileHandle target, String key, Object obj) {
-        String jsonString = json.toJson(obj);
-
-        FileHandle fileHandle = getCachedHandle(target, key);
-        fileHandle.writeBytes(jsonString.getBytes(), false);
-        CacheObj cacheObj = jsonCache.get(key);
+    fun save(target: FileHandle, key: String?, obj: Any?): FileHandle {
+        val jsonString = json.toJson(obj)
+        val fileHandle = getCachedHandle(target, key)
+        fileHandle.writeBytes(jsonString.toByteArray(), false)
+        val cacheObj: CacheObj<*>? = jsonCache.get(key)
         if (cacheObj != null) {
-            cacheObj.created = TimeUtils.millis();
-            cacheObj.obj = obj;
+            cacheObj.created = TimeUtils.millis()
+            cacheObj.obj = obj
         }
-        return fileHandle;
+        return fileHandle
     }
 
-    /** Loads and caches the filehandle descripted by the path, if it exists */
-    public FileHandle get(String key) {
-        return getCachedHandle(dataRoot, key);
+    /** Loads and caches the filehandle descripted by the path, if it exists  */
+    operator fun get(key: String?): FileHandle {
+        return getCachedHandle(dataRoot, key)
     }
 
-    /** Caches and returns this object loaded from json at the default location */
-    public <T> T get(Class<T> type) {
-        return getCachedJson(dataRoot, type.getClass().getSimpleName(), type);
+    /** Caches and returns this object loaded from json at the default location  */
+    operator fun <T> get(type: Class<T>): T {
+        return getCachedJson(dataRoot, type.javaClass.simpleName, type)
     }
 
-    /** Caches and returns this object loaded from json at the specified location */
-    public <T> T get(String key, Class<T> type) {
-        return getCachedJson(dataRoot, key, type);
+    /** Caches and returns this object loaded from json at the specified location  */
+    operator fun <T> get(key: String, type: Class<T>?): T {
+        return getCachedJson(dataRoot, key, type)
     }
 
-    private <T> T getCachedJson(FileHandle parent, String key, Class<T> type) {
-        T jsonHandle;
+    private fun <T> getCachedJson(parent: FileHandle, key: String, type: Class<T>?): T {
+        val jsonHandle: T
         if (jsonCache.containsKey(key)) {
-            CacheObj<T> cacheObj = (CacheObj<T>) jsonCache.get(key);
-            long lastModified = getCachedFile(key).lastModified();
+            val cacheObj = jsonCache.get(key) as CacheObj<T>
+            val lastModified = getCachedFile(key)!!.lastModified()
             if (cacheObj.created < lastModified) {
-                cacheObj.obj = json.fromJson(type, getCachedHandle(parent, key));
-                cacheObj.created = lastModified;
+                cacheObj.obj = json.fromJson(type, getCachedHandle(parent, key))
+                cacheObj.created = lastModified
             }
-            jsonHandle = cacheObj.obj;
+            jsonHandle = cacheObj.obj
         } else {
-            FileHandle cachedHandle = getCachedHandle(parent, key);
+            val cachedHandle = getCachedHandle(parent, key)
             if (!cachedHandle.exists()) {
                 try {
-                    cachedHandle.writeBytes(json.toJson(ClassReflection.newInstance(type)).getBytes(), false);
-                } catch (ReflectionException e) {
-                    e.printStackTrace();
+                    cachedHandle.writeBytes(json.toJson(ClassReflection.newInstance(type)).toByteArray(), false)
+                } catch (e: ReflectionException) {
+                    e.printStackTrace()
                 }
             }
-            jsonHandle = json.fromJson(type, cachedHandle);
-            jsonCache.put(key, new CacheObj<>(jsonHandle));
+            jsonHandle = json.fromJson(type, cachedHandle)
+            jsonCache.put(key, CacheObj(jsonHandle))
         }
-        return jsonHandle;
+        return jsonHandle
     }
 
-    public <T> T get(FileHandle target, String key, Class<T> type) {
-        FileHandle fileHandle = getCachedHandle(target, key);
-        if (fileHandle != null && fileHandle.exists()) {
-            return json.fromJson(type, fileHandle.readString());
-        }
-        return null;
+    operator fun <T> get(target: FileHandle, key: String?, type: Class<T>?): T? {
+        val fileHandle = getCachedHandle(target, key)
+        return if (fileHandle != null && fileHandle.exists()) {
+            json.fromJson(type, fileHandle.readString())
+        } else null
     }
 
-    public FileHandle getCachedHandle(String key) {
-        return getCachedHandle(dataRoot, key);
+    fun getCachedHandle(key: String?): FileHandle {
+        return getCachedHandle(dataRoot, key)
     }
 
-	public File getCachedFile(String key) {
-		if (fileCache.containsKey(key)) {
-			return fileCache.get(key);
-		}
-		return null;
-	}
+    fun getCachedFile(key: String?): File? {
+        return if (fileCache.containsKey(key)) {
+            fileCache.get(key)
+        } else null
+    }
 
-    public FileHandle getCachedHandle(FileHandle parent, String key) {
-        FileHandle fileHandle;
+    fun getCachedHandle(parent: FileHandle, key: String?): FileHandle {
+        var fileHandle: FileHandle
         if (fileHandleCache.containsKey(key)) {
-            fileHandle = fileHandleCache.get(key);
+            fileHandle = fileHandleCache.get(key)
         } else {
-            fileHandle = parent.child(key);
+            fileHandle = parent.child(key)
             if (!fileHandle.exists()) {
-                FileHandle fileHandle2 = Gdx.files.external(GLOBAL_DATA_FOLDER_NAME + key);
+                val fileHandle2 = Gdx.files.external(GLOBAL_DATA_FOLDER_NAME + key)
                 if (fileHandle2.exists()) {
-                    fileHandle = fileHandle2;
+                    fileHandle = fileHandle2
                 }
             }
-            fileHandleCache.put(key, fileHandle);
-            fileCache.put(key, fileHandle.file());
+            fileHandleCache.put(key, fileHandle)
+            fileCache.put(key, fileHandle.file())
         }
-        return fileHandle;
+        return fileHandle
     }
 
-    public boolean has(String name) {
-        return has(dataRoot, name);
+    fun has(name: String?): Boolean {
+        return has(dataRoot, name)
     }
 
-    public boolean has(FileHandle fileHandle, String name) {
-        return fileHandleCache.containsKey(name) || fileHandle.child(name).exists();
+    fun has(fileHandle: FileHandle, name: String?): Boolean {
+        return fileHandleCache.containsKey(name) || fileHandle.child(name).exists()
+    }
+
+    companion object {
+        const val GLOBAL_DATA_FOLDER_NAME = ".meta"
+    }
+
+    init {
+        inject(this)
+        dataRoot = Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME)
+        dataRoot.mkdirs()
     }
 }

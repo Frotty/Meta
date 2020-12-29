@@ -1,124 +1,236 @@
-package de.fatox.meta.input;
+package de.fatox.meta.input
 
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.controllers.Controller;
-import com.badlogic.gdx.controllers.ControllerListener;
-import com.badlogic.gdx.controllers.PovDirection;
-import com.badlogic.gdx.math.Vector3;
-import de.fatox.meta.Meta;
-import de.fatox.meta.assets.MetaAssetProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import de.fatox.meta.ui.windows.MetaWindow.contentTable
+import de.fatox.meta.ui.windows.MetaWindow.close
+import de.fatox.meta.Meta.Companion.inject
+import de.fatox.meta.api.graphics.FontProvider.getFont
+import de.fatox.meta.api.ui.UIRenderer.addActor
+import de.fatox.meta.api.PosModifier.modify
+import de.fatox.meta.api.ui.UIRenderer.resize
+import de.fatox.meta.api.model.MetaWindowData.displayed
+import de.fatox.meta.api.model.MetaWindowData.set
+import de.fatox.meta.api.model.MetaWindowData.setFrom
+import de.fatox.meta.api.lang.LanguageBundle.format
+import de.fatox.meta.api.model.MetaAudioVideoData.masterVolume
+import de.fatox.meta.api.model.MetaAudioVideoData.musicVolume
+import de.fatox.meta.api.AssetProvider.get
+import de.fatox.meta.api.model.MetaAudioVideoData.soundVolume
+import de.fatox.meta.assets.MetaAssetProvider.get
+import de.fatox.meta.api.ui.UIRenderer.getCamera
+import de.fatox.meta.ui.windows.MetaWindow
+import com.kotcrab.vis.ui.widget.VisTable
+import com.kotcrab.vis.ui.widget.VisLabel
+import de.fatox.meta.ui.windows.MetaDialog.DialogListener
+import de.fatox.meta.ui.components.MetaClickListener
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.kotcrab.vis.ui.widget.VisImageButton
+import com.badlogic.gdx.utils.Align
+import de.fatox.meta.ui.components.MetaTextButton
+import kotlin.jvm.JvmOverloads
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.BitmapFontCache
+import de.fatox.meta.injection.Inject
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.ui.components.MetaLabel
+import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
+import de.fatox.meta.Meta
+import com.kotcrab.vis.ui.VisUI
+import com.kotcrab.vis.ui.widget.VisTextButton.VisTextButtonStyle
+import de.fatox.meta.util.GoldenRatio
+import com.kotcrab.vis.ui.widget.VisImage
+import com.kotcrab.vis.ui.util.InputValidator
+import de.fatox.meta.error.MetaErrorHandler
+import com.kotcrab.vis.ui.widget.VisValidatableTextField
+import de.fatox.meta.ui.components.MetaInputValidator
+import de.fatox.meta.injection.Singleton
+import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.input.MetaInput
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import de.fatox.meta.api.PosModifier
+import de.fatox.meta.api.DummyPosModifier
+import de.fatox.meta.api.model.MetaWindowData
+import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.utils.reflect.ClassReflection
+import de.fatox.meta.ui.MetaUiManager
+import de.fatox.meta.ui.windows.MetaDialog
+import java.lang.InstantiationException
+import java.lang.IllegalAccessException
+import com.badlogic.gdx.utils.TimeUtils
+import kotlin.jvm.Synchronized
+import de.fatox.meta.task.TaskListener
+import de.fatox.meta.task.MetaTask
+import com.badlogic.gdx.Game
+import de.fatox.meta.api.lang.LanguageBundle
+import de.fatox.meta.error.MetaError
+import com.badlogic.gdx.InputProcessor
+import com.badlogic.gdx.utils.IntMap
+import de.fatox.meta.camera.ArcCamControl
+import com.badlogic.gdx.controllers.Controllers
+import de.fatox.meta.input.MetaControllerListener
+import com.badlogic.gdx.controllers.ControllerListener
+import com.badlogic.gdx.controllers.Controller
+import com.badlogic.gdx.controllers.PovDirection
+import com.badlogic.gdx.math.Vector3
+import de.fatox.meta.assets.MetaAssetProvider
+import de.fatox.meta.api.AssetProvider
+import com.badlogic.gdx.utils.ObjectMap
+import de.fatox.meta.api.model.MetaAudioVideoData
+import de.fatox.meta.sound.MetaSoundDefinition
+import com.badlogic.gdx.math.MathUtils
+import de.fatox.meta.sound.MetaSoundHandle
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import de.fatox.meta.sound.MetaSoundPlayer
+import java.lang.NoSuchMethodException
+import java.lang.reflect.InvocationTargetException
+import de.fatox.meta.assets.MetaData.CacheObj
+import com.badlogic.gdx.utils.Json
+import java.nio.channels.ReadableByteChannel
+import de.fatox.meta.assets.HashUtils
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
+import java.lang.RuntimeException
+import java.io.IOException
+import java.math.BigInteger
+import java.nio.channels.SeekableByteChannel
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.Throws
+import de.fatox.meta.assets.XPKByteChannel
+import java.util.Arrays
+import java.nio.channels.ClosedChannelException
+import de.fatox.meta.entity.Meta3DEntity
+import com.badlogic.gdx.graphics.VertexAttributes
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.Input.Buttons
+import de.fatox.meta.api.entity.EntityManager
+import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute
+import de.fatox.meta.entity.LightEntity
+import com.badlogic.gdx.graphics.g3d.attributes.IntAttribute
+import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.utils.GdxRuntimeException
+import com.badlogic.gdx.math.Matrix3
+import com.badlogic.gdx.math.Matrix4
+import com.badlogic.gdx.graphics.g3d.Renderable
+import com.badlogic.gdx.graphics.g3d.RenderableProvider
+import de.fatox.meta.graphics.buffer.MultisampleFBO
+import com.badlogic.gdx.graphics.glutils.FrameBuffer
+import java.nio.IntBuffer
+import java.lang.Exception
+import com.badlogic.gdx.Application.ApplicationType
+import com.badlogic.gdx.Input
+import java.nio.ByteOrder
+import com.badlogic.gdx.graphics.glutils.GLFrameBuffer
+import java.lang.IllegalStateException
+import com.badlogic.gdx.graphics.Pixmap
+import java.util.HashMap
+import com.badlogic.gdx.graphics.VertexAttribute
+import de.fatox.meta.injection.Qualifier
+import de.fatox.meta.injection.MetastasisException
+import de.fatox.meta.injection.Metastasis
+import java.lang.reflect.ParameterizedType
+import java.util.LinkedHashSet
+import java.util.HashSet
+import de.fatox.meta.injection.Provides
+import org.slf4j.LoggerFactory
 
-public class MetaControllerListener implements ControllerListener {
-	private static final Logger log = LoggerFactory.getLogger(MetaAssetProvider.class);
-
-    private MetaInput metaInput;
-    private int currentDownKey = -1;
-
-    private float deadzone = 0.395f;
-
-    public MetaControllerListener(MetaInput metaInput) {
-        this.metaInput = metaInput;
-        Meta.inject(this);
+class MetaControllerListener(private val metaInput: MetaInput) : ControllerListener {
+    private var currentDownKey = -1
+    private val deadzone = 0.395f
+    override fun connected(controller: Controller) {
+        log.debug("Controller connected")
     }
 
-    @Override
-    public void connected(Controller controller) {
-        log.debug("Controller connected");
+    override fun disconnected(controller: Controller) {
+        log.debug("Controller disconnected")
     }
 
-    @Override
-    public void disconnected(Controller controller) {
-        log.debug("Controller disconnected");
+    override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
+        return false
     }
 
-    @Override
-    public boolean buttonDown(Controller controller, int buttonCode) {
-        return false;
+    override fun buttonUp(controller: Controller, buttonCode: Int): Boolean {
+        println(buttonCode)
+        return false
     }
 
-    @Override
-    public boolean buttonUp(Controller controller, int buttonCode) {
-        System.out.println(buttonCode);
-        return false;
+    override fun axisMoved(controller: Controller, axisCode: Int, value: Float): Boolean {
+        checkVert(controller)
+        checkHor(controller)
+        return false
     }
 
-    @Override
-    public boolean axisMoved(Controller controller, int axisCode, float value) {
-        checkVert(controller);
-        checkHor(controller);
-        return false;
-    }
-
-    private boolean checkVert(Controller controller) {
-        if (currentDownKey != Input.Keys.UP && (controller.getAxis(1) < -deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.UP;
-            metaInput.keyDown(currentDownKey);
-            return true;
-        } else if (currentDownKey == Input.Keys.UP && (controller.getAxis(1) > -deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = -1;
-            return true;
+    private fun checkVert(controller: Controller): Boolean {
+        if (currentDownKey != Input.Keys.UP && controller.getAxis(1) < -deadzone) {
+            metaInput.keyUp(currentDownKey)
+            currentDownKey = Input.Keys.UP
+            metaInput.keyDown(currentDownKey)
+            return true
+        } else if (currentDownKey == Input.Keys.UP && controller.getAxis(1) > -deadzone) {
+            metaInput.keyUp(currentDownKey)
+            currentDownKey = -1
+            return true
         }
-
-        if (currentDownKey != Input.Keys.DOWN && (controller.getAxis(1) > deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.DOWN;
-            metaInput.keyDown(currentDownKey);
-            return true;
-        } else if (currentDownKey == Input.Keys.DOWN && (controller.getAxis(1) < deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = -1;
-            return true;
+        if (currentDownKey != Input.Keys.DOWN && controller.getAxis(1) > deadzone) {
+            metaInput.keyUp(currentDownKey)
+            currentDownKey = Input.Keys.DOWN
+            metaInput.keyDown(currentDownKey)
+            return true
+        } else if (currentDownKey == Input.Keys.DOWN && controller.getAxis(1) < deadzone) {
+            metaInput.keyUp(currentDownKey)
+            currentDownKey = -1
+            return true
         }
-        return false;
+        return false
     }
 
-    private boolean checkHor(Controller controller) {
-        if (currentDownKey != Input.Keys.LEFT && (controller.getAxis(0) < -deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.LEFT;
-            metaInput.keyDown(currentDownKey);
-            return true;
-        } else if (currentDownKey == Input.Keys.LEFT && (controller.getAxis(0) > -deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = -1;
-            return true;
+    private fun checkHor(controller: Controller): Boolean {
+        if (currentDownKey != Input.Keys.LEFT && controller.getAxis(0) < -deadzone) {
+            metaInput.keyUp(currentDownKey)
+            currentDownKey = Input.Keys.LEFT
+            metaInput.keyDown(currentDownKey)
+            return true
+        } else if (currentDownKey == Input.Keys.LEFT && controller.getAxis(0) > -deadzone) {
+            metaInput.keyUp(currentDownKey)
+            currentDownKey = -1
+            return true
         }
-
-        if (currentDownKey != Input.Keys.RIGHT && (controller.getAxis(0) > deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = Input.Keys.RIGHT;
-            metaInput.keyDown(currentDownKey);
-            return true;
-        } else if (currentDownKey == Input.Keys.RIGHT && (controller.getAxis(0) < deadzone)) {
-            metaInput.keyUp(currentDownKey);
-            currentDownKey = -1;
-            return true;
+        if (currentDownKey != Input.Keys.RIGHT && controller.getAxis(0) > deadzone) {
+            metaInput.keyUp(currentDownKey)
+            currentDownKey = Input.Keys.RIGHT
+            metaInput.keyDown(currentDownKey)
+            return true
+        } else if (currentDownKey == Input.Keys.RIGHT && controller.getAxis(0) < deadzone) {
+            metaInput.keyUp(currentDownKey)
+            currentDownKey = -1
+            return true
         }
-        return false;
+        return false
     }
 
-    @Override
-    public boolean povMoved(Controller controller, int povCode, PovDirection value) {
-        return false;
+    override fun povMoved(controller: Controller, povCode: Int, value: PovDirection): Boolean {
+        return false
     }
 
-    @Override
-    public boolean xSliderMoved(Controller controller, int sliderCode, boolean value) {
-        return false;
+    override fun xSliderMoved(controller: Controller, sliderCode: Int, value: Boolean): Boolean {
+        return false
     }
 
-    @Override
-    public boolean ySliderMoved(Controller controller, int sliderCode, boolean value) {
-        return false;
+    override fun ySliderMoved(controller: Controller, sliderCode: Int, value: Boolean): Boolean {
+        return false
     }
 
-    @Override
-    public boolean accelerometerMoved(Controller controller, int accelerometerCode, Vector3 value) {
-        return false;
+    override fun accelerometerMoved(controller: Controller, accelerometerCode: Int, value: Vector3): Boolean {
+        return false
     }
 
+    companion object {
+        private val log = LoggerFactory.getLogger(MetaAssetProvider::class.java)
+    }
+
+    init {
+        inject(this)
+    }
 }
