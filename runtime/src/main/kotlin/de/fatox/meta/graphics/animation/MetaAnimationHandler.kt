@@ -52,7 +52,7 @@ interface IAnimationHandler {
  * Queued animations will play once the current animation has finished.
  */
 class AnimationHandler(
-	currentAnimation: Animation<TextureRegion> = EmptyAnimation,
+	currentAnimation: Animation<TextureRegion> = MockAnimation,
 	var animQueue: Array<Animation<TextureRegion>> = Array(2),
 	override var stateTime: Float = 0f
 ) : IAnimationHandler {
