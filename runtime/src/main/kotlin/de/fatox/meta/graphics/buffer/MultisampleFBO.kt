@@ -23,7 +23,6 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 import org.lwjgl.opengl.GL32
-import java.lang.StringBuilder
 import java.nio.ByteBuffer
 
 /**
