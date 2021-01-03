@@ -33,8 +33,7 @@ class MetaData {
 	private val jsonCache = ObjectMap<String, CacheObj<Any>>()
 	private val json = Json()
 
-	private val dataRoot: FileHandle =
-		Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME).also { it.mkdirs() }
+	val dataRoot: FileHandle = Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME).also { it.mkdirs() }
 
 	private val emptyByteArray = ByteArray(0)
 
@@ -44,6 +43,17 @@ class MetaData {
 	 * @param target FileHandle
 	 * @return The cached [FileHandle] of the serialized [obj].
 	 */
+	@Deprecated(
+		"Use MetaData#save with MetaDataKey. " +
+			"This method will be made private in a future version. " +
+			"Note that it is advised to cache the MetaDataKey.",
+		ReplaceWith(
+			"save(MetaDataKey<T>(key),obj,target)",
+			"de.fatox.meta.assets.MetaData",
+			"de.fatox.meta.assets.MetaDataKey",
+			"com.badlogic.gdx.files.FileHandle",
+		)
+	)
 	fun <T : Any> save(key: String, obj: T, target: FileHandle = dataRoot): FileHandle {
 		// Get the file handle and (over) write the serialized json object to it
 		return getCachedHandle(key, target).also { fileHandle: FileHandle ->
@@ -83,7 +93,9 @@ class MetaData {
 		}
 	}
 
-	fun <T : Any> save(key: MetaDataKey<T>, obj: T): FileHandle = save(key.name, obj)
+	@Suppress("DEPRECATION")
+	fun <T : Any> save(key: MetaDataKey<T>, obj: T, target: FileHandle = dataRoot): FileHandle =
+		save(key.name, obj, target)
 
 	/**
 	 * Caches and returns this object loaded from json at the specified location.
@@ -93,6 +105,18 @@ class MetaData {
 	 * @param parent FileHandle
 	 * @return T
 	 */
+	@Deprecated(
+		"Use MetaData#get with MetaDataKey. " +
+			"This method will be made private in a future version. " +
+			"Note that it is advised to cache the MetaDataKey.",
+		ReplaceWith(
+			"get(MetaDataKey<T>(key),parent)",
+			"de.fatox.meta.assets.MetaData",
+			"de.fatox.meta.assets.get",
+			"de.fatox.meta.assets.MetaDataKey",
+			"com.badlogic.gdx.files.FileHandle",
+		)
+	)
 	operator fun <T : Any> get(key: String, type: KClass<out T>, parent: FileHandle = dataRoot): T {
 		return try {
 			log.trace {
@@ -140,10 +164,33 @@ class MetaData {
 		}
 	}
 
+	@Deprecated(
+		"Use MetaData#load with MetaDataKey. " +
+			"This method will be made private in a future version. " +
+			"Note that it is advised to cache the MetaDataKey.",
+		ReplaceWith(
+			"load(MetaDataKey<T>(key),target)",
+			"de.fatox.meta.assets.MetaData",
+			"de.fatox.meta.assets.get",
+			"de.fatox.meta.assets.MetaDataKey",
+			"com.badlogic.gdx.files.FileHandle",
+		)
+	)
 	fun <T : Any> load(key: String, type: KClass<out T>, target: FileHandle = dataRoot): T? {
 		return getCachedHandle(key, target).let { if (it.exists()) json.fromJson(type.java, it.readString()) else null }
 	}
 
+	@Deprecated(
+		"Use MetaData#getCachedHandle with MetaDataKey. " +
+			"This method will be made private in a future version. " +
+			"Note that it is advised to cache the MetaDataKey.",
+		ReplaceWith(
+			"getCachedHandle(MetaDataKey<Any>(key),parent)",
+			"de.fatox.meta.assets.MetaData",
+			"de.fatox.meta.assets.MetaDataKey",
+			"com.badlogic.gdx.files.FileHandle",
+		)
+	)
 	fun getCachedHandle(key: String, parent: FileHandle = dataRoot): FileHandle {
 		if (!fileHandleCache.containsKey(key)) {
 			var child: FileHandle = parent.child(key)
@@ -162,10 +209,22 @@ class MetaData {
 	fun getCachedHandle(key: MetaDataKey<*>, parent: FileHandle = dataRoot): FileHandle =
 		getCachedHandle(key.name, parent)
 
+	@Deprecated(
+		"Use MetaData#has with MetaDataKey. " +
+			"This method will be made private in a future version. " +
+			"Note that it is advised to cache the MetaDataKey.",
+		ReplaceWith(
+			"has(MetaDataKey<Any>(name),fileHandle)",
+			"de.fatox.meta.assets.MetaData",
+			"de.fatox.meta.assets.MetaDataKey",
+			"com.badlogic.gdx.files.FileHandle",
+		)
+	)
 	fun has(name: String, fileHandle: FileHandle = dataRoot): Boolean {
 		return fileHandleCache.containsKey(name) || fileHandle.child(name).exists()
 	}
 
+	@Suppress("DEPRECATION")
 	fun has(key: MetaDataKey<*>, fileHandle: FileHandle = dataRoot): Boolean = has(key.name, fileHandle)
 
 	companion object {
@@ -173,9 +232,28 @@ class MetaData {
 	}
 }
 
+@Suppress("unused")
 inline class MetaDataKey<T : Any>(val name: String)
 
-inline operator fun <reified T : Any> MetaData.get(key: String): T = get(key, T::class)
-inline operator fun <reified T : Any> MetaData.get(key: MetaDataKey<T>): T = get(key.name)
+@Deprecated(
+	"Use MetaData#get with MetaDataKey. " +
+		"This method will be made private in a future version. " +
+		"Note that it is advised to cache the MetaDataKey.",
+	ReplaceWith(
+		"get(MetaDataKey<T>(key),parent)",
+		"de.fatox.meta.MetaData",
+		"de.fatox.meta.assets.MetaData.get",
+		"de.fatox.meta.assets.MetaDataKey",
+		"com.badlogic.gdx.files.FileHandle",
+	)
+)
+inline operator fun <reified T : Any> MetaData.get(key: String, parent: FileHandle = dataRoot): T =
+	get(key, T::class, parent)
 
-inline fun <reified T : Any> MetaData.load(key: MetaDataKey<T>): T? = load(key.name, T::class)
+@Suppress("DEPRECATION")
+inline operator fun <reified T : Any> MetaData.get(key: MetaDataKey<T>, parent: FileHandle = dataRoot): T =
+	get(key.name, T::class, parent)
+
+@Suppress("DEPRECATION")
+inline fun <reified T : Any> MetaData.load(key: MetaDataKey<T>, target: FileHandle = dataRoot): T? =
+	load(key.name, T::class, target)
