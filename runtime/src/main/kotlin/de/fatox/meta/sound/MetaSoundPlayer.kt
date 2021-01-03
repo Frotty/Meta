@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.assets.MetaData
@@ -41,20 +42,15 @@ class MetaSoundPlayer {
 		if (listenerPos != null && !isInAudibleRange(soundDefinition, listenerPos, soundPos)) {
 			return null
 		}
-		if (!playingHandles.containsKey(soundDefinition)) {
-			// Create handlelist if sound is played for the first time
-			playingHandles.put(soundDefinition, Array(soundDefinition.maxInstances))
-		}
-		val handleList = playingHandles.get(soundDefinition)
+		val handleList = playingHandles.getOrPut(soundDefinition) { Array(soundDefinition.maxInstances) }
 		cleanupHandles(handleList)
 		if (handleList.size >= soundDefinition.maxInstances || handleList.size > 0 && handleList.first().startTime + 200 >= TimeUtils.millis()) {
 			return null
 		}
 		if (soundDefinition.sound === UninitializedSound) {
 			// Load sound if it is played for the first time
-			val sound =
+			soundDefinition.sound =
 				Gdx.audio.newSound(metaAssetProvider.getResource(soundDefinition.soundName, FileHandle::class.java))
-			soundDefinition.sound = sound
 		}
 		// Play or loop sound
 		val soundHandle = MetaSoundHandle(soundDefinition)
@@ -62,27 +58,25 @@ class MetaSoundPlayer {
 		if (listenerPos != null) {
 			val mappedVolume = soundHandle.calcVolume(listenerPos, false)
 			val mappedPan = soundHandle.calcPan(listenerPos)
-			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(
-				mappedVolume,
-				1f,
-				mappedPan
-			) else soundDefinition.sound.play(mappedVolume, 1f, mappedPan)
+
+			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(mappedVolume, 1f, mappedPan)
+			else soundDefinition.sound.play(mappedVolume, 1f, mappedPan)
+
 			soundHandle.setHandleId(id)
 			dynamicHandles.add(soundHandle)
 		} else {
-			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(
-				volume,
-				1f,
-				0f
-			) else soundDefinition.sound.play(volume, 1f, 0f)
+			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(volume, 1f, 0f)
+			else soundDefinition.sound.play(volume, 1f, 0f)
+
 			soundHandle.setHandleId(id)
 		}
 		handleList.add(soundHandle)
 		return soundHandle
 	}
 
+	@Suppress("LibGDXUnsafeIterator")
 	private fun cleanupHandles(handleList: Array<MetaSoundHandle>) {
-		val iterator: MutableIterator<MetaSoundHandle> = handleList.iterator()
+		val iterator = handleList.iterator()
 		while (iterator.hasNext()) {
 			val next = iterator.next()
 			if (next.isDone || !next.isPlaying) {
@@ -117,8 +111,9 @@ class MetaSoundPlayer {
 		return playSound(soundDefinitions.get(path), listenerPosition, soundPosition)
 	}
 
+	@Suppress("LibGDXUnsafeIterator")
 	fun updateDynamicSounds(listenerPos: Vector2) {
-		val iterator: Iterator<MetaSoundHandle> = dynamicHandles.iterator()
+		val iterator = dynamicHandles.iterator()
 		while (iterator.hasNext()) {
 			val soundHandle = iterator.next()
 			if (soundHandle.isDone || !soundHandle.isPlaying) {
@@ -132,6 +127,7 @@ class MetaSoundPlayer {
 	/**
 	 * Debug-renders all dynamic sound instances
 	 */
+	@Suppress("LibGDXUnsafeIterator")
 	fun debugRender() {
 		shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
 		shapeRenderer.projectionMatrix = spriteBatch.projectionMatrix
@@ -150,6 +146,7 @@ class MetaSoundPlayer {
 		}
 	}
 
+	@Suppress("LibGDXUnsafeIterator")
 	fun stopAllSounds() {
 		for (soundHandles in playingHandles.values()) {
 			for (soundHandle in soundHandles) {
