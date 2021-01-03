@@ -9,6 +9,7 @@ import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
+import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 class MetaSoundHandle(private val definition: MetaSoundDefinition) {
@@ -75,6 +76,6 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 		if (!isPlaying) {
 			stop()
 		}
-		audioVideoData = metaData["audioVideoData"]
+		audioVideoData = metaData[audioVideoDataKey]
 	}
 }

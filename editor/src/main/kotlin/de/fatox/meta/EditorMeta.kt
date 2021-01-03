@@ -5,8 +5,8 @@ import com.badlogic.gdx.Screen
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.SplashScreen
 import de.fatox.meta.api.WindowHandler
-import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.register
 import de.fatox.meta.assets.MetaData
@@ -16,7 +16,6 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.modules.MetaEditorModule
 import de.fatox.meta.modules.MetaUIModule
 import de.fatox.meta.screens.MetaEditorScreen
-import de.fatox.meta.api.SplashScreen
 import de.fatox.meta.ui.dialogs.*
 import de.fatox.meta.ui.windows.*
 
@@ -34,7 +33,7 @@ class EditorMeta(posM: WindowHandler) : Meta(posM) {
 				SplashScreen {
 					assetProvider.loadRawAssetsFromFolder(Gdx.files.internal("."))
 					array.forEach { assetProvider.loadPackedAssetsFromFolder(it) }
-					val audioVideoData: MetaAudioVideoData = metaData["audioVideoData"]
+					val audioVideoData = metaData[audioVideoDataKey]
 					Gdx.app.postRunnable {
 						uiManager.moveWindow(audioVideoData.x, audioVideoData.y)
 						audioVideoData.apply()

@@ -43,6 +43,7 @@ class MetaData {
 	 * @param target FileHandle
 	 * @return The cached [FileHandle] of the serialized [obj].
 	 */
+	@Suppress("DEPRECATION")
 	@Deprecated(
 		"Use MetaData#save with MetaDataKey. " +
 			"This method will be made private in a future version. " +
@@ -105,6 +106,7 @@ class MetaData {
 	 * @param parent FileHandle
 	 * @return T
 	 */
+	@Suppress("DEPRECATION")
 	@Deprecated(
 		"Use MetaData#get with MetaDataKey. " +
 			"This method will be made private in a future version. " +
