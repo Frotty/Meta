@@ -1,91 +1,66 @@
 buildscript {
-    ext.kotlinVersion = '1.4.0'
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		google()
+		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+		jcenter()
 
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        jcenter()
-        google()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-
-    }
+	}
+	dependencies {
+		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+		//classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
+	}
 }
 
+
 allprojects {
+	apply plugin: 'eclipse'
+	apply plugin: 'idea'
+	// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
+	//apply plugin: "com.autonomousapps.dependency-analysis"
+	apply plugin: 'maven-publish'
+	ext.appName = 'Meta'
+}
 
-    version = '1.0'
-    ext {
-        appName = "MetaRuntime"
-        gdxVersion = '1.9.11'
-        aiVersion = '1.8.0'
-    }
 
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        jcenter()
-        google()
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-    }
+
+// If we add android exclude the project here
+configure(subprojects) {
+	apply plugin: 'kotlin'
+	sourceCompatibility = JavaVersion.VERSION_1_8
+	publishing {
+		publications {
+			mavenJava(MavenPublication) {
+				from components.java
+			}
+		}
+	}
+}
+
+subprojects {
+	group = 'com.github.Frotty'
+	version = '1.0.0-SNAPSHOT'
+
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+		maven { url 'https://jitpack.io' }
+		jcenter()
+	}
 
 	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
 		kotlinOptions.jvmTarget = "1.8"
 		kotlinOptions {
 			freeCompilerArgs += "-progressive"
+			freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+			freeCompilerArgs += "-Xinline-classes"
+			freeCompilerArgs += "-Xjvm-default=all"
 		}
 	}
 }
 
-project(":desktop") {
-    apply plugin: "kotlin"
-
-
-    dependencies {
-        implementation project(":editor")
-        implementation project(":runtime")
-        api "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-        api "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
-        api "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-controllers-platform:$gdxVersion:natives-desktop"
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-    }
-}
-
-project(":runtime") {
-    apply plugin: "kotlin"
-
-
-    dependencies {
-        api "com.badlogicgames.gdx:gdx:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
-        api "com.kotcrab.vis:vis-ui:1.4.6"
-        api group: 'org.tukaani', name: 'xz', version: '1.8'
-        api group: 'org.apache.commons', name: 'commons-compress', version: '1.20'
-		api group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-		api group: 'org.slf4j', name: 'slf4j-api', version: '1.7.28'
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-        compile group: 'org.lwjgl', name: 'lwjgl-opengl', version: '3.1.0'
-    }
-}
-
-
-project(":editor") {
-    apply plugin: "kotlin"
-
-
-    dependencies {
-        implementation project(":runtime")
-        api "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
-        compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-    }
-}
+eclipse.project.name = 'MetaRuntime' + '-parent'

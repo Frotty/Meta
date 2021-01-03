@@ -1,47 +1,49 @@
-## Java
+## Gradle
+.gradle
+gradle-app.setting
+build/
 
+## Java:
 *.class
 *.war
 *.ear
 hs_err_pid*
+.attach_pid*
 
-## Robovm
-/ios/robovm-build/
+## Android:
+android/libs/armeabi/
+android/libs/armeabi-v7a/
+android/libs/x86/
+android/gen/
+local.properties
+com_crashlytics_export_strings.xml
 
-## GWT
-/editor/war/
-/editor/gwt-unitCache/
+## GWT:
+war/
+html/war/gwt_bree/
+html/gwt-unitCache/
 .apt_generated/
+html/war/WEB-INF/deploy/
+html/war/WEB-INF/classes/
 .gwt/
 gwt-unitCache/
 www-test/
 .gwt-tmp/
+*.symbolMap
 
-## Android Studio and Intellij and Android in general
-/android/libs/armeabi/
-/android/libs/armeabi-v7a/
-/android/libs/arm64-v8a/
-/android/libs/x86/
-/android/libs/x86_64/
-/android/gen/
+## IntelliJ, Android Studio:
 .idea/
 *.ipr
 *.iws
 *.iml
-/android/out/
-com_crashlytics_export_strings.xml
+out/
 
 ## Eclipse
-
 .classpath
 .project
-.metadata/
-/android/bin/
-/runtime/bin/
-/desktop/bin/
-/editor/bin/
-/ios/bin/
-/ios-moe/bin/
+.metadata
+**/bin/
+tmp/
 *.tmp
 *.bak
 *.swp
@@ -52,73 +54,17 @@ com_crashlytics_export_strings.xml
 *.launch
 
 ## NetBeans
-
-/nbproject/private/
-/android/nbproject/private/
-/runtime/nbproject/private/
-/desktop/nbproject/private/
-/editor/nbproject/private/
-/ios/nbproject/private/
-/ios-moe/nbproject/private/
-
-/build/
-/android/build/
-/runtime/build/
-/desktop/build/
-/editor/build/
-/ios/build/
-/ios-moe/build/
-
-/nbbuild/
-/android/nbbuild/
-/runtime/nbbuild/
-/desktop/nbbuild/
-/editor/nbbuild/
-/ios/nbbuild/
-/ios-moe/nbbuild/
-
-/dist/
-/android/dist/
-/runtime/dist/
-/desktop/dist/
-/editor/dist/
-/ios/dist/
-/ios-moe/dist/
-
-/nbdist/
-/android/nbdist/
-/runtime/nbdist/
-/desktop/nbdist/
-/editor/nbdist/
-/ios/nbdist/
-/ios-moe/nbdist/
-
+**/nbproject/private/
+nbbuild/
+dist/
+nbdist/
 nbactions.xml
 nb-configuration.xml
 
-## Gradle
-
-/local.properties
-.gradle/
-gradle-app.setting
-
 ## OS Specific
 .DS_Store
-Thumbs.db
 
-## iOS
-/ios/xcode/*.xcodeproj/*
-!/ios/xcode/*.xcodeproj/xcshareddata
-!/ios/xcode/*.xcodeproj/project.pbxproj
-/ios/xcode/native/
-/ios/IOSLauncher.app
-/ios/IOSLauncher.app.dSYM
-
-/ios-moe/xcode/*.xcodeproj/*
-!/ios-moe/xcode/*.xcodeproj/xcshareddata
-!/ios-moe/xcode/*.xcodeproj/project.pbxproj
-/ios-moe/xcode/native/
-
-**/out
-**/.meta
-runtime/assets/meta.log
+## Miscellaneous
+*~
+*.*#
+*#*#
