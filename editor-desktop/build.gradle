@@ -33,10 +33,12 @@ run {
 	}
 }
 jar {
-	archiveBaseName = 'MetaEditor'
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE // allow duplicates
+	archiveBaseName.set('MetaEditor')
 	dependsOn configurations.runtimeClasspath
 	from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
 	copy {
+		duplicatesStrategy = DuplicatesStrategy.INCLUDE // allow duplicates
 		from sourceSets.main.resources.srcDirs
 		into "$project.buildDir/libs/data/"
 	}
