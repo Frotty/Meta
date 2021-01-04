@@ -1,6 +1,6 @@
 buildscript {
 	repositories {
-		mavenLocal()
+		//mavenLocal()
 		mavenCentral {
 			content {
 				includeGroupByRegex "org\\.jetbrains\\..*"
@@ -9,6 +9,8 @@ buildscript {
 				includeGroup "de.undercouch"
 				includeGroup "com.github.gundy"
 				includeGroup "org.antlr"
+				// for jitpack?
+				includeGroup "org.sonatype.oss"
 			}
 		}
 	}
@@ -49,7 +51,7 @@ subprojects {
 	version = '1.0.0-SNAPSHOT'
 
 	repositories {
-		mavenLocal()
+		//mavenLocal()
 		mavenCentral {
 			content {
 				includeGroupByRegex "com\\.badlogicgames\\..*"
