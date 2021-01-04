@@ -13,6 +13,7 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.get
 import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
