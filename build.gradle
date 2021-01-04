@@ -1,12 +1,16 @@
 buildscript {
 	repositories {
 		mavenLocal()
-		mavenCentral()
-		google()
-		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-		jcenter()
-
+		mavenCentral {
+			content {
+				includeGroupByRegex "org\\.jetbrains\\..*"
+				includeGroup "org.jetbrains"
+				includeGroup "com.google.code.gson"
+				includeGroup "de.undercouch"
+				includeGroup "com.github.gundy"
+				includeGroup "org.antlr"
+			}
+		}
 	}
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
@@ -45,11 +49,35 @@ subprojects {
 
 	repositories {
 		mavenLocal()
-		mavenCentral()
-		maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
-		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-		maven { url 'https://jitpack.io' }
-		jcenter()
+		mavenCentral {
+			content {
+				includeGroupByRegex "com\\.badlogicgames\\..*"
+				includeGroupByRegex "org\\.jetbrains\\..*"
+				includeGroup "org.jetbrains"
+				includeGroup "com.kotcrab.vis"
+				includeGroup "org.slf4j"
+				includeGroup "org.apache.commons"
+				includeGroup "ch.qos.logback"
+				includeGroupByRegex "org\\.junit\\..*"
+				includeGroup "org.junit"
+				includeGroup "org.apiguardian"
+				includeGroup "org.opentest4j"
+				includeGroup "org.lwjgl"
+				includeGroup "org.jcraft"
+			}
+		}
+		maven {
+			url "https://oss.sonatype.org/content/repositories/snapshots/"
+			content {
+				includeGroup "com.badlogicgames.gdx"
+			}
+		}
+		maven {
+			url 'https://jitpack.io'
+			content {
+				includeGroup "com.github.julman99"
+			}
+		}
 	}
 
 	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
