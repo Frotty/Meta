@@ -3,8 +3,6 @@ package de.fatox.meta.input
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.controllers.Controller
 import com.badlogic.gdx.controllers.ControllerListener
-import com.badlogic.gdx.controllers.PovDirection
-import com.badlogic.gdx.math.Vector3
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 
@@ -82,22 +80,6 @@ class MetaControllerListener(private val metaInput: MetaInput) : ControllerListe
 			currentDownKey = -1
 			return true
 		}
-		return false
-	}
-
-	override fun povMoved(controller: Controller, povCode: Int, value: PovDirection): Boolean {
-		return false
-	}
-
-	override fun xSliderMoved(controller: Controller, sliderCode: Int, value: Boolean): Boolean {
-		return false
-	}
-
-	override fun ySliderMoved(controller: Controller, sliderCode: Int, value: Boolean): Boolean {
-		return false
-	}
-
-	override fun accelerometerMoved(controller: Controller, accelerometerCode: Int, value: Vector3): Boolean {
 		return false
 	}
 }
