@@ -9,7 +9,7 @@ buildscript {
 				includeGroup "de.undercouch"
 				includeGroup "com.github.gundy"
 				includeGroup "org.antlr"
-				// for jitpack?
+				// required by jitpack
 				includeGroup "org.sonatype.oss"
 			}
 		}
@@ -67,6 +67,8 @@ subprojects {
 				includeGroup "org.opentest4j"
 				includeGroup "org.lwjgl"
 				includeGroup "org.jcraft"
+				// required by jitpack
+				includeGroup "org.sonatype.oss"
 			}
 		}
 		maven {
