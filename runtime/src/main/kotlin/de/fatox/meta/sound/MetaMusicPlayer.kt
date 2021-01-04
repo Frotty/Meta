@@ -8,9 +8,9 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.get
-import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
+import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import org.slf4j.Logger
 
@@ -92,7 +92,7 @@ class MetaMusicPlayer : Disposable {
 	}
 
 	private fun updateMusic() {
-		val audioVideoData: MetaAudioVideoData = metaData["audioVideoData"]
+		val audioVideoData = metaData[audioVideoDataKey]
 		val volume = audioVideoData.masterVolume * audioVideoData.musicVolume
 		if (!musicEnabled || volume <= startVolume) {
 			if (currentMusic !== UninitializedMusic)
