@@ -18,7 +18,6 @@ buildscript {
 	}
 }
 
-
 allprojects {
 	apply plugin: 'eclipse'
 	apply plugin: 'idea'
@@ -26,9 +25,11 @@ allprojects {
 	//apply plugin: "com.autonomousapps.dependency-analysis"
 	apply plugin: 'maven-publish'
 	ext.appName = 'Meta'
+
+	configurations.all {
+		exclude group: "com.badlogicgames.gdx", module: "gdx-backend-lwjgl"
+	}
 }
-
-
 
 // If we add android exclude the project here
 configure(subprojects) {
