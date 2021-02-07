@@ -9,7 +9,7 @@ dependencies {
 	implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
 
 	// Used by reflection, do not remove!
-	api "com.badlogicgames.gdx:gdx-controllers-lwjgl3:$gdxVersion"
+	implementation "com.badlogicgames.gdx-controllers:gdx-controllers-desktop:$gdxControllersVersion"
 
 	// Explicit transitive dependencies
 	implementation "org.slf4j:slf4j-api:$slf4jVersion"
