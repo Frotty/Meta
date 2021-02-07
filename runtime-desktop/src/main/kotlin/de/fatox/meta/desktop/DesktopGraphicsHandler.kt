@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.glutils.GLFrameBuffer
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.GdxRuntimeException
-import com.sun.org.apache.xpath.internal.operations.Mult
 import de.fatox.meta.api.GraphicsHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.graphics.buffer.MultisampleFBO
@@ -102,6 +101,7 @@ class DesktopGraphicsHandler : GraphicsHandler {
 		fbo.isMRT = true
 		var colorTextureCounter = 0
 		if (fbo.isMRT) {
+			@Suppress("GDXKotlinUnsafeIterator")
 			for (attachmentSpec in fbo.bufferBuilder.textureAttachmentSpecs) {
 				val texture = fbo.createTexture(attachmentSpec)
 				fbo.textureAttachments++
@@ -201,13 +201,12 @@ class DesktopGraphicsHandler : GraphicsHandler {
 			if (bufferBuilder.textureAttachmentSpecs.size > 1) {
 				throw GdxRuntimeException("Multiple render targets not available on GLES 2.0")
 			}
+			@Suppress("GDXKotlinUnsafeIterator")
 			for (spec in bufferBuilder.textureAttachmentSpecs) {
 				if (spec.isDepth) throw GdxRuntimeException("Depth texture FrameBuffer Attachment not available on GLES 2.0")
 				if (spec.isStencil) throw GdxRuntimeException("Stencil texture FrameBuffer Attachment not available on GLES 2.0")
-				if (spec.isFloat) {
-					if (!Gdx.graphics.supportsExtension("OES_texture_float")) {
-						throw GdxRuntimeException("Float texture FrameBuffer Attachment not available on GLES 2.0")
-					}
+				if (spec.isFloat && !Gdx.graphics.supportsExtension("OES_texture_float")) {
+					throw GdxRuntimeException("Float texture FrameBuffer Attachment not available on GLES 2.0")
 				}
 			}
 		}
