@@ -12,6 +12,7 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.lastProjectsKey
 import de.fatox.meta.ui.components.TextWidget
 
 /**
@@ -41,10 +42,8 @@ class WelcomeTab : MetaTab(false, false) {
 		val visLabel = VisLabel("Welcome to the Meta Engine\nCreate or load a project\n\nRecent projects:")
 		visLabel.setAlignment(Align.center)
 		visTable.add(visLabel).pad(16f)
-		if (!metaData.has("lastProjects")) {
-			metaData.save("lastProjects", Array<String>())
-		}
-		val lastProjects: Array<String> = metaData["lastProjects"]
+		if (!metaData.has(lastProjectsKey)) metaData.save(lastProjectsKey, Array())
+		val lastProjects = metaData[lastProjectsKey]
 		for (lastProj in lastProjects) {
 			visTable.row()
 			val linkLabel = LinkLabel(lastProj.substring(0, lastProj.lastIndexOf("/")))
