@@ -1,19 +1,24 @@
 buildscript {
 	repositories {
-		mavenLocal()
-		mavenCentral()
-		google()
-		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-		jcenter()
-
+		//mavenLocal()
+		mavenCentral {
+			content {
+				includeGroupByRegex "org\\.jetbrains\\..*"
+				includeGroup "org.jetbrains"
+				includeGroup "com.google.code.gson"
+				includeGroup "de.undercouch"
+				includeGroup "com.github.gundy"
+				includeGroup "org.antlr"
+				// required by jitpack
+				includeGroup "org.sonatype.oss"
+			}
+		}
 	}
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 		//classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
 	}
 }
-
 
 allprojects {
 	apply plugin: 'eclipse'
@@ -22,9 +27,11 @@ allprojects {
 	//apply plugin: "com.autonomousapps.dependency-analysis"
 	apply plugin: 'maven-publish'
 	ext.appName = 'Meta'
+
+	configurations.all {
+		exclude group: "com.badlogicgames.gdx", module: "gdx-backend-lwjgl"
+	}
 }
-
-
 
 // If we add android exclude the project here
 configure(subprojects) {
@@ -44,12 +51,39 @@ subprojects {
 	version = '1.0.0-SNAPSHOT'
 
 	repositories {
-		mavenLocal()
-		mavenCentral()
-		maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
-		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
-		maven { url 'https://jitpack.io' }
-		jcenter()
+		//mavenLocal()
+		mavenCentral {
+			content {
+				includeGroupByRegex "com\\.badlogicgames\\..*"
+				includeGroupByRegex "org\\.jetbrains\\..*"
+				includeGroup "org.jetbrains"
+				includeGroup "com.kotcrab.vis"
+				includeGroup "org.slf4j"
+				includeGroup "org.apache.commons"
+				includeGroup "ch.qos.logback"
+				includeGroupByRegex "org\\.junit\\..*"
+				includeGroup "org.junit"
+				includeGroup "org.apiguardian"
+				includeGroup "org.opentest4j"
+				includeGroup "org.lwjgl"
+				includeGroup "org.jcraft"
+				// required by jitpack
+				includeGroup "org.sonatype.oss"
+				includeGroup "org.apache"
+			}
+		}
+		maven {
+			url "https://oss.sonatype.org/content/repositories/snapshots/"
+			content {
+				includeGroup "com.badlogicgames.gdx"
+			}
+		}
+		maven {
+			url 'https://jitpack.io'
+			content {
+				includeGroup "com.github.julman99"
+			}
+		}
 	}
 
 	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
