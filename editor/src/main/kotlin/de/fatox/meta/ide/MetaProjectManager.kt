@@ -10,6 +10,7 @@ import de.fatox.meta.api.model.MetaProjectData
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.lastProjectsKey
 import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.tabs.ProjectHomeTab
 import java.nio.file.Paths
@@ -24,9 +25,9 @@ object MetaProjectManager : ProjectManager {
 	private val metaData: MetaData by lazyInject()
 
 	override lateinit var currentProject: MetaProjectData
-	private set
+		private set
 	override lateinit var currentProjectRoot: FileHandle
-	private set
+		private set
 	private val onLoadListeners = Array<EventListener>()
 
 	override fun loadProject(projectFile: FileHandle): MetaProjectData {
@@ -38,14 +39,10 @@ object MetaProjectManager : ProjectManager {
 		currentProjectRoot = realFile.parent()
 		createFolders(metaProjectData)
 		currentProject = metaProjectData
-		val lastProjects: Array<String> = if (metaData.has("lastProjects")) {
-			metaData.get("lastProjects")
-		} else {
-			Array()
-		}
+		val lastProjects = if (metaData.has(lastProjectsKey)) metaData[lastProjectsKey] else Array()
 		if (!lastProjects.contains(realFile.path(), false)) {
 			lastProjects.add(realFile.path())
-			metaData.save("lastProjects", lastProjects)
+			metaData.save(lastProjectsKey, lastProjects)
 		}
 		for (listener in onLoadListeners) {
 			listener.handle(null)
@@ -92,7 +89,7 @@ object MetaProjectManager : ProjectManager {
 		currentProjectRoot.child("scenes").mkdirs()
 	}
 
-	override fun <T: Any> get(key: String, type: KClass<out T>): T {
+	override fun <T : Any> get(key: String, type: KClass<out T>): T {
 		return metaData.load(key, type, currentProjectRoot) as T
 	}
 

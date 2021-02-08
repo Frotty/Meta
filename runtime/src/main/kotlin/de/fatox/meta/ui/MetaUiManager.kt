@@ -103,7 +103,7 @@ object MetaUiManager : UIManager {
 	}
 
 	private fun restoreWindows() {
-		val list = metaData.getCachedHandle(currentScreenId).list()
+		val list = metaData.getCachedHandle(currentScreenId).list() // TODO use MetaDataKey and cache it
 		outer@ for (fh: FileHandle in list) {
 			if (fh.name().endsWith("Window")) {
 				val windowClass: KClass<out Window>? = windowConfig.nameToClass[fh.name()]
@@ -247,15 +247,15 @@ object MetaUiManager : UIManager {
 	}
 
 	override fun metaHas(name: String): Boolean {
-		return metaData.has(currentScreenId + File.separator + name)
+		return metaData.has(currentScreenId + File.separator + name) // TODO use MetaDataKey and cache it
 	}
 
 	override fun <T : Any> metaGet(name: String, c: KClass<out T>): T {
-		return metaData[currentScreenId + File.separator + name, c]
+		return metaData[currentScreenId + File.separator + name, c] // TODO use MetaDataKey and cache it
 	}
 
 	override fun metaSave(name: String, windowData: Any) {
-		val id = currentScreenId + File.separator + name
+		val id = currentScreenId + File.separator + name // TODO use MetaDataKey and cache it
 		if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(id).lastModified()) > 200) {
 			metaData.save(id, windowData)
 		}
