@@ -1,4 +1,4 @@
-@file:Suppress("LibGDXUnsafeIterator")
+@file:Suppress("GDXKotlinUnsafeIterator")
 
 package de.fatox.meta.input
 
