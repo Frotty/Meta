@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.MetaInputProcessor
@@ -33,6 +34,15 @@ object UiControlHelper {
 				color.add(-0.25f, -0.25f, 0.3f, 0.2f)
 			else
 				color.add(0.05f, 0.05f, 0.3f, 0.2f)
+
+			var parent = value.parent
+			while (parent != null) {
+				if (parent is ScrollPane) {
+					parent.scrollY = value.y
+					break
+				}
+				parent = parent.parent
+			}
 		}
 
 	private val possibleTargets: Array<Actor>
