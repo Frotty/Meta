@@ -11,7 +11,6 @@ import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.getOrPut
-import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
@@ -75,7 +74,7 @@ class MetaSoundPlayer {
 		return soundHandle
 	}
 
-	@Suppress("LibGDXUnsafeIterator")
+	@Suppress("GDXKotlinUnsafeIterator")
 	private fun cleanupHandles(handleList: Array<MetaSoundHandle>) {
 		val iterator = handleList.iterator()
 		while (iterator.hasNext()) {
@@ -112,7 +111,7 @@ class MetaSoundPlayer {
 		return playSound(soundDefinitions.get(path), listenerPosition, soundPosition)
 	}
 
-	@Suppress("LibGDXUnsafeIterator")
+	@Suppress("GDXKotlinUnsafeIterator")
 	fun updateDynamicSounds(listenerPos: Vector2) {
 		val iterator = dynamicHandles.iterator()
 		while (iterator.hasNext()) {
@@ -128,7 +127,7 @@ class MetaSoundPlayer {
 	/**
 	 * Debug-renders all dynamic sound instances
 	 */
-	@Suppress("LibGDXUnsafeIterator")
+	@Suppress("GDXKotlinUnsafeIterator")
 	fun debugRender() {
 		shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
 		shapeRenderer.projectionMatrix = spriteBatch.projectionMatrix
@@ -147,7 +146,7 @@ class MetaSoundPlayer {
 		}
 	}
 
-	@Suppress("LibGDXUnsafeIterator")
+	@Suppress("GDXKotlinUnsafeIterator")
 	fun stopAllSounds() {
 		for (soundHandles in playingHandles.values()) {
 			for (soundHandle in soundHandles) {
