@@ -54,4 +54,5 @@ inline operator fun <reified T : Any> AssetProvider.get(fileName: String, index:
 inline operator fun <reified T : Any> AssetProvider.get(key: AssetKey<T>, index: Int = -1): T =
 	getResource(key, T::class.java, index)
 
-inline class AssetKey<T : Any>(val name: String)
+@JvmInline
+value class AssetKey<T : Any>(val name: String)

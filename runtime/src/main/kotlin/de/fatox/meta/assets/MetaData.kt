@@ -235,7 +235,8 @@ class MetaData {
 }
 
 @Suppress("unused")
-inline class MetaDataKey<T : Any>(val name: String)
+@JvmInline
+value class MetaDataKey<T : Any>(val name: String)
 
 @Deprecated(
 	"Use MetaData#get with MetaDataKey. " +
