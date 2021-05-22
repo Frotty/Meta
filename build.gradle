@@ -9,6 +9,13 @@ buildscript {
 				includeGroup "de.undercouch"
 				includeGroup "com.github.gundy"
 				includeGroup "org.antlr"
+				// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
+//				includeGroup "com.google.errorprone"
+//				includeGroup "org.checkerframework"
+//				includeGroup "com.squareup.okio"
+//				includeGroup "com.github.ben-manes.caffeine"
+//				includeGroup "com.squareup.moshi"
+//				includeGroup "com.autonomousapps"
 				// required by jitpack
 				includeGroup "org.sonatype.oss"
 			}
@@ -16,7 +23,8 @@ buildscript {
 	}
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-		//classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
+		// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
+//		classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
 	}
 }
 
@@ -24,7 +32,7 @@ allprojects {
 	apply plugin: 'eclipse'
 	apply plugin: 'idea'
 	// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
-	//apply plugin: "com.autonomousapps.dependency-analysis"
+//	 apply plugin: "com.autonomousapps.dependency-analysis"
 	apply plugin: 'maven-publish'
 	ext.appName = 'Meta'
 

@@ -42,9 +42,12 @@ private fun MessageDigest.resetAndDigest(
 	return output
 }
 
-inline class Hash(val value: ByteArray)
-inline class Base64EncodedHash(val value: String)
-inline class HexEncodedHash(val value: String)
+@JvmInline
+value class Hash(val value: ByteArray)
+@JvmInline
+value class Base64EncodedHash(val value: String)
+@JvmInline
+value class HexEncodedHash(val value: String)
 
 /**
  * Converts a [byte array][ByteArray] to a hex string.

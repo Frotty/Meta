@@ -13,8 +13,10 @@ private val inflater: Inflater = Inflater()
 
 private const val BUFFER_LENGTH: Int = 1024
 
-inline class CompressedByteArray(val byteArray: ByteArray)
-inline class Base64EncodedByteArray(val byteArray: ByteArray)
+@JvmInline
+value class CompressedByteArray(val byteArray: ByteArray)
+@JvmInline
+value class Base64EncodedByteArray(val byteArray: ByteArray)
 
 inline fun ByteArrayOutputStream.toCompressedByteArray(): CompressedByteArray = CompressedByteArray(toByteArray())
 
