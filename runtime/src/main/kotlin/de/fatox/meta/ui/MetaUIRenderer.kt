@@ -19,7 +19,11 @@ import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.error
+import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.get
+import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 private val log = MetaLoggerFactory.logger {}
@@ -29,22 +33,28 @@ class MetaUIRenderer : UIRenderer {
 	private val assetProvider: AssetProvider by lazyInject()
 	private val visuiSkin: String by lazyInject("visuiSkin")
 	private val spriteBatch: SpriteBatch by lazyInject()
+	private val metaData: MetaData by lazyInject()
 
-	private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
+	private val stage: Stage = Stage(ScreenViewport(),  spriteBatch)
+	private val audioVideoData = metaData[audioVideoDataKey]
 
 	init {
 		log.debug { "Injected MetaUi." }
 	}
 
 	override fun load() {
-		if (visuiSkin != "") {
-			VisUI.load(assetProvider.getResource(visuiSkin, FileHandle::class.java))
-		} else {
-			VisUI.load()
+		log.trace { "load with UI enabled = ${audioVideoData.runWithUI}" }
+		if (audioVideoData.runWithUI) {
+			if (visuiSkin != "") {
+				VisUI.load(assetProvider.getResource(visuiSkin, FileHandle::class.java))
+			} else {
+				VisUI.load()
+			}
+			FileChooser.setDefaultPrefsName("de.fatox.meta")
+			VisUI.setDefaultTitleAlign(Align.center)
+			log.debug { "Loaded VisUi." }
 		}
-		FileChooser.setDefaultPrefsName("de.fatox.meta")
-		log.debug { "Loaded VisUi." }
-		VisUI.setDefaultTitleAlign(Align.center)
+
 		stage.root.addCaptureListener(object : InputListener() {
 			override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
 				if (!(event.target is TextField || event.target is ScrollPane)) stage.scrollFocus = null
@@ -57,7 +67,7 @@ class MetaUIRenderer : UIRenderer {
 	override fun addActor(actor: Actor) {
 		try {
 			stage.addActor(actor)
-		} catch (e: Throwable) {
+		} catch (e: Exception) {
 			log.error(e) { "Failed to add actor: $actor!" }
 		}
 	}
@@ -67,6 +77,8 @@ class MetaUIRenderer : UIRenderer {
 	}
 
 	override fun draw() {
+		if (!audioVideoData.runWithUI) return
+
 		stage.draw()
 	}
 
