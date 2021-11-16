@@ -14,10 +14,10 @@ class MRTFrameBuffer(
 	val height: Int,
 	textureCount: Int, hasDepth: Boolean,
 ) : Disposable {
-	private var frameBuffer: MultisampleFBO? = null
+	private lateinit var frameBuffer: MultisampleFBO
 
 	val colorBufferTextures: Array<Texture>
-		get() = frameBuffer!!.getTextureAttachments()
+		get() = frameBuffer.getTextureAttachments()
 
 	init {
 		build(textureCount, hasDepth)
@@ -38,12 +38,12 @@ class MRTFrameBuffer(
 
 	/** Releases all resources associated with the FrameBuffer.  */
 	override fun dispose() {
-		frameBuffer!!.dispose()
+		frameBuffer.dispose()
 	}
 
 	/** Makes the frame buffer current so everything gets drawn to it.  */
 	fun bind() {
-		frameBuffer!!.bind()
+		frameBuffer.bind()
 	}
 
 	/** Binds the frame buffer and sets the viewport accordingly, so everything gets drawn to it.  */
@@ -54,14 +54,14 @@ class MRTFrameBuffer(
 
 	/** Sets viewport to the dimensions of framebuffer. Called by [.begin].  */
 	private fun setFrameBufferViewport() {
-		Gdx.gl20.glViewport(0, 0, frameBuffer!!.getWidth(), frameBuffer!!.getHeight())
+		Gdx.gl20.glViewport(0, 0, frameBuffer.width, frameBuffer.height)
 	}
 
 	/**
 	 * Unbinds the framebuffer and sets viewport sizes, all drawing will be performed to the normal framebuffer from here on.
 	 *
 	 * @param x      the x-axis position of the viewport in pixels
-	 * @param y      the y-asis position of the viewport in pixels
+	 * @param y      the y-axis position of the viewport in pixels
 	 * @param width  the width of the viewport in pixels
 	 * @param height the height of the viewport in pixels
 	 */
@@ -71,9 +71,7 @@ class MRTFrameBuffer(
 		Gdx.gl20.glViewport(x, y, width, height)
 	}
 
-	fun getFBO(): Int {
-		return frameBuffer!!.framebufferHandle
-	}
+	fun getFBO(): Int = frameBuffer.framebufferHandle
 
 	companion object {
 
@@ -83,4 +81,3 @@ class MRTFrameBuffer(
 		}
 	}
 }
-/** Unbinds the framebuffer, all drawing will be performed to the normal framebuffer from here on.  */

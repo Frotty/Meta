@@ -14,6 +14,7 @@ buildscript {
 				includeGroup "com.github.gundy"
 				includeGroup "org.antlr"
 				includeGroup "org.checkerframework"
+				includeGroup "net.java.dev.jna"
 				// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
 //				includeGroup "com.squareup.okio"
 //				includeGroup "com.github.ben-manes.caffeine"
