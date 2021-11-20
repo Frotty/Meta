@@ -79,6 +79,7 @@ subprojects {
 				includeGroup "org.opentest4j"
 				includeGroup "org.lwjgl"
 				includeGroup "org.jcraft"
+				includeGroup "net.java.dev.jna"
 				// required by jitpack
 				includeGroup "org.sonatype.oss"
 				includeGroup "org.apache"
