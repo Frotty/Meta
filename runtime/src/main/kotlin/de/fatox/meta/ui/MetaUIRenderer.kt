@@ -45,14 +45,7 @@ class MetaUIRenderer : UIRenderer {
 	override fun load() {
 		log.trace { "load with UI enabled = ${audioVideoData.runWithUI}" }
 		if (audioVideoData.runWithUI) {
-			if (visuiSkin != "") {
-				VisUI.load(assetProvider.getResource(visuiSkin, FileHandle::class.java))
-			} else {
-				VisUI.load()
-			}
-			FileChooser.setDefaultPrefsName("de.fatox.meta")
-			VisUI.setDefaultTitleAlign(Align.center)
-			log.debug { "Loaded VisUi." }
+			loadVisUI()
 		}
 
 		stage.root.addCaptureListener(object : InputListener() {
@@ -62,6 +55,17 @@ class MetaUIRenderer : UIRenderer {
 			}
 		})
 		metaInput.addGlobalInputProcessor(stage)
+	}
+
+	private fun loadVisUI() {
+		if (visuiSkin != "") {
+			VisUI.load(assetProvider.getResource(visuiSkin, FileHandle::class.java))
+		} else {
+			VisUI.load()
+		}
+		FileChooser.setDefaultPrefsName("de.fatox.meta")
+		VisUI.setDefaultTitleAlign(Align.center)
+		log.debug { "Loaded VisUi." }
 	}
 
 	override fun addActor(actor: Actor) {
