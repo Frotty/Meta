@@ -27,8 +27,8 @@ class DesktopGraphicsHandler : GraphicsHandler {
 				GL32.GL_TEXTURE_2D_MULTISAMPLE,
 				2,
 				attachmentSpec.internalFormat,
-				fbo.getWidth(),
-				fbo.getHeight(),
+				fbo.width,
+				fbo.height,
 				true
 			)
 			Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_MIN_FILTER, Texture.TextureFilter.Nearest.glEnum.toFloat())
@@ -61,7 +61,7 @@ class DesktopGraphicsHandler : GraphicsHandler {
 		}
 		fbo.framebufferHandle = gl.glGenFramebuffer()
 		gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, fbo.framebufferHandle)
-		val imBuilder = GLFrameBuffer.FrameBufferBuilder(fbo.getWidth(), fbo.getHeight())
+		val imBuilder = GLFrameBuffer.FrameBufferBuilder(fbo.width, fbo.height)
 		val width = fbo.bufferBuilder.width
 		val height = fbo.bufferBuilder.height
 		if (fbo.bufferBuilder.hasDepthRenderBuffer) {

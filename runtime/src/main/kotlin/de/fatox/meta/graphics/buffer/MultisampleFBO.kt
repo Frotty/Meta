@@ -26,14 +26,13 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 import de.fatox.meta.Meta
-import java.util.*
 
 /**
  *
  *
  * Encapsulates OpenGL ES 2.0 frame buffer objects. This is a simple helper class which should cover most FBO uses. It
  * will automatically create a gltexture for the color attachment and a renderbuffer for the depth buffer. You can get a
- * hold of the gltexture by [MultisampleFBO.getColorBufferTexture]. This class will only work with OpenGL ES 2.0.
+ * hold of the gltexture by [MultisampleFBO.colorBufferTexture]. This class will only work with OpenGL ES 2.0.
  *
  * FrameBuffers are managed. In case of an OpenGL context loss, which only happens on Android when a user switches to
  * another application or receives an incoming call, the framebuffer will be automatically recreated.
@@ -92,12 +91,12 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 			Gdx.gl30.glBlitFramebuffer(
 				0,
 				0,
-				getWidth(),
-				getHeight(),
+				width,
+				height,
 				0,
 				0,
-				getWidth(),
-				getHeight(),
+				width,
+				height,
 				GL30.GL_COLOR_BUFFER_BIT,
 				GL30.GL_NEAREST
 			)
@@ -131,12 +130,12 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 				Gdx.gl30.glBlitFramebuffer(
 					0,
 					0,
-					getWidth(),
-					getHeight(),
+					width,
+					height,
 					0,
 					0,
-					getWidth(),
-					getHeight(),
+					width,
+					height,
 					GL30.GL_DEPTH_BUFFER_BIT,
 					GL30.GL_NEAREST
 				)
@@ -144,12 +143,12 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 				Gdx.gl30.glBlitFramebuffer(
 					0,
 					0,
-					getWidth(),
-					getHeight(),
+					width,
+					height,
 					0,
 					0,
-					getWidth(),
-					getHeight(),
+					width,
+					height,
 					GL30.GL_COLOR_BUFFER_BIT,
 					GL30.GL_NEAREST
 				)
@@ -272,16 +271,14 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	/**
 	 * @return the height of the framebuffer in pixels
 	 */
-	fun getHeight(): Int {
-		return bufferBuilder.height
-	}
+	val height: Int
+		get() = bufferBuilder.height
 
 	/**
 	 * @return the width of the framebuffer in pixels
 	 */
-	fun getWidth(): Int {
-		return bufferBuilder.width
-	}
+	val width: Int
+		get() = bufferBuilder.width
 
 	class FrameBufferTextureAttachmentSpec(var internalFormat: Int, var format: Int, var type: Int) {
 		var isFloat: Boolean = false

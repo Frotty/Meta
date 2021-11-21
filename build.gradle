@@ -14,6 +14,7 @@ buildscript {
 				includeGroup "com.github.gundy"
 				includeGroup "org.antlr"
 				includeGroup "org.checkerframework"
+				includeGroup "net.java.dev.jna"
 				// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
 //				includeGroup "com.squareup.okio"
 //				includeGroup "com.github.ben-manes.caffeine"
@@ -78,6 +79,7 @@ subprojects {
 				includeGroup "org.opentest4j"
 				includeGroup "org.lwjgl"
 				includeGroup "org.jcraft"
+				includeGroup "net.java.dev.jna"
 				// required by jitpack
 				includeGroup "org.sonatype.oss"
 				includeGroup "org.apache"

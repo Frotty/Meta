@@ -51,9 +51,12 @@ data class MetaAudioVideoData(
 	var masterVolume: Float = 0.5f,
 	var musicVolume: Float = 1f,
 	var soundVolume: Float = 1f,
-	var metaDisplayMode: MetaDisplayMode = MetaDisplayMode()
+	var metaDisplayMode: MetaDisplayMode = MetaDisplayMode(),
+	var runWithUI: Boolean = true,
 ) {
 	fun apply() {
+		if (!runWithUI) return
+
 		if (fullscreen && Gdx.graphics.supportsDisplayModeChange()) {
 			val dms = Gdx.graphics.monitors.mapNotNull { gm ->
 				Gdx.graphics.getDisplayModes(gm).firstOrNull { metaDisplayMode.equalsDisplayMode(it) }

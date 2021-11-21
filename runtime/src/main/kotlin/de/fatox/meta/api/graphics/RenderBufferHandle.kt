@@ -39,53 +39,26 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
 	}
 
 	val height: Int
-		get() = when {
-			mrtFrameBuffer != null -> mrtFrameBuffer!!.height
-			frameBuffer != null -> frameBuffer!!.getHeight()
-			else -> 0
-		}
+		get() = mrtFrameBuffer?.height ?: frameBuffer?.height ?: 0
 
 	val width: Int
-		get() = when {
-			mrtFrameBuffer != null -> mrtFrameBuffer!!.width
-			frameBuffer != null -> frameBuffer!!.getWidth()
-			else -> 0
-		}
+		get() = mrtFrameBuffer?.width ?: frameBuffer?.width ?: 0
 
-	private val singleArray = Array<Texture>(1)
-
-	init {
-		singleArray.size = 1
-	}
-
-	private val emptyArray: Array<out Texture> = Array()
+	private val singleArray = Array<Texture>(1).apply { size = 1 }
+	private val emptyArray: Array<out Texture> = Array(0)
 
 	val colorTextures: Array<out Texture>
-		get() = when {
-			mrtFrameBuffer != null -> mrtFrameBuffer!!.colorBufferTextures
-			frameBuffer != null -> singleArray.apply { set(0, frameBuffer!!.colorBufferTexture) }
-			else -> emptyArray
-		}
+		get() = mrtFrameBuffer?.colorBufferTextures
+			?: frameBuffer?.run { singleArray.apply { set(0, colorBufferTexture) } }
+			?: emptyArray
 
 	fun begin() {
-		if (mrtFrameBuffer != null) {
-			mrtFrameBuffer!!.begin()
-		} else if (frameBuffer != null) {
-			frameBuffer!!.begin()
-		}
+		mrtFrameBuffer?.begin() ?: frameBuffer?.begin()
 	}
 
 	fun end(x: Float, y: Float) {
-		if (mrtFrameBuffer != null) {
-			mrtFrameBuffer!!.end()
-		} else if (frameBuffer != null) {
-			frameBuffer!!.end()
-		}
+		mrtFrameBuffer?.end() ?: frameBuffer?.end()
 	}
 
-	fun getFBO(): Int = when {
-		mrtFrameBuffer != null -> mrtFrameBuffer!!.getFBO()
-		frameBuffer != null -> frameBuffer!!.framebufferHandle
-		else -> -1
-	}
+	fun getFBO(): Int = mrtFrameBuffer?.getFBO() ?: frameBuffer?.framebufferHandle ?: -1
 }
