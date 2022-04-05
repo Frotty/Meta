@@ -17,7 +17,7 @@ import de.fatox.meta.ui.tabs.SceneTab
 /**
  * Created by Frotty on 20.05.2016.
  */
-object PrimitivesWindow : MetaWindow("Primitives", true, true) {
+class PrimitivesWindow : MetaWindow("Primitives", true, true) {
 	private val boxButton: MetaIconTextButton
 
 	private val metaEditorUI: MetaEditorUI by lazyInject()

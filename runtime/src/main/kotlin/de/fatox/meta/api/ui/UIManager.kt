@@ -24,23 +24,37 @@ class WindowConfig {
 	internal val nameToClass: MutableMap<String, KClass<out Window>> = mutableMapOf()
 	internal val classToName: MutableMap<KClass<out Window>, String> = mutableMapOf()
 	internal val creators: MutableMap<String, () -> Window> = mutableMapOf()
+	internal val singletons: MutableMap<String, () -> Window> = mutableMapOf()
+	internal val singletonCache: MutableMap<String, Window> = mutableMapOf()
 
-	internal fun nameOf(windowClass: KClass<out Window>): String = classToName.getValue(windowClass)
+	internal inline fun nameOf(windowClass: KClass<out Window>): String = classToName.getValue(windowClass)
 
-	internal inline fun <T : Window> create(name: String): T = creators.getValue(name)() as T
-	internal inline fun <T : Window> create(windowClass: KClass<out T>): T = create(nameOf(windowClass))
+	internal fun <T : Window> create(name: String): T =
+		singletonCache[name] as T?
+			?: singletons[name]?.invoke()?.also { singletonCache[name] = it } as T?
+			?: creators.getValue(name)() as T
+
+	internal fun <T : Window> create(windowClass: KClass<out T>): T = create(nameOf(windowClass))
 
 	@PublishedApi
-	internal fun <T : MetaWindow> register(
+	internal fun <T : MetaWindow> register(windowClass: KClass<T>, name: String, creator: () -> T) =
+		registerInternal(windowClass, name, creators, creator)
+
+	@PublishedApi
+	internal fun <T : MetaWindow> registerSingleton(windowClass: KClass<T>, name: String, creator: () -> T) =
+		registerInternal(windowClass, name, singletons, creator)
+
+	private inline fun <T : MetaWindow> registerInternal(
 		windowClass: KClass<T>,
 		name: String,
-		creator: () -> T
+		map: MutableMap<String, () -> Window>,
+		noinline creator: () -> T
 	) {
 		require(nameToClass[name] == null) { "Name already registered: $name" }
 
 		nameToClass[name] = windowClass
 		classToName[windowClass] = name
-		creators[name] = creator
+		map[name] = creator
 	}
 }
 
@@ -48,6 +62,19 @@ inline fun <reified T : MetaWindow> WindowConfig.register(
 	name: String = T::class.qualifiedName ?: "",
 	noinline creator: () -> T,
 ) {
+	handleLegacyName<T>(name)
+	register(T::class, name, creator)
+}
+
+inline fun <reified T : MetaWindow> WindowConfig.registerSingleton(
+	name: String = T::class.qualifiedName ?: "",
+	noinline creator: () -> T,
+) {
+	handleLegacyName<T>(name)
+	registerSingleton(T::class, name, creator)
+}
+
+inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
 	val gameName: String = MetaInject.inject("gameName")
 	Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list().forEach { screenId ->
 		if (screenId.isDirectory)
@@ -56,7 +83,6 @@ inline fun <reified T : MetaWindow> WindowConfig.register(
 				windowId.moveTo(windowId.sibling(name))
 			}
 	}
-	register(T::class, name, creator)
 }
 
 /**

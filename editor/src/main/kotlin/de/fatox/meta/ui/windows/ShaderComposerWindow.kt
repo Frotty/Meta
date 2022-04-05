@@ -25,13 +25,13 @@ import java.util.*
 /**
  * Created by Frotty on 29.07.2016.
  */
-object ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
+class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val shaderComposer: MetaShaderComposer by lazyInject()
 
-	private var renderSelectbox: VisSelectBox<String>? = null
-	private var bufferTable: VisTable? = null
-	private var addButton: VisImageButton? = null
+	private lateinit var renderSelectbox: VisSelectBox<String>
+	private lateinit var bufferTable: VisTable
+	private lateinit var addButton: VisImageButton
 
 	private var handles: Array<RenderBufferHandle> = Array()
 
@@ -56,12 +56,12 @@ object ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 		visImageButton.image.setSize(24f, 24f)
 
 		bufferTable = VisTable()
-		bufferTable!!.top().left()
+		bufferTable.top().left()
 		renderSelectbox = VisSelectBox()
-		renderSelectbox!!.items = Array()
-		renderSelectbox!!.addListener(object : ChangeListener() {
+		renderSelectbox.items = Array()
+		renderSelectbox.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
-				val selectedComp = shaderComposer.getComposition(renderSelectbox!!.selected)
+				val selectedComp = shaderComposer.getComposition(renderSelectbox.selected)
 				if (selectedComp != null && shaderComposer.currentComposition != selectedComp) {
 					shaderComposer.currentComposition = selectedComp
 					loadComposition(selectedComp)
@@ -70,10 +70,10 @@ object ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 		})
 		contentTable.left()
 		contentTable.add(visImageButton).size(24f).top().left().padRight(2f)
-		contentTable.add<VisSelectBox<String>>(renderSelectbox).width(256f).left()
+		contentTable.add(renderSelectbox).width(256f).left()
 		contentTable.add().growX()
 		contentTable.row().padTop(2f)
-		contentTable.add<VisTable>(bufferTable).colspan(3).grow()
+		contentTable.add(bufferTable).colspan(3).grow()
 
 		if (shaderComposer.compositions.size > 0) {
 			for (i in 0 until shaderComposer.compositions.size) {
@@ -83,14 +83,15 @@ object ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	}
 
 	private fun setupNewBufferButton() {
-		addButton = VisImageButton(assetProvider.getDrawable("ui/appbar.layer.add.png"))
-		addButton!!.addListener(object : ClickListener() {
-			override fun clicked(event: InputEvent, x: Float, y: Float) {
-				onAddBuffer()
-			}
-		})
-		addButton!!.image.align = Align.center
-		bufferTable!!.add<VisImageButton>(addButton).size(175f, 168f).left()
+		addButton = VisImageButton(assetProvider.getDrawable("ui/appbar.layer.add.png")).apply {
+			addListener(object : ClickListener() {
+				override fun clicked(event: InputEvent, x: Float, y: Float) {
+					onAddBuffer()
+				}
+			})
+			image.align = Align.center
+		}
+		bufferTable.add(addButton).size(175f, 168f).left()
 	}
 
 	private fun onAddBuffer() {
@@ -102,7 +103,7 @@ object ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	}
 
 	private fun loadBuffers(buffers: Array<RenderBufferHandle>) {
-		bufferTable!!.clear()
+		bufferTable.clear()
 		for (buffer in buffers) {
 			loadBuffer(buffer)
 		}
@@ -110,22 +111,22 @@ object ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 
 	private fun loadBuffer(buffer: RenderBufferHandle) {
 		val newButton = RenderBufferButton(buffer, if (handles.size > 0) handles.peek() else null)
-		bufferTable!!.add<RenderBufferButton>(newButton).padRight(2f)
-		bufferTable!!.add(MetaLabel(">", 14)).center().padRight(2f)
+		bufferTable.add(newButton).padRight(2f)
+		bufferTable.add(MetaLabel(">", 14)).center().padRight(2f)
 
 	}
 
 	fun addComposition(shaderComposition: ShaderComposition) {
-		val items = Array(renderSelectbox!!.items)
+		val items = Array(renderSelectbox.items)
 		items.add(shaderComposition.data.name)
-		renderSelectbox!!.items = items
-		renderSelectbox!!.selected = shaderComposition.data.name
+		renderSelectbox.items = items
+		renderSelectbox.selected = shaderComposition.data.name
 
 		loadComposition(shaderComposition)
 	}
 
 	private fun loadComposition(shaderComposition: ShaderComposition) {
-		bufferTable!!.clear()
+		bufferTable.clear()
 		if (shaderComposition.data.renderBuffers.size > 0) {
 			// Load existing
 			loadBuffers(shaderComposition.bufferHandles)

@@ -16,13 +16,9 @@ class InjectionKey(val kClass: KClass<*>, val name: String?) {
 		return true
 	}
 
-	override fun hashCode(): Int {
-		return 31 * kClass.hashCode() + (name?.hashCode() ?: 0)
-	}
+	override fun hashCode(): Int = 31 * kClass.hashCode() + (name?.hashCode() ?: 0)
 
-	override fun toString(): String {
-		return "InjectionKey(kClass=${kClass.qualifiedName}, name=$name)"
-	}
+	override fun toString(): String = "InjectionKey(kClass=${kClass.qualifiedName}, name=$name)"
 }
 
 open class MetaInject {

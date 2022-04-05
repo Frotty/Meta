@@ -1,6 +1,5 @@
 package de.fatox.meta.ui.dialogs
 
-import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup
 import com.badlogic.gdx.utils.Align
 import com.kotcrab.vis.ui.widget.VisCheckBox
@@ -24,7 +23,7 @@ import de.fatox.meta.ui.windows.ShaderLibraryWindow
 /**
  * Created by Frotty on 29.06.2016.
  */
-object ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
+class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
 
@@ -32,12 +31,12 @@ object ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 	private val createBtn: VisTextButton = addButton(VisTextButton("Create"), Align.right, true)
 	private val shaderNameTF: MetaValidTextField = MetaValidTextField("Shader name:", statusLabel)
 	private val renderTargetGroup = ButtonGroup<VisCheckBox>()
-	private var vertexSelect: AssetSelectButton? = null
-	private var fragmentSelect: AssetSelectButton? = null
+	private lateinit var vertexSelect: AssetSelectButton
+	private lateinit var fragmentSelect: AssetSelectButton
 	private fun checkButton() {
 		createBtn.isDisabled = (shaderNameTF.textField.text.isBlank()
-			|| !vertexSelect!!.hasFile()
-			|| !fragmentSelect!!.hasFile())
+			|| !vertexSelect.hasFile()
+			|| !fragmentSelect.hasFile())
 	}
 
 	private fun setupTable() {
@@ -60,12 +59,12 @@ object ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 		visTable.add(visLabel2).colspan(2).pad(4f)
 		visTable.row()
 		vertexSelect = AssetSelectButton("Vertex Shader")
-		vertexSelect!!.setSelectListener { file: FileHandle? -> checkButton() }
-		visTable.add(vertexSelect!!.table).colspan(2).growX()
+		vertexSelect.setSelectListener { checkButton() }
+		visTable.add(vertexSelect.table).colspan(2).growX()
 		visTable.row()
 		fragmentSelect = AssetSelectButton("Fragment Shader")
-		fragmentSelect!!.setSelectListener { file: FileHandle? -> checkButton() }
-		visTable.add(fragmentSelect!!.table).colspan(2).growX()
+		fragmentSelect.setSelectListener { checkButton() }
+		visTable.add(fragmentSelect.table).colspan(2).growX()
 		visTable.row()
 		renderTargetGroup.add(geometryButton)
 		renderTargetGroup.add(fullscreenButton)
@@ -74,11 +73,9 @@ object ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 
 	init {
 		shaderNameTF.addValidator(object : MetaInputValidator() {
-			override fun validateInput(input: String?, errors: MetaErrorHandler) {
-				if (input!!.isBlank()) {
-					errors.add(object : MetaError("Invalid Shader name", "") {
-						override fun gotoError() {}
-					})
+			override fun validateInput(input: String, errors: MetaErrorHandler) {
+				if (input.isBlank()) {
+					errors.add(MetaError("Invalid Shader name", ""))
 				} else {
 					checkButton()
 				}
@@ -91,8 +88,8 @@ object ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 		setupTable()
 		dialogListener = DialogListener { any ->
 			if (any as Boolean) {
-				val vertFile = projectManager.relativize(vertexSelect!!.file!!)
-				val fragFile = projectManager.relativize(fragmentSelect!!.file!!)
+				val vertFile = projectManager.relativize(vertexSelect.file!!)
+				val fragFile = projectManager.relativize(fragmentSelect.file!!)
 				val shaderData = GLShaderData(shaderNameTF.textField.text, vertFile, fragFile)
 				val glShaderHandle = shaderLibrary.newShader(shaderData)!!
 				val window = uiManager.getWindow<ShaderLibraryWindow>()

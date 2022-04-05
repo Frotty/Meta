@@ -15,7 +15,7 @@ import de.fatox.meta.api.addGlobalKeyListener
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.abs
 
-object UiControlHelper {
+class UiControlHelper {
 	private val metaInput: MetaInputProcessor by lazyInject()
 
 	var activated: Boolean = true

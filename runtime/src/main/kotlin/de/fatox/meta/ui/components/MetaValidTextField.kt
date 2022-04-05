@@ -9,7 +9,7 @@ class MetaValidTextField(description: String?, private val errorLabel: VisLabel)
 	val textField: VisValidatableTextField = VisValidatableTextField()
 
 	fun addValidator(inputValidator: MetaInputValidator) {
-		inputValidator.setErrorLabel(errorLabel)
+		inputValidator.errorLabel = errorLabel
 		textField.addValidator(inputValidator)
 	}
 }

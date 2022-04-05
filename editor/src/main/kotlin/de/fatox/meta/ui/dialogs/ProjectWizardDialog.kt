@@ -23,16 +23,16 @@ import de.fatox.meta.ui.windows.MetaDialog.DialogListener
 import de.fatox.meta.util.isValidFolderName
 import de.fatox.meta.util.truncate
 
-object ProjectWizardDialog : MetaDialog("Project Wizard", true) {
+class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 	private val createBtn: VisTextButton
 
 	private val languageBundle: LanguageBundle by lazyInject()
 	private val fileChooser: FileChooser by lazyInject("open")
 	private val projectManager: ProjectManager by lazyInject()
 
-	private var projectNameTF: MetaValidTextField? = null
-	private var folderButton: MetaTextButton? = null
-	private var folderLabel: VisLabel? = null
+	private lateinit var projectNameTF: MetaValidTextField
+	private lateinit var folderButton: MetaTextButton
+	private lateinit var folderLabel: VisLabel
 	private var rootfile: FileHandle? = null
 	private var namevalid = false
 	private var locationValid = false
@@ -53,7 +53,7 @@ object ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 	private fun createFolderButton() {
 		folderLabel = VisLabel(languageBundle["newproj_dia_proj_root"])
 		folderButton = MetaTextButton(languageBundle["newproj_dia_select_folder"])
-		folderButton!!.addListener(object : ClickListener() {
+		folderButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				fileChooser.selectionMode = FileChooser.SelectionMode.DIRECTORIES
 				fileChooser.fadeIn()
@@ -61,7 +61,7 @@ object ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 					override fun selected(file: Array<FileHandle>) {
 						if (file.size == 1) {
 							rootfile = file[0]
-							folderButton!!.setText(file[0].pathWithoutExtension().truncate(20))
+							folderButton.setText(file[0].pathWithoutExtension().truncate(20))
 							locationValid = true
 						} else {
 							locationValid = false
@@ -80,19 +80,17 @@ object ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 	private fun createProjectNameTF() {
 		val projectWizard = this
 		projectNameTF = MetaValidTextField(languageBundle["newproj_dia_name_tf"], statusLabel)
-		projectNameTF!!.addValidator(object : MetaInputValidator() {
-			override fun validateInput(input: String?, errors: MetaErrorHandler) {
-				if (!input!!.isValidFolderName()) {
-					errors.add(object : MetaError(languageBundle["newproj_dia_inalid_name"], "Name can only contain alphanumeric characters") {
-						override fun gotoError() {}
-					})
+		projectNameTF.addValidator(object : MetaInputValidator() {
+			override fun validateInput(input: String, errors: MetaErrorHandler) {
+				if (!input.isValidFolderName()) {
+					errors.add(MetaError(languageBundle["newproj_dia_inalid_name"], "Name can only contain alphanumeric characters"))
 					namevalid = false
 				}
 				namevalid = true
 				checkValid()
 			}
 		})
-		Tooltip.Builder(languageBundle["newproj_dia_tooltip_name"]).target(projectNameTF!!.description).build()
+		Tooltip.Builder(languageBundle["newproj_dia_tooltip_name"]).target(projectNameTF.description).build()
 	}
 
 	init {
@@ -103,8 +101,8 @@ object ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 		createExampleCheckbox()
 		val visTable = VisTable()
 		visTable.defaults().pad(4f)
-		visTable.add(projectNameTF!!.description).growX()
-		visTable.add(projectNameTF!!.textField).growX()
+		visTable.add(projectNameTF.description).growX()
+		visTable.add(projectNameTF.textField).growX()
 		visTable.row()
 		visTable.add(folderLabel).growX()
 		visTable.add(folderButton).growX()
@@ -116,7 +114,7 @@ object ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 		pack()
 		dialogListener = DialogListener { any ->
 			if (any as Boolean) {
-				val metaProjectData = MetaProjectData(projectNameTF!!.textField.text)
+				val metaProjectData = MetaProjectData(projectNameTF.textField.text)
 				projectManager.newProject(rootfile!!, metaProjectData)
 				projectManager.loadProject(projectManager.currentProjectRoot)
 			}

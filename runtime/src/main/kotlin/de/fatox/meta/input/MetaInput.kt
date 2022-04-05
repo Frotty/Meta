@@ -10,7 +10,7 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.IntMap
 import de.fatox.meta.api.MetaInputProcessor
 
-object MetaInput : MetaInputProcessor {
+class MetaInput : MetaInputProcessor {
 	private val globalKeyListeners = IntMap<Array<KeyListener>>()
 	private val screenKeyListeners = IntMap<Array<KeyListener>>()
 	private val globalProcessors = Array<InputProcessor>()

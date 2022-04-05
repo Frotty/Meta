@@ -5,7 +5,7 @@ import de.fatox.meta.api.encoding.toHex
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.Arguments.arguments
@@ -27,6 +27,7 @@ private val testVectors = sequenceOf(
 )
 
 internal class HashUtilsTest {
+	@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 	@Nested
 	internal inner class SelfTest {
 		private fun strings(): Stream<Arguments> = testVectors.map { arguments(it.first) }.asStream()

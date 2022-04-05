@@ -3,17 +3,14 @@ package de.fatox.meta.api.graphics
 import com.badlogic.gdx.graphics.g3d.Renderable
 import com.badlogic.gdx.graphics.g3d.Shader
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
-import com.badlogic.gdx.math.Matrix3
-import com.badlogic.gdx.math.Matrix4
-import com.badlogic.gdx.math.Vector3
 
 /**
  * Created by Frotty on 29.06.2016.
  */
-abstract class MetaGLShader(var shaderHandle: GLShaderHandle) : Shader {
+abstract class MetaGLShader(val shaderHandle: GLShaderHandle) : Shader {
 	//    private val metaErrorHandler = MetaErrorHandler()
 
-	var shaderProgram: ShaderProgram = ShaderProgram(shaderHandle.vertexHandle, shaderHandle.fragmentHandle)
+	val shaderProgram: ShaderProgram = ShaderProgram(shaderHandle.vertexHandle, shaderHandle.fragmentHandle)
 
 	init {
 		if (!shaderProgram.isCompiled) {
@@ -43,12 +40,5 @@ abstract class MetaGLShader(var shaderHandle: GLShaderHandle) : Shader {
 
 	override fun toString(): String {
 		return "MSH: " + shaderHandle.data.name
-	}
-
-	companion object {
-
-		private val tempM3 = Matrix3()
-		private val tempM4 = Matrix4()
-		private val tempV3 = Vector3()
 	}
 }

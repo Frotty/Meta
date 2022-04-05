@@ -19,8 +19,8 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
 
 	val bufferHandles = Array<RenderBufferHandle>()
 
-	val outputBuffer: RenderBufferHandle
-		get() = bufferHandles.peek()
+	val outputBuffer: RenderBufferHandle?
+		get() = if (bufferHandles.isEmpty) null else bufferHandles.peek()
 
 	init {
 		loadExisting()

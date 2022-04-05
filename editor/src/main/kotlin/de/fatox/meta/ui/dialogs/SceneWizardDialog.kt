@@ -14,7 +14,7 @@ import de.fatox.meta.ui.windows.MetaDialog
 /**
  * Created by Frotty on 13.06.2016.
  */
-object SceneWizardDialog : MetaDialog("Scene Wizard", true) {
+class SceneWizardDialog : MetaDialog("Scene Wizard", true) {
 	private val cancelBtn: VisTextButton
 	private val createBtn: VisTextButton
 
@@ -27,8 +27,8 @@ object SceneWizardDialog : MetaDialog("Scene Wizard", true) {
 		createBtn = addButton(VisTextButton("Create"), Align.right, true)
 		sceneNameTF = MetaValidTextField("Scene name:", statusLabel)
 		sceneNameTF.addValidator(object : MetaInputValidator() {
-			override fun validateInput(input: String?, errors: MetaErrorHandler) {
-				if (input.isNullOrBlank()) {
+			override fun validateInput(input: String, errors: MetaErrorHandler) {
+				if (input.isBlank()) {
 					errors.add(object : MetaError("Scene name required", "") {
 						override fun gotoError() {}
 					})

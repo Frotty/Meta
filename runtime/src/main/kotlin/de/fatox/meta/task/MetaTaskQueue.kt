@@ -19,7 +19,7 @@ abstract class MetaTaskQueue(private val progressBar: ProgressBar, name: String,
 	}
 
 	fun start() {
-		currentTask = tasks.pop().also { it.execute() }
+		currentTask = tasks.pop().also(MetaTask::execute)
 	}
 
 	fun onTaskFinished(task: MetaTask?) {}

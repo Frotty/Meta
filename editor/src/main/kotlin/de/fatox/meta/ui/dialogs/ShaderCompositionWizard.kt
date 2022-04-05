@@ -15,7 +15,7 @@ import de.fatox.meta.ui.windows.MetaDialog
 /**
  * Created by Frotty on 29.06.2016.
  */
-object ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
+class ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 	private val metaShaderComposer: MetaShaderComposer by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
 
@@ -49,11 +49,9 @@ object ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 
 	init {
 		compNameTF.addValidator(object : MetaInputValidator() {
-			override fun validateInput(input: String?, errors: MetaErrorHandler) {
-				if (input!!.isBlank()) {
-					errors.add(object : MetaError("Invalid composition name", "") {
-						override fun gotoError() {}
-					})
+			override fun validateInput(input: String, errors: MetaErrorHandler) {
+				if (input.isBlank()) {
+					errors.add(MetaError("Invalid composition name", ""))
 				} else {
 					checkButton()
 				}

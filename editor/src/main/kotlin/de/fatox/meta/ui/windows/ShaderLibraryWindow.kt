@@ -17,7 +17,7 @@ import de.fatox.meta.ui.dialogs.ShaderWizardDialog
 /**
  * Created by Frotty on 28.06.2016.
  */
-object ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
+class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 
 	private val visTable: VisTable

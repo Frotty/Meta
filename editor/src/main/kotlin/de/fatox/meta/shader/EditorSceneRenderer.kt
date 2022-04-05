@@ -31,7 +31,7 @@ class EditorSceneRenderer : Renderer {
 	private val primitives: Primitives by lazyInject()
 	private val uiManager: UIManager by lazyInject()
 
-	private val grid: Meta3DEntity
+	private val grid: Meta3DEntity = Meta3DEntity(Vector3.Zero, primitives.terrainGrid, 1f)
 
 	var sceneHandle: MetaSceneHandle? = null
 		set(value) {
@@ -46,11 +46,6 @@ class EditorSceneRenderer : Renderer {
 
 	private val fsquad = FullscreenQuad(1f)
 	private var lastComposition: ShaderComposition? = null
-
-	init {
-
-		grid = Meta3DEntity(Vector3.Zero, primitives.terrainGrid, 1f)
-	}
 
 	override fun render(x: Float, y: Float) {
 		if (sceneHandle != null) {

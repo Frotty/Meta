@@ -21,16 +21,16 @@ class MetaEditorUI {
 
 	lateinit var metaToolbar: EditorMenuBar
 
-	private var tabbedPane: TabbedPane? = null
+	private lateinit var tabbedPane: TabbedPane
 	private val tabTable = Table()
 	fun setup() {
 		metaToolbar = EditorMenuBar()
 		log.info { "Toolbar created" }
 		uiManager.setMainMenuBar(metaToolbar.menuBar)
 		tabbedPane = TabbedPane()
-		tabbedPane!!.addListener(object : TabbedPaneAdapter() {
+		tabbedPane.addListener(object : TabbedPaneAdapter() {
 			override fun switchedTab(tab: Tab) {
-				tabbedPane!!.activeTab.onHide()
+				tabbedPane.activeTab.onHide()
 				uiManager.changeTab(tab::class)
 				apply()
 				val content = tab.contentTable
@@ -48,39 +48,26 @@ class MetaEditorUI {
 	}
 
 	fun apply() {
-		uiManager.addTable(tabbedPane!!.table, true, false)
-		uiManager.addTable(tabTable, true, true)
+		uiManager.addTable(tabbedPane.table, growX = true, growY = false)
+		uiManager.addTable(tabTable, growX = true, growY = true)
 	}
 
-	fun addTab(tab: Tab?) {
-		tabbedPane!!.add(tab)
+	fun addTab(tab: Tab) {
+		tabbedPane.add(tab)
 	}
 
-	fun hasTab(name: String): Boolean {
-		return getTab(name) != null
+	private fun getTab(name: String): Tab? = tabbedPane.tabs.firstOrNull { it.tabTitle.equals(name, ignoreCase = true) }
+
+	val currentTab: Tab? get() = tabbedPane.activeTab
+
+	/**
+	 * @return `true` if the focus was successfully gained, `false` otherwise
+	 */
+	fun tryFocusTab(name: String): Boolean {
+		return getTab(name)?.also { tabbedPane.switchTab(it) } != null
 	}
 
-	private fun getTab(name: String): Tab? {
-		for (tab in tabbedPane!!.tabs) {
-			if (tab.tabTitle.equals(name, ignoreCase = true)) {
-				return tab
-			}
-		}
-		return null
-	}
-
-	val currentTab: Tab?
-		get() = tabbedPane!!.activeTab
-
-	fun focusTab(name: String) {
-		if (hasTab(name)) {
-			tabbedPane!!.switchTab(getTab(name))
-		}
-	}
-
-	fun closeTab(name: String) {
-		if (hasTab(name)) {
-			getTab(name)!!.removeFromTabPane()
-		}
+	fun tryCloseTab(name: String) {
+		getTab(name)?.removeFromTabPane()
 	}
 }

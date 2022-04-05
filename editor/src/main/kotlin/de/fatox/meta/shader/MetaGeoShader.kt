@@ -2,23 +2,28 @@ package de.fatox.meta.shader
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.*
+import com.badlogic.gdx.graphics.g3d.Attributes
 import com.badlogic.gdx.graphics.g3d.Renderable
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.math.Vector3
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.get
 import de.fatox.meta.api.graphics.GLShaderHandle
+import de.fatox.meta.api.graphics.MetaGLShader
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.shader.UniformAssignments.assignCameraUniforms
+import de.fatox.meta.shader.UniformAssignments.assignRenderableUniforms
 
 /**
  * Created by Frotty on 29.06.2016.
  *
  * Geometry Shader (when chosen geometry shaderpass)
  */
-class MetaGeoShader(shaderHandle: GLShaderHandle) : de.fatox.meta.api.graphics.MetaGLShader(shaderHandle) {
-	private var camera: Camera? = null
-	private var context: RenderContext? = null
+class MetaGeoShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHandle) {
+	private lateinit var camera: Camera
+	private lateinit var context: RenderContext
 	private var u_projTrans: Int = -1
 	private var u_worldTrans: Int = -1
 	private var u_normalTrans: Int = -1
@@ -26,7 +31,9 @@ class MetaGeoShader(shaderHandle: GLShaderHandle) : de.fatox.meta.api.graphics.M
 	private var u_diffuseColor: Int = -1
 	private var s_diffuseTex: Int = -1
 	private var s_normalTex: Int = -1
-	private var u_camPos: Int = -1
+
+	private lateinit var whiteTex: Texture
+	private lateinit var emptyNormals: Texture
 
 	private val assetProvider: AssetProvider by lazyInject()
 
@@ -39,10 +46,11 @@ class MetaGeoShader(shaderHandle: GLShaderHandle) : de.fatox.meta.api.graphics.M
 		s_diffuseTex = shaderProgram.getUniformLocation("s_diffuseTex")
 		s_normalTex = shaderProgram.getUniformLocation("s_normalTex")
 
+		// FIXME pixmap needs to be disposed
 		val pixmap = Pixmap(1, 1, Pixmap.Format.RGB888)
 		pixmap.drawPixel(0, 0, Color.WHITE.toIntBits())
 		whiteTex = Texture(pixmap)
-		emptyNormals = assetProvider.getResource("models/empty_n.png", Texture::class.java)
+		emptyNormals = assetProvider["models/empty_n.png"]
 	}
 
 	override fun begin(camera: Camera, context: RenderContext) {
@@ -50,29 +58,25 @@ class MetaGeoShader(shaderHandle: GLShaderHandle) : de.fatox.meta.api.graphics.M
 		this.context = context
 		shaderProgram.bind()
 
-		UniformAssignments.assignCameraUniforms(shaderProgram, camera)
+		shaderProgram.assignCameraUniforms(camera)
 
 		Gdx.gl.glEnable(GL20.GL_DEPTH_TEST)
 	}
 
+	private fun Attributes.getTexture(type: Long): Texture? {
+		return get(TextureAttribute::class.java, type)?.textureDescription?.texture
+	}
+
 	override fun render(renderable: Renderable) {
-		UniformAssignments.assignRenderableUniforms(shaderProgram, this.camera!!, renderable)
+		shaderProgram.assignRenderableUniforms(camera, renderable)
 
 		// Bind Textures
 		// Diffuse-
-		if (renderable.material.has(TextureAttribute.Diffuse)) {
-			val diffuseTex = renderable.material.get(TextureAttribute.Diffuse) as TextureAttribute
-			shaderProgram.setUniformi(s_diffuseTex, context!!.textureBinder.bind(diffuseTex.textureDescription.texture))
-		} else {
-			shaderProgram.setUniformi(s_diffuseTex, context!!.textureBinder.bind(whiteTex))
-		}
+		val diffuseTex = renderable.material.getTexture(TextureAttribute.Diffuse) ?: whiteTex
+		shaderProgram.setUniformi(s_diffuseTex, context.textureBinder.bind(diffuseTex))
 		// Normal Map (for different lighting on a plane)
-		if (renderable.material.has(TextureAttribute.Normal)) {
-			val normalTex = renderable.material.get(TextureAttribute.Normal) as TextureAttribute
-			shaderProgram.setUniformi(s_normalTex, context!!.textureBinder.bind(normalTex.textureDescription.texture))
-		} else {
-			shaderProgram.setUniformi(s_normalTex, context!!.textureBinder.bind(emptyNormals))
-		}
+		val normalTex = renderable.material.getTexture(TextureAttribute.Normal) ?: emptyNormals
+		shaderProgram.setUniformi(s_normalTex, context.textureBinder.bind(normalTex))
 
 		if (renderable.material.has(ColorAttribute.Diffuse)) {
 			val col = renderable.material.get(ColorAttribute.Diffuse) as ColorAttribute
@@ -85,9 +89,12 @@ class MetaGeoShader(shaderHandle: GLShaderHandle) : de.fatox.meta.api.graphics.M
 		renderable.meshPart.render(shaderProgram)
 	}
 
+	override fun dispose() {
+		super.dispose()
+		whiteTex.dispose()
+	}
+
 	companion object {
 		private val tempV = Vector3()
-		private var whiteTex: Texture? = null
-		private var emptyNormals: Texture? = null
 	}
 }

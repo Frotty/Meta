@@ -12,6 +12,9 @@ import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.tabs.SceneTab
 import java.io.File
 
+private val FOLDER = "scenes" + File.separator
+private const val EXTENSION = "metascene"
+
 /**
  * Created by Frotty on 15.06.2016.
  */
@@ -33,24 +36,16 @@ class MetaSceneManager : SceneManager {
 		return metaSceneHandle
 	}
 
-	override fun loadScene(sceneFile: FileHandle) {
-		if (metaEditorUI.hasTab(sceneFile.name())) {
-			metaEditorUI.focusTab(sceneFile.name())
-			return
-		}
-		val metaSceneData = json.fromJson(MetaSceneData::class.java, sceneFile.readString())
+	override fun loadScene(projectFile: FileHandle) {
+		if (metaEditorUI.tryFocusTab(projectFile.name())) return
+		val metaSceneData = json.fromJson(MetaSceneData::class.java, projectFile.readString())
 		val composition = shaderComposer.getComposition(metaSceneData.compositionPath)
-		metaEditorUI.addTab(SceneTab(MetaSceneHandle(metaSceneData, composition, sceneFile)))
+		metaEditorUI.addTab(SceneTab(MetaSceneHandle(metaSceneData, composition, projectFile)))
 	}
 
 	override fun saveScene(sceneData: MetaSceneData) {}
 
-	companion object {
-		private val FOLDER = "scenes" + File.separator
-		private const val EXTENSION = "metascene"
-	}
-
 	init {
-		assetDiscoverer.addOpenListener(EXTENSION) { sceneFile: FileHandle -> loadScene(sceneFile) }
+		assetDiscoverer.addOpenListener(EXTENSION, ::loadScene)
 	}
 }
