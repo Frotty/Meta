@@ -15,11 +15,11 @@ buildscript {
 				includeGroup "org.antlr"
 				includeGroup "org.checkerframework"
 				includeGroup "net.java.dev.jna"
-				// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
-//				includeGroup "com.squareup.okio"
-//				includeGroup "com.github.ben-manes.caffeine"
-//				includeGroup "com.squareup.moshi"
-//				includeGroup "com.autonomousapps"
+				includeGroup "com.squareup.okio"
+				includeGroup "com.github.ben-manes.caffeine"
+				includeGroup "com.squareup.moshi"
+				includeGroup "com.autonomousapps"
+				includeGroup "dev.zacsweers.moshix"
 				// required by jitpack
 				includeGroup "org.sonatype.oss"
 			}
@@ -27,16 +27,14 @@ buildscript {
 	}
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-		// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
-//		classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
+		classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
 	}
 }
 
 allprojects {
 	apply plugin: 'eclipse'
 	apply plugin: 'idea'
-	// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
-//	apply plugin: "com.autonomousapps.dependency-analysis"
+	apply plugin: "com.autonomousapps.dependency-analysis"
 	apply plugin: 'maven-publish'
 	ext.appName = 'Meta'
 
@@ -100,26 +98,26 @@ subprojects {
 	}
 
 	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-		kotlinOptions.jvmTarget = "1.8"
 		kotlinOptions {
+			jvmTarget = "1.8"
 			freeCompilerArgs += "-progressive"
-			freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+			freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
 			freeCompilerArgs += "-Xinline-classes"
 			freeCompilerArgs += "-Xjvm-default=all"
+//			freeCompilerArgs += "-XXLanguage:+DefinitelyNonNullableTypes"
 		}
 	}
 }
 
 eclipse.project.name = 'MetaRuntime' + '-parent'
 
-// See https://github.com/autonomousapps/dependency-analysis-android-gradle-plugin/issues/352
-//dependencyAnalysis {
-//	issues {
-//		// configure for all projects
-//		all {
-//			onUnusedDependencies {
-//				exclude('com.badlogicgames.gdx-controllers:gdx-controllers-desktop')
-//			}
-//		}
-//	}
-//}
+dependencyAnalysis {
+	issues {
+		// configure for all projects
+		all {
+			onUnusedDependencies {
+				exclude('com.badlogicgames.gdx-controllers:gdx-controllers-desktop')
+			}
+		}
+	}
+}

@@ -9,11 +9,11 @@ import com.badlogic.gdx.utils.Disposable
 
 class MRTFrameBuffer(
 	/** width  */
-	val width: Int,
+	override val width: Int,
 	/** height  */
-	val height: Int,
+	override val height: Int,
 	textureCount: Int, hasDepth: Boolean,
-) : Disposable {
+) : MetaFrameBuffer, Disposable {
 	private lateinit var frameBuffer: MultisampleFBO
 
 	val colorBufferTextures: Array<Texture>
@@ -47,7 +47,7 @@ class MRTFrameBuffer(
 	}
 
 	/** Binds the frame buffer and sets the viewport accordingly, so everything gets drawn to it.  */
-	fun begin() {
+	override fun begin() {
 		bind()
 		setFrameBufferViewport()
 	}
@@ -55,6 +55,11 @@ class MRTFrameBuffer(
 	/** Sets viewport to the dimensions of framebuffer. Called by [.begin].  */
 	private fun setFrameBufferViewport() {
 		Gdx.gl20.glViewport(0, 0, frameBuffer.width, frameBuffer.height)
+	}
+
+
+	override fun end() {
+		end(0)
 	}
 
 	/**
@@ -65,13 +70,12 @@ class MRTFrameBuffer(
 	 * @param width  the width of the viewport in pixels
 	 * @param height the height of the viewport in pixels
 	 */
-	@JvmOverloads
 	fun end(x: Int = 0, y: Int = 0, width: Int = Gdx.graphics.width, height: Int = Gdx.graphics.height) {
 		unbind()
 		Gdx.gl20.glViewport(x, y, width, height)
 	}
 
-	fun getFBO(): Int = frameBuffer.framebufferHandle
+	override fun getFBO(): Int = frameBuffer.framebufferHandle
 
 	companion object {
 

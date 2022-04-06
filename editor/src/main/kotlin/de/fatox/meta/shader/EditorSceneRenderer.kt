@@ -12,6 +12,7 @@ import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.Primitives
+import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.graphics.Renderer
 import de.fatox.meta.api.model.RenderBufferData
@@ -106,11 +107,11 @@ class EditorSceneRenderer : Renderer {
 
 	private fun debugAll(x: Float, y: Float, bufferHandles: Array<RenderBufferHandle>) {
 		batch.disableBlending()
-		batch.begin()
-		var debugScreens = 1f
-		bufferHandles.forEach({
-			debugScreens += if (it.colorTextures.size == 0) 1 else it.colorTextures.size
-		})
+		batch.use {
+			var debugScreens = 1f
+			bufferHandles.forEach {
+				debugScreens += if (it.colorTextures.size == 0) 1 else it.colorTextures.size
+			}
 
 		var count = 0
 
@@ -124,8 +125,8 @@ class EditorSceneRenderer : Renderer {
 				count++
 			}
 
+			}
 		}
-		batch.end()
 	}
 
 	override fun rebuild(width: Int, height: Int) {

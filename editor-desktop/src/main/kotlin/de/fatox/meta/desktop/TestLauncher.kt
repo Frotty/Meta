@@ -19,7 +19,7 @@ object TestLauncher {
 		config.setTitle("Tomskerino")
 		config.setWindowPosition(960 - 980 / 2, 540 - 360 / 2)
 		config.setWindowedMode(980, 360)
-		config.useOpenGL3(true, 3, 2)
+		config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 2)
 		config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 4)
 		Lwjgl3Application(TestApp(), config)
 	}

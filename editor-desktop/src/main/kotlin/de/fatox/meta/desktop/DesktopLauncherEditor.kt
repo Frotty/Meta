@@ -12,5 +12,5 @@ fun main() {
 		setWindowListener(posModifier)
 	}
 
-	MetaDesktopLauncher.init(config, EditorMeta(posModifier))
+	MetaDesktopLauncher.init(config, EditorMeta(posModifier, DesktopMonitorHandler(), DesktopSoundHandler(), DesktopGraphicsHandler()))
 }

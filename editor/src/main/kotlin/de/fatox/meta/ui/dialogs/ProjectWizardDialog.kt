@@ -41,7 +41,7 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 	private fun createExampleCheckbox() {
 		checkboxLabel = VisLabel("Include Example:")
 		checkbox = VisCheckBox("", true)
-		Tooltip.Builder(languageBundle["newproj_dia_tooltip_example"]).target(checkboxLabel).build()
+		Tooltip.Builder(languageBundle["newproj.dia.tooltip.example"]).target(checkboxLabel).build()
 	}
 
 	private fun checkValid() {
@@ -51,8 +51,8 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 	}
 
 	private fun createFolderButton() {
-		folderLabel = VisLabel(languageBundle["newproj_dia_proj_root"])
-		folderButton = MetaTextButton(languageBundle["newproj_dia_select_folder"])
+		folderLabel = VisLabel(languageBundle["newproj.dia.project.root"])
+		folderButton = MetaTextButton(languageBundle["newproj.dia.select.folder"])
 		folderButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				fileChooser.selectionMode = FileChooser.SelectionMode.DIRECTORIES
@@ -74,23 +74,23 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 				fileChooser.fadeIn()
 			}
 		})
-		Tooltip.Builder(languageBundle["newproj_dia_tooltip_location"]).target(folderLabel).build()
+		Tooltip.Builder(languageBundle["newproj.dia.tooltip.location"]).target(folderLabel).build()
 	}
 
 	private fun createProjectNameTF() {
 		val projectWizard = this
-		projectNameTF = MetaValidTextField(languageBundle["newproj_dia_name_tf"], statusLabel)
+		projectNameTF = MetaValidTextField(languageBundle["newproj.dia.name.tf"], statusLabel)
 		projectNameTF.addValidator(object : MetaInputValidator() {
 			override fun validateInput(input: String, errors: MetaErrorHandler) {
 				if (!input.isValidFolderName()) {
-					errors.add(MetaError(languageBundle["newproj_dia_inalid_name"], "Name can only contain alphanumeric characters"))
+					errors.add(MetaError(languageBundle["newproj.dia.invalid.name"], "Name can only contain alphanumeric characters"))
 					namevalid = false
 				}
 				namevalid = true
 				checkValid()
 			}
 		})
-		Tooltip.Builder(languageBundle["newproj_dia_tooltip_name"]).target(projectNameTF.description).build()
+		Tooltip.Builder(languageBundle["newproj.dia.tooltip.name"]).target(projectNameTF.description).build()
 	}
 
 	init {

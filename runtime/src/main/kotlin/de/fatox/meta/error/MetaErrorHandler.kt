@@ -19,7 +19,7 @@ class MetaErrorHandler {
 	val labelText: String
 		get() = if (hasErrors()) {
 			if (errors.size > 1) {
-				languageBundle.format("error_found", errors.size)
+				languageBundle.format("error.found", errors.size)
 			} else {
 				errors[0].name
 			}
