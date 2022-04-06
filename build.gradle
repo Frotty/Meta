@@ -27,14 +27,14 @@ buildscript {
 	}
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-		classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
+//		classpath "com.autonomousapps:dependency-analysis-gradle-plugin:$dependencyAnalysis"
 	}
 }
 
 allprojects {
 	apply plugin: 'eclipse'
 	apply plugin: 'idea'
-	apply plugin: "com.autonomousapps.dependency-analysis"
+//	apply plugin: "com.autonomousapps.dependency-analysis"
 	apply plugin: 'maven-publish'
 	ext.appName = 'Meta'
 
@@ -111,13 +111,13 @@ subprojects {
 
 eclipse.project.name = 'MetaRuntime' + '-parent'
 
-dependencyAnalysis {
-	issues {
-		// configure for all projects
-		all {
-			onUnusedDependencies {
-				exclude('com.badlogicgames.gdx-controllers:gdx-controllers-desktop')
-			}
-		}
-	}
-}
+//dependencyAnalysis {
+//	issues {
+//		// configure for all projects
+//		all {
+//			onUnusedDependencies {
+//				exclude('com.badlogicgames.gdx-controllers:gdx-controllers-desktop')
+//			}
+//		}
+//	}
+//}

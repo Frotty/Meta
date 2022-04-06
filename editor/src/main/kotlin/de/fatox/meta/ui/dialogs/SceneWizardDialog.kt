@@ -10,6 +10,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.MetaInputValidator
 import de.fatox.meta.ui.components.MetaValidTextField
 import de.fatox.meta.ui.windows.MetaDialog
+import de.fatox.meta.ui.windows.MetaDialog.DialogListener
 
 /**
  * Created by Frotty on 13.06.2016.
@@ -44,14 +45,13 @@ class SceneWizardDialog : MetaDialog("Scene Wizard", true) {
 		visTable.row()
 		contentTable.add(visTable).top().growX()
 		createBtn.isDisabled = true
-		dialogListener = object : DialogListener {
-			override fun onResult(any: Any?) {
-				close()
-				if (any as Boolean) {
-					sceneManager.createNew(sceneNameTF.textField.text)
-				}
+		dialogListener = DialogListener { any ->
+			close()
+			if (any as Boolean) {
+				sceneManager.createNew(sceneNameTF.textField.text)
 			}
 		}
-		setDefaultSize(200f, 400f)
+		pack()
+//		setDefaultSize(200f, 400f)
 	}
 }
