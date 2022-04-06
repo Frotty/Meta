@@ -1,5 +1,7 @@
 package de.fatox.meta.error
 
-abstract class MetaError(val name: String, private val errorDescription: String) {
-	abstract fun gotoError()
+open class MetaError(val name: String, private val errorDescription: String) {
+	open fun gotoError() {
+		// NOP
+	}
 }

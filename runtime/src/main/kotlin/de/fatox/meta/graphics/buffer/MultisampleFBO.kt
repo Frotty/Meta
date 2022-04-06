@@ -42,7 +42,7 @@ import de.fatox.meta.Meta
  *
  * @author mzechner, realitix
  */
-class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>) : Disposable {
+class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>) : MetaFrameBuffer, Disposable {
 	/**
 	 * the color buffer texture
 	 */
@@ -50,23 +50,20 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	/**
 	 * @return The OpenGL handle of the framebuffer (see [GL20.glGenFramebuffer])
 	 */
-	/**
-	 * the framebuffer handle
-	 */
 	var framebufferHandle: Int = 0
 
 	/**
-	 * the depthbuffer render object handle
+	 * The OpenGL handle of the (optional) depth buffer (see [GL20.glGenRenderbuffer]). May return 0 even if depth buffer enabled
 	 */
 	var depthbufferHandle: Int = 0
 
 	/**
-	 * the stencilbuffer render object handle
+	 * The OpenGL handle of the (optional) stencil buffer (see [GL20.glGenRenderbuffer]). May return 0 even if stencil buffer enabled
 	 */
 	var stencilbufferHandle: Int = 0
 
 	/**
-	 * the depth stencil packed render buffer object handle
+	 * The OpenGL handle of the packed depth & stencil buffer (GL_DEPTH24_STENCIL8_OES) or 0 if not used.
 	 */
 	var depthStencilPackedBufferHandle: Int = 0
 
@@ -82,28 +79,20 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	var nonMultisampledFbo: FrameBuffer? = null
 	val colorBufferTexture: Texture?
 		get() {
+			val nonMultisampledFbo = nonMultisampledFbo
 			if (nonMultisampledFbo == null) {
 				// TODO fix
 				return null
 			}
 			Gdx.gl30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, framebufferHandle)
-			Gdx.gl30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, nonMultisampledFbo!!.framebufferHandle)
+			Gdx.gl30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, nonMultisampledFbo.framebufferHandle)
 			Gdx.gl30.glBlitFramebuffer(
-				0,
-				0,
-				width,
-				height,
-				0,
-				0,
-				width,
-				height,
-				GL30.GL_COLOR_BUFFER_BIT,
-				GL30.GL_NEAREST
+				0, 0, width, height, 0, 0, width, height, GL30.GL_COLOR_BUFFER_BIT, GL30.GL_NEAREST
 			)
 			Gdx.gl30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, 0)
 			Gdx.gl30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, 0)
 			FrameBuffer.unbind()
-			return nonMultisampledFbo!!.colorBufferTexture
+			return nonMultisampledFbo.colorBufferTexture
 		}
 
 	/**
@@ -128,34 +117,20 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 			Gdx.gl30.glDrawBuffers(1, intBuffer)
 			if (i == textureAttachments - 1 && textureAttachments > 1) {
 				Gdx.gl30.glBlitFramebuffer(
-					0,
-					0,
-					width,
-					height,
-					0,
-					0,
-					width,
-					height,
-					GL30.GL_DEPTH_BUFFER_BIT,
-					GL30.GL_NEAREST
+					0, 0, width, height, 0, 0, width, height, GL30.GL_DEPTH_BUFFER_BIT, GL30.GL_NEAREST
 				)
 			} else {
 				Gdx.gl30.glBlitFramebuffer(
-					0,
-					0,
-					width,
-					height,
-					0,
-					0,
-					width,
-					height,
-					GL30.GL_COLOR_BUFFER_BIT,
-					GL30.GL_NEAREST
+					0, 0, width, height, 0, 0, width, height, GL30.GL_COLOR_BUFFER_BIT, GL30.GL_NEAREST
 				)
 			}
 		}
 		FrameBuffer.unbind()
 		return nonMultisampledFbo!!.textureAttachments
+	}
+
+	override fun getFBO(): Int {
+		return framebufferHandle
 	}
 
 	private fun checkError(error: Int) {
@@ -190,20 +165,17 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	 * Releases all resources associated with the FrameBuffer.
 	 */
 	override fun dispose() {
-		val gl = Gdx.gl20
 
 		//        Gdx.gl.glDeleteTexture (textureHandle);
 		if (hasDepthStencilPackedBuffer) {
-			gl.glDeleteRenderbuffer(depthStencilPackedBufferHandle)
+			Gdx.gl20.glDeleteRenderbuffer(depthStencilPackedBufferHandle)
 		} else {
-			if (bufferBuilder.hasDepthRenderBuffer) gl.glDeleteRenderbuffer(depthbufferHandle)
-			if (bufferBuilder.hasStencilRenderBuffer) gl.glDeleteRenderbuffer(stencilbufferHandle)
+			if (bufferBuilder.hasDepthRenderBuffer) Gdx.gl20.glDeleteRenderbuffer(depthbufferHandle)
+			if (bufferBuilder.hasStencilRenderBuffer) Gdx.gl20.glDeleteRenderbuffer(stencilbufferHandle)
 		}
-		gl.glDeleteFramebuffer(framebufferHandle)
-		if (buffers[Gdx.app] != null) buffers[Gdx.app]!!.removeValue(this, true)
-		if (nonMultisampledFbo != null) {
-			nonMultisampledFbo!!.dispose()
-		}
+		Gdx.gl20.glDeleteFramebuffer(framebufferHandle)
+		buffers[Gdx.app]?.removeValue(this, true)
+		nonMultisampledFbo?.dispose()
 	}
 
 	/**
@@ -216,7 +188,7 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	/**
 	 * Binds the frame buffer and sets the viewport accordingly, so everything gets drawn to it.
 	 */
-	fun begin() {
+	override fun begin() {
 		bind()
 		setFrameBufferViewport()
 	}
@@ -228,6 +200,10 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 		Gdx.gl20.glViewport(0, 0, bufferBuilder.width, bufferBuilder.height)
 	}
 
+	override fun end() {
+		end(0)
+	}
+
 	/**
 	 * Unbinds the framebuffer and sets viewport sizes, all drawing will be performed to the normal framebuffer from here on.
 	 *
@@ -236,7 +212,6 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	 * @param width  the width of the viewport in pixels
 	 * @param height the height of the viewport in pixels
 	 */
-	@JvmOverloads
 	fun end(
 		x: Int = 0,
 		y: Int = 0,
@@ -248,36 +223,15 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	}
 
 	/**
-	 * @return The OpenGL handle of the (optional) depth buffer (see [GL20.glGenRenderbuffer]). May return 0 even if depth buffer enabled
-	 */
-	fun getDepthBufferHandle(): Int {
-		return depthbufferHandle
-	}
-
-	/**
-	 * @return The OpenGL handle of the (optional) stencil buffer (see [GL20.glGenRenderbuffer]). May return 0 even if stencil buffer enabled
-	 */
-	fun getStencilBufferHandle(): Int {
-		return stencilbufferHandle
-	}
-
-	/**
-	 * @return The OpenGL handle of the packed depth & stencil buffer (GL_DEPTH24_STENCIL8_OES) or 0 if not used.
-	 */
-	fun getDepthStencilPackedBuffer(): Int {
-		return depthStencilPackedBufferHandle
-	}
-
-	/**
 	 * @return the height of the framebuffer in pixels
 	 */
-	val height: Int
+	override val height: Int
 		get() = bufferBuilder.height
 
 	/**
 	 * @return the width of the framebuffer in pixels
 	 */
-	val width: Int
+	override val width: Int
 		get() = bufferBuilder.width
 
 	class FrameBufferTextureAttachmentSpec(var internalFormat: Int, var format: Int, var type: Int) {

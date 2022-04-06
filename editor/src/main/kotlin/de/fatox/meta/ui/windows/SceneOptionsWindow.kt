@@ -15,7 +15,7 @@ import de.fatox.meta.ui.tabs.SceneTab
 /**
  * Created by Frotty on 02.06.2016.
  */
-object SceneOptionsWindow : MetaWindow("Scene Options", true, true) {
+class SceneOptionsWindow : MetaWindow("Scene Options", true, true) {
 	private val editorUI: MetaEditorUI by lazyInject()
 	private val shaderComposer: MetaShaderComposer by lazyInject()
 	private val sceneManager: SceneManager by lazyInject()

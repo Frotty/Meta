@@ -5,13 +5,16 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.ObjectMap
+import de.fatox.meta.api.MetaNotifier
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.api.MetaNotifier
 
-object MetaShaderLibrary : MetaNotifier() {
+private const val META_SHADER_SUFFIX = ".msh"
+private const val INTERNAL_SHADER_PATH = "meta/shaders"
+
+class MetaShaderLibrary : MetaNotifier() {
 	private val projectManager: ProjectManager by lazyInject()
 	private val json: Json by lazyInject()
 
@@ -22,22 +25,26 @@ object MetaShaderLibrary : MetaNotifier() {
 		get() = projectManager.relativize(loadedShaders.values().next().shaderHandle)
 
 	init {
-
 		projectManager.addOnLoadListener {
 			loadedShaders.clear()
 			metaShaders.clear()
-			loadDefaultShader()
+			val internal = Gdx.files.internal("shaders/Default.msh")
+			val loadShader = loadShader(internal, false)
+			loadedShaders.put("shaders/Default.msh", loadShader)
+			notifyListeners()
 			loadProjectShaders()
 			false
 		}
+		projectManager.currentProject?.let {
+			loadedShaders.clear()
+			metaShaders.clear()
+			val internal = Gdx.files.internal("shaders/Default.msh")
+			val loadShader = loadShader(internal, false)
+			loadedShaders.put("shaders/Default.msh", loadShader)
+			notifyListeners()
+			loadProjectShaders()
+		}
 		Gdx.app.postRunnable { this.loadProjectShaders() }
-	}
-
-	private fun loadDefaultShader() {
-		val internal = Gdx.files.internal("shaders/Default.msh")
-		val loadShader = loadShader(internal, false)
-		loadedShaders.put("shaders/Default.msh", loadShader)
-		notifyListeners()
 	}
 
 	fun loadShader(shaderHandle: FileHandle, projectFile: Boolean): GLShaderHandle? {
@@ -87,7 +94,4 @@ object MetaShaderLibrary : MetaNotifier() {
 		}
 		notifyListeners()
 	}
-
-	private const val META_SHADER_SUFFIX = ".msh"
-	private const val INTERNAL_SHADER_PATH = "meta/shaders"
 }

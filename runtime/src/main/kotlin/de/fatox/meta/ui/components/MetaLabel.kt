@@ -12,6 +12,9 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.StringBuilder
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.math.roundToInt
 
 /**
@@ -309,4 +312,17 @@ class MetaLabel @JvmOverloads constructor(
 		bitmapFontCache = font.newFontCache()
 		layout()
 	}
+}
+
+@Suppress("FunctionName")
+@OptIn(ExperimentalContracts::class)
+inline fun MetaLabel(
+	text: CharSequence,
+	size: Int,
+	color: Color? = Color.WHITE,
+	monospace: Boolean = false,
+	init: MetaLabel.() -> Unit
+): MetaLabel {
+	contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
+	return MetaLabel(text, size, color, monospace).apply(init)
 }

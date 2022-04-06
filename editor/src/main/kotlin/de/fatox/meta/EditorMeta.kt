@@ -4,11 +4,10 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
-import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.api.SplashScreen
-import de.fatox.meta.api.WindowHandler
+import de.fatox.meta.api.*
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.register
+import de.fatox.meta.api.ui.registerSingleton
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.injection.MetaInject
@@ -19,7 +18,12 @@ import de.fatox.meta.screens.MetaEditorScreen
 import de.fatox.meta.ui.dialogs.*
 import de.fatox.meta.ui.windows.*
 
-class EditorMeta(posM: WindowHandler) : Meta(posM) {
+class EditorMeta(
+	windowHandler: WindowHandler,
+	monitorHandler: MonitorHandler,
+	soundHandler: SoundHandler,
+	graphicsHandler: GraphicsHandler
+) : Meta(windowHandler, monitorHandler, soundHandler, graphicsHandler) {
 
 	private val metaData: MetaData by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
@@ -45,18 +49,18 @@ class EditorMeta(posM: WindowHandler) : Meta(posM) {
 	}
 
 	override fun WindowConfig.windows() {
-		register("X_Window") { AssetDiscovererWindow }
-		register { ShaderComposerWindow }
-		register { PrimitivesWindow }
-		register { SceneOptionsWindow }
-		register { CameraWindow }
-		register { ShaderCompositionWizard }
-		register { ShaderWizardDialog }
-		register("B_Dialog") { ProjectWizardDialog }
+		registerSingleton("X_Window") { AssetDiscovererWindow() }
+		registerSingleton { ShaderComposerWindow() }
+		registerSingleton { PrimitivesWindow() }
+		registerSingleton { SceneOptionsWindow() }
+		registerSingleton { CameraWindow() }
+		registerSingleton { ShaderCompositionWizard() }
+		registerSingleton { ShaderWizardDialog() }
+		registerSingleton("B_Dialog") { ProjectWizardDialog() }
 		register { OpenProjectDialog() }
-		register { SceneWizardDialog }
+		registerSingleton { SceneWizardDialog() }
 		register { MetaKeyRebindDialog() }
-		register {ShaderLibraryWindow}
+		registerSingleton { ShaderLibraryWindow() }
 	}
 
 	override fun MetaInject.injection() {

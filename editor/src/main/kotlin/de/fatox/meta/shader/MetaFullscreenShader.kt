@@ -2,7 +2,6 @@ package de.fatox.meta.shader
 
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.graphics.g3d.Renderable
-import com.badlogic.gdx.graphics.g3d.Shader
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.math.Matrix4
 import de.fatox.meta.api.graphics.GLShaderHandle
@@ -29,23 +28,10 @@ class MetaFullscreenShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHa
 		renderable.meshPart.render(shaderProgram)
 	}
 
-	override fun compareTo(other: Shader): Int {
-		return 0
-	}
-
-	override fun canRender(instance: Renderable): Boolean {
-		return true
-	}
-
 	override fun begin(camera: Camera, context: RenderContext) {
 		this.camera = camera
 		shaderProgram.bind()
 
-		UniformAssignments.assignCustomUniforms(shaderProgram, camera, context, null)
-	}
-
-
-	override fun dispose() {
-		shaderProgram.dispose()
+		UniformAssignments.assignCustomUniforms(shaderProgram, camera, context)
 	}
 }

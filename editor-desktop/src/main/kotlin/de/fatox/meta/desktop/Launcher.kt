@@ -9,6 +9,7 @@ fun main() {
 	config.setResizable(true)
 	config.setTitle("Meta")
 	config.setWindowIcon("meta-icon.png")
-	val editorMeta = EditorMeta(DesktopWindowHandler())
+	val editorMeta =
+		EditorMeta(DesktopWindowHandler(), DesktopMonitorHandler(), DesktopSoundHandler(), DesktopGraphicsHandler())
 	init(config, editorMeta)
 }

@@ -18,8 +18,7 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 		}
 	}
 	private val textArea: JTextArea by lazy {
-		JTextArea(30, ERROR_HEADER.length + 50)
-			.apply { isEditable = false }
+		JTextArea(30, ERROR_HEADER.length + 50).apply { isEditable = false }
 	}
 	private val scrollPane: JScrollPane by lazy { JScrollPane(textArea) }
 

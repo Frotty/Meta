@@ -10,18 +10,19 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
+private const val defaultAttr: Long = (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal
+	or VertexAttributes.Usage.ColorUnpacked or VertexAttributes.Usage.TextureCoordinates).toLong()
+
 /**
  * Created by Frotty on 04.04.2017.
  */
-object Primitives {
+class Primitives {
 	private val assetProvider: AssetProvider by lazyInject()
 	private val modelBuilder: ModelBuilder by lazyInject()
 
 	private val defaultMaterial = Material().apply {
 		set(TextureAttribute.createDiffuse(assetProvider.getResource("textures/defaultTex.png", Texture::class.java)))
 	}
-	private const val defaultAttr: Long = (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal
-		or VertexAttributes.Usage.ColorUnpacked or VertexAttributes.Usage.TextureCoordinates).toLong()
 
 	val planeLines: Model by lazy(LazyThreadSafetyMode.NONE) {
 		modelBuilder.createRect(0f, 0f, 0f, 1f, 0f, 0f, 1f, 1f, 0f, 0f, 1f, 0f, 0f, 0f, 1f, GL20.GL_LINES, defaultMaterial, defaultAttr)

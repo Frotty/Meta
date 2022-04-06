@@ -11,5 +11,6 @@ interface ShaderInfo {
 
 	val name: String
 
-	class RenderTarget(val name: String)
+	@JvmInline
+	value class RenderTarget(val name: String)
 }

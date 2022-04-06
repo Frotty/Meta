@@ -34,8 +34,8 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 	private var folderButton: MetaTextButton? = null
 	private var rootfile: FileHandle? = null
 	private fun createFolderButton() {
-		folderLabel = VisLabel(languageBundle["newproj_dia_proj_root"])
-		folderButton = MetaTextButton(languageBundle["newproj_dia_select_project"])
+		folderLabel = VisLabel(languageBundle["newproj.dia.project.root"])
+		folderButton = MetaTextButton(languageBundle["newproj.dia.select.project"])
 		folderButton!!.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				fileChooser.selectionMode = FileChooser.SelectionMode.FILES
@@ -60,7 +60,7 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 				fileChooser.fadeIn()
 			}
 		})
-		Tooltip.Builder(languageBundle["newproj_dia_tooltip_location"]).target(folderLabel).build()
+		Tooltip.Builder(languageBundle["newproj.dia.tooltip.location"]).target(folderLabel).build()
 	}
 
 	init {

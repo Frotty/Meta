@@ -63,11 +63,8 @@ class AssetDiscoverer {
 	}
 
 	fun setRoot(path: String) {
-		currentFolder = if (path.length <= 0) {
-			projectManager.currentProjectRoot
-		} else {
-			projectManager.currentProjectRoot.child(path)
-		}
+		currentFolder =
+			if (path.length <= 0) projectManager.currentProjectRoot else projectManager.currentProjectRoot.child(path)
 		this.root = currentFolder
 		refresh()
 	}

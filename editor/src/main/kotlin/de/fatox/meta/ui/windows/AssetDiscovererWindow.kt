@@ -13,17 +13,18 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FolderListAdapter
 import de.fatox.meta.ui.components.MetaIconTextButton
 
+private const val TAG = "adwSettings"
+
 /**
  * Created by Frotty on 07.06.2016.
  */
-object AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
-	private const val TAG = "adwSettings"
+class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 
 	private val assetDiscoverer: AssetDiscoverer by lazyInject()
 
 	private var adapter: FolderListAdapter<FolderModel>? = null
 	private var filePane: ScrollPane? = null
-	private var view: ListView<FolderModel>? = null
+	private lateinit var view: ListView<FolderModel>
 	private val toolbarTable = VisTable()
 	private val fileViewTable = VisTable()
 	private var selectionMode = false
@@ -46,18 +47,21 @@ object AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 
 	private fun setup() {
 		adapter = FolderListAdapter(Array())
-		view = ListView(adapter)
-		view!!.mainTable.defaults().pad(2f)
-		view!!.setItemClickListener {
-			assetDiscoverer.openFolder((it as FolderModel).fileHandle)
+		view = ListView(adapter).apply {
+			mainTable.defaults().pad(2f)
+			setItemClickListener {
+				assetDiscoverer.openFolder((it as FolderModel).fileHandle)
+			}
 		}
-		contentTable.top().left()
-		contentTable.row().left().top().height(24f)
-		contentTable.add(toolbarTable).growX()
-		contentTable.row().height(1f)
-		contentTable.add(Separator()).growX()
-		contentTable.row()
-		contentTable.add(fileViewTable).left().grow()
+		contentTable.apply {
+			top().left()
+			row().left().top().height(24f)
+			add(toolbarTable).growX()
+			row().height(1f)
+			add(Separator()).growX()
+			row()
+			add(fileViewTable).left().grow()
+		}
 		createToolbarBar()
 		createFileView()
 	}
@@ -77,7 +81,7 @@ object AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 
 	private fun createFileView() {
 		fileViewTable.left()
-		fileViewTable.add(view!!.mainTable).growY().pad(2f).minWidth(128f)
+		fileViewTable.add(view.mainTable).growY().pad(2f).minWidth(128f)
 		fileViewTable.add(Separator()).width(2f).growY()
 		createFilePane()
 	}
@@ -94,7 +98,8 @@ object AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		visTable2.row().height(78f)
 		var counter = 0f
 		for (file in assetDiscoverer.currentChildFiles!!) {
-			val fileButton = MetaIconTextButton(file.name(), assetProvider.getDrawable("ui/appbar.page.text.png"), maxWidth = 78)
+			val fileButton =
+				MetaIconTextButton(file.name(), assetProvider.getDrawable("ui/appbar.page.text.png"), maxWidth = 78)
 			fileButton.onClick {
 				if (selectionMode) {
 					listener!!.onSelect(file)
@@ -131,7 +136,7 @@ object AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		for (child in assetDiscoverer.currentChildFolders!!) {
 			adapter!!.add(FolderModel(child))
 		}
-		view!!.rebuildView()
+		view.rebuildView()
 	}
 
 	fun refresh() {

@@ -15,12 +15,12 @@ class MetaEditorModule {
 	init {
 		global {
 			singleton<SceneManager> { MetaSceneManager() }
-			singleton<ProjectManager> { MetaProjectManager }
+			singleton<ProjectManager> { MetaProjectManager() }
 			singleton<Renderer> { EditorSceneRenderer() }
-			singleton { Primitives }
+			singleton { Primitives() }
 			singleton { AssetDiscoverer() }
-			singleton("default") { MetaShaderComposer }
-			singleton("default") { MetaShaderLibrary }
+			singleton("default") { MetaShaderComposer() }
+			singleton("default") { MetaShaderLibrary() }
 			singleton<AssetProvider>("default") { MetaAssetProvider() }
 
 			singleton("open") { FileChooser(FileChooser.Mode.OPEN) }

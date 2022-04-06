@@ -14,7 +14,7 @@ import de.fatox.meta.graphics.renderer.FullscreenShader
  * Created by Frotty on 20.05.2016.
  */
 class CompositeShader : FullscreenShader() {
-    override var program: ShaderProgram? = null
+    override lateinit var program: ShaderProgram
         private set
     private val s_albedoTex = 0
     private var s_depthTex = 0
@@ -25,12 +25,12 @@ class CompositeShader : FullscreenShader() {
         val vert = Gdx.files.internal("shaders/composite.vert").readString()
         val frag = Gdx.files.internal("shaders/composite.frag").readString()
         program = ShaderProgram(vert, frag)
-        if (!program!!.isCompiled) throw GdxRuntimeException(program!!.log)
+        if (!program.isCompiled) throw GdxRuntimeException(program.log)
 
         //        s_albedoTex = program.getUniformLocation("s_albedoTex");
-        s_depthTex = program!!.getUniformLocation("s_depthTex")
-        u_nearDistance = program!!.getUniformLocation("u_cameraNear")
-        u_farDistance = program!!.getUniformLocation("u_cameraFar")
+        s_depthTex = program.getUniformLocation("s_depthTex")
+        u_nearDistance = program.getUniformLocation("u_cameraNear")
+        u_farDistance = program.getUniformLocation("u_cameraFar")
     }
 
     override fun compareTo(other: Shader): Int {
@@ -42,18 +42,17 @@ class CompositeShader : FullscreenShader() {
     }
 
     override fun begin(camera: Camera, context: RenderContext) {
-        program!!.begin()
-        program!!.setUniformf(u_nearDistance, camera.near)
-        program!!.setUniformf(u_farDistance, camera.far)
-        program!!.setUniformMatrix("u_invProjTrans", camera.invProjectionView)
-        program!!.setUniformMatrix("u_projTrans", camera.projection)
+        program.bind()
+        program.setUniformf(u_nearDistance, camera.near)
+        program.setUniformf(u_farDistance, camera.far)
+        program.setUniformMatrix("u_invProjTrans", camera.invProjectionView)
+        program.setUniformMatrix("u_projTrans", camera.projection)
     }
 
     override fun end() {
-        program!!.end()
     }
 
     override fun dispose() {
-        program!!.dispose()
+        program.dispose()
     }
 }

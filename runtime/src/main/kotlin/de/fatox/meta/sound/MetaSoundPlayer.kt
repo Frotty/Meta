@@ -90,9 +90,7 @@ class MetaSoundPlayer {
 		sound: MetaSoundDefinition,
 		listenerPosition: Vector2,
 		soundPosition: Vector2
-	): Boolean {
-		return listenerPosition.dst2(soundPosition) <= sound.soundRange2 || soundInScreen(soundPosition)
-	}
+	): Boolean = listenerPosition.dst2(soundPosition) <= sound.soundRange2 || soundInScreen(soundPosition)
 
 	private fun soundInScreen(soundPosition: Vector2): Boolean {
 		helper.set(soundPosition.x, soundPosition.y, 0f)

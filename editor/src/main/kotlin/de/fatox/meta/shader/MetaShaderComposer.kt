@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
+import de.fatox.meta.api.MetaNotifier
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.MetaShaderCompData
@@ -12,14 +13,16 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.api.MetaNotifier
 import de.fatox.meta.ui.windows.ShaderComposerWindow
 import java.io.File
+
+const val META_COMP_SUFFIX = ".mco"
+const val META_COMP_PATH = "meta\\compositions\\"
 
 /**
  * Created by Frotty on 10.04.2017.
  */
-object MetaShaderComposer : MetaNotifier() {
+class MetaShaderComposer : MetaNotifier() {
 	private val projectManager: ProjectManager by lazyInject()
 	private val json: Json by lazyInject()
 	private val uiManager: UIManager by lazyInject()
@@ -34,7 +37,6 @@ object MetaShaderComposer : MetaNotifier() {
 		}
 
 	init {
-
 		projectManager.addOnLoadListener {
 			loadProjectCompositions()
 			false
@@ -112,9 +114,6 @@ object MetaShaderComposer : MetaNotifier() {
 		notifyListeners()
 	}
 
-	const val META_COMP_SUFFIX = ".mco"
-	const val META_COMP_PATH = "meta\\compositions\\"
-
 	fun removeBufferHandle(handle: RenderBufferHandle) {
 		currentComposition?.let {
 			it.removeBufferHandle(handle)
@@ -142,6 +141,4 @@ object MetaShaderComposer : MetaNotifier() {
 			}
 		}
 	}
-
-
 }

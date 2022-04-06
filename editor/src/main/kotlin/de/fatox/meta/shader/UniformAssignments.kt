@@ -9,11 +9,9 @@ import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.utils.ObjectMap
 
 object UniformAssignments {
-	val beginAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera) -> Unit>()
-	val renderableAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera, renderable: Renderable) -> Unit>()
-	val customAssignments = ObjectMap<String, (program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable?) -> Unit>()
+	val customAssignments = ObjectMap<String, (ShaderProgram, Camera, RenderContext, Renderable?) -> Unit>()
 
-	fun assignCustomUniforms(program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable?) {
+	fun assignCustomUniforms(program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable? = null) {
 		customAssignments.forEach {
 			if (program.hasUniform(it.key)) {
 				it.value.invoke(program, cam, context, renderable)
@@ -21,37 +19,31 @@ object UniformAssignments {
 		}
 	}
 
-	fun assignCameraUniforms(program: ShaderProgram, cam: Camera) {
-		beginAssignments.forEach {
-			if (program.hasUniform(it.key)) {
-				it.value.invoke(program, cam)
-			}
-		}
+	fun ShaderProgram.assignCameraUniforms(cam: Camera) {
+		setIfHasUniform("u_camPos", cam::position, ShaderProgram::setUniformf)
+		setIfHasUniform("u_projTrans", cam::combined, ShaderProgram::setUniformMatrix)
 	}
 
-
-	fun assignRenderableUniforms(program: ShaderProgram, cam: Camera, renderable: Renderable) {
-		renderableAssignments.forEach {
-			if (program.hasUniform(it.key)) {
-				it.value.invoke(program, cam, renderable)
-			}
-		}
+	fun ShaderProgram.assignRenderableUniforms(cam: Camera, renderable: Renderable) {
+		setIfHasUniform("u_worldTrans", renderable::worldTransform, ShaderProgram::setUniformMatrix)
+		setIfHasUniform(
+			"u_normalTrans",
+			{ tmpM3.set(renderable.worldTransform).inv().transpose() },
+			ShaderProgram::setUniformMatrix
+		)
+		setIfHasUniform(
+			"u_mvpTrans",
+			{ tempM4.set(cam.combined).mul(renderable.worldTransform) },
+			ShaderProgram::setUniformMatrix
+		)
 	}
 
-	init {
-		beginAssignments.put("u_camPos") { program, cam -> program.setUniformf("u_camPos", cam.position) }
-		beginAssignments.put("u_projTrans") { program, cam -> program.setUniformMatrix("u_projTrans", cam.combined) }
-
-		renderableAssignments.put("u_worldTrans") { program, _, renderable -> program.setUniformMatrix("u_worldTrans", renderable.worldTransform) }
-		renderableAssignments.put("u_normalTrans") { program, _, renderable ->
-			tmpM3.set(renderable.worldTransform).inv().transpose()
-			program.setUniformMatrix("u_normalTrans", tmpM3)
-		}
-
-		renderableAssignments.put("u_mvpTrans") { program, camera, renderable ->
-			tempM4.set(camera.combined).mul(renderable.worldTransform)
-			program.setUniformMatrix("u_mvpTrans", tempM4)
-		}
+	private inline fun <reified T: Any> ShaderProgram.setIfHasUniform(
+		name: String,
+		valueGetter: () -> T,
+		setter: ShaderProgram.(String, T) -> Unit
+	) {
+		if (hasUniform(name)) setter(name, valueGetter())
 	}
 
 	private val tmpM3 = Matrix3()

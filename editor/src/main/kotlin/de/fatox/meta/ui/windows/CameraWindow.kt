@@ -9,7 +9,7 @@ import de.fatox.meta.ui.components.MetaLabel
 /**
  * Created by Frotty on 20.05.2016.
  */
-object CameraWindow : MetaWindow("Camera", true, true) {
+class CameraWindow : MetaWindow("Camera", true, true) {
 	private val xPosField: VisTextField
 	private val yPosField: VisTextField
 	private val zPosField: VisTextField

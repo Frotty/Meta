@@ -14,7 +14,7 @@ import de.fatox.meta.graphics.renderer.FullscreenShader
  * Created by Frotty on 20.05.2016.
  */
 class BlurShader : FullscreenShader() {
-    override var program: ShaderProgram? = null
+    override lateinit var program: ShaderProgram
         private set
     private val s_inputTex = 0
     private val temp = Matrix4()
@@ -22,7 +22,7 @@ class BlurShader : FullscreenShader() {
         val vert = Gdx.files.internal("shaders/ssaoblur.vert").readString()
         val frag = Gdx.files.internal("shaders/ssaoblur.frag").readString()
         program = ShaderProgram(vert, frag)
-        if (!program!!.isCompiled) throw GdxRuntimeException(program!!.log)
+        if (!program.isCompiled) throw GdxRuntimeException(program.log)
     }
 
     override fun compareTo(other: Shader): Int {
@@ -34,15 +34,14 @@ class BlurShader : FullscreenShader() {
     }
 
     override fun begin(camera: Camera, context: RenderContext) {
-        program!!.begin()
-        program!!.setUniformf("u_resolution", camera.viewportWidth, camera.viewportHeight)
+        program.bind()
+        program.setUniformf("u_resolution", camera.viewportWidth, camera.viewportHeight)
     }
 
     override fun end() {
-        program!!.end()
     }
 
     override fun dispose() {
-        program!!.dispose()
+        program.dispose()
     }
 }

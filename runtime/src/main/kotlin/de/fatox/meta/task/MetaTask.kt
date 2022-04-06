@@ -9,13 +9,9 @@ abstract class MetaTask(val name: String) {
 	private val listeners = Array<TaskListener>()
 
 	fun run() {
-		for (listener in listeners) {
-			listener.onStart()
-		}
+		listeners.forEach(TaskListener::onStart)
 		execute()
-		for (listener in listeners) {
-			listener.onFinish()
-		}
+		listeners.forEach(TaskListener::onFinish)
 	}
 
 	abstract fun execute()

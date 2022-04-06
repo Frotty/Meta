@@ -10,7 +10,6 @@ import com.kotcrab.vis.ui.widget.VisTextButton
 import com.kotcrab.vis.ui.widget.VisTextField
 import com.kotcrab.vis.ui.widget.VisWindow
 import de.fatox.meta.api.ui.UIManager
-import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.api.ui.showWindow
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.AssetDiscovererWindow
@@ -20,8 +19,8 @@ import de.fatox.meta.ui.windows.AssetDiscovererWindow
  */
 class AssetSelectButton {
 	val table = VisTable()
-	private var selectAssetButton: VisTextButton? = null
-	private var assetNameLabel: VisTextField? = null
+	private lateinit var selectAssetButton: VisTextButton
+	private lateinit var assetNameLabel: VisTextField
 	private var name: String? = null
 	var file: FileHandle? = null
 		private set
@@ -32,43 +31,41 @@ class AssetSelectButton {
 	constructor(selectedAsset: FileHandle) {
 		this.name = selectedAsset.name()
 		setup()
-		assetNameLabel!!.text = name
+		assetNameLabel.text = name
 	}
 
 	constructor(name: String) {
 		this.name = name
 		setup()
-		assetNameLabel!!.text = "Select " + name
+		assetNameLabel.text = "Select " + name
 	}
 
 	private fun setup() {
 		selectAssetButton = VisTextButton("...")
-		selectAssetButton!!.addListener(object : ClickListener() {
+		selectAssetButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
-				var window = uiManager.getWindow<AssetDiscovererWindow>()
-				if (window == null) window = uiManager.showWindow()
-				window.enableSelectionMode { selected: FileHandle? ->
-					this@AssetSelectButton.file = selected
-					if (selectListener != null) {
-						selectListener!!.onSelect(selected)
-					}
-					assetNameLabel!!.text = name + ": " + file!!.name()
-					// Bring window to Front
-					var table: Group? = this@AssetSelectButton.table
-					while (table != null && table !is Window) {
-						table = table.parent
-					}
-					if (table != null) {
-						val visWindow = table as VisWindow?
-						visWindow?.toFront()
-					}
+				uiManager.showWindow<AssetDiscovererWindow> {
+					enableSelectionMode { selected: FileHandle? ->
+						this@AssetSelectButton.file = selected
+						selectListener?.onSelect(selected)
+						assetNameLabel.text = name + ": " + file!!.name()
+						// Bring window to Front
+						var table: Group? = this@AssetSelectButton.table
+						while (table != null && table !is Window) {
+							table = table.parent
+						}
+						if (table != null) {
+							val visWindow = table as VisWindow?
+							visWindow?.toFront()
+						}
 
+					}
 				}
 			}
 		})
 		assetNameLabel = VisTextField()
-		assetNameLabel!!.isDisabled = true
-		assetNameLabel!!.isFocusBorderEnabled = false
+		assetNameLabel.isDisabled = true
+		assetNameLabel.isFocusBorderEnabled = false
 		table.add<VisTextField>(assetNameLabel).growX()
 		table.add<VisTextButton>(selectAssetButton).padLeft(2f)
 	}

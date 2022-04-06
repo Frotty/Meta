@@ -19,7 +19,7 @@ import kotlin.reflect.KClass
 /**
  * Created by Frotty on 04.06.2016.
  */
-object MetaProjectManager : ProjectManager {
+class MetaProjectManager : ProjectManager {
 	private val json: Json by lazyInject()
 	private val editorUI: MetaEditorUI by lazyInject()
 	private val metaData: MetaData by lazyInject()
@@ -44,10 +44,8 @@ object MetaProjectManager : ProjectManager {
 			lastProjects.add(realFile.path())
 			metaData.save(lastProjectsKey, lastProjects)
 		}
-		for (listener in onLoadListeners) {
-			listener.handle(null)
-		}
-		editorUI.closeTab("home")
+		onLoadListeners.forEach { it.handle(null) }
+		editorUI.tryCloseTab("home")
 		editorUI.addTab(ProjectHomeTab(metaProjectData))
 		return metaProjectData
 	}
