@@ -1,29 +1,6 @@
 buildscript {
 	repositories {
-		//mavenLocal()
-		mavenCentral {
-			content {
-				includeGroupByRegex "org\\.jetbrains\\..*"
-				includeGroup "org.jetbrains"
-				includeGroup "com.google.code.gson"
-				includeGroup "com.google.code.findbugs"
-				includeGroup "com.google.errorprone"
-				includeGroup "com.google.j2objc"
-				includeGroup "com.google.guava"
-				includeGroup "de.undercouch"
-				includeGroup "com.github.gundy"
-				includeGroup "org.antlr"
-				includeGroup "org.checkerframework"
-				includeGroup "net.java.dev.jna"
-				includeGroup "com.squareup.okio"
-				includeGroup "com.github.ben-manes.caffeine"
-				includeGroup "com.squareup.moshi"
-				includeGroup "com.autonomousapps"
-				includeGroup "dev.zacsweers.moshix"
-				// required by jitpack
-				includeGroup "org.sonatype.oss"
-			}
-		}
+		mavenCentral()
 	}
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
@@ -61,7 +38,6 @@ subprojects {
 	version = '1.0.0-SNAPSHOT'
 
 	repositories {
-		//mavenLocal()
 		mavenCentral {
 			content {
 				includeGroupByRegex "com\\.badlogicgames\\..*"
