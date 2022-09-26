@@ -32,7 +32,7 @@ class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
 	override fun render(delta: Float) {
 		Gdx.gl.apply {
 			glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
-			glClearColor(0.2f, 0.2f, 0.2f, 0f)
+			glClearColor(0f, 0f, 0f, 0f)
 			glClear(GL20.GL_COLOR_BUFFER_BIT)
 		}
 

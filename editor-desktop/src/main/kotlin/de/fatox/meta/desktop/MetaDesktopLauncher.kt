@@ -8,7 +8,7 @@ object MetaDesktopLauncher {
 	fun init(config: Lwjgl3ApplicationConfiguration, meta: Meta) {
 		config.setWindowedMode(329, 210)
 		config.setDecorated(false)
-//		config.setTransparentFramebuffer(true)
+		config.setTransparentFramebuffer(true)
 		config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 2)
 		config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 4)
 		Lwjgl3Application(meta, config)
