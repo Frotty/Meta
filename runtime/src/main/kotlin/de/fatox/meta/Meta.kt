@@ -109,6 +109,6 @@ abstract class Meta(
 		}
 
 		@JvmStatic
-		fun isTypeOfLastScreen(type: KClass<out Screen>): Boolean = instance.lastScreen == type
+		fun isTypeOfLastScreen(type: KClass<out Screen>): Boolean = instance.lastScreen::class == type
 	}
 }
