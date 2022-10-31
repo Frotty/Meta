@@ -102,13 +102,13 @@ abstract class Meta(
 
 			instance.lastChange = TimeUtils.millis()
 			val oldScreen: Screen? = instance.getScreen()
-			if (oldScreen != null && !oldScreen.javaClass.isInstance(newScreen)) {
+			if (oldScreen != null && oldScreen::class != newScreen::class) {
 				instance.lastScreen = oldScreen
 			}
 			Gdx.app.postRunnable { instance.setScreen(newScreen) }
 		}
 
 		@JvmStatic
-		fun isTypeOfLastScreen(type: KClass<out Screen>): Boolean = instance.lastScreen::class === type
+		fun isTypeOfLastScreen(type: KClass<out Screen>): Boolean = instance.lastScreen::class == type
 	}
 }
