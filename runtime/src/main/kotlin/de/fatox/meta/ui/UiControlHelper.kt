@@ -1,5 +1,6 @@
 package de.fatox.meta.ui
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.math.Vector2
@@ -79,7 +80,7 @@ class UiControlHelper {
 				selectedActor = getNextY(up = true)
 		}
 		metaInput.addGlobalKeyListener(Input.Keys.ENTER) {
-			if (activated) {
+			if (activated && !Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) && !Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
 				val inputEvent = InputEvent().apply {
 					button = Input.Buttons.LEFT
 					stageX = selectedActor.x
