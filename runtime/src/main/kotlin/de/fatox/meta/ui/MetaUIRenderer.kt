@@ -101,6 +101,7 @@ class MetaUIRenderer : UIRenderer {
 			shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
 			shapeRenderer.projectionMatrix = stage.batch.projectionMatrix
 			shapeRenderer.transformMatrix = stage.batch.transformMatrix
+			highlightPos.set(0f, 0f)
 			val coordinates = it.localToStageCoordinates(highlightPos)
 			shapeRenderer.color = highlightColor
 			shapeRenderer.rect(coordinates.x, coordinates.y, it.width, it.height)
