@@ -13,28 +13,23 @@ import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.addGlobalKeyListener
+import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.abs
 
 class UiControlHelper {
 	private val metaInput: MetaInputProcessor by lazyInject()
+	private val metaUIRenderer: UIRenderer by lazyInject()
 
 	var activated: Boolean = true
 	var canMove: Boolean = true
 
 	private var targets = Array<Actor>()
 
-	private val selectedColor: Color = Color.WHITE.cpy()
 	var selectedActor: Actor = Actor()
 		set(value) {
-			field.color = selectedColor // TODO The color of the old actor should be set here?
 			field = value
-			selectedColor.set(value.color)
-			val color = field.color
-			if (color.r + color.g + color.b > 1.0f)
-				color.add(-0.25f, -0.25f, 0.3f, 0.2f)
-			else
-				color.add(0.05f, 0.05f, 0.3f, 0.2f)
+			metaUIRenderer.setFocusedActor(value)
 
 			var parent = value.parent
 			while (parent != null) {

@@ -3,8 +3,11 @@ package de.fatox.meta.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Camera
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
@@ -27,14 +30,17 @@ import de.fatox.meta.assets.get
 import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
+
 private val log = MetaLoggerFactory.logger {}
 
 class MetaUIRenderer : UIRenderer {
+	private var focusedActor: Actor? = null
 	private val metaInput: MetaInputProcessor by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
 	private val visuiSkin: String by lazyInject("visuiSkin")
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val metaData: MetaData by lazyInject()
+	private val shapeRenderer: ShapeRenderer = ShapeRenderer()
 
 	private val stage: Stage = Stage(ScreenViewport(),  spriteBatch)
 	private val audioVideoData = metaData[audioVideoDataKey]
@@ -88,6 +94,15 @@ class MetaUIRenderer : UIRenderer {
 		Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
 		stage.draw()
+		focusedActor?.let {
+			shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+			shapeRenderer.projectionMatrix = stage.batch.projectionMatrix
+			shapeRenderer.transformMatrix = stage.batch.transformMatrix
+			val coordinates = it.localToStageCoordinates(Vector2(0f, 0f))
+			shapeRenderer.color = Color.valueOf("256bdb")
+			shapeRenderer.rect(coordinates.x, coordinates.y, it.width, it.height)
+			shapeRenderer.end()
+		}
 	}
 
 	override fun resize(width: Int, height: Int) {
@@ -96,5 +111,9 @@ class MetaUIRenderer : UIRenderer {
 
 	override fun getCamera(): Camera {
 		return stage.camera
+	}
+
+	override fun setFocusedActor(actor: Actor) {
+		focusedActor = actor
 	}
 }
