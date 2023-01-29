@@ -45,6 +45,9 @@ class MetaUIRenderer : UIRenderer {
 	private val stage: Stage = Stage(ScreenViewport(),  spriteBatch)
 	private val audioVideoData = metaData[audioVideoDataKey]
 
+	private val highlightColor = Color.valueOf("256bdb")
+	private val highlightPos = Vector2(0f, 0f)
+
 	init {
 		log.debug { "Injected MetaUi." }
 	}
@@ -98,8 +101,8 @@ class MetaUIRenderer : UIRenderer {
 			shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
 			shapeRenderer.projectionMatrix = stage.batch.projectionMatrix
 			shapeRenderer.transformMatrix = stage.batch.transformMatrix
-			val coordinates = it.localToStageCoordinates(Vector2(0f, 0f))
-			shapeRenderer.color = Color.valueOf("256bdb")
+			val coordinates = it.localToStageCoordinates(highlightPos)
+			shapeRenderer.color = highlightColor
 			shapeRenderer.rect(coordinates.x, coordinates.y, it.width, it.height)
 			shapeRenderer.end()
 		}
