@@ -2,7 +2,7 @@ package de.fatox.meta.ui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
-import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
@@ -15,7 +15,6 @@ import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.addGlobalKeyListener
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import kotlin.math.abs
 
 class UiControlHelper {
 	private val metaInput: MetaInputProcessor by lazyInject()
@@ -55,6 +54,7 @@ class UiControlHelper {
 			return targets
 		}
 
+	private val selectedActorPos = Vector2()
 	private val helper = Vector2()
 
 	init {
@@ -93,7 +93,7 @@ class UiControlHelper {
 
 	private fun targetsInGroup(t: Group) {
 		for (actor in t.children) {
-			if (actor is Button && !targets.contains(actor, true)) {
+			if (actor != selectedActor && actor is Button && !targets.contains(actor, true)) {
 				targets.add(actor)
 			} else if (actor is Group) {
 				targetsInGroup(actor)
@@ -104,41 +104,77 @@ class UiControlHelper {
 	private fun getNextX(left: Boolean): Actor {
 		val possibleTargets = possibleTargets
 
-		possibleTargets.sort { a1, a2 ->
-			val a1x = a1.localToStageCoordinates(helper).x
-			val a2x = a2.localToStageCoordinates(helper).x
-			(a2x - a1x).toInt()
-		}
+		selectedActorPos.set(0f, 0f)
+		selectedActor.localToStageCoordinates(selectedActorPos)
+		var dist = Float.MAX_VALUE
+		var selected: Actor? = null
 		val iterator = possibleTargets.iterator()
 		while (iterator.hasNext()) {
+
 			val next = iterator.next()
-			if (abs(next.y - selectedActor.y) > selectedActor.height * 2.75f
-				|| (next is Disableable && next.isDisabled)
-			) {
-				iterator.remove()
+
+			if ((next is Disableable && next.isDisabled)) {
+				continue
 			}
+			helper.set(0f,0f)
+			next.localToStageCoordinates(helper);
+			var angleDeg = Math.atan2((helper.y - selectedActorPos.y).toDouble(), (helper.x - selectedActorPos.x).toDouble())
+				.toFloat() * MathUtils.radiansToDegrees
+			if (angleDeg < 0)
+				angleDeg += 360
+			if ((left && angleDeg > 135 && angleDeg < 225) || (!left && angleDeg >= 315 && angleDeg <= 360) || (!left && angleDeg >= 0 && angleDeg <= 45)) {
+				helper.set(0f,0f)
+				val dst2 = next.localToStageCoordinates(helper).dst2(selectedActorPos)
+				if (dst2 < dist) {
+					dist = dst2
+					selected = next
+				}
+			}
+
+
 		}
-		return getNext(left, possibleTargets, possibleTargets.indexOf(selectedActor, true))
+		selected?.let {
+			return selected
+		}
+		return selectedActor
 	}
 
 	private fun getNextY(up: Boolean): Actor {
 		val possibleTargets = possibleTargets
 
-		possibleTargets.sort { a1, a2 ->
-			val a1y = a1.localToStageCoordinates(helper).y
-			val a2y = a2.localToStageCoordinates(helper).y
-			(a2y - a1y).toInt()
-		}
+		selectedActorPos.set(0f, 0f)
+		selectedActor.localToStageCoordinates(selectedActorPos)
+		var dist = Float.MAX_VALUE
+		var selected: Actor? = null
 		val iterator = possibleTargets.iterator()
 		while (iterator.hasNext()) {
+
 			val next = iterator.next()
-			if (abs(next.x - selectedActor.x) > selectedActor.width * 1.25f
-				|| (next is Disableable && next.isDisabled)
-			) {
-				iterator.remove()
+
+			if ((next is Disableable && next.isDisabled)) {
+				continue
 			}
+			helper.set(0f,0f)
+			next.localToStageCoordinates(helper)
+			var angleDeg = Math.atan2((helper.y - selectedActorPos.y).toDouble(), (helper.x - selectedActorPos.x).toDouble())
+				.toFloat() * MathUtils.radiansToDegrees
+			if (angleDeg < 0)
+				angleDeg += 360
+			if ((up && angleDeg >= 45 && angleDeg <= 135) || (!up && angleDeg > 225 && angleDeg < 315)) {
+				helper.set(0f,0f)
+				val dst2 = next.localToStageCoordinates(helper).dst2(selectedActorPos)
+				if (dst2 < dist) {
+					dist = dst2
+					selected = next
+				}
+			}
+
+
 		}
-		return getNext(up, possibleTargets, possibleTargets.indexOf(selectedActor, true))
+		selected?.let {
+			return selected
+		}
+		return selectedActor
 	}
 
 	private fun getNext(left: Boolean, possibleTargets: Array<Actor>, index: Int): Actor {
@@ -150,6 +186,7 @@ class UiControlHelper {
 				else
 					possibleTargets.get(index - 1)
 			}
+
 			index == possibleTargets.size - 1 -> possibleTargets.get(0)
 			else -> possibleTargets.get(index + 1)
 		}
