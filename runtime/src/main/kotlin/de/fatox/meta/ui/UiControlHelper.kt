@@ -33,7 +33,10 @@ class UiControlHelper {
 			var parent = value.parent
 			while (parent != null) {
 				if (parent is ScrollPane) {
-					parent.scrollY = value.y
+					helper.set(0f,0f)
+					value.localToStageCoordinates(helper)
+					parent.stageToLocalCoordinates(helper)
+					parent.scrollTo(helper.x, helper.y, value.width, value.height)
 					break
 				}
 				parent = parent.parent
