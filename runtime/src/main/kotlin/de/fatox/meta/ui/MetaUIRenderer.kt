@@ -117,7 +117,7 @@ class MetaUIRenderer : UIRenderer {
 		return stage.camera
 	}
 
-	override fun setFocusedActor(actor: Actor) {
+	override fun setFocusedActor(actor: Actor?) {
 		focusedActor = actor
 	}
 }

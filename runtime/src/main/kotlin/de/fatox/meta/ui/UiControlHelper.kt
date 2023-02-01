@@ -22,6 +22,18 @@ class UiControlHelper {
 	private val metaUIRenderer: UIRenderer by lazyInject()
 
 	var activated: Boolean = true
+		set(value) {
+			field = value
+			if (value) {
+				selectedActor?.let {
+					if (it.isVisible) {
+						metaUIRenderer.setFocusedActor(selectedActor)
+					}
+				}
+			} else {
+				metaUIRenderer.setFocusedActor(null)
+			}
+		}
 	var canMove: Boolean = true
 
 	private var targets = Array<Actor>()

@@ -11,5 +11,5 @@ interface UIRenderer {
 	fun resize(width: Int, height: Int)
 	fun getCamera(): Camera
 
-	fun setFocusedActor(actor: Actor)
+	fun setFocusedActor(actor: Actor?)
 }
