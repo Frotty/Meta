@@ -15,6 +15,7 @@ import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.addGlobalKeyListener
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import kotlin.math.absoluteValue
 
 class UiControlHelper {
 	private val metaInput: MetaInputProcessor by lazyInject()
@@ -33,10 +34,21 @@ class UiControlHelper {
 			var parent = value.parent
 			while (parent != null) {
 				if (parent is ScrollPane) {
-					helper.set(0f,0f)
-					value.localToStageCoordinates(helper)
-					parent.stageToLocalCoordinates(helper)
-					parent.scrollTo(helper.x, helper.y, value.width, value.height)
+					helper1.set(0f,0f)
+					helper2.set(0f,0f)
+					parent.localToStageCoordinates(helper1)
+					value.localToStageCoordinates(helper2)
+					var yDiff1 = (helper2.y + value.height + 40f) - (helper1.y + parent.height)
+					var yDiff2 = (helper2.y - value.height - 40f) - (helper1.y + parent.height)
+					if (yDiff1 > 0) {
+						parent.scrollY = parent.scrollY - yDiff1
+						break
+					}
+
+					if (yDiff2.absoluteValue > parent.height) {
+						parent.scrollY = parent.scrollY + (yDiff2.absoluteValue - parent.height)
+						break
+					}
 					break
 				}
 				parent = parent.parent
@@ -58,7 +70,8 @@ class UiControlHelper {
 		}
 
 	private val selectedActorPos = Vector2()
-	private val helper = Vector2()
+	private val helper1 = Vector2()
+	private val helper2 = Vector2()
 
 	init {
 		metaInput.addGlobalKeyListener(Input.Keys.RIGHT) {
@@ -119,15 +132,15 @@ class UiControlHelper {
 			if ((next is Disableable && next.isDisabled)) {
 				continue
 			}
-			helper.set(0f,0f)
-			next.localToStageCoordinates(helper);
-			var angleDeg = Math.atan2((helper.y - selectedActorPos.y).toDouble(), (helper.x - selectedActorPos.x).toDouble())
+			helper1.set(0f,0f)
+			next.localToStageCoordinates(helper1);
+			var angleDeg = Math.atan2((helper1.y - selectedActorPos.y).toDouble(), (helper1.x - selectedActorPos.x).toDouble())
 				.toFloat() * MathUtils.radiansToDegrees
 			if (angleDeg < 0)
 				angleDeg += 360
 			if ((left && angleDeg > 135 && angleDeg < 225) || (!left && angleDeg >= 315 && angleDeg <= 360) || (!left && angleDeg >= 0 && angleDeg <= 45)) {
-				helper.set(0f,0f)
-				val dst2 = next.localToStageCoordinates(helper).dst2(selectedActorPos)
+				helper1.set(0f,0f)
+				val dst2 = next.localToStageCoordinates(helper1).dst2(selectedActorPos)
 				if (dst2 < dist) {
 					dist = dst2
 					selected = next
@@ -157,15 +170,15 @@ class UiControlHelper {
 			if ((next is Disableable && next.isDisabled)) {
 				continue
 			}
-			helper.set(0f,0f)
-			next.localToStageCoordinates(helper)
-			var angleDeg = Math.atan2((helper.y - selectedActorPos.y).toDouble(), (helper.x - selectedActorPos.x).toDouble())
+			helper1.set(0f,0f)
+			next.localToStageCoordinates(helper1)
+			var angleDeg = Math.atan2((helper1.y - selectedActorPos.y).toDouble(), (helper1.x - selectedActorPos.x).toDouble())
 				.toFloat() * MathUtils.radiansToDegrees
 			if (angleDeg < 0)
 				angleDeg += 360
 			if ((up && angleDeg >= 45 && angleDeg <= 135) || (!up && angleDeg > 225 && angleDeg < 315)) {
-				helper.set(0f,0f)
-				val dst2 = next.localToStageCoordinates(helper).dst2(selectedActorPos)
+				helper1.set(0f,0f)
+				val dst2 = next.localToStageCoordinates(helper1).dst2(selectedActorPos)
 				if (dst2 < dist) {
 					dist = dst2
 					selected = next
