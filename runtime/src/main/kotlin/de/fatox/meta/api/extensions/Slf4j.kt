@@ -5,6 +5,39 @@ package de.fatox.meta.api.extensions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+@PublishedApi
+internal inline fun safeToString(msg: () -> Any?): String {
+	return try {
+		msg.invoke().toString()
+	} catch (@SuppressWarnings("TooGenericExceptionCaught") e: Exception) { // We need to return a string in any case
+		"Log message invocation failed: $e"
+	}
+}
+
+inline fun Logger.info(msg: () -> Any?) {
+	if (isInfoEnabled) info(safeToString(msg))
+}
+
+inline fun Logger.warn( msg: () -> Any?) {
+	if (isWarnEnabled) warn(safeToString(msg))
+}
+
+inline fun Logger.error(msg: () -> Any?) {
+	if (isErrorEnabled) error(safeToString(msg))
+}
+
+inline fun Logger.error(t: Throwable, msg: () -> Any?) {
+	if (isErrorEnabled) error(safeToString(msg), t)
+}
+
+inline fun Logger.debug(msg: () -> Any?) {
+	if (isDebugEnabled) debug(safeToString(msg))
+}
+
+inline fun Logger.trace(msg: () -> Any?) {
+	if (isTraceEnabled) trace(safeToString(msg))
+}
+
 object MetaLoggerFactory {
 	@Suppress("NOTHING_TO_INLINE")
 	inline fun logger(noinline context: () -> Unit): Logger {
@@ -17,38 +50,4 @@ object MetaLoggerFactory {
 
 		return LoggerFactory.getLogger(className)
 	}
-}
-
-@PublishedApi
-@Suppress("NOTHING_TO_INLINE")
-internal inline fun (() -> Any?).safeToString(): String {
-	return try {
-		invoke().toString()
-	} catch (t: Throwable) {
-		"Log message invocation failed: $t"
-	}
-}
-
-inline fun Logger.info(msg: () -> Any?) {
-	if (isInfoEnabled) info(msg.safeToString())
-}
-
-inline fun Logger.warn(msg: () -> Any?) {
-	if (isWarnEnabled) warn(msg.safeToString())
-}
-
-inline fun Logger.error(msg: () -> Any?) {
-	if (isErrorEnabled) error(msg.safeToString())
-}
-
-inline fun Logger.error(t: Throwable, msg: () -> Any?) {
-	if (isErrorEnabled) error(msg.safeToString(), t)
-}
-
-inline fun Logger.debug(msg: () -> Any?) {
-	if (isDebugEnabled) debug(msg.safeToString())
-}
-
-inline fun Logger.trace(msg: () -> Any?) {
-	if (isTraceEnabled) trace(msg.safeToString())
 }
