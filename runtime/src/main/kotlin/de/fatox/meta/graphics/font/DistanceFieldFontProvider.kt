@@ -3,6 +3,7 @@ package de.fatox.meta.graphics.font
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
@@ -13,11 +14,11 @@ class DistanceFieldFontProvider : FontProvider {
 
 	private val assetProvider: AssetProvider by lazyInject()
 
-	override fun getFont(size: Int, mono: Boolean): BitmapFont {
-		TODO()
+	override fun getFont(size: Int, type: FontType): BitmapFont {
+		TODO("Not yet implemented")
 	}
 
-	override fun write(x: Float, y: Float, text: String, size: Int, mono: Boolean) {
-		TODO()
+	override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) {
+		TODO("Not yet implemented")
 	}
 }

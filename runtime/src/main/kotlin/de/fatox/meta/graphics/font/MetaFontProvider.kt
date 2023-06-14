@@ -11,6 +11,7 @@ import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.get
 import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 class MetaFontProvider : FontProvider {
@@ -20,24 +21,34 @@ class MetaFontProvider : FontProvider {
 
 	private val normalFontMap = IntMap<BitmapFont>()
 	private val monoFontMap = IntMap<BitmapFont>()
+	private val boldFontMap = IntMap<BitmapFont>()
 	private val normalGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.normalFontPath])
+	private val boldGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.boldFontPath])
 	private val monoGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.monoFontPath])
 
-	override fun getFont(size: Int, mono: Boolean): BitmapFont {
-		val bitmapFonts = if (mono) monoFontMap else normalFontMap
-		return bitmapFonts.getOrPut(size) { generateFont(if (size > 1) size else 5, mono) }
+	override fun getFont(size: Int, type: FontType): BitmapFont {
+		val bitmapFonts = when(type) {
+			FontType.REGULAR -> normalFontMap
+			FontType.BOLD -> boldFontMap
+			FontType.MONO -> monoFontMap
+		}
+		return bitmapFonts.getOrPut(size) { generateFont(if (size > 1) size else 5, type) }
 	}
 
-	override fun write(x: Float, y: Float, text: String, size: Int, mono: Boolean) {
+	override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) {
 		spriteBatch.color = Color.WHITE
 		spriteBatch.enableBlending()
 		spriteBatch.shader = null
-		spriteBatch.use { getFont(size, mono).draw(spriteBatch, text, x, y) }
+		spriteBatch.use { getFont(size, type).draw(spriteBatch, text, x, y) }
 	}
 
-	private fun generateFont(size: Int, mono: Boolean): BitmapFont {
+	private fun generateFont(size: Int, type: FontType): BitmapFont {
 		val param = defaultFontParam(size)
-		return (if (mono) monoGenerator else normalGenerator).generateFont(param)
+		return (when(type) {
+			FontType.REGULAR -> normalGenerator
+			FontType.BOLD -> boldGenerator
+			FontType.MONO -> monoGenerator
+		}).generateFont(param)
 	}
 
 	private fun defaultFontParam(requestedSize: Int): FreeTypeFontGenerator.FreeTypeFontParameter {

@@ -17,6 +17,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.shader.ShaderComposition
+import de.fatox.meta.ui.UiControlHelper
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.RenderBufferButton
 import de.fatox.meta.ui.dialogs.ShaderCompositionWizard
@@ -28,6 +29,7 @@ import java.util.*
 class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val shaderComposer: MetaShaderComposer by lazyInject()
+	private val uiControlHelper: UiControlHelper by lazyInject()
 
 	private lateinit var renderSelectbox: VisSelectBox<String>
 	private lateinit var bufferTable: VisTable
@@ -91,6 +93,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 			})
 			image.align = Align.center
 		}
+		uiControlHelper.selectedActor = addButton
 		bufferTable.add(addButton).size(175f, 168f).left()
 	}
 
