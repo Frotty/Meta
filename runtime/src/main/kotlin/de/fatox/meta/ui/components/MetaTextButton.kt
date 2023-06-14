@@ -17,7 +17,11 @@ import kotlin.contracts.contract
 /**
  * Created by Frotty on 04.06.2016.
  */
-open class MetaTextButton @JvmOverloads constructor(text: String = "", size: Int = 12, type: FontType = FontType.REGULAR) :
+open class MetaTextButton @JvmOverloads constructor(
+	text: String = "",
+	size: Int = 12,
+	type: FontType = FontType.REGULAR
+) :
 	Button(VisUI.getSkin().get(VisTextButtonStyle::class.java)) {
 
 	private var labelCell: Cell<MetaLabel>
@@ -28,7 +32,6 @@ open class MetaTextButton @JvmOverloads constructor(text: String = "", size: Int
 	}
 
 	val text: CharSequence = label.text
-
 
 
 	init {
@@ -56,7 +59,12 @@ open class MetaTextButton @JvmOverloads constructor(text: String = "", size: Int
 
 @Suppress("FunctionName")
 @OptIn(ExperimentalContracts::class)
-inline fun MetaTextButton(text: String = "", size: Int = 12, init: MetaTextButton.() -> Unit): MetaTextButton {
+inline fun MetaTextButton(
+	text: String = "",
+	size: Int = 12,
+	type: FontType = FontType.REGULAR,
+	init: MetaTextButton.() -> Unit
+): MetaTextButton {
 	contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
-	return MetaTextButton(text, size, FontType.REGULAR).apply(init)
+	return MetaTextButton(text, size, type).apply(init)
 }
