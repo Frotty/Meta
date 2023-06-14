@@ -327,3 +327,16 @@ inline fun MetaLabel(
 	contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
 	return MetaLabel(text, size, color, type).apply(init)
 }
+
+@Suppress("FunctionName")
+@OptIn(ExperimentalContracts::class)
+inline fun MetaLabel(
+	text: CharSequence,
+	size: Int,
+	color: Color? = Color.WHITE,
+	monospace: Boolean = false,
+	init: MetaLabel.() -> Unit
+): MetaLabel {
+	contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
+	return MetaLabel(text, size, color, if (monospace) FontType.MONO else FontType.REGULAR).apply(init)
+}
