@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.StringBuilder
 import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -29,7 +30,7 @@ class MetaLabel @JvmOverloads constructor(
 	text: CharSequence,
 	size: Int,
 	color: Color? = Color.WHITE,
-	monospace: Boolean = false
+	type: FontType = FontType.REGULAR
 ) : Widget() {
 	val glyphLayout: GlyphLayout = GlyphLayout()
 	private val prefSize = Vector2()
@@ -53,7 +54,7 @@ class MetaLabel @JvmOverloads constructor(
 	private val metaFontProvider: FontProvider by lazyInject()
 
 	private val fontColor: Color?
-	private val mono: Boolean = monospace
+	private val type: FontType = type
 
 	fun setText(newText: CharSequence = "") {
 		if (newText is StringBuilder) {
@@ -268,7 +269,7 @@ class MetaLabel @JvmOverloads constructor(
 	}
 
 	private fun updateFont() {
-		font = metaFontProvider.getFont(size.roundToInt(), mono)
+		font = metaFontProvider.getFont(size.roundToInt(), type)
 		setText(text)
 		bitmapFontCache = font.newFontCache()
 		layout()
@@ -305,7 +306,7 @@ class MetaLabel @JvmOverloads constructor(
 	}
 
 	init {
-		font = metaFontProvider.getFont(size, monospace)
+		font = metaFontProvider.getFont(size, type)
 		setAlignment(Align.center)
 		fontColor = color
 		setText(text)
@@ -320,9 +321,9 @@ inline fun MetaLabel(
 	text: CharSequence,
 	size: Int,
 	color: Color? = Color.WHITE,
-	monospace: Boolean = false,
+	type: FontType = FontType.REGULAR,
 	init: MetaLabel.() -> Unit
 ): MetaLabel {
 	contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
-	return MetaLabel(text, size, color, monospace).apply(init)
+	return MetaLabel(text, size, color, type).apply(init)
 }
