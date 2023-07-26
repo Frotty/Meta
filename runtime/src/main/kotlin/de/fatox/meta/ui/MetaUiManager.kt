@@ -203,6 +203,7 @@ class MetaUiManager : UIManager {
 			contentTable.row().height(26f)
 			contentTable.add(menuBar.table).growX().top()
 		} else if (mainMenuBar != null) {
+			contentTable.removeActor(mainMenuBar!!.table)
 			contentTable.cells.removeValue(contentTable.getCell(mainMenuBar!!.table), true)
 			contentTable.invalidate()
 		}
