@@ -96,11 +96,7 @@ class MetaUiManager : UIManager {
 		displayedWindows.clear()
 		contentTable.remove()
 		contentTable.clear()
-		if (mainMenuBar != null) {
-			contentTable.row().height(26f)
-			contentTable.add(mainMenuBar!!.table).growX().top()
-			mainMenuBar!!.table.toFront()
-		}
+		mainMenuBar = null
 		uiRenderer.addActor(contentTable)
 		restoreWindows()
 	}
@@ -203,8 +199,9 @@ class MetaUiManager : UIManager {
 			contentTable.row().height(26f)
 			contentTable.add(menuBar.table).growX().top()
 		} else if (mainMenuBar != null) {
-			contentTable.removeActor(mainMenuBar!!.table)
-			contentTable.cells.removeValue(contentTable.getCell(mainMenuBar!!.table), true)
+			val cell = contentTable.getCell(mainMenuBar!!.table)
+			cell.clearActor()
+			contentTable.cells.removeValue(cell, true)
 			contentTable.invalidate()
 		}
 		mainMenuBar = menuBar
