@@ -6,7 +6,7 @@ import de.fatox.meta.Meta
 
 object MetaDesktopLauncher {
 	fun init(config: Lwjgl3ApplicationConfiguration, meta: Meta) {
-		config.setWindowedMode(329, 210)
+		config.setWindowedMode(238, 127)
 		config.setDecorated(false)
 		config.setTransparentFramebuffer(true)
 		config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 2)

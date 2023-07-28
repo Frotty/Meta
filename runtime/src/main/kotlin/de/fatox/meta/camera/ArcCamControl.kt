@@ -98,6 +98,10 @@ class ArcCamControl : InputProcessor {
 		return false
 	}
 
+	override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+		TODO("Not yet implemented")
+	}
+
 	override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
 		// Touch drag equals clicking a mouseButton and then moving the mouse
 		// In case the right mouse button is clicked, we are in MoveMode
