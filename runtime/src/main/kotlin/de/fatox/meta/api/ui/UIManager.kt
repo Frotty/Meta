@@ -14,6 +14,7 @@ import com.kotcrab.vis.ui.widget.MenuBar
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.WindowHandler
+import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.ui.windows.MetaDialog
@@ -74,12 +75,14 @@ inline fun <reified T : MetaWindow> WindowConfig.registerSingleton(
 	registerSingleton(T::class, name, creator)
 }
 
+val logger = MetaLoggerFactory.logger {}
+
 inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
 	val gameName: String = MetaInject.inject("gameName")
 	Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list().forEach { screenId ->
 		if (screenId.isDirectory)
 			screenId.list().firstOrNull { it.name() == T::class.qualifiedName }?.let { windowId ->
-				println("Found legacy window name: ${windowId.name()}, replacing with $name")
+				logger.debug("Found legacy window name: ${windowId.name()}, replacing with $name")
 				windowId.moveTo(windowId.sibling(name))
 			}
 	}

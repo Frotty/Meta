@@ -2,6 +2,7 @@ package de.fatox.meta.shader
 
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
+import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.MetaGLShader
 import de.fatox.meta.api.graphics.RenderBufferHandle
@@ -17,6 +18,8 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
 
+	private val log = MetaLoggerFactory.logger {  }
+
 	val bufferHandles = Array<RenderBufferHandle>()
 
 	val outputBuffer: RenderBufferHandle?
@@ -31,7 +34,7 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
 			val renderBufferData = data.renderBuffers.get(i)
 			bufferHandles.add(RenderBufferHandle(renderBufferData, assignShader(renderBufferData)))
 		}
-		println("Loaded <" + bufferHandles.size + "> buffers")
+		log.debug("Loaded <" + bufferHandles.size + "> buffers")
 	}
 
 	private fun assignShader(renderBufferData: RenderBufferData): MetaGLShader {

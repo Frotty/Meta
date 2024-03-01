@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.*
+import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.assets.MetaData
@@ -27,6 +28,8 @@ class ScreenConfig {
 	}
 }
 
+val logger = MetaLoggerFactory.logger {}
+
 inline fun <reified T : Screen> ScreenConfig.register(
 	name: String = T::class.qualifiedName ?: "",
 	noinline creator: () -> T,
@@ -34,7 +37,7 @@ inline fun <reified T : Screen> ScreenConfig.register(
 	val gameName: String = MetaInject.inject("gameName")
 	Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list().forEach { screenId ->
 		if (screenId.isDirectory && screenId.name().equals(T::class.qualifiedName, ignoreCase = true)) {
-			println("Found legacy screen name: ${screenId.name()}, replacing with $name")
+			logger.debug("Found legacy screen name: ${screenId.name()}, replacing with $name")
 			screenId.moveTo(screenId.sibling(name))
 		}
 	}
