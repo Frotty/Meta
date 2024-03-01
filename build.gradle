@@ -46,6 +46,7 @@ subprojects {
 				includeGroup "com.kotcrab.vis"
 				includeGroup "org.slf4j"
 				includeGroup "org.apache.commons"
+				includeGroup "commons-io"
 				includeGroup "ch.qos.logback"
 				includeGroupByRegex "org\\.junit\\..*"
 				includeGroup "org.junit"

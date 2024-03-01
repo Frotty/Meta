@@ -9,6 +9,7 @@ dependencies {
 	implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 
 	api group: 'org.apache.commons', name: 'commons-compress', version: commonsCompressVersion
+	api group: 'commons-io', name: 'commons-io', version: commonsIOVersion
 	implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
 	api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion
 

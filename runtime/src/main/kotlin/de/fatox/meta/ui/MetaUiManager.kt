@@ -237,7 +237,7 @@ class MetaUiManager : UIManager {
 		for (window in displayedWindows) {
 			window!!.toFront()
 		}
-		mainMenuBar!!.table.toFront()
+		mainMenuBar?.table?.toFront()
 	}
 
 	private fun cacheWindow(window: Window, forceClose: Boolean) {
