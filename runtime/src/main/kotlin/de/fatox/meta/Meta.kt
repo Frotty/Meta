@@ -2,6 +2,7 @@ package de.fatox.meta
 
 import com.badlogic.gdx.Game
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.*
@@ -9,8 +10,11 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.load
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.input.KeyListener
+import de.fatox.meta.input.MetaInput
 import kotlin.reflect.KClass
 
 class ScreenConfig {
@@ -46,7 +50,7 @@ inline fun <reified T : Screen> ScreenConfig.register(
 }
 
 abstract class Meta(
-	protected val windowHandler: WindowHandler = NoWindowHandler,
+	val windowHandler: WindowHandler = NoWindowHandler,
 	val monitorHandler: MonitorHandler = NoMonitorHandler,
 	val soundHandler: SoundHandler = NoSoundHandler,
 	val graphicsHandler: GraphicsHandler = NoGraphicsHandler,
@@ -54,6 +58,8 @@ abstract class Meta(
 	protected val firstScreen: Screen by lazyInject()
 	protected val uiManager: UIManager by lazyInject()
 	private val screenConfig: ScreenConfig by lazyInject()
+	private val metaInput: MetaInputProcessor by lazyInject()
+	private val metaData: MetaData by lazyInject()
 
 	private var lastChange: Long = 0
 	private lateinit var lastScreen: Screen
@@ -82,7 +88,23 @@ abstract class Meta(
 		MetaInject.global { singleton("default") { ScreenConfig().apply { screens() } } }
 		MetaInject.global { singleton("default") { WindowConfig().apply { windows() } } }
 		config()
+
+		metaInput.addGlobalKeyListener(Input.Keys.ENTER, 0, object : KeyListener() {
+			override fun onEvent() {
+				if (Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT)) {
+					Gdx.app.postRunnable {
+						val audioVideoData = metaData.load(audioVideoDataKey)
+						audioVideoData?.let {
+							audioVideoData.fullscreen = !audioVideoData.fullscreen
+							metaData.save(audioVideoDataKey, audioVideoData)
+							audioVideoData.apply()
+						}
+					}
+				}
+			}
+		})
 		changeScreen(firstScreen)
+
 	}
 
 	@Suppress("unused")

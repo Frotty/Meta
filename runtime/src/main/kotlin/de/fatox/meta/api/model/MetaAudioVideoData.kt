@@ -3,6 +3,8 @@ package de.fatox.meta.api.model
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Graphics
 import de.fatox.meta.Meta
+import kotlin.math.abs
+
 
 data class MetaDisplayMode(
 	val width: Int = 0,
@@ -31,6 +33,28 @@ private inline val Graphics.DisplayMode.monitorIndex
 
 fun Graphics.DisplayMode.toMetaDisplayMode(): MetaDisplayMode = MetaDisplayMode(this)
 
+private fun getCurrentMonitor(): Graphics.Monitor {
+	val meta = Gdx.app.applicationListener as Meta
+
+	var currentMonitor = Gdx.graphics.primaryMonitor // Default to primary monitor
+	var minDistance = Int.MAX_VALUE // To find the closest monitor
+
+	for (monitor in Gdx.graphics.monitors) {
+		val mode = Gdx.graphics.getDisplayMode(monitor)
+		// Calculate the center of the monitor
+		val monitorCenterX = monitor.virtualX + mode.width / 2
+		val monitorCenterY = monitor.virtualY + mode.height / 2
+		// Calculate distance from window's top-left corner to monitor's center
+		val distance = (abs((monitorCenterX - meta.windowHandler.x).toDouble()) + abs((monitorCenterY - meta.windowHandler.y).toDouble())).toInt()
+
+		if (distance < minDistance) {
+			minDistance = distance
+			currentMonitor = monitor
+		}
+	}
+	return currentMonitor
+}
+
 /**
  * Created by Frotty on 05.11.2016.
  */
@@ -58,13 +82,8 @@ data class MetaAudioVideoData(
 		if (!runWithUI) return
 
 		if (fullscreen && Gdx.graphics.supportsDisplayModeChange()) {
-			val dms = Gdx.graphics.monitors.mapNotNull { gm ->
-				Gdx.graphics.getDisplayModes(gm).firstOrNull { metaDisplayMode.equalsDisplayMode(it) }
-			}
-			val dm = dms.firstOrNull { metaDisplayMode.monitorIndex == it.monitorIndex }
-				?: dms.firstOrNull()
-				?: Gdx.graphics.getDisplayMode(Gdx.graphics.primaryMonitor)
 
+			val dm = Gdx.graphics.getDisplayMode(getCurrentMonitor())
 			metaDisplayMode = dm.toMetaDisplayMode()
 
 			Gdx.graphics.setFullscreenMode(dm)
