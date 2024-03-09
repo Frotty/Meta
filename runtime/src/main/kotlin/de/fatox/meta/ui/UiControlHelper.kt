@@ -121,10 +121,12 @@ class UiControlHelper {
 
 	private fun targetsInGroup(t: Group) {
 		for (actor in t.children) {
-			if (actor != selectedActor && actor is Button && !targets.contains(actor, true)) {
-				targets.add(actor)
-			} else if (actor is Group) {
-				targetsInGroup(actor)
+			if (actor.isVisible) {
+				if (actor != selectedActor && actor is Button && !targets.contains(actor, true)) {
+					targets.add(actor)
+				} else if (actor is Group) {
+					targetsInGroup(actor)
+				}
 			}
 		}
 	}
