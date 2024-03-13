@@ -14,8 +14,8 @@ object XPKLoader {
 
 		requireValidHash(fileBytes)
 
-		fileBytes[0] = '7'.toByte()
-		fileBytes[1] = 'z'.toByte()
+		fileBytes[0] = '7'.code.toByte()
+		fileBytes[1] = 'z'.code.toByte()
 		fileBytes[2] = 0xBC.toByte()
 		fileBytes[3] = 0xAF.toByte()
 		fileBytes[4] = 0x27.toByte()
@@ -23,7 +23,7 @@ object XPKLoader {
 
 		val array = Array<XPKFileHandle>()
 		val byteChannel = XPKByteChannel(fileBytes)
-		SevenZFile(byteChannel).let {
+		SevenZFile.Builder().setSeekableByteChannel(byteChannel).get().let {
 			var archive = it.nextEntry
 			do {
 				val xpkFileHandle = XPKFileHandle(array, 0, byteChannel, archive, archive.name.replace("/", "\\"))
@@ -36,7 +36,7 @@ object XPKLoader {
 
 	fun loadEntry(file: XPKByteChannel, entry: SevenZArchiveEntry): ByteArray? {
 		file.position(0)
-		val s7f = SevenZFile(file)
+		val s7f = SevenZFile.Builder().setSeekableByteChannel(file).get()
 		s7f.let {
 			var itr = s7f.nextEntry
 			do {
