@@ -1,14 +1,18 @@
 package de.fatox.meta.ui
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.TimeUtils
 import com.kotcrab.vis.ui.widget.MenuBar
+import com.kotcrab.vis.ui.widget.VisImage
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import de.fatox.meta.ScreenConfig
+import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.NoWindowHandler
 import de.fatox.meta.api.WindowHandler
@@ -35,12 +39,20 @@ class MetaUiManager : UIManager {
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val metaData: MetaData by lazyInject()
 	private val metaInput: MetaInputProcessor by lazyInject()
+	private val assetProvider: AssetProvider by lazyInject()
 
 	private val displayedWindows = Array<Window>()
 	private val cachedWindows = Array<Window>()
 	private var mainMenuBar: MenuBar? = null
 	private val contentTable = Table()
 	private var currentScreenId: String = "(none)"
+	private val backdrop = VisImage(ColorDrawable(assetProvider.getDrawable("textures/1pxwhite.png"), Color.valueOf("1F2025BB"))).apply {
+		width = Gdx.graphics.width.toFloat() * 100f
+		height = Gdx.graphics.height.toFloat() * 100f
+		addListener {
+			false
+		}
+	}
 	override var preventShowWindow: Boolean by Delegates.observable(false) { _, _, newValue ->
 		preventShowWindowObservers.forEach { it(newValue) }
 	}
@@ -190,7 +202,8 @@ class MetaUiManager : UIManager {
 
 	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T {
 		log.debug { "Show dialog: ${windowConfig.nameOf(dialogClass)}" }
-		// Dialogs are just Window subtypes so we show it as usual
+		// Dialogs are just Window subtypes, so we show it as usual
+		uiRenderer.addActor(backdrop)
 		return showWindow(dialogClass).apply { if (!preventShowWindow) show() }
 	}
 
@@ -261,6 +274,10 @@ class MetaUiManager : UIManager {
 		if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(id).lastModified()) > 200) {
 			metaData.save(id, windowData)
 		}
+	}
+
+	override fun closeDialog(metaDialog: MetaDialog) {
+		backdrop.remove()
 	}
 
 	private val copy = Array<Window>()

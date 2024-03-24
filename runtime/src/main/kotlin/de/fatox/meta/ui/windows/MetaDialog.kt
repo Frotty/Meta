@@ -49,6 +49,11 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 		Gdx.input.isCursorCatched = false
 	}
 
+	override fun close() {
+		super.close()
+		uiManager.closeDialog(this)
+	}
+
 	init {
 		if (hasCloseButton) {
 			val btn = titleTable.cells[titleTable.cells.size - 1].actor

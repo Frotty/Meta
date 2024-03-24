@@ -115,6 +115,8 @@ interface UIManager {
 	fun metaHas(name: String): Boolean
 	fun <T : Any> metaGet(name: String, c: KClass<out T>): T?
 	fun metaSave(name: String, windowData: Any)
+	fun closeDialog(metaDialog: MetaDialog)
+
 	val currentlyActiveWindows: Array<Window>
 	val windowConfig: WindowConfig
 	val preventShowWindowObservers: Array<(Boolean) -> Unit>
