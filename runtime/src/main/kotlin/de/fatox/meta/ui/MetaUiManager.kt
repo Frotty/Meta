@@ -4,8 +4,11 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.TimeUtils
 import com.kotcrab.vis.ui.widget.MenuBar
@@ -46,7 +49,11 @@ class MetaUiManager : UIManager {
 	private var mainMenuBar: MenuBar? = null
 	private val contentTable = Table()
 	private var currentScreenId: String = "(none)"
-	private val backdrop = VisImage(ColorDrawable(assetProvider.getDrawable("textures/1pxwhite.png"), Color.valueOf("1F2025BB"))).apply {
+	private val whitePixel = TextureRegionDrawable(Texture(Pixmap(1, 1, Pixmap.Format.RGBA8888).apply {
+		setColor(Color.WHITE)
+		fill()
+	}))
+	private val backdrop = VisImage(ColorDrawable(whitePixel, Color.valueOf("1F2025BB"))).apply {
 		width = Gdx.graphics.width.toFloat() * 100f
 		height = Gdx.graphics.height.toFloat() * 100f
 		addListener {
