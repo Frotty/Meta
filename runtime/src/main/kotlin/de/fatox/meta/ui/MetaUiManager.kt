@@ -54,8 +54,6 @@ class MetaUiManager : UIManager {
 		fill()
 	}))
 	private val backdrop = VisImage(ColorDrawable(whitePixel, Color.valueOf("1F2025BB"))).apply {
-		width = Gdx.graphics.width.toFloat() * 100f
-		height = Gdx.graphics.height.toFloat() * 100f
 		addListener {
 			false
 		}
@@ -210,6 +208,10 @@ class MetaUiManager : UIManager {
 	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T {
 		log.debug { "Show dialog: ${windowConfig.nameOf(dialogClass)}" }
 		// Dialogs are just Window subtypes, so we show it as usual
+		backdrop.apply {
+			width = Gdx.graphics.width.toFloat()
+			height = Gdx.graphics.height.toFloat()
+		}
 		uiRenderer.addActor(backdrop)
 		return showWindow(dialogClass).apply { if (!preventShowWindow) show() }
 	}
