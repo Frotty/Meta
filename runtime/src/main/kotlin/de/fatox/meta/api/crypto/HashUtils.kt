@@ -23,7 +23,7 @@ value class Base64EncodedHash(val value: String)
 /** Computes a hash from the data in the given [ReadableByteChannel]. */
 @Throws(IOException::class)
 fun SeekableByteChannel.hash(): XX64Hash {
-	return XXH64(ByteBuffer.allocate(size().toInt()).also { read(it) }, size().toInt(), 0UL)
+	return XXH64(ByteBuffer.allocate(size().toInt()).also { read(it); it.flip() }, size().toInt(), 0UL)
 }
 
 /**
