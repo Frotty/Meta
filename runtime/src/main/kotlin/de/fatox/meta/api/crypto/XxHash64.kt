@@ -11,8 +11,9 @@ private const val XXH_PRIME64_5 = 0x27D4EB2F165667C5UL
 
 fun XXH64(input: ByteBuffer, length: Int, seed: ULong): XX64Hash {
 	input.limit(length)
-	var hash: ULong
 	input.order(ByteOrder.LITTLE_ENDIAN)
+
+	var hash: ULong
 	if (length >= 32) {
 		var v1 = seed + XXH_PRIME64_1 + XXH_PRIME64_2
 		var v2 = seed + XXH_PRIME64_2
