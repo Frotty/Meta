@@ -55,3 +55,5 @@ fun String.hash(): XX64Hash = encodeToByteArray().hash()
 
 /** Computes a hash from the data in the given [ByteArray]. */
 fun ByteArray.hash(): XX64Hash = XXH64(ByteBuffer.wrap(this), length = this.size, 0UL)
+
+fun XX64Hash.verify(other: XX64Hash): Boolean = value == other.value

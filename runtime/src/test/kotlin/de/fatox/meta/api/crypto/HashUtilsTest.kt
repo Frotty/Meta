@@ -1,8 +1,5 @@
 package de.fatox.meta.api.crypto
 
-import de.fatox.meta.api.encoding.decode
-import de.fatox.meta.api.encoding.toHex
-import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.TestInstance
@@ -15,6 +12,7 @@ import kotlin.streams.asStream
 import kotlin.test.assertEquals
 
 // Hashes created with: https://asecuritysite.com/encryption/xxhash
+@Suppress("SpellCheckingInspection")
 private val testVectors = sequenceOf(
 	"" to "ef46db3751d8e999",
 	"abc" to "44bc2cf5ad770999",
