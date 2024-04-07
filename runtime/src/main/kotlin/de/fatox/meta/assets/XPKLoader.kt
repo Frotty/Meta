@@ -2,7 +2,7 @@ package de.fatox.meta.assets
 
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
-import de.fatox.meta.api.crypto.requireValidHash
+import de.fatox.meta.api.crypto.checkHash
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
 
@@ -12,7 +12,7 @@ object XPKLoader {
 	fun getList(fileHandle: FileHandle): Array<XPKFileHandle> {
 		val fileBytes = fileHandle.file().readBytes()
 
-		requireValidHash(fileBytes)
+		checkHash(fileBytes)
 
 		fileBytes[0] = '7'.code.toByte()
 		fileBytes[1] = 'z'.code.toByte()
