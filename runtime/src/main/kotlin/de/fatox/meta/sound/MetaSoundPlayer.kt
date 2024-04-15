@@ -28,12 +28,14 @@ class MetaSoundPlayer {
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val metaData: MetaData by lazyInject()
 
+	var soundsSilenced = false
+
 	fun playSound(
 		soundDefinition: MetaSoundDefinition?,
 		listenerPos: Vector2? = null,
 		soundPos: Vector2 = Vector2.Zero
 	): MetaSoundHandle? {
-		if (soundDefinition == null) return null
+		if (soundDefinition == null || soundsSilenced) return null
 		val audioVideoData = metaData[audioVideoDataKey]
 		val volume = audioVideoData.masterVolume * audioVideoData.soundVolume
 		if (volume <= 0) {
