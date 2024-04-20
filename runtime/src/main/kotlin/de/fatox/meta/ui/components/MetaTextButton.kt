@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.VisTextButton.VisTextButtonStyle
+import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.util.GoldenRatio
 import kotlin.contracts.ExperimentalContracts
@@ -38,6 +39,7 @@ open class MetaTextButton @JvmOverloads constructor(
 		pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20)
 		labelCell = add(label)
 		centerText()
+		cursorPointer()
 	}
 
 	fun centerText() {
