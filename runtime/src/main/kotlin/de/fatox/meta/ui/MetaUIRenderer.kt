@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
@@ -90,6 +91,8 @@ class MetaUIRenderer : UIRenderer {
 		stage.act(Gdx.graphics.deltaTime)
 	}
 
+	var time = 0f
+
 	override fun draw() {
 		if (!audioVideoData.runWithUI) return
 
@@ -97,6 +100,8 @@ class MetaUIRenderer : UIRenderer {
 		Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
 		stage.draw()
+		time += Gdx.graphics.deltaTime
+		highlightColor.b = MathUtils.sin(time * 4f) * 0.15f + 0.85f
 		focusedActor?.let {
 			shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
 			shapeRenderer.projectionMatrix = stage.batch.projectionMatrix
