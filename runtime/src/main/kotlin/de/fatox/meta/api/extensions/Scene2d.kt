@@ -47,13 +47,13 @@ inline fun <reified T : Actor> T.tooltip(text: String, align: Int = Align.center
 inline fun <reified T : Actor> T.cursorPointer() {
 	addListener(object : InputListener() {
 		override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
-			if (T::class == Disableable::class && (this@cursorPointer as Disableable).isDisabled) return
+			if (this@cursorPointer is Disableable && (this@cursorPointer as Disableable).isDisabled) return
 			Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
 			super.enter(event, x, y, pointer, fromActor)
 		}
 
 		override fun exit(event: InputEvent?, x: Float, y: Float, pointer: Int, toActor: Actor?) {
-			if (T::class == Disableable::class && (this@cursorPointer as Disableable).isDisabled) return
+			if (this@cursorPointer is Disableable && (this@cursorPointer as Disableable).isDisabled) return
 			Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
 			super.exit(event, x, y, pointer, toActor)
 		}
