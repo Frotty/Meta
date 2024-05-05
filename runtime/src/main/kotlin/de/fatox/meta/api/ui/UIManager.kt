@@ -106,7 +106,7 @@ interface UIManager {
 
 	fun hideOtherWindowsAndPreventNew(window: Window)
 	fun restoreOtherWindowsAndAllowNew()
-	fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T
+	fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>, showBackdrop: Boolean): T
 	fun setMainMenuBar(menuBar: MenuBar?)
 	fun <T : Window> getWindow(windowClass: KClass<out T>): T
 	fun closeWindow(window: Window)
@@ -134,7 +134,10 @@ inline fun <reified T : MetaWindow> UIManager.showWindow(config: T.() -> Unit = 
 	showWindow(T::class).apply(config)
 
 inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = {}): T =
-	showDialog(T::class).apply(config)
+	showDialog(T::class, true).apply(config)
+
+inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = {}, showBackdrop: Boolean): T =
+	showDialog(T::class, showBackdrop).apply(config)
 
 inline fun <reified T : Screen> UIManager.changeScreen(): Unit = changeScreen(T::class)
 

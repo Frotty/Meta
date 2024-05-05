@@ -205,12 +205,14 @@ class MetaUiManager : UIManager {
 		}
 	}
 
-	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>): T {
+	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>, showBackdrop: Boolean): T {
 		log.debug { "Show dialog: ${windowConfig.nameOf(dialogClass)}" }
 		// Dialogs are just Window subtypes, so we show it as usual
-		backdrop.apply {
-			width = Gdx.graphics.width.toFloat()
-			height = Gdx.graphics.height.toFloat()
+		if  (showBackdrop) {
+			backdrop.apply {
+				width = Gdx.graphics.width.toFloat()
+				height = Gdx.graphics.height.toFloat()
+			}
 		}
 		uiRenderer.addActor(backdrop)
 		return showWindow(dialogClass).apply { if (!preventShowWindow) show() }
