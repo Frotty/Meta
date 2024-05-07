@@ -213,8 +213,8 @@ class MetaUiManager : UIManager {
 				width = Gdx.graphics.width.toFloat()
 				height = Gdx.graphics.height.toFloat()
 			}
+			uiRenderer.addActor(backdrop)
 		}
-		uiRenderer.addActor(backdrop)
 		return showWindow(dialogClass).apply { if (!preventShowWindow) show() }
 	}
 
