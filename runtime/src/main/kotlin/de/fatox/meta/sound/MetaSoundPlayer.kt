@@ -46,7 +46,7 @@ class MetaSoundPlayer {
 		}
 		val handleList = playingHandles.getOrPut(soundDefinition) { Array(soundDefinition.maxInstances) }
 		cleanupHandles(handleList)
-		if (handleList.first().startTime + 10 >= TimeUtils.millis()) {
+		if (handleList.size > 0 && handleList.first().startTime + 10 >= TimeUtils.millis()) {
 			// If sound is played again, but from a closer distance, update the position
 			if (listenerPos != null && listenerPos.dst2(soundPos) < handleList.first().soundPos.dst2(listenerPos)) {
 				val soundHandle = handleList.first()
