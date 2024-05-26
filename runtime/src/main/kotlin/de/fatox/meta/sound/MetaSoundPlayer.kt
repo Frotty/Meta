@@ -127,6 +127,7 @@ class MetaSoundPlayer {
 			val soundHandle = iterator.next()
 			if (soundHandle.isDone || !soundHandle.isPlaying) {
 				stopSound(soundHandle)
+				iterator.remove()
 			} else {
 				soundHandle.calcVolAndPan(listenerPos)
 			}
@@ -151,7 +152,6 @@ class MetaSoundPlayer {
 		if (soundHandle != null) {
 			soundHandle.stop()
 			soundHandle.setDone()
-			dynamicHandles.removeValue(soundHandle, true)
 		}
 	}
 

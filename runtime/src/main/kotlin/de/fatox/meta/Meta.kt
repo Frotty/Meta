@@ -14,7 +14,6 @@ import de.fatox.meta.assets.load
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.input.KeyListener
-import de.fatox.meta.input.MetaInput
 import kotlin.reflect.KClass
 
 class ScreenConfig {

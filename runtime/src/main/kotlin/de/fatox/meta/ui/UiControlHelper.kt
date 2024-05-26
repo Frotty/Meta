@@ -41,6 +41,9 @@ class UiControlHelper {
 	var selectedActor: Actor = Actor()
 		set(value) {
 			field = value
+			if (!activated) {
+				return
+			}
 			metaUIRenderer.setFocusedActor(value)
 
 			var parent = value.parent

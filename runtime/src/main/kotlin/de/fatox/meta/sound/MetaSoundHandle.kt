@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.TimeUtils
+import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
@@ -17,7 +18,9 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 	private val metaData: MetaData by lazyInject()
 
 	private val audioVideoData: MetaAudioVideoData
-	private var handleId: Long = 0
+	private var handleId: Long = -1L
+
+	private var log = MetaLoggerFactory.logger {}
 
 	// For 2d positioning
 	var soundPos: Vector2 = Vector2.Zero.cpy()
@@ -56,11 +59,16 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 	}
 
 	fun calcVolAndPan(listenerPos: Vector2) {
-		definition.sound.setPan(handleId, calcPan(listenerPos), calcVolume(listenerPos, true))
+		if (handleId != -1L) {
+			definition.sound.setPan(handleId, calcPan(listenerPos), calcVolume(listenerPos, false))
+		}
 	}
 
 	fun stop() {
-		definition.sound.stop(handleId)
+		if (handleId != -1L) {
+			definition.sound.stop(handleId)
+			handleId = -1
+		}
 	}
 
 	fun debugRender() {
@@ -69,6 +77,9 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 	}
 
 	fun setHandleId(handleId: Long) {
+		if (handleId == -1L) {
+			log.error("HandleId is -1")
+		}
 		this.handleId = handleId
 	}
 
