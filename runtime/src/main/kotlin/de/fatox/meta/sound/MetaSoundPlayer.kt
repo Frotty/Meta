@@ -66,33 +66,33 @@ class MetaSoundPlayer {
 		// Play or loop sound
 		val soundHandle = MetaSoundHandle(soundDefinition)
 		soundHandle.soundPos = soundPos
-		if (listenerPos != null) {
-			val mappedVolume = soundHandle.calcVolume(listenerPos, false)
-			val mappedPan = soundHandle.calcPan(listenerPos)
+		Gdx.app.postRunnable {
+			if (listenerPos != null) {
+				val mappedVolume = soundHandle.calcVolume(listenerPos, false)
+				val mappedPan = soundHandle.calcPan(listenerPos)
 
-			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(mappedVolume, 1f, mappedPan)
-			else soundDefinition.sound.play(mappedVolume, 1f, mappedPan)
+				val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(mappedVolume, 1f, mappedPan)
+				else soundDefinition.sound.play(mappedVolume, 1f, mappedPan)
 
-			soundHandle.setHandleId(id)
-			dynamicHandles.add(soundHandle)
-		} else {
-			val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(volume, 1f, 0f)
-			else soundDefinition.sound.play(volume, 1f, 0f)
+				soundHandle.setHandleId(id)
+				dynamicHandles.add(soundHandle)
+			} else {
+				val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(volume, 1f, 0f)
+				else soundDefinition.sound.play(volume, 1f, 0f)
 
-			soundHandle.setHandleId(id)
+				soundHandle.setHandleId(id)
+			}
 		}
 		handleList.add(soundHandle)
 		return soundHandle
 	}
 
-	@Suppress("GDXKotlinUnsafeIterator")
 	private fun cleanupHandles(handleList: Array<MetaSoundHandle>) {
-		val iterator = handleList.iterator()
-		while (iterator.hasNext()) {
-			val next = iterator.next()
-			if (next.isDone || !next.isPlaying) {
-				stopSound(next)
-				iterator.remove()
+		for(i in handleList.size - 1 downTo 0) {
+			val soundHandle = handleList[i]
+			if (soundHandle.isDone || !soundHandle.isPlaying) {
+				stopSound(soundHandle)
+				handleList.removeIndex(i)
 			}
 		}
 	}
@@ -120,14 +120,12 @@ class MetaSoundPlayer {
 		return playSound(soundDefinitions.get(path), listenerPosition, soundPosition)
 	}
 
-	@Suppress("GDXKotlinUnsafeIterator")
 	fun updateDynamicSounds(listenerPos: Vector2) {
-		val iterator = dynamicHandles.iterator()
-		while (iterator.hasNext()) {
-			val soundHandle = iterator.next()
+		for(i in dynamicHandles.size - 1 downTo 0) {
+			val soundHandle = dynamicHandles[i]
 			if (soundHandle.isDone || !soundHandle.isPlaying) {
 				stopSound(soundHandle)
-				iterator.remove()
+				dynamicHandles.removeIndex(i)
 			} else {
 				soundHandle.calcVolAndPan(listenerPos)
 			}
