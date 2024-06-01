@@ -51,7 +51,9 @@ class MetaSoundPlayer {
 			if (listenerPos != null && listenerPos.dst2(soundPos) < handleList.first().soundPos.dst2(listenerPos)) {
 				val soundHandle = handleList.first()
 				soundHandle.soundPos = soundPos
-				soundHandle.calcVolAndPan(listenerPos)
+				Gdx.app.postRunnable {
+					soundHandle.calcVolAndPan(listenerPos)
+				}
 				return null
 			}
 		}
@@ -156,9 +158,11 @@ class MetaSoundPlayer {
 	@Suppress("GDXKotlinUnsafeIterator")
 	fun stopAllSounds() {
 		for (soundHandles in playingHandles.values()) {
-			for (soundHandle in soundHandles) {
+			for(i in soundHandles.size - 1 downTo 0) {
+				val soundHandle = soundHandles[i]
 				soundHandle.stop()
 				soundHandle.setDone()
+				soundHandles.removeIndex(i)
 			}
 			soundHandles.clear()
 		}
