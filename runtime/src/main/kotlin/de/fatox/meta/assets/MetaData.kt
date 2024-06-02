@@ -82,6 +82,7 @@ class MetaData {
 				""".trimIndent()
 			}
 
+			fileHandle.mkdirs();
 			fileHandle.writeBytes(newBytes, false)
 
 			// Update object in json cache, if it exists
@@ -148,6 +149,7 @@ class MetaData {
 				val cachedHandle = getCachedHandle(key, parent)
 				if (!cachedHandle.exists()) {
 					try {
+						cachedHandle.mkdirs()
 						cachedHandle.writeBytes(
 							json.toJson(ClassReflection.newInstance(type.java)).toByteArray(),
 							false
