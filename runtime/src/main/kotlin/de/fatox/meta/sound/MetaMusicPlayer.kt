@@ -1,5 +1,6 @@
 package de.fatox.meta.sound
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.utils.*
 import com.badlogic.gdx.utils.Array
@@ -55,24 +56,26 @@ class MetaMusicPlayer : Disposable {
 
 	private val task: Task = object : Task() {
 		override fun run() {
-			try {
-				updateMusic()
-			} catch (e: GdxRuntimeException) {
-				// TODO what to do to prevent restarting every time?
-				if (++restartCount > MAX_RESTART_TIMES) cancel()
+			Gdx.app.postRunnable {
+				try {
+					updateMusic()
+				} catch (e: GdxRuntimeException) {
+					// TODO what to do to prevent restarting every time?
+					if (++restartCount > MAX_RESTART_TIMES) cancel()
 
-				log.error { "Failed to update music $restartCount time(s)!" }
+					log.error { "Failed to update music $restartCount time(s)!" }
 
-				// Dispose and reload current music. The call to updateMusic is skipped, as it is called on a timer.
-				if (currentMusic !== UninitializedMusic) {
-					val currentKey = musicCache.findKey(currentMusic, true)
-					log.error { "Failed to play: $currentKey" }
-					val newMusic = musicCache.put(currentKey, assetProvider[currentKey])
-					allPool.removeValue(currentMusic, true)
-					allPool.add(newMusic)
-					activePool.clear()
-					currentMusic.dispose()
-					currentMusic = UninitializedMusic
+					// Dispose and reload current music. The call to updateMusic is skipped, as it is called on a timer.
+					if (currentMusic !== UninitializedMusic) {
+						val currentKey = musicCache.findKey(currentMusic, true)
+						log.error { "Failed to play: $currentKey" }
+						val newMusic = musicCache.put(currentKey, assetProvider[currentKey])
+						allPool.removeValue(currentMusic, true)
+						allPool.add(newMusic)
+						activePool.clear()
+						currentMusic.dispose()
+						currentMusic = UninitializedMusic
+					}
 				}
 			}
 		}
@@ -137,9 +140,9 @@ class MetaMusicPlayer : Disposable {
 		}
 	}
 
-	fun playMusic(musicPath: String) {
+	fun playMusic(musicPath: String, now: Boolean = false) {
 		val music = getMusic(musicPath)
-		if (currentMusic === UninitializedMusic || !currentMusic.isPlaying) {
+		if (currentMusic === UninitializedMusic || !currentMusic.isPlaying || now) {
 			startMusic(music)
 		} else {
 			nextMusic = music
