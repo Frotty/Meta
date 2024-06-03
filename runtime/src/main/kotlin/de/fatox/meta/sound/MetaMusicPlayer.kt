@@ -142,7 +142,10 @@ class MetaMusicPlayer : Disposable {
 
 	fun playMusic(musicPath: String, now: Boolean = false) {
 		val music = getMusic(musicPath)
-		if (currentMusic === UninitializedMusic || !currentMusic.isPlaying || now) {
+		if (now) {
+			currentMusic.stop()
+			startMusic(music)
+		} else if (currentMusic === UninitializedMusic || !currentMusic.isPlaying) {
 			startMusic(music)
 		} else {
 			nextMusic = music
