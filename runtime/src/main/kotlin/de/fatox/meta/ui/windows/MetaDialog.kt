@@ -45,6 +45,7 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 		// Set color invisible for fade in to work
 		centerWindow()
 		setColor(1f, 1f, 1f, 0f)
+		clearActions()
 		addAction(Actions.alpha(0.95f, 0.75f))
 		Gdx.input.isCursorCatched = false
 	}
