@@ -106,7 +106,7 @@ class UiControlHelper {
 				selectedActor = getNextY(up = true)
 		}
 		metaInput.addGlobalKeyListener(Input.Keys.ENTER) {
-			if (activated && !Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) && !Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
+			if (activated && selectedActor.stage != null && !Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) && !Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
 				val inputEvent = InputEvent().apply {
 					button = Input.Buttons.LEFT
 					stageX = selectedActor.x
