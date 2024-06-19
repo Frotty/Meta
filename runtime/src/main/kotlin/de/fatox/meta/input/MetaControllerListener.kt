@@ -55,7 +55,7 @@ object MetaControllerListener : ControllerListener {
 			metaInput?.keyDown(currentDownKey)
 			return true
 		} else if (currentDownKey == Input.Keys.DOWN && axisValue < deadzone) {
-			metaInput.keyUp(currentDownKey)
+			metaInput?.keyUp(currentDownKey)
 			currentDownKey = -1
 			return true
 		}
