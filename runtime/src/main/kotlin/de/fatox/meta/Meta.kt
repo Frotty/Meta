@@ -121,8 +121,8 @@ abstract class Meta(
 		}
 
 		@JvmStatic
-		fun changeScreen(newScreen: Screen) {
-			if (!canChangeScreen()) return
+		fun changeScreen(newScreen: Screen, force: Boolean = false) {
+			if (!canChangeScreen() && !force) return
 
 			instance.lastChange = TimeUtils.millis()
 			val oldScreen: Screen? = instance.getScreen()
