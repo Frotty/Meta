@@ -5,12 +5,14 @@ import com.badlogic.gdx.controllers.Controller
 import com.badlogic.gdx.controllers.ControllerListener
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
+import kotlin.math.absoluteValue
 
 private val log = MetaLoggerFactory.logger {}
 
-class MetaControllerListener(private val metaInput: MetaInput) : ControllerListener {
+object MetaControllerListener : ControllerListener {
+	var metaInput: MetaInput? = null
 	private var currentDownKey = -1
-	var deadzone = 0.395f
+	var deadzone = 0.39f
 
 	override fun connected(controller: Controller) {
 		log.debug { "Controller connected." }
@@ -36,22 +38,23 @@ class MetaControllerListener(private val metaInput: MetaInput) : ControllerListe
 	}
 
 	private fun checkVert(controller: Controller): Boolean {
-		if (currentDownKey != Input.Keys.UP && controller.getAxis(1) < -deadzone) {
-			metaInput.keyUp(currentDownKey)
+		val axisValue = controller.getAxis(1)
+		if (currentDownKey != Input.Keys.UP && axisValue < -deadzone) {
+			metaInput?.keyUp(currentDownKey)
 			currentDownKey = Input.Keys.UP
-			metaInput.keyDown(currentDownKey)
+			metaInput?.keyDown(currentDownKey)
 			return true
-		} else if (currentDownKey == Input.Keys.UP && controller.getAxis(1) > -deadzone) {
-			metaInput.keyUp(currentDownKey)
+		} else if (currentDownKey == Input.Keys.UP && axisValue > -deadzone) {
+			metaInput?.keyUp(currentDownKey)
 			currentDownKey = -1
 			return true
 		}
-		if (currentDownKey != Input.Keys.DOWN && controller.getAxis(1) > deadzone) {
-			metaInput.keyUp(currentDownKey)
+		if (currentDownKey != Input.Keys.DOWN && axisValue > deadzone) {
+			metaInput?.keyUp(currentDownKey)
 			currentDownKey = Input.Keys.DOWN
-			metaInput.keyDown(currentDownKey)
+			metaInput?.keyDown(currentDownKey)
 			return true
-		} else if (currentDownKey == Input.Keys.DOWN && controller.getAxis(1) < deadzone) {
+		} else if (currentDownKey == Input.Keys.DOWN && axisValue < deadzone) {
 			metaInput.keyUp(currentDownKey)
 			currentDownKey = -1
 			return true
@@ -60,23 +63,24 @@ class MetaControllerListener(private val metaInput: MetaInput) : ControllerListe
 	}
 
 	private fun checkHor(controller: Controller): Boolean {
-		if (currentDownKey != Input.Keys.LEFT && controller.getAxis(0) < -deadzone) {
-			metaInput.keyUp(currentDownKey)
+		val axisValue = controller.getAxis(0)
+		if (currentDownKey != Input.Keys.LEFT && axisValue < -deadzone) {
+			metaInput?.keyUp(currentDownKey)
 			currentDownKey = Input.Keys.LEFT
-			metaInput.keyDown(currentDownKey)
+			metaInput?.keyDown(currentDownKey)
 			return true
-		} else if (currentDownKey == Input.Keys.LEFT && controller.getAxis(0) > -deadzone) {
-			metaInput.keyUp(currentDownKey)
+		} else if (currentDownKey == Input.Keys.LEFT && axisValue > -deadzone) {
+			metaInput?.keyUp(currentDownKey)
 			currentDownKey = -1
 			return true
 		}
-		if (currentDownKey != Input.Keys.RIGHT && controller.getAxis(0) > deadzone) {
-			metaInput.keyUp(currentDownKey)
+		if (currentDownKey != Input.Keys.RIGHT && axisValue > deadzone) {
+			metaInput?.keyUp(currentDownKey)
 			currentDownKey = Input.Keys.RIGHT
-			metaInput.keyDown(currentDownKey)
+			metaInput?.keyDown(currentDownKey)
 			return true
-		} else if (currentDownKey == Input.Keys.RIGHT && controller.getAxis(0) < deadzone) {
-			metaInput.keyUp(currentDownKey)
+		} else if (currentDownKey == Input.Keys.RIGHT && axisValue < deadzone) {
+			metaInput?.keyUp(currentDownKey)
 			currentDownKey = -1
 			return true
 		}

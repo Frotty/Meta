@@ -30,7 +30,8 @@ class MetaInput : MetaInputProcessor {
 
 	init {
 		Gdx.input.inputProcessor = this
-		Controllers.addListener(MetaControllerListener(this))
+		MetaControllerListener.metaInput = this
+		Controllers.addListener(MetaControllerListener)
 	}
 
 	override fun changeScreen() {
