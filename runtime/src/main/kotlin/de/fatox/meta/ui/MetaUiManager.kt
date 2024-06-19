@@ -77,6 +77,11 @@ class MetaUiManager : UIManager {
 
 	override fun resize(width: Int, height: Int) {
 		uiRenderer.resize(width, height)
+		for(i in 0 until displayedWindows.size) {
+			if (displayedWindows[i] is MetaDialog) {
+				(displayedWindows[i] as MetaDialog).centerWindow()
+			}
+		}
 	}
 
 	override fun <T : Screen> changeScreen(screenClass: KClass<T>) {
