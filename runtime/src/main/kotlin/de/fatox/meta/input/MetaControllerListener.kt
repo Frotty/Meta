@@ -10,7 +10,7 @@ private val log = MetaLoggerFactory.logger {}
 
 class MetaControllerListener(private val metaInput: MetaInput) : ControllerListener {
 	private var currentDownKey = -1
-	private val deadzone = 0.395f
+	var deadzone = 0.395f
 
 	override fun connected(controller: Controller) {
 		log.debug { "Controller connected." }
