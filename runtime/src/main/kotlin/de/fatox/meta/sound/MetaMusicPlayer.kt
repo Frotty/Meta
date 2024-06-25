@@ -183,6 +183,11 @@ class MetaMusicPlayer : Disposable {
 		}
 	}
 
+	fun clearPools() {
+		allPool.clear()
+		activePool.clear()
+	}
+
 	fun isMusicEnabled(): Boolean {
 		return musicEnabled
 	}
