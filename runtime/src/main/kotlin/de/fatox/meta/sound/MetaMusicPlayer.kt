@@ -170,9 +170,11 @@ class MetaMusicPlayer : Disposable {
 		allPool.add(music)
 	}
 
-	fun nextFromPool() {
+	fun nextFromPool(random: Boolean = true) {
 		if (activePool.size == 0 && allPool.size > 0) {
 			activePool.addAll(allPool)
+		}
+		if (random) {
 			activePool.shuffle()
 		}
 		if (activePool.size <= 0) return
