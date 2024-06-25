@@ -88,6 +88,7 @@ class MetaMusicPlayer : Disposable {
 	private val activePool = Array<Music>()
 	private val musicCache = ObjectMap<String, Music>()
 	private val timer = Timer()
+	var random = false
 
 	fun start() {
 		// Start Timer to update music
@@ -170,7 +171,7 @@ class MetaMusicPlayer : Disposable {
 		allPool.add(music)
 	}
 
-	fun nextFromPool(random: Boolean = true) {
+	private fun nextFromPool() {
 		if (activePool.size == 0 && allPool.size > 0) {
 			activePool.addAll(allPool)
 		}
