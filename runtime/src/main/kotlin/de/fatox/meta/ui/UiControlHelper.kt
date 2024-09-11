@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.Timer
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.addGlobalKeyListener
 import de.fatox.meta.api.ui.UIRenderer
@@ -92,18 +93,54 @@ class UiControlHelper {
 		metaInput.addGlobalKeyListener(Input.Keys.RIGHT) {
 			if (activated && canMove)
 				selectedActor = getNextX(left = false)
+
+			Timer.schedule(object : Timer.Task() {
+				override fun run() {
+					if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+						if (activated && canMove)
+							selectedActor = getNextX(left = false)
+					}
+				}
+			}, 0.2f)
 		}
 		metaInput.addGlobalKeyListener(Input.Keys.LEFT) {
 			if (activated && canMove)
 				selectedActor = getNextX(left = true)
+
+			Timer.schedule(object : Timer.Task() {
+				override fun run() {
+					if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+						if (activated && canMove)
+							selectedActor = getNextX(left = false)
+					}
+				}
+			}, 0.2f)
 		}
 		metaInput.addGlobalKeyListener(Input.Keys.DOWN) {
 			if (activated && canMove)
 				selectedActor = getNextY(up = false)
+
+			Timer.schedule(object : Timer.Task() {
+				override fun run() {
+					if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+						if (activated && canMove)
+							selectedActor = getNextX(left = false)
+					}
+				}
+			}, 0.2f)
 		}
 		metaInput.addGlobalKeyListener(Input.Keys.UP) {
 			if (activated && canMove)
 				selectedActor = getNextY(up = true)
+
+			Timer.schedule(object : Timer.Task() {
+				override fun run() {
+					if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+						if (activated && canMove)
+							selectedActor = getNextX(left = false)
+					}
+				}
+			}, 0.2f)
 		}
 		metaInput.addGlobalKeyListener(Input.Keys.ENTER) {
 			if (activated && selectedActor.stage != null && !Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) && !Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
