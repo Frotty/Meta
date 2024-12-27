@@ -120,7 +120,7 @@ class MetaSoundPlayer {
 		if (!soundDefinitions.containsKey(path)) {
 			soundDefinitions.put(path, MetaSoundDefinition(path))
 		}
-		return playSound(soundDefinitions.get(path), listenerPosition, soundPosition)
+		return playSound(soundDefinitions.get(path), listenerPosition, soundPos = soundPosition)
 	}
 
 	fun updateDynamicSounds(listenerPos: Vector2) {
