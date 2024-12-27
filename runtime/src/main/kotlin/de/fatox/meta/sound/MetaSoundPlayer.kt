@@ -33,6 +33,7 @@ class MetaSoundPlayer {
 	fun playSound(
 		soundDefinition: MetaSoundDefinition?,
 		listenerPos: Vector2? = null,
+		minimumPause: Float = 200f,
 		soundPos: Vector2 = Vector2.Zero
 	): MetaSoundHandle? {
 		if (soundDefinition == null || soundsSilenced) return null
@@ -57,7 +58,7 @@ class MetaSoundPlayer {
 				return null
 			}
 		}
-		if (handleList.size >= soundDefinition.maxInstances || handleList.size > 0 && handleList.first().startTime + 200 >= TimeUtils.millis()) {
+		if (handleList.size >= soundDefinition.maxInstances || handleList.size > 0 && handleList.first().startTime + minimumPause >= TimeUtils.millis()) {
 			return null
 		}
 		if (soundDefinition.sound === UninitializedSound) {
