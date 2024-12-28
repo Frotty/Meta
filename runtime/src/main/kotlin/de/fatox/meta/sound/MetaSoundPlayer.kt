@@ -47,9 +47,9 @@ class MetaSoundPlayer {
 		}
 		val handleList = playingHandles.getOrPut(soundDefinition) { Array(soundDefinition.maxInstances) }
 		cleanupHandles(handleList)
-		if (handleList.size > 0 && handleList.first().startTime + 10 >= TimeUtils.millis()) {
+		if (listenerPos != null && handleList.size > 0 && TimeUtils.timeSinceMillis(handleList.first().startTime) < 10f) {
 			// If sound is played again, but from a closer distance, update the position
-			if (listenerPos != null && listenerPos.dst2(soundPos) < handleList.first().soundPos.dst2(listenerPos)) {
+			if (listenerPos.dst2(soundPos) < handleList.first().soundPos.dst2(listenerPos)) {
 				val soundHandle = handleList.first()
 				soundHandle.soundPos = soundPos
 				Gdx.app.postRunnable {
@@ -58,7 +58,7 @@ class MetaSoundPlayer {
 				return null
 			}
 		}
-		if (handleList.size >= soundDefinition.maxInstances || handleList.size > 0 && handleList.first().startTime + minimumPause >= TimeUtils.millis()) {
+		if (handleList.size >= soundDefinition.maxInstances || handleList.size > 0 && TimeUtils.timeSinceMillis(handleList.first().startTime) < minimumPause ) {
 			return null
 		}
 		if (soundDefinition.sound === UninitializedSound) {
