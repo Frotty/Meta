@@ -11,15 +11,24 @@ import de.fatox.meta.ui.UiControlHelper
 open class MetaSelectBox<T> : VisSelectBox<T>() {
 
 	private val uiControlHelper: UiControlHelper = inject()
+	private var wasHelperActive = false
 
 	override fun showScrollPane() {
 		super.showScrollPane()
-		uiControlHelper.activated = false
+
+		if (uiControlHelper.activated) {
+			wasHelperActive = true
+			uiControlHelper.activated = false
+		}
 	}
 
 	override fun onHide(scrollPane: Actor?) {
 		super.onHide(scrollPane)
-		uiControlHelper.activated = true
+		
+		if (wasHelperActive) {
+			uiControlHelper.activated = true
+			wasHelperActive = false
+		}
 	}
 
 }
