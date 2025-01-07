@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Timer
@@ -26,7 +27,7 @@ class UiControlHelper {
 		set(value) {
 			field = value
 			if (value) {
-				selectedActor?.let {
+				selectedActor.let {
 					if (it.isVisible) {
 						metaUIRenderer.setFocusedActor(selectedActor)
 					}
@@ -162,7 +163,7 @@ class UiControlHelper {
 	private fun targetsInGroup(t: Group) {
 		for (actor in t.children) {
 			if (actor.isVisible) {
-				if (actor != selectedActor && actor is Button && !targets.contains(actor, true)) {
+				if (actor != selectedActor && (actor is Button || actor is SelectBox<*>) && !targets.contains(actor, true)) {
 					targets.add(actor)
 				} else if (actor is Group) {
 					targetsInGroup(actor)
