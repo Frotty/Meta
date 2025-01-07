@@ -293,7 +293,7 @@ class UiControlHelper {
 		for (cand in filtered) {
 			val endPoint = if (left) cand.rightEdgeCenterOnStage() else cand.leftEdgeCenterOnStage()
 			val dx = endPoint.x - startPoint.x
-			val dy = endPoint.y - startPoint.y
+			val dy = (endPoint.y - startPoint.y) * 2f // Y-axis weighted more to prefer straight targets
 			val dist = sqrt(dx * dx + dy * dy)
 
 			if (dist < bestDist) {
@@ -337,7 +337,7 @@ class UiControlHelper {
 
 		for (cand in filtered) {
 			val endPoint = if (up) cand.bottomEdgeCenterOnStage() else cand.topEdgeCenterOnStage()
-			val dx = endPoint.x - startPoint.x
+			val dx = (endPoint.x - startPoint.x) * 2f // X-axis weighted more to prefer straight targets
 			val dy = endPoint.y - startPoint.y
 			val dist = sqrt(dx * dx + dy * dy)
 
