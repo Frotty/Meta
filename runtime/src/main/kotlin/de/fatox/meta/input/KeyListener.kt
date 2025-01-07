@@ -5,11 +5,11 @@ import com.badlogic.gdx.utils.Timer.Task
 
 abstract class KeyListener {
 	var requiredLengthMillis: Long = 0
-	private var task: Task? = null
+	internal var task: Task? = null
 
 	abstract fun onEvent()
 
-	fun onDown() {
+	open fun onDown() {
 		if (requiredLengthMillis > 0) {
 			task = object : Task() {
 				override fun run() {
@@ -21,7 +21,7 @@ abstract class KeyListener {
 		}
 	}
 
-	fun onUp() {
+	open fun onUp() {
 		task?.cancel()
 		if (requiredLengthMillis <= 0) {
 			onEvent()
