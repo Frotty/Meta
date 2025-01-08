@@ -119,6 +119,7 @@ class MetaUIRenderer : UIRenderer {
 
 	override fun resize(width: Int, height: Int) {
 		stage.viewport.update(width, height, true)
+		toastManager.resize()
 	}
 
 	override fun getCamera(): Camera {
