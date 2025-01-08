@@ -18,6 +18,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.kotcrab.vis.ui.VisUI
+import com.kotcrab.vis.ui.util.ToastManager
 import com.kotcrab.vis.ui.widget.file.FileChooser
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
@@ -48,6 +49,8 @@ class MetaUIRenderer : UIRenderer {
 
 	private val highlightColor = Color.valueOf("256bdb")
 	private val highlightPos = Vector2(0f, 0f)
+
+	private val toastManager = ToastManager(stage)
 
 	init {
 		log.debug { "Injected MetaUi." }
@@ -120,6 +123,10 @@ class MetaUIRenderer : UIRenderer {
 
 	override fun getCamera(): Camera {
 		return stage.camera
+	}
+
+	override fun getToastManager(): ToastManager {
+		return toastManager
 	}
 
 	override fun setFocusedActor(actor: Actor?) {
