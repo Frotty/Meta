@@ -28,7 +28,7 @@ import kotlin.math.roundToInt
  */
 class MetaLabel @JvmOverloads constructor(
 	text: CharSequence,
-	size: Int,
+	size: Int = 10,
 	color: Color? = Color.WHITE,
 	type: FontType = FontType.REGULAR
 ) : Widget() {
@@ -263,7 +263,7 @@ class MetaLabel @JvmOverloads constructor(
 
 	fun setMaxWidth(maxWidth: Int) {
 		while (glyphLayout.width > maxWidth) {
-			size *= 0.95f
+			size = size.times(0.95f)
 			updateFont()
 		}
 	}
@@ -306,7 +306,7 @@ class MetaLabel @JvmOverloads constructor(
 	}
 
 	init {
-		font = metaFontProvider.getFont(size, type)
+		font = metaFontProvider.getFont(size!!, type)
 		setAlignment(Align.center)
 		fontColor = color
 		setText(text)
@@ -319,7 +319,7 @@ class MetaLabel @JvmOverloads constructor(
 @OptIn(ExperimentalContracts::class)
 inline fun MetaLabel(
 	text: CharSequence,
-	size: Int,
+	size: Int = 10,
 	color: Color? = Color.WHITE,
 	type: FontType = FontType.REGULAR,
 	init: MetaLabel.() -> Unit
