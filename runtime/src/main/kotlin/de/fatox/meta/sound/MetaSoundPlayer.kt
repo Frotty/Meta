@@ -16,6 +16,7 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import kotlin.math.max
 
 class MetaSoundPlayer {
 	private val soundDefinitions = ObjectMap<String, MetaSoundDefinition>()
@@ -42,14 +43,18 @@ class MetaSoundPlayer {
 		if (volume <= 0) {
 			return null
 		}
+		println("Sound request distance: ${listenerPos?.dst(soundPos)}")
 		if (listenerPos != null && !isInAudibleRange(soundDefinition, listenerPos, soundPos)) {
+			println("sound not in audible range")
 			return null
 		}
 		val handleList = playingHandles.getOrPut(soundDefinition) { Array(soundDefinition.maxInstances) }
 		cleanupHandles(handleList)
 		if (listenerPos != null && handleList.size > 0 && TimeUtils.timeSinceMillis(handleList.first().startTime) < 10f) {
+			println("Positional sound played again within 10 ms")
 			// If sound is played again, but from a closer distance, update the position
 			if (listenerPos.dst2(soundPos) < handleList.first().soundPos.dst2(listenerPos)) {
+				println("moved sound closer")
 				val soundHandle = handleList.first()
 				soundHandle.soundPos = soundPos
 				Gdx.app.postRunnable {
@@ -58,8 +63,29 @@ class MetaSoundPlayer {
 				return null
 			}
 		}
-		if (handleList.size >= soundDefinition.maxInstances || handleList.size > 0 && TimeUtils.timeSinceMillis(handleList.first().startTime) < minimumPause ) {
+		if (handleList.size > 0 && TimeUtils.timeSinceMillis(handleList.first().startTime) < minimumPause) {
+			println("skipped sound because it was already played very recently")
 			return null
+		}
+		if (handleList.size >= soundDefinition.maxInstances) {
+			// Option 1: find an oldest instance
+			var furthest: MetaSoundHandle? = null
+			// replace loop above with with for i
+			for (i in 0 until handleList.size) {
+				val handle = handleList[i]
+				if (furthest == null || handle.soundPos.dst2(listenerPos) < furthest.soundPos.dst2(listenerPos)) {
+					furthest = handle
+				}
+			}
+
+			if (furthest != null) {
+				stopSound(furthest)  // stop & setDone
+				handleList.removeValue(furthest, true)
+				println("removed furthest instance")
+			} else {
+				// If we can't remove anything, we skip
+				return null
+			}
 		}
 		if (soundDefinition.sound === UninitializedSound) {
 			// Load sound if it is played for the first time
@@ -71,7 +97,7 @@ class MetaSoundPlayer {
 		soundHandle.soundPos = soundPos
 		Gdx.app.postRunnable {
 			if (listenerPos != null) {
-				val mappedVolume = soundHandle.calcVolume(listenerPos, false)
+				val mappedVolume = max(0.01f, soundHandle.calcVolume(listenerPos, false))
 				val mappedPan = soundHandle.calcPan(listenerPos)
 
 				val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(mappedVolume, 1f, mappedPan)
@@ -79,6 +105,7 @@ class MetaSoundPlayer {
 
 				soundHandle.setHandleId(id)
 				dynamicHandles.add(soundHandle)
+				println("Played sound with volume $mappedVolume and pan $mappedPan id $id")
 			} else {
 				val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(volume, 1f, 0f)
 				else soundDefinition.sound.play(volume, 1f, 0f)
@@ -104,7 +131,7 @@ class MetaSoundPlayer {
 		sound: MetaSoundDefinition,
 		listenerPosition: Vector2,
 		soundPosition: Vector2
-	): Boolean = listenerPosition.dst2(soundPosition) <= sound.soundRange2 || soundInScreen(soundPosition)
+	): Boolean = listenerPosition.dst2(soundPosition) <= sound.audibleRange2 || soundInScreen(soundPosition)
 
 	private fun soundInScreen(soundPosition: Vector2): Boolean {
 		helper.set(soundPosition.x, soundPosition.y, 0f)

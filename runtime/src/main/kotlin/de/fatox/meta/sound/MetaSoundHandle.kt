@@ -12,6 +12,7 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import kotlin.math.max
 
 class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 	private val shapeRenderer: ShapeRenderer by lazyInject()
@@ -42,20 +43,19 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 	val isPlaying: Boolean = true
 
 	fun calcPan(listenerPos: Vector2): Float {
-		val audibleRange = Gdx.graphics.height * 0.4f
+		val audibleRange = max(definition.audibleRange, Gdx.graphics.width * 0.5f)
 		val xPan = soundPos.x - listenerPos.x
-		return MathUtils.clamp(xPan / audibleRange, -1f, 1f) * 0.90f
+		return MathUtils.clamp(xPan / audibleRange, -0.9f, 0.9f)
 	}
 
 	fun calcVolume(listenerPos: Vector2, terminate: Boolean): Float {
-		val audibleRange = Gdx.graphics.height * 0.4f
-		val audibleRangeSquared = audibleRange * audibleRange
+		val audibleRange2 = max(definition.audibleRange2, Gdx.graphics.width * 1f * Gdx.graphics.width)
 		val distSquared = listenerPos.dst2(soundPos)
 		val volumeMod = audioVideoData.masterVolume * audioVideoData.soundVolume
-		if (terminate && distSquared > audibleRangeSquared) {
+		if (terminate && distSquared > audibleRange2) {
 			setDone()
 		}
-		return volumeMod * definition.volume * MathUtils.clamp(1 - distSquared / audibleRangeSquared, 0f, 1f)
+		return volumeMod * definition.volume * MathUtils.clamp(1 - distSquared / audibleRange2, 0f, 1f)
 	}
 
 	fun calcVolAndPan(listenerPos: Vector2) {

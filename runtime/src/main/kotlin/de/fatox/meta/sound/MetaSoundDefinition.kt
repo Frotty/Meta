@@ -50,7 +50,9 @@ class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
 			this.duration = (Meta.instance.soundHandler.duration(value) * 1000L).toLong()
 		}
 	var isLooping: Boolean = false
-	var soundRange2: Float = DEFAULT_SOUND_RANGE2
+	var audibleRange: Float = DEFAULT_SOUND_RANGE
+		private set
+	var audibleRange2: Float = DEFAULT_SOUND_RANGE2
 		private set
 	var volume: Float = DEFAULT_SOUND_VOLUME
 	var duration: Long = DEFAULT_SOUND_DURATION
@@ -71,12 +73,14 @@ class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
 	}
 
 	fun setSoundRange(soundRange: Float) {
-		soundRange2 = soundRange * soundRange
+		audibleRange = soundRange
+		audibleRange2 = soundRange * soundRange
 	}
 
 	companion object {
 		const val DEFAULT_SOUND_DURATION: Long = 2000
 		const val DEFAULT_SOUND_VOLUME: Float = 0.4f
-		const val DEFAULT_SOUND_RANGE2: Float = 600f * 600f
+		const val DEFAULT_SOUND_RANGE: Float = 600f
+		const val DEFAULT_SOUND_RANGE2: Float = DEFAULT_SOUND_RANGE * DEFAULT_SOUND_RANGE
 	}
 }
