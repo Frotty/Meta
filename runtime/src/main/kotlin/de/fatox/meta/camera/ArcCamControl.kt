@@ -1,5 +1,6 @@
 package de.fatox.meta.camera
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Input.Buttons
 import com.badlogic.gdx.InputProcessor
@@ -9,6 +10,7 @@ import com.badlogic.gdx.math.Vector3
 import de.fatox.meta.api.entity.EntityManager
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.sound.dlerp
 
 /**
  * Better camera control because I dislike LibGDX's
@@ -54,13 +56,13 @@ class ArcCamControl : InputProcessor {
 
 	fun setDistance(distance: Float) {
 		this.distance = distance
-		update()
+		update(Gdx.graphics.deltaTime)
 	}
 
 	private var startX = 0
 	private var startY = 0
-	fun update() {
-		target.lerp(temp, 0.5f)
+	fun update(delta: Float) {
+		target.dlerp(temp, 0.5f, delta)
 		camera.position.x = ppX(target.x, distance, rotationAngle, angleOfAttack)
 		camera.position.y = ppY(0f, distance, angleOfAttack)
 		camera.position.z = ppZ(target.z, distance, rotationAngle, angleOfAttack)
@@ -84,7 +86,7 @@ class ArcCamControl : InputProcessor {
 			angleOfAttack = 56f
 			distance = 10f
 		}
-		update()
+		update(Gdx.graphics.deltaTime)
 		return false
 	}
 
@@ -94,7 +96,7 @@ class ArcCamControl : InputProcessor {
 			startY = screenY
 			moveModeOn = false
 		}
-		update()
+		update(Gdx.graphics.deltaTime)
 		return false
 	}
 
@@ -127,7 +129,7 @@ class ArcCamControl : InputProcessor {
 					cos(rotationAngle) * deltaY + sin(rotationAngle) * deltaX
 				)
 			}
-			update()
+			update(Gdx.graphics.deltaTime)
 		}
 		return false
 	}
@@ -142,7 +144,7 @@ class ArcCamControl : InputProcessor {
 
 	fun zoom(amount: Float): Boolean {
 		distance += amount
-		update()
+		update(Gdx.graphics.deltaTime)
 		return true
 	}
 
@@ -202,6 +204,6 @@ class ArcCamControl : InputProcessor {
 	}
 
 	init {
-		update()
+		update(Gdx.graphics.deltaTime)
 	}
 }

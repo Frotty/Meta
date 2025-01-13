@@ -20,6 +20,10 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 
 	private val audioVideoData: MetaAudioVideoData
 	private var handleId: Long = -1L
+	private var volumeTarget = 0f
+	private var volumeCurrent = 0f
+	private var panTarget = 0f
+	private var panCurrent = 0f
 
 	private var log = MetaLoggerFactory.logger {}
 
@@ -58,9 +62,20 @@ class MetaSoundHandle(private val definition: MetaSoundDefinition) {
 		return volumeMod * definition.volume * MathUtils.clamp(1 - distSquared / audibleRange2, 0f, 1f)
 	}
 
-	fun calcVolAndPan(listenerPos: Vector2) {
+	fun calcVolAndPan(listenerPos: Vector2, delta: Float) {
 		if (handleId != -1L) {
-			definition.sound.setPan(handleId, calcPan(listenerPos), calcVolume(listenerPos, false))
+			if (delta == -1f) {
+				volumeCurrent = calcVolume(listenerPos, false)
+				volumeTarget = volumeCurrent
+				panCurrent = calcPan(listenerPos)
+				panTarget = panCurrent
+			} else {
+				volumeTarget = calcVolume(listenerPos, false)
+				volumeCurrent = volumeCurrent.dlerp(volumeTarget, 0.5f, delta)
+				panTarget = calcPan(listenerPos)
+				panCurrent = panCurrent.dlerp(panTarget, 0.5f, delta)
+			}
+			definition.sound.setPan(handleId, panCurrent, volumeCurrent)
 		}
 	}
 

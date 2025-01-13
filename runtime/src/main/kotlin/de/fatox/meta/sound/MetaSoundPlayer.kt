@@ -57,9 +57,6 @@ class MetaSoundPlayer {
 				println("moved sound closer")
 				val soundHandle = handleList.first()
 				soundHandle.soundPos = soundPos
-				Gdx.app.postRunnable {
-					soundHandle.calcVolAndPan(listenerPos)
-				}
 				return null
 			}
 		}
@@ -150,14 +147,14 @@ class MetaSoundPlayer {
 		return playSound(soundDefinitions.get(path), listenerPosition, soundPos = soundPosition)
 	}
 
-	fun updateDynamicSounds(listenerPos: Vector2) {
+	fun updateDynamicSounds(listenerPos: Vector2, delta: Float) {
 		for(i in dynamicHandles.size - 1 downTo 0) {
 			val soundHandle = dynamicHandles[i]
 			if (soundHandle.isDone || !soundHandle.isPlaying) {
 				stopSound(soundHandle)
 				dynamicHandles.removeIndex(i)
 			} else {
-				soundHandle.calcVolAndPan(listenerPos)
+				soundHandle.calcVolAndPan(listenerPos, delta)
 			}
 		}
 	}
