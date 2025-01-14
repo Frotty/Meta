@@ -18,6 +18,9 @@ import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.max
 
+/**
+ * Improved MetaSoundPlayer with fade-out support on sound stops.
+ */
 class MetaSoundPlayer {
 	private val soundDefinitions = ObjectMap<String, MetaSoundDefinition>()
 	private val playingHandles = ObjectMap<MetaSoundDefinition, Array<MetaSoundHandle>>()
@@ -31,6 +34,10 @@ class MetaSoundPlayer {
 
 	var soundsSilenced = false
 
+	/**
+	 * Plays a sound, optionally positional (with [listenerPos] and [soundPos]).
+	 * [minimumPause] is in milliseconds.
+	 */
 	fun playSound(
 		soundDefinition: MetaSoundDefinition?,
 		listenerPos: Vector2? = null,
@@ -38,75 +45,80 @@ class MetaSoundPlayer {
 		soundPos: Vector2 = Vector2.Zero
 	): MetaSoundHandle? {
 		if (soundDefinition == null || soundsSilenced) return null
+
 		val audioVideoData = metaData[audioVideoDataKey]
 		val volume = audioVideoData.masterVolume * audioVideoData.soundVolume
-		if (volume <= 0) {
-			return null
-		}
-		println("Sound request distance: ${listenerPos?.dst(soundPos)}")
+		if (volume <= 0f) return null
+
+		// If out of audible range, skip.
 		if (listenerPos != null && !isInAudibleRange(soundDefinition, listenerPos, soundPos)) {
-			println("sound not in audible range")
 			return null
 		}
+
 		val handleList = playingHandles.getOrPut(soundDefinition) { Array(soundDefinition.maxInstances) }
 		cleanupHandles(handleList)
-		if (listenerPos != null && handleList.size > 0 && TimeUtils.timeSinceMillis(handleList.first().startTime) < 10f) {
-			println("Positional sound played again within 10 ms")
-			// If sound is played again, but from a closer distance, update the position
-			if (listenerPos.dst2(soundPos) < handleList.first().soundPos.dst2(listenerPos)) {
-				println("moved sound closer")
-				val soundHandle = handleList.first()
-				soundHandle.soundPos = soundPos
+
+		// Ensure we don't spam the same sound within minimumPause time
+		// (this is a simple approach; you can refine logic as needed).
+		if (handleList.size > 0) {
+			val lastPlayTime = handleList.first().startTime
+			if (TimeUtils.timeSinceMillis(lastPlayTime) < minimumPause) {
 				return null
 			}
 		}
-		if (handleList.size > 0 && TimeUtils.timeSinceMillis(handleList.first().startTime) < minimumPause) {
-			println("skipped sound because it was already played very recently")
-			return null
-		}
+
+		// If maximum concurrent instances is reached, fade out the furthest one.
 		if (handleList.size >= soundDefinition.maxInstances) {
-			// Option 1: find an oldest instance
 			var furthest: MetaSoundHandle? = null
-			// replace loop above with with for i
-			for (i in 0 until handleList.size) {
-				val handle = handleList[i]
-				if (furthest == null || handle.soundPos.dst2(listenerPos) > furthest.soundPos.dst2(listenerPos)) {
-					furthest = handle
+			listenerPos?.let { lp ->
+				for (i in 0 until handleList.size) {
+					val handle = handleList[i]
+					if (furthest == null ||
+						handle.soundPos.dst2(lp) > furthest!!.soundPos.dst2(lp)
+					) {
+						furthest = handle
+					}
 				}
 			}
-
 			if (furthest != null) {
-				stopSound(furthest)  // stop & setDone
+				// Fade out the furthest instance to free a slot.
+				stopSound(furthest, fadeOut = true)
 				handleList.removeValue(furthest, true)
-				println("removed furthest instance")
 			} else {
-				// If we can't remove anything, we skip
 				return null
 			}
 		}
+
+		// Load sound if uninitialized.
 		if (soundDefinition.sound === UninitializedSound) {
-			// Load sound if it is played for the first time
-			soundDefinition.sound =
-				Gdx.audio.newSound(metaAssetProvider.getResource(soundDefinition.soundName, FileHandle::class.java))
+			soundDefinition.sound = Gdx.audio.newSound(
+				metaAssetProvider.getResource(
+					soundDefinition.soundName,
+					FileHandle::class.java
+				)
+			)
 		}
-		// Play or loop sound
+
+		// Create and populate handle.
 		val soundHandle = MetaSoundHandle(soundDefinition)
 		soundHandle.soundPos = soundPos
+
 		Gdx.app.postRunnable {
+			// If positional, compute initial volume/pan. Otherwise play at global volume.
 			if (listenerPos != null) {
-				val mappedVolume = max(0.01f, soundHandle.calcVolume(listenerPos, false))
+				val mappedVolume = max(0.01f, soundHandle.calcVolume(listenerPos, terminate = false))
 				val mappedPan = soundHandle.calcPan(listenerPos)
-
-				val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(mappedVolume, 1f, mappedPan)
-				else soundDefinition.sound.play(mappedVolume, 1f, mappedPan)
-
+				val id = if (soundDefinition.isLooping)
+					soundDefinition.sound.loop(mappedVolume, 1f, mappedPan)
+				else
+					soundDefinition.sound.play(mappedVolume, 1f, mappedPan)
 				soundHandle.setHandleId(id)
 				dynamicHandles.add(soundHandle)
-				println("Played sound with volume $mappedVolume and pan $mappedPan id $id")
 			} else {
-				val id = if (soundDefinition.isLooping) soundDefinition.sound.loop(volume, 1f, 0f)
-				else soundDefinition.sound.play(volume, 1f, 0f)
-
+				val id = if (soundDefinition.isLooping)
+					soundDefinition.sound.loop(volume, 1f, 0f)
+				else
+					soundDefinition.sound.play(volume, 1f, 0f)
 				soundHandle.setHandleId(id)
 			}
 		}
@@ -114,11 +126,14 @@ class MetaSoundPlayer {
 		return soundHandle
 	}
 
+	/**
+	 * Removes finished or invalid handles from a handle list.
+	 */
 	private fun cleanupHandles(handleList: Array<MetaSoundHandle>) {
-		for(i in handleList.size - 1 downTo 0) {
+		for (i in handleList.size - 1 downTo 0) {
 			val soundHandle = handleList[i]
-			if (soundHandle.isDone || !soundHandle.isPlaying) {
-				stopSound(soundHandle)
+			if (soundHandle.isDone) {
+				// remove if finished
 				handleList.removeIndex(i)
 			}
 		}
@@ -128,14 +143,21 @@ class MetaSoundPlayer {
 		sound: MetaSoundDefinition,
 		listenerPosition: Vector2,
 		soundPosition: Vector2
-	): Boolean = listenerPosition.dst2(soundPosition) <= sound.audibleRange2 || soundInScreen(soundPosition)
+	): Boolean {
+		return listenerPosition.dst2(soundPosition) <= sound.audibleRange2
+			|| soundInScreen(soundPosition)
+	}
 
 	private fun soundInScreen(soundPosition: Vector2): Boolean {
 		helper.set(soundPosition.x, soundPosition.y, 0f)
 		val project = uiRenderer.getCamera().project(helper)
-		return project.x > 0 && project.x < Gdx.graphics.width && project.y > 0 && project.y < Gdx.graphics.height
+		return project.x > 0 && project.x < Gdx.graphics.width
+			&& project.y > 0 && project.y < Gdx.graphics.height
 	}
 
+	/**
+	 * Convenience method to play a sound by file path.
+	 */
 	fun playSound(
 		path: String,
 		listenerPosition: Vector2? = null,
@@ -147,20 +169,26 @@ class MetaSoundPlayer {
 		return playSound(soundDefinitions.get(path), listenerPosition, soundPos = soundPosition)
 	}
 
+	/**
+	 * Update dynamic (positional) sounds each frame.
+	 */
 	fun updateDynamicSounds(listenerPos: Vector2, delta: Float) {
-		for(i in dynamicHandles.size - 1 downTo 0) {
+		for (i in dynamicHandles.size - 1 downTo 0) {
 			val soundHandle = dynamicHandles[i]
-			if (soundHandle.isDone || !soundHandle.isPlaying) {
-				stopSound(soundHandle)
+			if (soundHandle.isDone) {
 				dynamicHandles.removeIndex(i)
 			} else {
 				soundHandle.calcVolAndPan(listenerPos, delta)
+				// If handle just finished fade-out during update, remove it.
+				if (soundHandle.isDone) {
+					dynamicHandles.removeIndex(i)
+				}
 			}
 		}
 	}
 
 	/**
-	 * Debug-renders all dynamic sound instances
+	 * Debug-renders all dynamic sound instances.
 	 */
 	@Suppress("GDXKotlinUnsafeIterator")
 	fun debugRender() {
@@ -173,25 +201,45 @@ class MetaSoundPlayer {
 		shapeRenderer.end()
 	}
 
-	fun stopSound(soundHandle: MetaSoundHandle?) {
-		if (soundHandle != null) {
-			soundHandle.stop()
-			soundHandle.setDone()
+	/**
+	 * Stop a sound handle. Optionally allow it to fade out instead of stopping immediately.
+	 */
+	fun stopSound(soundHandle: MetaSoundHandle?, fadeOut: Boolean = true) {
+		if (soundHandle != null && !soundHandle.isDone) {
+			if (fadeOut) {
+				// Start fading out, not done yet.
+				soundHandle.beginFadeOut()
+			} else {
+				// Immediately stop
+				soundHandle.stopImmediately()
+				soundHandle.setDone()
+			}
 		}
 	}
 
+	/**
+	 * Stops all currently active sounds, optionally fading them out.
+	 */
 	@Suppress("GDXKotlinUnsafeIterator")
-	fun stopAllSounds() {
+	fun stopAllSounds(fadeOut: Boolean = true) {
 		for (soundHandles in playingHandles.values()) {
-			for(i in soundHandles.size - 1 downTo 0) {
+			for (i in soundHandles.size - 1 downTo 0) {
 				val soundHandle = soundHandles[i]
-				soundHandle.stop()
-				soundHandle.setDone()
-				soundHandles.removeIndex(i)
+				stopSound(soundHandle, fadeOut)
+				// We leave them in the list if they're fading;
+				// or remove if we did immediate stops.
+				if (!fadeOut) {
+					soundHandles.removeIndex(i)
+				}
 			}
-			soundHandles.clear()
+			// If using fade out, we only clear the list if no fade out is happening.
+			if (!fadeOut) {
+				soundHandles.clear()
+			}
 		}
-		dynamicHandles.clear()
+		if (!fadeOut) {
+			dynamicHandles.clear()
+		}
 	}
 
 	companion object {
