@@ -70,7 +70,7 @@ class MetaSoundPlayer {
 			// replace loop above with with for i
 			for (i in 0 until handleList.size) {
 				val handle = handleList[i]
-				if (furthest == null || handle.soundPos.dst2(listenerPos) < furthest.soundPos.dst2(listenerPos)) {
+				if (furthest == null || handle.soundPos.dst2(listenerPos) > furthest.soundPos.dst2(listenerPos)) {
 					furthest = handle
 				}
 			}
