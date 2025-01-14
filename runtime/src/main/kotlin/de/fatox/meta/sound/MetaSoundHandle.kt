@@ -97,7 +97,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 	fun calcVolume(listenerPos: Vector2, terminate: Boolean): Float {
 		val audibleRange2 = max(
 			definition.audibleRange2,
-			Gdx.graphics.width * 1f * Gdx.graphics.width
+			(Gdx.graphics.width * 0.5f) * (Gdx.graphics.width * 0.5f)
 		)
 		val distSquared = listenerPos.dst2(soundPos)
 		val globalVolume = audioVideoData.masterVolume * audioVideoData.soundVolume
