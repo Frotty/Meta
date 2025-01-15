@@ -106,7 +106,7 @@ class MetaSoundPlayer {
 		Gdx.app.postRunnable {
 			// If positional, compute initial volume/pan. Otherwise play at global volume.
 			if (listenerPos != null) {
-				val mappedVolume = max(0.01f, soundHandle.calcVolume(listenerPos, terminate = false))
+				val mappedVolume = max(0.001f, soundHandle.calcVolume(listenerPos))
 				val mappedPan = soundHandle.calcPan(listenerPos)
 				val id = if (soundDefinition.isLooping)
 					soundDefinition.sound.loop(mappedVolume, 1f, mappedPan)
@@ -221,25 +221,17 @@ class MetaSoundPlayer {
 	 * Stops all currently active sounds, optionally fading them out.
 	 */
 	@Suppress("GDXKotlinUnsafeIterator")
-	fun stopAllSounds(fadeOut: Boolean = true) {
+	fun stopAllSounds() {
 		for (soundHandles in playingHandles.values()) {
 			for (i in soundHandles.size - 1 downTo 0) {
 				val soundHandle = soundHandles[i]
-				stopSound(soundHandle, fadeOut)
-				// We leave them in the list if they're fading;
-				// or remove if we did immediate stops.
-				if (!fadeOut) {
-					soundHandles.removeIndex(i)
-				}
+				stopSound(soundHandle, false)
+				soundHandles.removeIndex(i)
 			}
 			// If using fade out, we only clear the list if no fade out is happening.
-			if (!fadeOut) {
-				soundHandles.clear()
-			}
+			soundHandles.clear()
 		}
-		if (!fadeOut) {
-			dynamicHandles.clear()
-		}
+		dynamicHandles.clear()
 	}
 
 	companion object {

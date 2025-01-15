@@ -13,7 +13,6 @@ import de.fatox.meta.assets.get
 import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.max
-import kotlin.math.pow
 
 /**
  * Improved MetaSoundHandle supporting fade-out.
@@ -94,7 +93,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 	 * Calculates the volume based on distance falloff from [listenerPos].
 	 * If [terminate] is true, handle will setDone if out of audible range.
 	 */
-	fun calcVolume(listenerPos: Vector2, terminate: Boolean): Float {
+	fun calcVolume(listenerPos: Vector2): Float {
 		val audibleRange2 = max(
 			definition.audibleRange2,
 			(Gdx.graphics.width * 0.5f) * (Gdx.graphics.width * 0.5f)
@@ -103,9 +102,6 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 		val globalVolume = audioVideoData.masterVolume * audioVideoData.soundVolume
 		val volume = definition.volume * MathUtils.clamp(1 - distSquared / audibleRange2, 0f, 1f) * globalVolume
 
-		if (terminate && distSquared > audibleRange2) {
-			setDone()
-		}
 		return volume
 	}
 
@@ -118,14 +114,14 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 
 		if (!isFadingOut) {
 			// Normal volume/pan update
-			val targetVolume = calcVolume(listenerPos, terminate = false)
+			val targetVolume = calcVolume(listenerPos)
 			val targetPan = calcPan(listenerPos)
 			currentVolume = currentVolume.dlerp(targetVolume, 0.5f, delta)
 			currentPan = currentPan.dlerp(targetPan, 0.5f, delta)
 
 			// If the sound is non-looping, check if it should be done by time.
 			if (!definition.isLooping &&
-				TimeUtils.timeSinceMillis(startTime) >= definition.duration
+				TimeUtils.timeSinceMillis(startTime) >= definition.durationMs
 			) {
 				beginFadeOut() // or setDone() if you prefer an immediate stop
 			}

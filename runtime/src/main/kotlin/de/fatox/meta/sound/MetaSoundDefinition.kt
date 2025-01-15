@@ -47,7 +47,7 @@ class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
 		set(value) {
 			field = value
 
-			this.duration = (Meta.instance.soundHandler.duration(value) * 1000L).toLong()
+			this.durationMs = (Meta.instance.soundHandler.duration(value) * 1000L).toLong()
 		}
 	var isLooping: Boolean = false
 	var audibleRange: Float = DEFAULT_SOUND_RANGE
@@ -55,7 +55,7 @@ class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
 	var audibleRange2: Float = DEFAULT_SOUND_RANGE2
 		private set
 	var volume: Float = DEFAULT_SOUND_VOLUME
-	var duration: Long = DEFAULT_SOUND_DURATION
+	var durationMs: Long = DEFAULT_SOUND_DURATION
 		private set
 
 	private val soundPlayer: MetaSoundPlayer by lazyInject()
