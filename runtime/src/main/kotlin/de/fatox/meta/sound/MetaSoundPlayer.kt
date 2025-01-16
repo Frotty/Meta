@@ -132,7 +132,7 @@ class MetaSoundPlayer {
 	private fun cleanupHandles(handleList: Array<MetaSoundHandle>) {
 		for (i in handleList.size - 1 downTo 0) {
 			val soundHandle = handleList[i]
-			if (soundHandle.isDone) {
+			if (soundHandle.isDone || TimeUtils.timeSinceMillis(soundHandle.startTime) > soundHandle.definition.durationMs) {
 				// remove if finished
 				handleList.removeIndex(i)
 			}
