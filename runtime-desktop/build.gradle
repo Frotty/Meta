@@ -13,5 +13,4 @@ dependencies {
 
 	// Explicit transitive dependencies
 	implementation "org.slf4j:slf4j-api:$slf4jVersion"
-	implementation "org.lwjgl:lwjgl-opengl:$lwjglVersion"
 }
