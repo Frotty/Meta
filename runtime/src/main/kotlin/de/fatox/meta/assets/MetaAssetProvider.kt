@@ -119,6 +119,7 @@ class MetaAssetProvider : AssetProvider {
 					Gdx.files.internal(fileName) as T
 			}
 			assetManager.isLoaded(fileName, type) -> assetManager[fileName, type]
+			assetManager.isLoaded(fileCache[fileName].path(), type) -> assetManager[fileName, type]
 			type == TextureRegion::class.java -> {
 				atlasCache.asSequence().map {
 					if (index <= 0) it.findRegion(fileName) else it.findRegion(fileName, index)
