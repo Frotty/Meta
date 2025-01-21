@@ -56,18 +56,38 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun loadRawAssetsFromFolder(folder: FileHandle): Boolean {
-		if (folder.isDirectory) {
-			for (itrHandle in folder.list()) {
-				if (itrHandle.isDirectory) {
-					loadRawAssetsFromFolder(itrHandle)
+		// This helper function does all the recursion,
+		// always stripping out `rootFolderName` from the path.
+		fun loadFolderRecursively(currentFolder: FileHandle, rootFolderName: String) {
+			// List everything in currentFolder
+			for (child in currentFolder.list()) {
+				if (child.isDirectory) {
+					// Recurse into subdirectories
+					loadFolderRecursively(child, rootFolderName)
 				} else {
-					fileCache.put(itrHandle.name(), itrHandle)
-					fileCache.put(itrHandle.name().replace("/", "\\"), itrHandle)
+					// Build the full path (relative to internal root, but includes folder name)
+					val fullPath = child.path()  // e.g. "assets/subfolder/img.png"
+
+					// Remove the top folder name + "/" from the front (e.g. remove "assets/" -> "subfolder/img.png")
+					val relativePath = if (fullPath.startsWith("$rootFolderName/")) {
+						fullPath.substring(rootFolderName.length + 1)
+					} else {
+						fullPath
+					}
+
+					// Put both forward-slash and backslash versions into the file cache
+					fileCache.put(relativePath, child)
+					fileCache.put(relativePath.replace("/", "\\"), child)
 				}
 			}
-			return true
 		}
-		return false
+		// If the given handle is not a folder, do nothing
+		if (!folder.isDirectory) return false
+
+		// Kick off recursion, remembering the name of the top-level folder (e.g. "assets")
+		loadFolderRecursively(folder, folder.name())
+
+		return true
 	}
 
 	override fun <T: Any> load(name: String, type: Class<T>) {
