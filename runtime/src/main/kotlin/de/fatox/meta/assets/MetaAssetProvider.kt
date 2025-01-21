@@ -85,7 +85,7 @@ class MetaAssetProvider : AssetProvider {
 		if (!folder.isDirectory) return false
 
 		// Kick off recursion, remembering the name of the top-level folder (e.g. "assets")
-		loadFolderRecursively(folder, folder.name())
+		loadFolderRecursively(folder, folder.path())
 
 		return true
 	}
