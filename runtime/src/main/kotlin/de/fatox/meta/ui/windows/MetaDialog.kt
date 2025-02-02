@@ -8,13 +8,14 @@ import com.kotcrab.vis.ui.widget.VisImageButton
 import com.kotcrab.vis.ui.widget.VisLabel
 import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.api.extensions.onClick
+import de.fatox.meta.ui.components.MetaLabel
 
 /**
  * Created by Frotty on 04.06.2016.
  */
 abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWindow(title, false, hasCloseButton) {
-	protected val buttonTable: VisTable = VisTable()
-	protected val statusLabel: VisLabel = VisLabel()
+	protected val buttonTable = VisTable()
+	protected val statusLabel = MetaLabel("", 14)
 
 	var dialogListener: DialogListener = EmptyListener
 	private var buttonCount = 0
@@ -65,7 +66,7 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 		}
 		contentTable.top().padTop(4f)
 		statusLabel.setAlignment(Align.center)
-		statusLabel.wrap = true
+		statusLabel.setWrap(true)
 		add(statusLabel).growX()
 		row()
 		add(buttonTable).bottom().growX()
