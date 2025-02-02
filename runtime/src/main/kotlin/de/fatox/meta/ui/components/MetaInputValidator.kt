@@ -5,7 +5,7 @@ import com.kotcrab.vis.ui.widget.VisLabel
 import de.fatox.meta.error.MetaErrorHandler
 
 abstract class MetaInputValidator : InputValidator {
-	var errorLabel: VisLabel? = null
+	var errorLabel: MetaLabel? = null
 
 	override fun validateInput(input: String): Boolean {
 		val errors = MetaErrorHandler()
