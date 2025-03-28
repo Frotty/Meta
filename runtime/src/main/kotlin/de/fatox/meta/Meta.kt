@@ -66,13 +66,8 @@ abstract class Meta(
 
 	init {
 		Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler)
-		if (Gdx.app.type == Application.ApplicationType.Desktop) {
-			prependVertexCode = "#version 130\n"
-			prependFragmentCode = "#version 130\n"
-		} else {
-			prependVertexCode = "#version 300 es\n"
-			prependFragmentCode = "#version 300 es\n"
-		}
+		prependVertexCode = "#version 130\n"
+		prependFragmentCode = "#version 130\n"
 	}
 
 	abstract fun config()
