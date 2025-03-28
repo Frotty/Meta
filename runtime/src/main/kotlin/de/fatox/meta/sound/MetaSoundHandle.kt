@@ -153,7 +153,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 	 */
 	fun setHandleId(handleId: Long) {
 		if (handleId == -1L) {
-			log.error("HandleId is -1 – sound failed to play or invalid handle!")
+			log.debug("HandleId is -1 – sound failed to play or invalid handle!")
 		}
 		this.handleId = handleId
 		// When first set, we assume the initial volume is the full volume, so let's do a quick calc:

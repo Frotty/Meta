@@ -52,13 +52,6 @@ object MetaModule {
 				}
 			}
 			singleton("spritebatch-shader") {
-				if (Gdx.app.type == Application.ApplicationType.Desktop) {
-					prependVertexCode = "#version 140\n"
-					prependFragmentCode = "#version 140\n"
-				} else {
-					prependVertexCode = "#version 300 es\n"
-					prependFragmentCode = "#version 300 es\n"
-				}
 				@Suppress("SpellCheckingInspection")
 				@Language("GLSL") val vertexShader =
 					"""

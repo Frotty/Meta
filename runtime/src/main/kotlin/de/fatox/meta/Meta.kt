@@ -1,9 +1,8 @@
 package de.fatox.meta
 
-import com.badlogic.gdx.Game
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
-import com.badlogic.gdx.Screen
+import com.badlogic.gdx.*
+import com.badlogic.gdx.graphics.glutils.ShaderProgram.prependFragmentCode
+import com.badlogic.gdx.graphics.glutils.ShaderProgram.prependVertexCode
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.*
 import de.fatox.meta.api.extensions.MetaLoggerFactory
@@ -67,6 +66,13 @@ abstract class Meta(
 
 	init {
 		Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler)
+		if (Gdx.app.type == Application.ApplicationType.Desktop) {
+			prependVertexCode = "#version 130\n"
+			prependFragmentCode = "#version 130\n"
+		} else {
+			prependVertexCode = "#version 300 es\n"
+			prependFragmentCode = "#version 300 es\n"
+		}
 	}
 
 	abstract fun config()
