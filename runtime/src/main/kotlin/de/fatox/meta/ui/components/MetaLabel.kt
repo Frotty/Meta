@@ -9,7 +9,7 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
-import com.badlogic.gdx.utils.StringBuilder
+import com.badlogic.gdx.utils.CharArray
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -34,7 +34,7 @@ class MetaLabel @JvmOverloads constructor(
 ) : Widget() {
 	val glyphLayout: GlyphLayout = GlyphLayout()
 	private val prefSize = Vector2()
-	val text: StringBuilder = StringBuilder()
+	val text: CharArray = CharArray()
 	private var font: BitmapFont
 	private var size = size.toFloat()
 
@@ -57,15 +57,9 @@ class MetaLabel @JvmOverloads constructor(
 	private val type: FontType = type
 
 	fun setText(newText: CharSequence = "") {
-		if (newText is StringBuilder) {
-			if (text == newText) return
-			text.setLength(0)
-			text.append(newText)
-		} else {
-			if (textEquals(newText)) return
-			text.setLength(0)
-			text.append(newText)
-		}
+		if (textEquals(newText)) return
+		text.setLength(0)
+		text.append(newText)
 		invalidateHierarchy()
 	}
 
@@ -73,8 +67,7 @@ class MetaLabel @JvmOverloads constructor(
 		val length = text.length
 		if (length != other.length) return false
 
-		val chars = text.chars
-		for (i in 0 until length) if (chars[i] != other[i]) return false
+		for (i in 0 until length) if (text[i] != other[i]) return false
 		return true
 	}
 

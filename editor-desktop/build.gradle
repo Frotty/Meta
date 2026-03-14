@@ -1,9 +1,15 @@
 apply plugin: 'application'
 
 sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
-mainClassName = 'de.fatox.meta.desktop.DesktopLauncherEditorKt'
 eclipse.project.name = appName + '-editor-desktop'
-sourceCompatibility = JavaVersion.VERSION_17
+java {
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+}
+
+application {
+	mainClass = 'de.fatox.meta.desktop.DesktopLauncherEditorKt'
+}
 
 dependencies {
 	implementation project(":editor")
@@ -43,7 +49,7 @@ jar {
 		into "$project.buildDir/libs/data/"
 	}
 	manifest {
-		attributes 'Main-Class': project.mainClassName
+		attributes 'Main-Class': application.mainClass.get()
 	}
 	doLast {
 		file(archiveFile.get().asFile).setExecutable(true, false)
