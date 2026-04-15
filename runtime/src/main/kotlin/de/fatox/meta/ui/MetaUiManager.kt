@@ -27,6 +27,7 @@ import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.MetaDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.MetaDialog
 import java.io.File
@@ -49,6 +50,7 @@ class MetaUiManager : UIManager {
 	private var mainMenuBar: MenuBar? = null
 	private val contentTable = Table()
 	private var currentScreenId: String = "(none)"
+	private val screenMetaDataKeys = mutableMapOf<String, MetaDataKey<*>>()
 	private val whitePixel = TextureRegionDrawable(Texture(Pixmap(1, 1, Pixmap.Format.RGBA8888).apply {
 		setColor(Color.WHITE)
 		fill()
@@ -96,6 +98,7 @@ class MetaUiManager : UIManager {
 		log.debug { "Change screen to: $screenId" }
 
 		currentScreenId = screenId
+		screenMetaDataKeys.clear()
 		metaInput.changeScreen()
 
 		if (preventShowWindow) restoreOtherWindowsAndAllowNew()
@@ -124,14 +127,14 @@ class MetaUiManager : UIManager {
 	}
 
 	private fun restoreWindows() {
-		val list = metaData.getCachedHandle(currentScreenId).list() // TODO use MetaDataKey and cache it
+		val list = metaData.getCachedHandle(MetaDataKey<Any>(currentScreenId)).list()
 		outer@ for (fh: FileHandle in list) {
 			if (fh.name().endsWith("Window")) {
 				val windowClass: KClass<out Window>? = windowConfig.nameToClass[fh.name()]
 				if (windowClass != null) {
 					val metaWindowData = metaGet(windowConfig.nameOf(windowClass), MetaWindowData::class)
 					for (displayedWindow in displayedWindows) {
-						if (displayedWindow!!.javaClass == windowClass) {
+						if (displayedWindow.javaClass == windowClass) {
 							if (!metaWindowData.displayed) {
 								cacheWindow(displayedWindow, true)
 							}
@@ -264,7 +267,7 @@ class MetaUiManager : UIManager {
 
 	override fun bringWindowsToFront() {
 		for (window in displayedWindows) {
-			window!!.toFront()
+			window.toFront()
 		}
 		mainMenuBar?.table?.toFront()
 	}
@@ -278,17 +281,17 @@ class MetaUiManager : UIManager {
 	}
 
 	override fun metaHas(name: String): Boolean {
-		return metaData.has(currentScreenId + File.separator + name) // TODO use MetaDataKey and cache it
+		return metaData.has(screenMetaKey<Any>(name))
 	}
 
 	override fun <T : Any> metaGet(name: String, c: KClass<out T>): T {
-		return metaData[currentScreenId + File.separator + name, c] // TODO use MetaDataKey and cache it
+		return metaData.get(screenMetaKey(name), c)
 	}
 
 	override fun metaSave(name: String, windowData: Any) {
-		val id = currentScreenId + File.separator + name // TODO use MetaDataKey and cache it
-		if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(id).lastModified()) > 200) {
-			metaData.save(id, windowData)
+		val key = screenMetaKey<Any>(name)
+		if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(key).lastModified()) > 200) {
+			metaData.save(key, windowData)
 		}
 	}
 
@@ -303,6 +306,12 @@ class MetaUiManager : UIManager {
 			copy.addAll(displayedWindows)
 			return copy
 		}
+
+	@Suppress("UNCHECKED_CAST")
+	private fun <T : Any> screenMetaKey(name: String): MetaDataKey<T> {
+		val id = currentScreenId + File.separator + name
+		return screenMetaDataKeys.getOrPut(id) { MetaDataKey<Any>(id) } as MetaDataKey<T>
+	}
 
 	init {
 		contentTable.apply {

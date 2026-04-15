@@ -99,6 +99,10 @@ class MetaData {
 	fun <T : Any> save(key: MetaDataKey<T>, obj: T, target: FileHandle = dataRoot): FileHandle =
 		save(key.name, obj, target)
 
+	@Suppress("DEPRECATION")
+	fun <T : Any> get(key: MetaDataKey<T>, type: KClass<out T>, parent: FileHandle = dataRoot): T =
+		get(key.name, type, parent)
+
 	/**
 	 * Caches and returns this object loaded from json at the specified location.
 	 *
