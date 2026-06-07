@@ -31,7 +31,8 @@ Changes here affect multiple projects, so compatibility and runtime behavior sta
 - Gradle wrapper is authoritative for this repo.
 - Toolchain auto-download is enabled; daemon JVM criteria file is tracked in `gradle/gradle-daemon-jvm.properties`.
 - Current baseline in this repo:
-  - libGDX `1.14.0`
+  - libGDX `1.14.2`
+  - VisUI `1.5.9`
   - Kotlin `2.3.10`
   - Gradle `9.1.0`
 
