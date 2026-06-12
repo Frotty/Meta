@@ -29,7 +29,6 @@ class ScreenConfig {
 		screenCreators[name] = creator
 	}
 }
-
 val logger = MetaLoggerFactory.logger {}
 
 inline fun <reified T : Screen> ScreenConfig.register(
@@ -107,6 +106,10 @@ abstract class Meta(
 
 	}
 
+	override fun dispose() {
+		uiManager.dispose()
+	}
+
 	@Suppress("unused")
 	companion object {
 		@JvmStatic
@@ -137,3 +140,4 @@ abstract class Meta(
 		fun isTypeOfLastScreen(type: KClass<out Screen>): Boolean = instance.lastScreen::class == type
 	}
 }
+

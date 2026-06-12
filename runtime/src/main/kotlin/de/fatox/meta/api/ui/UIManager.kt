@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.Disposable
 import com.kotcrab.vis.ui.widget.MenuBar
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import de.fatox.meta.ScreenConfig
@@ -91,7 +92,7 @@ inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
 /**
  * Created by Frotty on 20.05.2016.
  */
-interface UIManager {
+interface UIManager : Disposable {
 	var windowHandler: WindowHandler
 	fun moveWindow(x: Int, y: Int)
 	fun resize(width: Int, height: Int)
@@ -123,6 +124,8 @@ interface UIManager {
 	val preventShowWindow: Boolean
 
 	val screenConfig: ScreenConfig
+
+	override fun dispose() = Unit
 }
 
 inline fun <reified T : Any> UIManager.metaGet(name: String): T? = metaGet(name, T::class)

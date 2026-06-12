@@ -3,12 +3,8 @@ package de.fatox.meta.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Camera
-import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer
-import com.badlogic.gdx.math.MathUtils
-import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
@@ -26,12 +22,12 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.extensions.trace
+import de.fatox.meta.api.ui.FocusRenderer
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-
 
 private val log = MetaLoggerFactory.logger {}
 
@@ -42,14 +38,10 @@ class MetaUIRenderer : UIRenderer {
 	private val visuiSkin: String by lazyInject("visuiSkin")
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val metaData: MetaData by lazyInject()
-	private val shapeRenderer: ShapeRenderer = ShapeRenderer()
+	private val focusRenderer: FocusRenderer by lazyInject()
 
-	private val stage: Stage = Stage(ScreenViewport(),  spriteBatch)
+	private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
 	private val audioVideoData = metaData[audioVideoDataKey]
-
-	private val highlightColor = Color.valueOf("256bdb")
-	private val highlightPos = Vector2(0f, 0f)
-
 	private val toastManager = ToastManager(stage)
 
 	init {
@@ -94,27 +86,20 @@ class MetaUIRenderer : UIRenderer {
 		stage.act(Gdx.graphics.deltaTime)
 	}
 
-	var time = 0f
-
 	override fun draw() {
 		if (!audioVideoData.runWithUI) return
 
-		stage.batch.setBlendFunction(-1, -1);
-		Gdx.gl.glBlendFuncSeparate(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA, GL20.GL_ONE, GL20.GL_ONE_MINUS_SRC_ALPHA);
+		stage.batch.setBlendFunction(-1, -1)
+		Gdx.gl.glBlendFuncSeparate(
+			GL20.GL_SRC_ALPHA,
+			GL20.GL_ONE_MINUS_SRC_ALPHA,
+			GL20.GL_ONE,
+			GL20.GL_ONE_MINUS_SRC_ALPHA
+		)
 
+		val deltaTime = Gdx.graphics.deltaTime
 		stage.draw()
-		time += Gdx.graphics.deltaTime
-		highlightColor.b = MathUtils.sin(time * 4f) * 0.15f + 0.85f
-		focusedActor?.let {
-			shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
-			shapeRenderer.projectionMatrix = stage.batch.projectionMatrix
-			shapeRenderer.transformMatrix = stage.batch.transformMatrix
-			highlightPos.set(0f, 0f)
-			val coordinates = it.localToStageCoordinates(highlightPos)
-			shapeRenderer.color = highlightColor
-			shapeRenderer.rect(coordinates.x, coordinates.y, it.width, it.height)
-			shapeRenderer.end()
-		}
+		focusRenderer.draw(stage, focusedActor, deltaTime)
 	}
 
 	override fun resize(width: Int, height: Int) {
@@ -132,5 +117,12 @@ class MetaUIRenderer : UIRenderer {
 
 	override fun setFocusedActor(actor: Actor?) {
 		focusedActor = actor
+	}
+
+	override fun dispose() {
+		focusedActor = null
+		metaInput.removeGlobalInputProcessor(stage)
+		focusRenderer.dispose()
+		stage.dispose()
 	}
 }

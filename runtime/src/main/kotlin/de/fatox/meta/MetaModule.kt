@@ -12,6 +12,7 @@ import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.entity.EntityManager
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.api.ui.FocusRenderer
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.entity.MetaEntityManager
@@ -21,6 +22,7 @@ import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.input.MetaInput
 import de.fatox.meta.sound.MetaSoundPlayer
 import de.fatox.meta.task.MetaTaskManager
+import de.fatox.meta.ui.DefaultFocusRenderer
 import de.fatox.meta.ui.MetaUIRenderer
 import de.fatox.meta.ui.MetaUiManager
 import de.fatox.meta.ui.UiControlHelper
@@ -31,6 +33,7 @@ object MetaModule {
 		MetaInject.global {
 			singleton<FontProvider>("default") { MetaFontProvider() }
 			singleton { MetaSoundPlayer() }
+			singleton<FocusRenderer> { DefaultFocusRenderer() }
 			singleton<UIRenderer> { MetaUIRenderer() }
 			singleton<UIManager> { MetaUiManager() }
 			singleton { ModelBuilder() }

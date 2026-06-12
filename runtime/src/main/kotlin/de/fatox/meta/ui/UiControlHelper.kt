@@ -34,18 +34,18 @@ import kotlin.math.sqrt
 class UiControlHelper {
 	private val metaInput: MetaInputProcessor by lazyInject()
 	private val metaUIRenderer: UIRenderer by lazyInject()
+	private val focusListeners = mutableListOf<(Actor?) -> Unit>()
+	private var focusedActor: Actor? = null
+	private val clickPosition = Vector2()
 
 	// Whether we are actively controlling UI focus
 	var activated: Boolean = true
 		set(value) {
 			field = value
-			if (value) {
-				// Re-focus the current actor if visible
-				if (selectedActor.isVisible) {
-					metaUIRenderer.setFocusedActor(selectedActor)
-				}
+			if (value && selectedActor.isVisible) {
+				setFocusedActor(selectedActor)
 			} else {
-				metaUIRenderer.setFocusedActor(null)
+				setFocusedActor(null)
 			}
 		}
 
@@ -56,9 +56,22 @@ class UiControlHelper {
 		set(value) {
 			field = value
 			if (!activated) return
-			metaUIRenderer.setFocusedActor(value)
+			setFocusedActor(value)
 			scrollIfNeeded(value)
 		}
+
+	fun addFocusListener(listener: (Actor?) -> Unit): () -> Unit {
+		focusListeners.add(listener)
+		listener(focusedActor)
+		return { focusListeners.remove(listener) }
+	}
+
+	private fun setFocusedActor(actor: Actor?) {
+		if (focusedActor === actor) return
+		focusedActor = actor
+		metaUIRenderer.setFocusedActor(actor)
+		focusListeners.toList().forEach { it(actor) }
+	}
 
 	// We gather potential navigation targets from the parent's hierarchy
 	private var targets = Array<Actor>()
@@ -160,28 +173,39 @@ class UiControlHelper {
 
 		// Simulate clicking the selectedActor on ENTER
 		metaInput.addGlobalKeyListener(Input.Keys.ENTER) {
-			if (
-				activated && selectedActor.stage != null &&
-				!Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) &&
-				!Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)
-			) {
-				val inputEvent = InputEvent().apply {
-					button = Input.Buttons.LEFT
-					stageX = selectedActor.x
-					stageY = selectedActor.y
-					type = InputEvent.Type.touchDown
-					listenerActor = selectedActor
-					stage = selectedActor.stage
-				}
-				selectedActor.listeners.forEach { eventListener ->
-					eventListener.handle(inputEvent)
-				}
-				inputEvent.type = InputEvent.Type.touchUp
-				selectedActor.listeners.forEach { eventListener ->
-					eventListener.handle(inputEvent)
-				}
-			}
+			activateSelectedActor()
 		}
+	}
+
+	private fun activateSelectedActor() {
+		if (
+			!activated || selectedActor.stage == null ||
+			Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) ||
+			Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) ||
+			selectedActor is Disableable && (selectedActor as Disableable).isDisabled
+		) return
+
+		val localX = selectedActor.width * 0.5f
+		val localY = selectedActor.height * 0.5f
+		clickPosition.set(localX, localY)
+		selectedActor.localToStageCoordinates(clickPosition)
+
+		selectedActor.fire(InputEvent().apply {
+			button = Input.Buttons.LEFT
+			pointer = 0
+			stageX = clickPosition.x
+			stageY = clickPosition.y
+			type = InputEvent.Type.touchDown
+			stage = selectedActor.stage
+		})
+		selectedActor.fire(InputEvent().apply {
+			button = Input.Buttons.LEFT
+			pointer = 0
+			stageX = clickPosition.x
+			stageY = clickPosition.y
+			type = InputEvent.Type.touchUp
+			stage = selectedActor.stage
+		})
 	}
 
 	// --------------------------------------------------------------

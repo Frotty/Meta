@@ -51,10 +51,12 @@ class MetaUiManager : UIManager {
 	private val contentTable = Table()
 	private var currentScreenId: String = "(none)"
 	private val screenMetaDataKeys = mutableMapOf<String, MetaDataKey<*>>()
-	private val whitePixel = TextureRegionDrawable(Texture(Pixmap(1, 1, Pixmap.Format.RGBA8888).apply {
-		setColor(Color.WHITE)
-		fill()
-	}))
+	private val whitePixelTexture = Pixmap(1, 1, Pixmap.Format.RGBA8888).let { pixmap ->
+		pixmap.setColor(Color.WHITE)
+		pixmap.fill()
+		Texture(pixmap).also { pixmap.dispose() }
+	}
+	private val whitePixel = TextureRegionDrawable(whitePixelTexture)
 	private val backdrop = VisImage(ColorDrawable(whitePixel, Color.valueOf("1F2025BB"))).apply {
 		addListener {
 			false
@@ -311,6 +313,19 @@ class MetaUiManager : UIManager {
 	private fun <T : Any> screenMetaKey(name: String): MetaDataKey<T> {
 		val id = currentScreenId + File.separator + name
 		return screenMetaDataKeys.getOrPut(id) { MetaDataKey<Any>(id) } as MetaDataKey<T>
+	}
+
+	override fun dispose() {
+		for (window in displayedWindows) {
+			window.remove()
+		}
+		displayedWindows.clear()
+		cachedWindows.clear()
+		hiddenWindows.clear()
+		backdrop.remove()
+		contentTable.remove()
+		uiRenderer.dispose()
+		whitePixelTexture.dispose()
 	}
 
 	init {
