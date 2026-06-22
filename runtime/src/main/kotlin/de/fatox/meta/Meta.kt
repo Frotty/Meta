@@ -65,8 +65,12 @@ abstract class Meta(
 
 	init {
 		Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler)
-		prependVertexCode = "#version 130\n"
-		prependFragmentCode = "#version 130\n"
+		// GLSL 120, not 130: macOS only supports GLSL 120 (OpenGL 2.1) or 150+ (3.2 core) — never 130/140 — so a
+		// "#version 130" prepend makes EVERY shader fail to compile on macOS. These shaders are legacy style
+		// (attribute/varying/gl_FragColor/texture2D), valid in 120, and the desktop launcher requests a GL20/2.1
+		// context to match. (If this base class is ever used with GL ES, make the prepend platform-conditional.)
+		prependVertexCode = "#version 120\n"
+		prependFragmentCode = "#version 120\n"
 	}
 
 	abstract fun config()
