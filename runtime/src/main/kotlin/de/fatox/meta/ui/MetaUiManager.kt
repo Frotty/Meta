@@ -225,7 +225,15 @@ class MetaUiManager : UIManager {
 			}
 			uiRenderer.addActor(backdrop)
 		}
-		return showWindow(dialogClass).apply { if (!preventShowWindow) show() }
+		return showWindow(dialogClass).apply {
+			if (!preventShowWindow) {
+				show()
+				// Keep the dialog ABOVE the just-(re)added shared backdrop. showWindow returns early without
+				// re-fronting an already-displayed dialog, so without this a second showDialog would leave the
+				// backdrop covering the dialog - unclickable and impossible to close.
+				toFront()
+			}
+		}
 	}
 
 	override fun setMainMenuBar(menuBar: MenuBar?) {
@@ -298,7 +306,12 @@ class MetaUiManager : UIManager {
 	}
 
 	override fun closeDialog(metaDialog: MetaDialog) {
-		backdrop.remove()
+		// The backdrop is a single shared actor. Only remove it once NO dialog still needs it, otherwise closing one
+		// of two stacked dialogs would strip the backdrop from the one still open. (metaDialog has usually already
+		// been removed from displayedWindows by super.close() -> closeWindow; the !== guard covers either ordering.)
+		if (displayedWindows.none { it is MetaDialog && it !== metaDialog && it.isVisible }) {
+			backdrop.remove()
+		}
 	}
 
 	private val copy = Array<Window>()
