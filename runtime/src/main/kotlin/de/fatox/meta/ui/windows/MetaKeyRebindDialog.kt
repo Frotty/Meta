@@ -17,6 +17,14 @@ class MetaKeyRebindDialog : MetaDialog("Rebind Key", true) {
 		metaInput.exclusiveProcessor = RebindProcessor(this)
 	}
 
+	override fun onHidden() {
+		// Critical: release the exclusive grab so input returns to the rest of the UI once this dialog is gone,
+		// no matter how it closed. Leaving it set would freeze all other input behind this disposed dialog.
+		if (metaInput.exclusiveProcessor is RebindProcessor) {
+			metaInput.exclusiveProcessor = null
+		}
+	}
+
 	class RebindProcessor(private val metaKeyRebindDialog: MetaKeyRebindDialog) : InputAdapter() {
 		override fun keyDown(keycode: Int): Boolean {
 			metaKeyRebindDialog.close()

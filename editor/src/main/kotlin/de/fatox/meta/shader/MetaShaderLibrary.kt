@@ -5,21 +5,28 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.ObjectMap
-import de.fatox.meta.api.MetaNotifier
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.reactive.ReactiveValue
+import de.fatox.meta.reactive.signal
 
 private const val META_SHADER_SUFFIX = ".msh"
 private const val INTERNAL_SHADER_PATH = "meta/shaders"
 
-class MetaShaderLibrary : MetaNotifier() {
+class MetaShaderLibrary {
 	private val projectManager: ProjectManager by lazyInject()
 	private val json: Json by lazyInject()
 
 	private val loadedShaders = ObjectMap<String, GLShaderHandle>()
 	private val metaShaders = Array<GLShaderHandle>()
+
+	/** Bumped whenever the set of loaded shaders changes; observe via `changes.subscribe { ... }`. */
+	private val _changes = signal(0)
+	val changes: ReactiveValue<Int> get() = _changes
+
+	private fun notifyChanged() = _changes.update { it + 1 }
 
 	val defaultShaderPath: String
 		get() = projectManager.relativize(loadedShaders.values().next().shaderHandle)
@@ -31,7 +38,7 @@ class MetaShaderLibrary : MetaNotifier() {
 			val internal = Gdx.files.internal("shaders/Default.msh")
 			val loadShader = loadShader(internal, false)
 			loadedShaders.put("shaders/Default.msh", loadShader)
-			notifyListeners()
+			notifyChanged()
 			loadProjectShaders()
 			false
 		}
@@ -41,7 +48,7 @@ class MetaShaderLibrary : MetaNotifier() {
 			val internal = Gdx.files.internal("shaders/Default.msh")
 			val loadShader = loadShader(internal, false)
 			loadedShaders.put("shaders/Default.msh", loadShader)
-			notifyListeners()
+			notifyChanged()
 			loadProjectShaders()
 		}
 		Gdx.app.postRunnable { this.loadProjectShaders() }
@@ -64,7 +71,7 @@ class MetaShaderLibrary : MetaNotifier() {
 	fun newShader(data: GLShaderData): GLShaderHandle? {
 		val newShaderHandle = projectManager.save(INTERNAL_SHADER_PATH + "/" + data.name + META_SHADER_SUFFIX, data)
 		val loadShader = loadShader(newShaderHandle, true)
-		notifyListeners()
+		notifyChanged()
 		return loadShader
 	}
 
@@ -92,6 +99,6 @@ class MetaShaderLibrary : MetaNotifier() {
 				}
 			}
 		}
-		notifyListeners()
+		notifyChanged()
 	}
 }

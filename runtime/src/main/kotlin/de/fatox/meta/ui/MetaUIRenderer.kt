@@ -42,7 +42,7 @@ class MetaUIRenderer : UIRenderer {
 
 	private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
 	private val audioVideoData = metaData[audioVideoDataKey]
-	private val toastManager = ToastManager(stage)
+	private val toastManager = MetaToastManager(stage)
 
 	init {
 		log.debug { "Injected MetaUi." }
@@ -77,6 +77,8 @@ class MetaUIRenderer : UIRenderer {
 	override fun addActor(actor: Actor) {
 		try {
 			stage.addActor(actor)
+			// Newly added windows/dialogs land on top of the toast layer; lift toasts back above them.
+			toastManager.toFront()
 		} catch (e: Exception) {
 			log.error(e) { "Failed to add actor: $actor!" }
 		}

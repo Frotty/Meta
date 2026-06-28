@@ -174,7 +174,9 @@ class MetaInput : MetaInputProcessor {
 	}
 
 	override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-		TODO("Not yet implemented")
+		// A cancelled touch (e.g. OS-interrupted gesture) must release any drag state, so treat it like a touch-up
+		// rather than crashing. libGDX does call this on some platforms.
+		return touchUp(screenX, screenY, pointer, button)
 	}
 
 	override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {

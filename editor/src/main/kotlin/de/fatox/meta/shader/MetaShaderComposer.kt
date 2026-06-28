@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
-import de.fatox.meta.api.MetaNotifier
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.MetaShaderCompData
@@ -13,6 +12,8 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.reactive.ReactiveValue
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.windows.ShaderComposerWindow
 import java.io.File
 
@@ -22,7 +23,7 @@ const val META_COMP_PATH = "meta\\compositions\\"
 /**
  * Created by Frotty on 10.04.2017.
  */
-class MetaShaderComposer : MetaNotifier() {
+class MetaShaderComposer {
 	private val projectManager: ProjectManager by lazyInject()
 	private val json: Json by lazyInject()
 	private val uiManager: UIManager by lazyInject()
@@ -30,10 +31,16 @@ class MetaShaderComposer : MetaNotifier() {
 
 	val compositions = Array<ShaderComposition>(2)
 
+	/** Bumped on every composition mutation; observe via `changes.subscribe { ... }`. */
+	private val _changes = signal(0)
+	val changes: ReactiveValue<Int> get() = _changes
+
+	private fun notifyChanged() = _changes.update { it + 1 }
+
 	var currentComposition: ShaderComposition? = null
 		set(value) {
 			field = value
-			notifyListeners()
+			notifyChanged()
 		}
 
 	init {
@@ -101,7 +108,7 @@ class MetaShaderComposer : MetaNotifier() {
 			currentComposition?.addBufferHandle(bufferHandle)
 			saveComposition(it)
 		}
-		notifyListeners()
+		notifyChanged()
 		return bufferHandle
 	}
 
@@ -111,14 +118,14 @@ class MetaShaderComposer : MetaNotifier() {
 		val shaderComposition = ShaderComposition(fileHandle, metaShaderCompData)
 		addComposition(shaderComposition)
 		saveComposition(shaderComposition)
-		notifyListeners()
+		notifyChanged()
 	}
 
 	fun removeBufferHandle(handle: RenderBufferHandle) {
 		currentComposition?.let {
 			it.removeBufferHandle(handle)
 			saveComposition(it)
-			notifyListeners()
+			notifyChanged()
 		}
 	}
 
@@ -127,7 +134,7 @@ class MetaShaderComposer : MetaNotifier() {
 			currentComposition?.let {
 				it.setShader(handle, selected)
 				saveComposition(it)
-				notifyListeners()
+				notifyChanged()
 			}
 		}
 	}
@@ -137,7 +144,7 @@ class MetaShaderComposer : MetaNotifier() {
 			currentComposition?.let {
 				handle.data.hasDepth = selected
 				saveComposition(it)
-				notifyListeners()
+				notifyChanged()
 			}
 		}
 	}

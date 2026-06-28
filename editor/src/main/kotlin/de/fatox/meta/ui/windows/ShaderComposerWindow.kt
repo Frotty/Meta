@@ -14,6 +14,7 @@ import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.ui.showDialog
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.shader.ShaderComposition
@@ -39,8 +40,10 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 
 	init {
 		setupEmpty()
-		shaderComposer.addListener { this.onRemoveBuffer() }
-		shaderLibrary.addListener {
+		shaderComposer.changes.subscribe {
+			if (shaderComposer.currentComposition != null) this.onRemoveBuffer()
+		}
+		shaderLibrary.changes.subscribe {
 			if (shaderComposer.currentComposition != null) {
 				loadComposition(shaderComposer.currentComposition!!)
 			}

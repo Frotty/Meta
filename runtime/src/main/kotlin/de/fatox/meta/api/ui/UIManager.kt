@@ -116,7 +116,14 @@ interface UIManager : Disposable {
 	fun metaHas(name: String): Boolean
 	fun <T : Any> metaGet(name: String, c: KClass<out T>): T?
 	fun metaSave(name: String, windowData: Any)
-	fun closeDialog(metaDialog: MetaDialog)
+	/** Notifies the manager that a dialog has been detached from the stage, so it can release the shared backdrop. */
+	fun onDialogRemoved(dialog: MetaDialog)
+
+	/** Shows a transient toast notification that always renders above windows, dialogs and the modal backdrop. */
+	fun showToast(message: String)
+
+	/** Shows a custom [Table] as a toast that always renders above windows, dialogs and the modal backdrop. */
+	fun showToast(table: Table)
 
 	val currentlyActiveWindows: Array<Window>
 	val windowConfig: WindowConfig

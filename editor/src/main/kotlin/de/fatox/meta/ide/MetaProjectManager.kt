@@ -4,9 +4,8 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.scenes.scene2d.EventListener
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
-import com.kotcrab.vis.ui.widget.VisLabel
-import com.kotcrab.vis.ui.widget.toast.ToastTable
 import de.fatox.meta.api.model.MetaProjectData
+import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -23,6 +22,7 @@ class MetaProjectManager : ProjectManager {
 	private val json: Json by lazyInject()
 	private val editorUI: MetaEditorUI by lazyInject()
 	private val metaData: MetaData by lazyInject()
+	private val uiManager: UIManager by lazyInject()
 
 	override lateinit var currentProject: MetaProjectData
 		private set
@@ -61,8 +61,7 @@ class MetaProjectManager : ProjectManager {
 		createFolders(projectData)
 		child = child.child(MetaProjectData.PROJECT_FILE_NAME)
 		child.writeBytes(json.toJson(projectData).toByteArray(), false)
-		val toastTable = ToastTable()
-		toastTable.add(VisLabel("Project created"))
+		uiManager.showToast("Project created")
 	}
 
 	override fun newProject(location: FileHandle, projectData: MetaProjectData) {

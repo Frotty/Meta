@@ -29,6 +29,9 @@ import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.MetaDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.reactive.Disposable
+import de.fatox.meta.reactive.effect
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.windows.MetaDialog
 import java.io.File
 import kotlin.properties.Delegates
@@ -58,9 +61,43 @@ class MetaUiManager : UIManager {
 	}
 	private val whitePixel = TextureRegionDrawable(whitePixelTexture)
 	private val backdrop = VisImage(ColorDrawable(whitePixel, Color.valueOf("1F2025BB"))).apply {
-		addListener {
-			false
+		// Swallow input so the backdrop is a real modal shield: clicks on it never reach the UI beneath.
+		addListener { true }
+	}
+
+	/**
+	 * The stack of currently-shown modal dialogs that requested a backdrop, top-most last. This is the single source
+	 * of truth for the shared backdrop: [backdropEffect] reacts to it, so the backdrop's presence and z-position are
+	 * always a pure function of which dialogs are actually on screen - it can never be orphaned by a dialog that was
+	 * disposed through an unusual path. [MetaDialog.setStage] keeps it accurate via [onDialogRemoved].
+	 */
+	private val modalDialogs = ArrayList<MetaDialog>()
+	private val modalRevision = signal(0)
+	private var topDialog: MetaDialog? = null
+
+	/**
+	 * Keeps the shared backdrop directly beneath the top-most modal dialog (or removed when none remain), and hands
+	 * keyboard/scroll focus to whichever dialog is now on top. Re-runs automatically whenever [modalRevision] bumps.
+	 */
+	private val backdropEffect: Disposable = effect {
+		modalRevision() // subscribe
+		val top = modalDialogs.lastOrNull { it.stage != null }
+		val topStage = top?.stage
+		if (top != null && topStage != null) {
+			top.toFront()
+			backdrop.setSize(Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
+			backdrop.remove()
+			topStage.root.addActorBefore(top, backdrop)
+		} else {
+			backdrop.remove()
 		}
+		// Refocus only when the top dialog actually changes, so we never steal focus from a field the user clicked.
+		if (top !== topDialog) {
+			topDialog = top
+			top?.focusDialog()
+		}
+		// Dialogs were just (re)fronted; keep toasts above them.
+		uiRenderer.getToastManager().toFront()
 	}
 	override var preventShowWindow: Boolean by Delegates.observable(false) { _, _, newValue ->
 		preventShowWindowObservers.forEach { it(newValue) }
@@ -81,6 +118,7 @@ class MetaUiManager : UIManager {
 
 	override fun resize(width: Int, height: Int) {
 		uiRenderer.resize(width, height)
+		if (backdrop.hasParent()) backdrop.setSize(width.toFloat(), height.toFloat())
 		for(i in 0 until displayedWindows.size) {
 			if (displayedWindows[i] is MetaDialog) {
 				(displayedWindows[i] as MetaDialog).centerWindow()
@@ -217,21 +255,19 @@ class MetaUiManager : UIManager {
 
 	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>, showBackdrop: Boolean): T {
 		log.debug { "Show dialog: ${windowConfig.nameOf(dialogClass)}" }
-		// Dialogs are just Window subtypes, so we show it as usual
-		if  (showBackdrop) {
-			backdrop.apply {
-				width = Gdx.graphics.width.toFloat()
-				height = Gdx.graphics.height.toFloat()
-			}
-			uiRenderer.addActor(backdrop)
-		}
+		// Dialogs are just Window subtypes, so we show it as usual.
 		return showWindow(dialogClass).apply {
 			if (!preventShowWindow) {
 				show()
-				// Keep the dialog ABOVE the just-(re)added shared backdrop. showWindow returns early without
-				// re-fronting an already-displayed dialog, so without this a second showDialog would leave the
-				// backdrop covering the dialog - unclickable and impossible to close.
-				toFront()
+				if (showBackdrop) {
+					// Register as the new top-most modal; the backdropEffect positions the shared backdrop just
+					// beneath it and gives it focus. Re-add (remove first) so re-showing pushes it back to the top.
+					modalDialogs.remove(this)
+					modalDialogs.add(this)
+					modalRevision.update { it + 1 }
+				} else {
+					toFront()
+				}
 			}
 		}
 	}
@@ -280,6 +316,7 @@ class MetaUiManager : UIManager {
 			window.toFront()
 		}
 		mainMenuBar?.table?.toFront()
+		uiRenderer.getToastManager().toFront()
 	}
 
 	private fun cacheWindow(window: Window, forceClose: Boolean) {
@@ -305,12 +342,15 @@ class MetaUiManager : UIManager {
 		}
 	}
 
-	override fun closeDialog(metaDialog: MetaDialog) {
-		// The backdrop is a single shared actor. Only remove it once NO dialog still needs it, otherwise closing one
-		// of two stacked dialogs would strip the backdrop from the one still open. (metaDialog has usually already
-		// been removed from displayedWindows by super.close() -> closeWindow; the !== guard covers either ordering.)
-		if (displayedWindows.none { it is MetaDialog && it !== metaDialog && it.isVisible }) {
-			backdrop.remove()
+	override fun showToast(message: String): Unit = uiRenderer.getToastManager().show(message)
+
+	override fun showToast(table: Table): Unit = uiRenderer.getToastManager().show(table)
+
+	override fun onDialogRemoved(dialog: MetaDialog) {
+		// Called by MetaDialog the instant it leaves the stage, by ANY path. Drop it from the modal stack and let
+		// backdropEffect re-derive the backdrop's position/presence and move focus to the next dialog down (if any).
+		if (modalDialogs.remove(dialog)) {
+			modalRevision.update { it + 1 }
 		}
 	}
 
@@ -329,12 +369,15 @@ class MetaUiManager : UIManager {
 	}
 
 	override fun dispose() {
+		backdropEffect.dispose()
 		for (window in displayedWindows) {
 			window.remove()
 		}
 		displayedWindows.clear()
 		cachedWindows.clear()
 		hiddenWindows.clear()
+		modalDialogs.clear()
+		topDialog = null
 		backdrop.remove()
 		contentTable.remove()
 		uiRenderer.dispose()

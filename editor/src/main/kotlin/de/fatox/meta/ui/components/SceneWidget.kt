@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import de.fatox.meta.api.graphics.Renderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.shader.EditorSceneRenderer
 import de.fatox.meta.shader.MetaSceneHandle
 import de.fatox.meta.shader.MetaShaderComposer
@@ -17,7 +18,7 @@ class SceneWidget(sceneHandle: MetaSceneHandle) : Widget() {
 
 	init {
 		(renderer as EditorSceneRenderer).sceneHandle = sceneHandle
-		composer.addListener { layout() }
+		composer.changes.subscribe { layout() }
 	}
 
 	override fun layout() {

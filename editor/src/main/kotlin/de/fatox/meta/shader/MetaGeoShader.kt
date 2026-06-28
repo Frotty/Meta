@@ -46,10 +46,10 @@ class MetaGeoShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHandle) {
 		s_diffuseTex = shaderProgram.getUniformLocation("s_diffuseTex")
 		s_normalTex = shaderProgram.getUniformLocation("s_normalTex")
 
-		// FIXME pixmap needs to be disposed
 		val pixmap = Pixmap(1, 1, Pixmap.Format.RGB888)
 		pixmap.drawPixel(0, 0, Color.WHITE.toIntBits())
 		whiteTex = Texture(pixmap)
+		pixmap.dispose() // Texture has uploaded the data; the CPU-side pixmap is no longer needed.
 		emptyNormals = assetProvider["models/empty_n.png"]
 	}
 
