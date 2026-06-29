@@ -21,6 +21,7 @@ import de.fatox.meta.api.NoWindowHandler
 import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.api.extensions.warn
 import de.fatox.meta.api.model.MetaWindowData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
@@ -261,6 +262,18 @@ class MetaUiManager : UIManager {
 		// Dialogs are just Window subtypes, so we show it as usual.
 		return showWindow(dialogClass).apply {
 			if (!preventShowWindow) {
+				// Defense-in-depth for the input contract: a fresh modal should start with NO exclusive grab active.
+				// If one is still set here it means a previous owner (e.g. a key-rebind dialog) leaked it without
+				// popping - a real bug that would otherwise make this dialog's buttons silently dead. Surface it
+				// loudly and reset, rather than hiding it. With disciplined push/pop (pop in onHidden) this never fires.
+				if (metaInput.exclusiveProcessor != null) {
+					log.warn {
+						"Showing dialog ${windowConfig.nameOf(dialogClass)} while an exclusive input processor is still " +
+							"active (${metaInput.exclusiveProcessor}). The previous owner leaked it - it should pop on " +
+							"teardown (MetaDialog.onHidden). Clearing to keep input alive."
+					}
+					metaInput.clearExclusiveProcessors()
+				}
 				show()
 				if (showBackdrop) {
 					// Register as the new top-most modal; the backdropEffect positions the shared backdrop just

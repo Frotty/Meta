@@ -29,7 +29,28 @@ inline fun MetaInputProcessor.addScreenKeyListener(
 }
 
 interface MetaInputProcessor : InputProcessor {
+	/**
+	 * The currently active exclusive input owner (top of the exclusive stack), or `null`. While non-null, ALL input
+	 * is routed to it and the normal screen/global processors (incl. the scene2d stage) are bypassed.
+	 *
+	 * Exclusive ownership is a STACK so a temporary grab (e.g. a key-rebind dialog) can be popped to restore the
+	 * previous owner instead of clobbering it. Prefer [pushExclusiveProcessor]/[popExclusiveProcessor]; the setter is
+	 * kept for convenience (assigning non-null pushes, assigning `null` pops the current top).
+	 *
+	 * IMPORTANT: every push MUST be paired with a pop on teardown through EVERY exit path. A leaked exclusive
+	 * processor swallows all touch input and makes later UI (dialog buttons) silently dead. For dialogs, pop in
+	 * [de.fatox.meta.ui.windows.MetaDialog.onHidden] (runs on every close path), not only in your key handler.
+	 */
 	var exclusiveProcessor: InputProcessor?
+
+	/** Pushes [processor] as the active exclusive input owner. Pair with [popExclusiveProcessor] on teardown. */
+	fun pushExclusiveProcessor(processor: InputProcessor)
+
+	/** Removes [processor] from the exclusive stack (wherever it is), restoring the previous owner. Idempotent. */
+	fun popExclusiveProcessor(processor: InputProcessor): Boolean
+
+	/** Clears the entire exclusive stack. Use as a hard reset (e.g. before a fresh modal) - prefer disciplined pops. */
+	fun clearExclusiveProcessors()
 	val isLeftCtrlDown: Boolean
 	val isRightCtrlDown: Boolean
 	val isLeftShiftDown: Boolean

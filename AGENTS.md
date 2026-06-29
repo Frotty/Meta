@@ -38,6 +38,22 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
 - **Performance:** UI widgets run every frame — no per-frame allocations (no `String.format`, no new lambdas/lists
   in `draw`/`act`/`layout`). Cache and rebuild only on change (see `FPSGraph` for the reused-`StringBuilder` pattern).
 
+## Input & modal-dialog contracts — always clean up global grabs
+A whole class of "the dialog opens but its buttons are dead (no visible cause) and it stays broken" bugs comes from
+**leaked global input state**. Anything that grabs input globally is a contract you MUST release on EVERY exit path.
+- **`MetaInputProcessor.exclusiveProcessor` is a stack.** While non-null it routes ALL input to the top owner and
+  bypasses the scene2d stage — so a leaked one makes every later button silently unresponsive. Use
+  `pushExclusiveProcessor(p)` / `popExclusiveProcessor(p)` (the `var` setter is a convenience: non-null = push,
+  null = pop top). Popping restores the previous owner, so nested grabs work.
+- **Release in `MetaDialog.onHidden()`, not just your success handler.** `onHidden()` runs whenever the dialog
+  leaves the stage by ANY path (button, ESC, click-away, screen change, programmatic). Clearing an exclusive grab
+  (or a global/controller listener, or a focus override) only inside your keyDown/onClick handler leaks it whenever
+  the dialog closes some other way. See `MetaKeyRebindDialog` for the pattern.
+- A lingering `exclusiveProcessor` at the moment a normal modal is shown is itself a **bug signal** (missing pop):
+  `UIManager.showDialog` logs a warning and resets it so input survives — but fix the leak at its source.
+- Same rule for any other global contract you set when showing UI (stage capture listeners, controller listeners,
+  `UiControlHelper` flags, `Gdx.input.inputProcessor`): set it on show, undo it on hide. Don't rely on the happy path.
+
 ## Reactive state — USE THIS, don't reinvent it
 Meta has ONE ground-truth reactivity system (`de.fatox.meta.reactive`). Prefer it over ad-hoc
 observer lists, manual "re-query and rebuild" code, or bespoke listener interfaces.

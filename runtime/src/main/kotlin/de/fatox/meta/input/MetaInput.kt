@@ -18,7 +18,30 @@ class MetaInput : MetaInputProcessor {
 	private val globalScrollListeners = Array<ScrollListener>()
 	private val screenScrollListeners = Array<ScrollListener>()
 
-	override var exclusiveProcessor: InputProcessor? = null
+	// Exclusive input owners as a LIFO stack; the top receives all input. See MetaInputProcessor docs.
+	private val exclusiveProcessors = Array<InputProcessor>()
+	override var exclusiveProcessor: InputProcessor?
+		get() = if (exclusiveProcessors.isEmpty) null else exclusiveProcessors.peek()
+		set(value) {
+			if (value == null) {
+				if (exclusiveProcessors.notEmpty()) exclusiveProcessors.pop()
+			} else {
+				pushExclusiveProcessor(value)
+			}
+		}
+
+	override fun pushExclusiveProcessor(processor: InputProcessor) {
+		exclusiveProcessors.removeValue(processor, true) // avoid duplicates; (re)push to the top
+		exclusiveProcessors.add(processor)
+	}
+
+	override fun popExclusiveProcessor(processor: InputProcessor): Boolean =
+		exclusiveProcessors.removeValue(processor, true)
+
+	override fun clearExclusiveProcessors() {
+		exclusiveProcessors.clear()
+	}
+
 	override var isLeftCtrlDown: Boolean = false
 		private set
 	override var isRightCtrlDown: Boolean = false
