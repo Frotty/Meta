@@ -16,6 +16,17 @@ package de.fatox.meta.reactive
  *    never runs for a derived value that re-evaluated to the same result.
  *  - **Batched effects.** Effects run synchronously after the triggering write; wrap multiple writes in [batch] to
  *    flush dependent effects once.
+ *  - **Cycle-safe.** A run-away feedback loop between effects (A writes a signal that re-triggers B which writes a
+ *    signal that re-triggers A...) is capped per flush: see [maxEffectRunsPerFlush] / [ReactiveCycleException].
+ *    Two milder cases never run away at all: a loop in which *nothing actually changes* is impossible by
+ *    construction (an effect only re-runs when a source's value really changed), and an effect that writes a
+ *    signal it reads itself does not re-trigger *itself* mid-run (it is already marked dirty), so it converges.
+ *
+ * **Lifecycle & disposal:** there is no GC-driven teardown. A live [effect] is kept alive (and keeps the actors it
+ * captures alive) by the signals it observes, so it runs until you [Disposable.dispose] it. Anything created for a
+ * *transient* owner (a screen, a window that is recreated, a temporary view) MUST be disposed with that owner -
+ * register it in a [ReactiveScope] and dispose the scope on the owner's teardown (`Screen.dispose`, window close,
+ * etc.). Effects that live for the whole app (e.g. on a DI singleton) can simply never be disposed.
  *
  * **Threading:** NOT thread-safe - drive it from one thread (in this app, the libGDX GL/render thread). Setting a
  * signal runs its dependent effects synchronously on the calling thread, so as long as writes happen on the GL
@@ -56,8 +67,10 @@ fun <T> computed(equals: (T, T) -> Boolean = { a, b -> a == b }, compute: () -> 
 /**
  * Runs [run] immediately, tracking every signal/computed it reads, then re-runs it whenever any of those change.
  * Use [onCleanup] inside [run] to release resources (listeners, actors) before each re-run and on [dispose].
+ *
+ * @param name optional label used only in diagnostics (e.g. the [ReactiveCycleException] message). Free to omit.
  */
-fun effect(run: () -> Unit): Disposable = EffectNode(run).also { it.runInitial() }
+fun effect(name: String? = null, run: () -> Unit): Disposable = EffectNode(run, name).also { it.runInitial() }
 
 /** Registers a callback to run before the current [effect] re-runs and when it is disposed. No-op outside an effect. */
 fun onCleanup(block: () -> Unit) {
@@ -99,6 +112,53 @@ fun ReactiveValue<*>.subscribe(block: () -> Unit): Disposable {
 	}
 }
 
+/**
+ * Thrown by a signal write (from inside [flushEffects]) when a single effect runs more than [maxEffectRunsPerFlush]
+ * times during one synchronous flush - the signature of a feedback loop between effects. It is a normal exception,
+ * so a game can catch it at its top-level loop / `RestHandler` callback and recover (log, reset state, show a toast)
+ * instead of freezing. The offending effect's [effect] name is included when one was supplied.
+ */
+class ReactiveCycleException(message: String) : RuntimeException(message)
+
+/**
+ * Safety cap: the maximum number of times any one effect may execute within a single flush before a
+ * [ReactiveCycleException] is raised. Generous by default - a healthy effect runs once (occasionally a few times) per
+ * flush - so hitting it means a genuine cycle. Tune per game if you have a legitimate deep cascade.
+ */
+var maxEffectRunsPerFlush: Int = 1000
+
+/**
+ * Owns a set of [Disposable]s (effects, [subscribe]s, nested scopes) and tears them all down together. Use one per
+ * transient lifecycle - a `Screen`, a recreated window, a view - and call [dispose] from that owner's teardown so its
+ * effects stop running and release the actors they captured. Mirrors Angular's "effects die with their context".
+ *
+ * Registering after the scope is already disposed immediately disposes the newcomer, so late async wiring is safe.
+ */
+class ReactiveScope : Disposable {
+	private val disposables = ArrayList<Disposable>()
+	private var disposed = false
+
+	/** Registers [disposable] for later teardown and returns it. */
+	fun <D : Disposable> register(disposable: D): D {
+		if (disposed) disposable.dispose() else disposables.add(disposable)
+		return disposable
+	}
+
+	/** Creates an [effect] owned by this scope. */
+	fun effect(name: String? = null, run: () -> Unit): Disposable = register(de.fatox.meta.reactive.effect(name, run))
+
+	/** [subscribe]s to [value] within this scope. */
+	fun subscribe(value: ReactiveValue<*>, block: () -> Unit): Disposable = register(value.subscribe(block))
+
+	override fun dispose() {
+		if (disposed) return
+		disposed = true
+		// Dispose in reverse so dependents tear down before the things they depend on.
+		for (i in disposables.indices.reversed()) disposables[i].dispose()
+		disposables.clear()
+	}
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Internals
 // ---------------------------------------------------------------------------------------------------------------
@@ -109,6 +169,9 @@ private var currentObserver: ReactiveNode? = null
 private var batchDepth = 0
 private val pendingEffects = ArrayDeque<EffectNode>()
 private var flushing = false
+
+/** Monotonic id of the current flush; effects use it to reset their per-flush run counter (see cycle detection). */
+private var flushId = 0
 
 /**
  * Base for every node. A node can play two roles: a SOURCE (observable - [observers]/[version]) and an OBSERVER
@@ -251,9 +314,13 @@ private class ComputedNode<T>(
 	}
 }
 
-private class EffectNode(private val run: () -> Unit) : ReactiveNode(), Disposable {
+private class EffectNode(private val run: () -> Unit, private val name: String?) : ReactiveNode(), Disposable {
 	private var disposed = false
 	private val cleanups = ArrayList<() -> Unit>()
+
+	// Cycle detection: how many times this effect has executed within the current flush ([flushId]).
+	private var lastFlushId = -1
+	private var runsThisFlush = 0
 
 	fun runInitial() {
 		state = NodeState.DIRTY
@@ -278,9 +345,25 @@ private class EffectNode(private val run: () -> Unit) : ReactiveNode(), Disposab
 	}
 
 	private fun execute() {
+		guardAgainstCycle()
 		runCleanups()
 		runTracked(run)
 		state = NodeState.CLEAN
+	}
+
+	/** Trips when this effect keeps re-executing within one flush - i.e. it is part of a feedback loop. */
+	private fun guardAgainstCycle() {
+		if (lastFlushId != flushId) {
+			lastFlushId = flushId
+			runsThisFlush = 0
+		}
+		if (++runsThisFlush > maxEffectRunsPerFlush) {
+			throw ReactiveCycleException(
+				"Reactive cycle detected: effect '${name ?: "<anonymous>"}' ran $runsThisFlush times in a single " +
+					"flush (limit maxEffectRunsPerFlush=$maxEffectRunsPerFlush). Two or more effects are likely " +
+					"writing signals that re-trigger one another. Name your effects to identify the culprit.",
+			)
+		}
 	}
 
 	private fun runCleanups() {
@@ -300,10 +383,16 @@ private class EffectNode(private val run: () -> Unit) : ReactiveNode(), Disposab
 private fun flushEffects() {
 	if (flushing) return // a write inside an effect just queues more work; the loop below drains it
 	flushing = true
+	flushId++ // new flush: effects reset their per-flush run counters on first execution
 	try {
 		while (pendingEffects.isNotEmpty()) {
 			pendingEffects.removeFirst().updateIfNecessary()
 		}
+	} catch (t: Throwable) {
+		// A cycle (or any effect error) escaped the drain. Drop the rest of the queue so one bad effect can't
+		// leave stale work wedged in the system; the caller is expected to catch and recover.
+		pendingEffects.clear()
+		throw t
 	} finally {
 		flushing = false
 	}

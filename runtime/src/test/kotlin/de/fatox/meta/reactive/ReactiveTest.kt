@@ -3,6 +3,7 @@ package de.fatox.meta.reactive
 import org.junit.jupiter.api.TestInstance
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -436,5 +437,133 @@ internal class ReactiveTest {
 		assertSame(s, ro)
 		s.value = "y"
 		assertEquals("y", ro.value) // the read-only view reflects writes through the signal
+	}
+
+	// ----------------------------------------------------------------------------------------- cycle safety
+
+	@Test
+	fun `a self-feeding effect settles instead of looping forever`() {
+		withMaxRuns(50) {
+			val a = signal(0)
+			// Writing the very signal it reads would seem to loop, but an effect that is mid-run is already
+			// marked dirty and does not reschedule itself, so it runs exactly once rather than freezing.
+			effect("self-feeder") { a.value = a() + 1 }
+			assertEquals(1, a.value)
+		}
+	}
+
+	@Test
+	fun `two effects ping-ponging signals trip the cycle guard`() {
+		withMaxRuns(50) {
+			val a = signal(0)
+			val b = signal(0)
+			effect("A: a-from-b") { a.value = b() + 1 }
+			effect("B: b-from-a") { b.value = a() + 1 }
+			// Creation converges; perturbing the loop makes each effect keep re-triggering the other.
+			val ex = assertFailsWith<ReactiveCycleException> { b.value = 100 }
+			assertTrue(
+				ex.message!!.contains("A:") || ex.message!!.contains("B:"),
+				"message should name the culprit effect",
+			)
+		}
+	}
+
+	@Test
+	fun `the reactive system stays usable after a cycle is caught`() {
+		withMaxRuns(50) {
+			val a = signal(0)
+			val b = signal(0)
+			effect { a.value = b() + 1 }
+			effect { b.value = a() + 1 }
+			assertFailsWith<ReactiveCycleException> { b.value = 100 }
+
+			// A fresh, well-behaved graph still works (the queue was cleared and the flushing flag reset).
+			val c = signal(1)
+			var seen = 0
+			effect { seen = c() }
+			assertEquals(1, seen)
+			c.value = 2
+			assertEquals(2, seen)
+		}
+	}
+
+	@Test
+	fun `a legitimate multi-step cascade does not trip the guard`() {
+		withMaxRuns(50) {
+			val a = signal(0)
+			val b = signal(0)
+			val c = signal(0)
+			effect { b.value = a() + 1 } // a -> b
+			effect { c.value = b() + 1 } // b -> c (chain, not a loop)
+			var result = 0
+			effect { result = c() }
+
+			a.value = 10
+			assertEquals(12, result) // 10 -> 11 -> 12, each effect ran once
+		}
+	}
+
+	// ----------------------------------------------------------------------------------------- ReactiveScope
+
+	@Test
+	fun `scope disposes every registered subscription at once`() {
+		val s = signal(0)
+		val scope = ReactiveScope()
+		var effectRuns = 0
+		var subRuns = 0
+		scope.effect { s(); effectRuns++ }
+		scope.subscribe(s) { subRuns++ }
+
+		s.value = 1
+		assertEquals(2, effectRuns)
+		assertEquals(1, subRuns)
+
+		scope.dispose()
+		s.value = 2
+		assertEquals(2, effectRuns) // both torn down
+		assertEquals(1, subRuns)
+	}
+
+	@Test
+	fun `registering in an already-disposed scope disposes immediately`() {
+		val scope = ReactiveScope()
+		scope.dispose()
+
+		val s = signal(0)
+		var runs = 0
+		scope.effect { s(); runs++ }
+		assertEquals(1, runs) // the effect's initial run already happened, but it is then disposed
+
+		s.value = 1
+		assertEquals(1, runs) // no further runs
+	}
+
+	@Test
+	fun `disposing a scope does not affect effects outside it`() {
+		val s = signal(0)
+		val scope = ReactiveScope()
+		var inside = 0
+		var outside = 0
+		scope.effect { s(); inside++ }
+		effect { s(); outside++ }
+
+		s.value = 1
+		assertEquals(2, inside)
+		assertEquals(2, outside)
+
+		scope.dispose()
+		s.value = 2
+		assertEquals(2, inside) // stopped
+		assertEquals(3, outside) // still live
+	}
+
+	private inline fun withMaxRuns(limit: Int, block: () -> Unit) {
+		val previous = maxEffectRunsPerFlush
+		maxEffectRunsPerFlush = limit
+		try {
+			block()
+		} finally {
+			maxEffectRunsPerFlush = previous
+		}
 	}
 }

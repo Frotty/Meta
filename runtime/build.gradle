@@ -18,6 +18,9 @@ dependencies {
 	testImplementation "org.junit.jupiter:junit-jupiter:$junit5Version"
 	testImplementation "org.junit.jupiter:junit-jupiter-params:$junit5Version"
 	testImplementation "org.junit.jupiter:junit-jupiter-api:$junit5Version"
+	// Headless libGDX backend (+ native libs) so scene2d layout (Table/Cell) can be exercised in plain unit tests.
+	testImplementation "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
+	testRuntimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
 }
 
 tasks {
