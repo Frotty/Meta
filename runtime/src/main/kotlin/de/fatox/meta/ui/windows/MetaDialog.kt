@@ -91,6 +91,14 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 		}
 	}
 
+	override fun close() {
+		// Leave the modal layer immediately so the shared backdrop repositions/clears NOW, instead of lingering over
+		// this (about-to-be-invisible) dialog for the whole close fade-out. setStage(null) is still the catch-all for
+		// any other disposal path. onDialogRemoved is idempotent, so the later setStage call is a harmless no-op.
+		uiManager.onDialogRemoved(this)
+		super.close()
+	}
+
 	init {
 		if (hasCloseButton) {
 			val btn = titleTable.cells[titleTable.cells.size - 1].actor

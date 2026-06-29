@@ -81,7 +81,10 @@ class MetaUiManager : UIManager {
 	 */
 	private val backdropEffect: Disposable = effect {
 		modalRevision() // subscribe
-		val top = modalDialogs.lastOrNull { it.stage != null }
+		// Only a dialog that is actually on stage AND visible should hold the input-blocking backdrop up. A dialog
+		// being hidden (isVisible=false during a close fade, or hidden by other windows) must not keep the shield
+		// over whatever is beneath it.
+		val top = modalDialogs.lastOrNull { it.stage != null && it.isVisible }
 		val topStage = top?.stage
 		if (top != null && topStage != null) {
 			top.toFront()
