@@ -26,6 +26,10 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 import de.fatox.meta.Meta
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.error
+
+private val log = MetaLoggerFactory.logger {}
 
 /**
  *
@@ -134,13 +138,15 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	}
 
 	private fun checkError(error: Int) {
-		when (error) {
-			GL20.GL_INVALID_ENUM -> System.err.println("Invalid enum")
-			GL20.GL_INVALID_VALUE -> System.err.println("Invalid val")
-			GL20.GL_INVALID_OPERATION -> System.err.println("Invalid op")
-			GL20.GL_INVALID_FRAMEBUFFER_OPERATION -> System.err.println("Invalid fbo op")
-			GL20.GL_OUT_OF_MEMORY -> System.err.println("Out of memory")
+		val message = when (error) {
+			GL20.GL_INVALID_ENUM -> "invalid enum"
+			GL20.GL_INVALID_VALUE -> "invalid value"
+			GL20.GL_INVALID_OPERATION -> "invalid operation"
+			GL20.GL_INVALID_FRAMEBUFFER_OPERATION -> "invalid framebuffer operation"
+			GL20.GL_OUT_OF_MEMORY -> "out of memory"
+			else -> return
 		}
+		log.error { "GL framebuffer error: $message" }
 	}
 
 	/**

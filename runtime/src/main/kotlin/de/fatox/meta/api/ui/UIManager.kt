@@ -18,6 +18,8 @@ import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.reactive.ReactiveValue
+import de.fatox.meta.ui.bindDisabled
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaWindow
 import kotlin.reflect.KClass
@@ -127,8 +129,16 @@ interface UIManager : Disposable {
 
 	val currentlyActiveWindows: Array<Window>
 	val windowConfig: WindowConfig
-	val preventShowWindowObservers: Array<(Boolean) -> Unit>
+
+	/**
+	 * Reactive flag that is true while showing new windows is suppressed (a modal flow is active). Bind UI to it,
+	 * e.g. `actor.bindDisabled { uiManager.preventShowWindowState() }`, instead of registering an observer.
+	 */
+	val preventShowWindowState: ReactiveValue<Boolean>
 	val preventShowWindow: Boolean
+
+	@Deprecated("Bind to preventShowWindowState instead, e.g. actor.bindDisabled { uiManager.preventShowWindowState() }.")
+	val preventShowWindowObservers: Array<(Boolean) -> Unit>
 
 	val screenConfig: ScreenConfig
 
@@ -156,7 +166,7 @@ inline fun <reified W : MetaWindow> UIManager.showWindowOnClick(
 	button: Int = Input.Buttons.LEFT,
 	crossinline config: W.() -> Unit = {},
 ): Actor {
-	if (actor is Disableable) preventShowWindowObservers.add { actor.isDisabled = it }
+	if (actor is Disableable) actor.bindDisabled { preventShowWindowState.value }
 	actor.addListener(object : ClickListener(button) {
 		override fun clicked(event: InputEvent, x: Float, y: Float) {
 			showWindow(config)
@@ -170,7 +180,7 @@ inline fun <reified D : MetaDialog> UIManager.showDialogOnClick(
 	button: Int = Input.Buttons.LEFT,
 	crossinline config: D.() -> Unit = {},
 ): Actor {
-	if (actor is Disableable) preventShowWindowObservers.add { actor.isDisabled = it }
+	if (actor is Disableable) actor.bindDisabled { preventShowWindowState.value }
 	actor.addListener(object : ClickListener(button) {
 		override fun clicked(event: InputEvent, x: Float, y: Float) {
 			showDialog(config)

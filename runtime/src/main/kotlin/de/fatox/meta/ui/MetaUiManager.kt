@@ -31,11 +31,12 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.MetaDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.Disposable
+import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.reactive.effect
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.windows.MetaDialog
 import java.io.File
-import kotlin.properties.Delegates
 import kotlin.reflect.KClass
 
 private val log = MetaLoggerFactory.logger {}
@@ -103,10 +104,15 @@ class MetaUiManager : UIManager {
 		// Dialogs were just (re)fronted; keep toasts above them.
 		uiRenderer.getToastManager().toFront()
 	}
-	override var preventShowWindow: Boolean by Delegates.observable(false) { _, _, newValue ->
-		preventShowWindowObservers.forEach { it(newValue) }
-	}
-		private set
+	private val preventShowWindowSignal = signal(false)
+	override val preventShowWindowState: ReactiveValue<Boolean> get() = preventShowWindowSignal
+	override var preventShowWindow: Boolean
+		get() = preventShowWindowSignal.value
+		private set(value) {
+			preventShowWindowSignal.value = value
+		}
+
+	@Deprecated("Bind to preventShowWindowState instead, e.g. actor.bindDisabled { uiManager.preventShowWindowState() }.")
 	override val preventShowWindowObservers: Array<(Boolean) -> Unit> = Array()
 	private val hiddenWindows = Array<Window>()
 
@@ -407,5 +413,13 @@ class MetaUiManager : UIManager {
 			setFillParent(true)
 		}
 		uiRenderer.addActor(contentTable)
+
+		// Legacy bridge: drive the deprecated preventShowWindowObservers from the signal (fires on change only),
+		// so old observer-list consumers keep working while new code binds to preventShowWindowState.
+		@Suppress("DEPRECATION")
+		preventShowWindowSignal.subscribe {
+			val value = preventShowWindowSignal.peek()
+			for (i in 0 until preventShowWindowObservers.size) preventShowWindowObservers[i](value)
+		}
 	}
 }

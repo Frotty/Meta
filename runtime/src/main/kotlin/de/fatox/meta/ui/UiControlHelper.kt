@@ -17,6 +17,9 @@ import de.fatox.meta.api.addGlobalKeyListener
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.input.KeyListener
+import de.fatox.meta.reactive.ReactiveValue
+import de.fatox.meta.reactive.effect
+import de.fatox.meta.reactive.signal
 import kotlin.math.absoluteValue
 import kotlin.math.sqrt
 
@@ -34,8 +37,11 @@ import kotlin.math.sqrt
 class UiControlHelper {
 	private val metaInput: MetaInputProcessor by lazyInject()
 	private val metaUIRenderer: UIRenderer by lazyInject()
-	private val focusListeners = mutableListOf<(Actor?) -> Unit>()
-	private var focusedActor: Actor? = null
+	private val focusedActorSignal = signal<Actor?>(null) { a, b -> a === b }
+
+	/** The widget currently focused by keyboard/controller navigation, as a reactive value (read it in an effect). */
+	val focusedActor: ReactiveValue<Actor?> get() = focusedActorSignal
+
 	private val clickPosition = Vector2()
 
 	// Whether we are actively controlling UI focus
@@ -60,116 +66,46 @@ class UiControlHelper {
 			scrollIfNeeded(value)
 		}
 
+	@Deprecated("Read focusedActor (a ReactiveValue) inside an effect instead.")
 	fun addFocusListener(listener: (Actor?) -> Unit): () -> Unit {
-		focusListeners.add(listener)
-		listener(focusedActor)
-		return { focusListeners.remove(listener) }
+		// Bridge the old listener API onto the signal: fires immediately with the current value and on each change.
+		val handle = effect { listener(focusedActorSignal.value) }
+		return handle::dispose
 	}
 
 	private fun setFocusedActor(actor: Actor?) {
-		if (focusedActor === actor) return
-		focusedActor = actor
+		if (focusedActorSignal.peek() === actor) return
 		metaUIRenderer.setFocusedActor(actor)
-		focusListeners.toList().forEach { it(actor) }
+		focusedActorSignal.value = actor // notifies any effect observing focusedActor (incl. legacy bridges)
 	}
 
 	// We gather potential navigation targets from the parent's hierarchy
 	private var targets = Array<Actor>()
 
+	/** Registers a held-repeating navigation key that moves focus via [navigate] while [activated] and [canMove]. */
+	private fun addNavKey(keycode: Int, navigate: () -> Actor) {
+		metaInput.addGlobalKeyListener(keycode, 0, object : KeyListener() {
+			override fun onDown() {
+				// Repeat while held down.
+				task = Timer.schedule(object : Timer.Task() {
+					override fun run() {
+						if (Gdx.input.isKeyPressed(keycode)) onEvent() else cancel()
+					}
+				}, 0.4f, 0.2f)
+			}
+
+			override fun onEvent() {
+				if (activated && canMove) selectedActor = navigate()
+			}
+		})
+	}
+
 	init {
-		// Arrow listeners to move focus
-		metaInput.addGlobalKeyListener(
-			Input.Keys.RIGHT, 0,
-			object: KeyListener() {
-				override fun onDown() {
-					// Repeat if held down
-					task = Timer.schedule(object : Timer.Task() {
-						override fun run() {
-							if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-								onEvent()
-							} else {
-								cancel()
-							}
-						}
-					}, 0.4f, 0.2f)
-				}
-
-				override fun onEvent() {
-					if (activated && canMove) {
-						selectedActor = getNextX(left = false)
-					}
-				}
-			}
-		)
-
-		metaInput.addGlobalKeyListener(
-			Input.Keys.LEFT, 0,
-			object: KeyListener() {
-				override fun onDown() {
-					task = Timer.schedule(object : Timer.Task() {
-						override fun run() {
-							if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-								onEvent()
-							} else {
-								cancel()
-							}
-						}
-					}, 0.4f, 0.2f)
-				}
-
-				override fun onEvent() {
-					if (activated && canMove) {
-						selectedActor = getNextX(left = true)
-					}
-				}
-			}
-		)
-
-		metaInput.addGlobalKeyListener(
-			Input.Keys.DOWN, 0,
-			object: KeyListener() {
-				override fun onDown() {
-					task = Timer.schedule(object : Timer.Task() {
-						override fun run() {
-							if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-								onEvent()
-							} else {
-								cancel()
-							}
-						}
-					}, 0.4f, 0.2f)
-				}
-
-				override fun onEvent() {
-					if (activated && canMove) {
-						selectedActor = getNextY(up = false)
-					}
-				}
-			}
-		)
-
-		metaInput.addGlobalKeyListener(
-			Input.Keys.UP, 0,
-			object: KeyListener() {
-				override fun onDown() {
-					task = Timer.schedule(object : Timer.Task() {
-						override fun run() {
-							if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-								onEvent()
-							} else {
-								cancel()
-							}
-						}
-					}, 0.4f, 0.2f)
-				}
-
-				override fun onEvent() {
-					if (activated && canMove) {
-						selectedActor = getNextY(up = true)
-					}
-				}
-			}
-		)
+		// Arrow listeners to move focus.
+		addNavKey(Input.Keys.RIGHT) { getNextX(left = false) }
+		addNavKey(Input.Keys.LEFT) { getNextX(left = true) }
+		addNavKey(Input.Keys.DOWN) { getNextY(up = false) }
+		addNavKey(Input.Keys.UP) { getNextY(up = true) }
 
 		// Simulate clicking the selectedActor on ENTER
 		metaInput.addGlobalKeyListener(Input.Keys.ENTER) {

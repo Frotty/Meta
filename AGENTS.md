@@ -15,7 +15,7 @@ Changes here affect multiple projects, so compatibility and runtime behavior sta
 - Dependency injection container: `runtime/src/main/kotlin/de/fatox/meta/injection/MetaInject.kt`
 - UI/window registry APIs: `runtime/src/main/kotlin/de/fatox/meta/api/ui/UIManager.kt`
 - Data persistence/metadata: `runtime/src/main/kotlin/de/fatox/meta/assets/MetaData.kt`
-- Reactive state core: `runtime/src/main/kotlin/de/fatox/meta/reactive/Reactive.kt` (+ `ReactiveScene2d.kt` bindings)
+- Reactive state core: `runtime/src/main/kotlin/de/fatox/meta/reactive/Reactive.kt`; widget bindings: `ui/MetaBind.kt`
 - UI toolkit: `runtime/src/main/kotlin/de/fatox/meta/ui/components/` (TTF widgets), `ui/MetaUi.kt` (design tokens),
   `ui/layout/MetaLayout.kt` (layout checks)
 
@@ -62,8 +62,11 @@ observer lists, manual "re-query and rebuild" code, or bespoke listener interfac
   `value.subscribe { }` (listener shape), `onCleanup { }`.
 - **Do NOT** add new `MetaNotifier`-style classes or hand-rolled `addListener/notifyListeners`
   pairs. That pattern was removed; model the state as a `signal`/`computed` and let consumers
-  `effect`/`subscribe`. UI that mirrors state should bind via `ReactiveScene2d.kt`
-  (`label.bindText { }`, `actor.bindVisible { }`, `disableable.bindDisabled { }`).
+  `effect`/`subscribe`. UI that mirrors state should bind via `ui/MetaBind.kt` — these work with the Meta TTF
+  widgets (`metaLabel.bindText { }`, `metaButton.bindText { }`) as well as generic scene2d (`actor.bindVisible { }`,
+  `actor.bindColor { }`, `disableable.bindDisabled { }`). Own each binding in a `ReactiveScope` (scope-owned
+  overloads like `scope.bindText(label) { }`) and dispose the scope on teardown. Use a binding when one widget
+  property tracks one piece of state; use `signal.subscribe { rebuildSection() }` for coarse "rebuild on change".
 - **Lifecycle is manual.** An `effect` lives until disposed and keeps captured actors alive.
   For anything tied to a transient owner (a `Screen`, a recreated window/view), create it through a
   `ReactiveScope` and `dispose()` that scope on teardown. App-lifetime effects on a DI singleton
