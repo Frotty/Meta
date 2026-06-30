@@ -67,10 +67,13 @@ observer lists, manual "re-query and rebuild" code, or bespoke listener interfac
   `actor.bindColor { }`, `disableable.bindDisabled { }`). Own each binding in a `ReactiveScope` (scope-owned
   overloads like `scope.bindText(label) { }`) and dispose the scope on teardown. Use a binding when one widget
   property tracks one piece of state; use `signal.subscribe { rebuildSection() }` for coarse "rebuild on change".
-- **Lifecycle is manual.** An `effect` lives until disposed and keeps captured actors alive.
-  For anything tied to a transient owner (a `Screen`, a recreated window/view), create it through a
-  `ReactiveScope` and `dispose()` that scope on teardown. App-lifetime effects on a DI singleton
-  may simply never be disposed. scene2d has no "removed" callback — don't rely on GC.
+- **Lifecycle: prefer the auto-disposing window scope.** Every `MetaWindow`/`MetaDialog` exposes a
+  `reactiveScope` that is opened on show and disposed on hide. Create per-presentation bindings inside the
+  `onShown()` hook (e.g. `reactiveScope.bindText(label) { someSignal() }`) and they tear down automatically on
+  `onRemovedFromStage()` — the window can be shown/hidden/re-shown without leaking. Do NOT bind in `init`.
+  For other transient owners (a `Screen`, a non-window view) make your own `ReactiveScope` and `dispose()` it on
+  teardown. App-lifetime effects on a DI singleton may simply never be disposed. An undisposed `effect` keeps the
+  actors it captured alive — scene2d has no GC-driven "removed" callback, so disposal is on you.
 - **Threading:** drive it from the GL/render thread only (it is not thread-safe). Dispatch async
   callbacks onto that thread before writing signals.
 - **Cycle safety:** a feedback loop between effects is capped per flush
@@ -81,10 +84,45 @@ observer lists, manual "re-query and rebuild" code, or bespoke listener interfac
   for exact semantics, and add cases when you extend the core.
 
 ## Performance posture (game-engine focused)
-- Prefer libGDX-native collections and buffers in hot paths (`Array`, `ObjectMap`, `IntMap`, `CharArray`, pools).
-- Avoid avoidable allocations in render/update/input loops and UI redraw paths.
-- Reuse mutable temp objects where safe; avoid per-frame lambdas/streams/temporary strings in critical loops.
-- For text buffering in hot code, prefer libGDX `CharArray` over allocation-heavy patterns.
+This is a **garbage-collected (JVM)** runtime rendering every frame. The dominant, *controllable* performance lever
+here is **allocation rate** — minimize GC churn; most other micro-optimizations are not worth it (see below).
+- **No per-frame allocation in hot paths** (`render`/`act`/`draw`/`layout`/input handlers, and UI redraw). That means:
+  no `String.format`/string concatenation, no `+`/`map`/`filter`/`forEach` that boxes or allocates iterators/lambdas,
+  no `new` temp objects. Build strings into a reused `StringBuilder` and rebuild only when a displayed value changes
+  (see `FPSGraph`). Reuse mutable temps (`Vector2`, `Color`, layout scratch) — keep them as fields, not locals.
+- **Use libGDX-native collections** (`Array`, `ObjectMap`, `IntMap`, `Pool`, `CharArray`) over the Kotlin/Java stdlib
+  in hot code: they avoid boxing and let you control growth. `Pool` mutable objects you'd otherwise allocate per frame.
+- **Beware hidden allocations:** Kotlin lambdas that capture, `for (x in gdxArray)` iterators (the codebase suppresses
+  `GDXKotlinUnsafeIterator` and reuses iterators), autoboxing of `Int`/`Float` into generic collections, varargs.
+- **Don't chase what the JVM hides from you.** Cache-line layout, struct packing, manual SIMD, branch-elimination etc.
+  are largely out of reach on the JVM (objects are boxed/scattered, the JIT decides) — spending effort there is mostly
+  wasted. Spend it on: fewer allocations, fewer draw calls / batches, fewer scene2d invalidations, and algorithmic wins.
+- The reactive core is allocation-light by design (effects re-run only on real change); still, don't create signals/
+  effects per frame — wire them once.
+
+## Platform & dependency notes (libGDX / LWJGL3 / Kotlin)
+- **Desktop backend is LWJGL3** and carries real quirks — prefer Meta wrappers over poking GLFW directly, and when you
+  must, document the workaround:
+  - **Borderless / fullscreen:** use libGDX `Graphics` APIs (`setFullscreenMode`/`setWindowedMode`); borderless is a
+    windowed mode sized to the monitor, not true exclusive fullscreen. Mode switches can drop the GL context — reload
+    GL-resident resources (textures/FBOs/fonts) and re-layout on resize. Persist window size/pos and restore on launch.
+  - **Multi-monitor / DPI:** monitor coordinates are virtual-desktop relative and HiDPI scaling differs per OS — never
+    hardcode pixel sizes; drive layout off `Graphics` viewport values (the `ScreenViewport` already does).
+  - **HiDPI UI scaling is automatic.** `UIRenderer` seeds a global `uiScale` from the display (`suggestedUiScale()`)
+    so controls aren't tiny on 4K/Retina — every consumer gets it for free. It's a reactive `Signal<Float>`: a game's
+    settings slider can bind to `uiRenderer.uiScale` (persist the user's choice and set it on boot) and the whole UI
+    re-scales live. Because of this, size widgets in UI units (not raw pixels) and never read `Gdx.graphics` pixels for
+    layout.
+  - **Startup:** a separate splash/loading window before the GL window can race the main window/context — gate UI work
+    on the GL thread and on assets actually being loaded. Heavy work off the GL thread must hop back via
+    `Gdx.app.postRunnable` before touching GL/scene2d.
+  - **Input:** route through `MetaInputProcessor` (exclusive-grab stack, key/scroll listeners); don't set
+    `Gdx.input.inputProcessor` directly or you'll bypass Meta's contracts.
+- **Kotlin / libktx stance:** Meta is an *alternative* to libktx, not a companion — don't add the libktx dependency.
+  Its modules overlap Meta's own opinionated layer (ktx-scene2d vs the Meta widgets/`MetaBind`, ktx-async vs the
+  reactive core, KTX DI vs `MetaInject`), and pulling it in gives agents two ways to do everything (worse
+  digestibility) plus a dependency we don't control. If a specific, stable libktx utility is genuinely missing here,
+  port the small piece into the right `de.fatox.meta.*` package rather than taking the whole library.
 
 ## What belongs here vs. in a consuming game
 Goal: consumer repos (e.g. OxRox) hold *game* code; anything generic and reusable across games lives in Meta.

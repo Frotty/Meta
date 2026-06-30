@@ -130,6 +130,11 @@ interface UIManager : Disposable {
 	val currentlyActiveWindows: Array<Window>
 	val windowConfig: WindowConfig
 
+	/** UI surface size in UI units (DPI-scaled). Use these to place/size windows - not `Gdx.graphics.width/height`,
+	 *  which are physical pixels and will be wrong on HiDPI (off by the active `uiScale`). */
+	val uiWidth: Float
+	val uiHeight: Float
+
 	/**
 	 * Reactive flag that is true while showing new windows is suppressed (a modal flow is active). Bind UI to it,
 	 * e.g. `actor.bindDisabled { uiManager.preventShowWindowState() }`, instead of registering an observer.

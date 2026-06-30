@@ -2,6 +2,7 @@ package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
@@ -16,6 +17,7 @@ import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.reactive.ReactiveScope
 
 /**
  * Created by Frotty on 08.05.2016.
@@ -30,6 +32,15 @@ abstract class MetaWindow(
 	protected val metaData: MetaData by lazyInject()
 
 	var contentTable: Table = VisTable()
+
+	/**
+	 * Reactive bindings owned by this window's current on-screen presentation. Create bindings/effects here inside
+	 * [onShown] (e.g. `reactiveScope.bindText(label) { someSignal() }`); they are disposed automatically in
+	 * [onRemovedFromStage], so a window can be shown, hidden and re-shown without leaking effects or firing them on a
+	 * hidden widget. Do NOT use it from `init` - those run once at construction, before the window is on a stage.
+	 */
+	protected var reactiveScope: ReactiveScope = ReactiveScope()
+		private set
 
 	private var startDrag = false
 
@@ -114,4 +125,27 @@ abstract class MetaWindow(
 		super.close()
 		uiManager.closeWindow(this)
 	}
+
+	/**
+	 * Drives the presentation lifecycle off scene2d's single detach/attach signal (every add/remove path goes through
+	 * `setStage`). On attach we (re)open [reactiveScope] and call [onShown]; on detach we call [onRemovedFromStage]
+	 * and dispose the scope, tearing down every binding created during this presentation.
+	 */
+	override fun setStage(stage: Stage?) {
+		val wasOnStage = this.stage != null
+		super.setStage(stage)
+		if (stage != null && !wasOnStage) {
+			if (reactiveScope.isDisposed) reactiveScope = ReactiveScope()
+			onShown()
+		} else if (wasOnStage && stage == null) {
+			onRemovedFromStage()
+			reactiveScope.dispose()
+		}
+	}
+
+	/** Called when this window is attached to the stage (shown). Create reactive bindings in [reactiveScope] here. */
+	protected open fun onShown() {}
+
+	/** Called once when this window is detached from the stage by ANY path (close, screen change, direct remove). */
+	protected open fun onRemovedFromStage() {}
 }

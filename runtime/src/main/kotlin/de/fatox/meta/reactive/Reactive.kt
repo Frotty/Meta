@@ -138,6 +138,9 @@ class ReactiveScope : Disposable {
 	private val disposables = ArrayList<Disposable>()
 	private var disposed = false
 
+	/** True once [dispose] has run; a disposed scope immediately disposes anything newly [register]ed. */
+	val isDisposed: Boolean get() = disposed
+
 	/** Registers [disposable] for later teardown and returns it. */
 	fun <D : Disposable> register(disposable: D): D {
 		if (disposed) disposable.dispose() else disposables.add(disposable)

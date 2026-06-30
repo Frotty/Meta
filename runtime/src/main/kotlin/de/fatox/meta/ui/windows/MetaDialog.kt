@@ -2,7 +2,6 @@ package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.Group
-import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
@@ -78,17 +77,13 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 	protected open fun onHidden() {}
 
 	/**
-	 * Single robust hook for detachment: scene2d routes every removal path - [close], a parent's `clearChildren`, a
-	 * direct [remove], a screen change - through `setStage(null)`. Tying teardown to it (rather than only to
-	 * [close]) guarantees the shared backdrop and any listener state are reset no matter how the dialog goes away.
+	 * Detachment teardown, via [MetaWindow.onRemovedFromStage] (which fires on every removal path - close, a parent's
+	 * `clearChildren`, a direct remove, a screen change). This guarantees the shared backdrop and any listener state
+	 * are reset no matter how the dialog goes away. ([reactiveScope] is disposed by the base class right after this.)
 	 */
-	override fun setStage(stage: Stage?) {
-		val wasOnStage = this.stage != null
-		super.setStage(stage)
-		if (wasOnStage && stage == null) {
-			onHidden()
-			uiManager.onDialogRemoved(this)
-		}
+	override fun onRemovedFromStage() {
+		onHidden()
+		uiManager.onDialogRemoved(this)
 	}
 
 	override fun close() {

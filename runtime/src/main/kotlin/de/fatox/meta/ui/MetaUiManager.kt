@@ -1,6 +1,5 @@
 package de.fatox.meta.ui
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
@@ -90,7 +89,7 @@ class MetaUiManager : UIManager {
 		val topStage = top?.stage
 		if (top != null && topStage != null) {
 			top.toFront()
-			backdrop.setSize(Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
+			backdrop.setSize(topStage.width, topStage.height) // UI units (stage world), not physical pixels
 			backdrop.remove()
 			topStage.root.addActorBefore(top, backdrop)
 		} else {
@@ -122,13 +121,16 @@ class MetaUiManager : UIManager {
 
 	override val screenConfig: ScreenConfig by lazyInject()
 
+	override val uiWidth: Float get() = uiRenderer.uiWidth
+	override val uiHeight: Float get() = uiRenderer.uiHeight
+
 	override fun moveWindow(x: Int, y: Int) {
 		windowHandler.modify(x, y)
 	}
 
 	override fun resize(width: Int, height: Int) {
 		uiRenderer.resize(width, height)
-		if (backdrop.hasParent()) backdrop.setSize(width.toFloat(), height.toFloat())
+		if (backdrop.hasParent()) backdrop.setSize(uiRenderer.uiWidth, uiRenderer.uiHeight)
 		for(i in 0 until displayedWindows.size) {
 			if (displayedWindows[i] is MetaDialog) {
 				(displayedWindows[i] as MetaDialog).centerWindow()
