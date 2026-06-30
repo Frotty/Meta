@@ -96,8 +96,8 @@ inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
  */
 interface UIManager : Disposable {
 	companion object {
-		const val DEFAULT_TOAST_SECONDS = 1.8f
-		const val IMPORTANT_TOAST_SECONDS = 2.6f
+		const val DEFAULT_TOAST_SECONDS = 3.5f
+		const val IMPORTANT_TOAST_SECONDS = 5f
 		const val ACTION_TOAST_SECONDS = 90f
 	}
 
