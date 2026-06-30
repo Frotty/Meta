@@ -75,7 +75,12 @@ class MetaFontProvider : FontProvider {
 			FontType.BOLD -> boldGenerator
 			FontType.MONO -> monoGenerator
 		}).generateFont(defaultFontParam(physicalSize))
-		if (scale != 1f) font.data.setScale(1f / scale)
+		if (scale != 1f) {
+			font.data.setScale(1f / scale)
+			// A scaled BitmapFont MUST use sub-pixel positions, else glyphs are rounded in logical space and land
+			// between physical pixels after the viewport scales up -> blur + uneven spacing ("bad kerning").
+			font.setUseIntegerPositions(false)
+		}
 		return font
 	}
 

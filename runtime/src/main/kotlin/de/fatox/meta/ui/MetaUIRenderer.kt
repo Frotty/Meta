@@ -49,7 +49,9 @@ fun suggestedUiScale(): Float {
 	// density ≈ ppi/160 on libGDX desktop, so density/0.6 ≈ ppi/96. <=0 means the monitor reported no size → no scale.
 	val ppiScale = if (g.density > 0f) g.density / 0.6f else contentScale
 	val raw = if (contentScale > 0f) ppiScale / contentScale else ppiScale
-	return ((raw * 4f).roundToInt() / 4f).coerceIn(0.75f, 2.5f)
+	// Never go below 1.0: downscaling the UI blurs AND shrinks it. On OS-scaled displays (e.g. Windows 125/150%)
+	// the compositor already enlarged things, so 1.0 is correct there; only HiDPI-at-100% needs a bump.
+	return ((raw * 4f).roundToInt() / 4f).coerceIn(1f, 2.5f)
 }
 
 class MetaUIRenderer : UIRenderer {
@@ -101,6 +103,11 @@ class MetaUIRenderer : UIRenderer {
 		uiScale.subscribe { applyViewport(Gdx.graphics.width, Gdx.graphics.height) }
 		uiScale.value = suggestedUiScale()
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
+		val g = Gdx.graphics
+		log.debug {
+			"UI scale = ${uiScale.value} | logical ${g.width}x${g.height} | backbuffer ${g.backBufferWidth}x" +
+				"${g.backBufferHeight} | contentScale ${g.backBufferWidth.toFloat() / g.width} | density ${g.density}"
+		}
 	}
 
 	private fun loadVisUI() {
