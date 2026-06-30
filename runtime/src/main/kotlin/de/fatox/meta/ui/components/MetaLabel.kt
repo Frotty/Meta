@@ -263,9 +263,20 @@ class MetaLabel @JvmOverloads constructor(
 
 	private fun updateFont() {
 		font = metaFontProvider.getFont(size.roundToInt(), type)
+		adoptFontBaseScale()
 		setText(text)
 		bitmapFontCache = font.newFontCache()
 		layout()
+	}
+
+	/**
+	 * The font provider hands back HiDPI fonts pre-scaled (rasterized at physical pixels, `data.setScale(1/uiScale)`)
+	 * so they stay crisp. Adopt that scale as our baseline so [layout] doesn't reset it back to 1.0 and re-blur/grow
+	 * the text. At UI scale 1.0 the font scale is 1.0, so this is a no-op.
+	 */
+	private fun adoptFontBaseScale() {
+		fontScaleX = font.scaleX
+		fontScaleY = font.scaleY
 	}
 
 	fun setFontSize(size: Int) {
@@ -300,6 +311,7 @@ class MetaLabel @JvmOverloads constructor(
 
 	init {
 		font = metaFontProvider.getFont(size!!, type)
+		adoptFontBaseScale()
 		setAlignment(Align.center)
 		fontColor = color
 		setText(text)
