@@ -95,6 +95,12 @@ inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
  * Created by Frotty on 20.05.2016.
  */
 interface UIManager : Disposable {
+	companion object {
+		const val DEFAULT_TOAST_SECONDS = 1.8f
+		const val IMPORTANT_TOAST_SECONDS = 2.6f
+		const val ACTION_TOAST_SECONDS = 90f
+	}
+
 	var windowHandler: WindowHandler
 	fun moveWindow(x: Int, y: Int)
 	fun resize(width: Int, height: Int)
@@ -122,10 +128,13 @@ interface UIManager : Disposable {
 	fun onDialogRemoved(dialog: MetaDialog)
 
 	/** Shows a transient toast notification that always renders above windows, dialogs and the modal backdrop. */
-	fun showToast(message: String)
+	fun showToast(message: String, duration: Float = DEFAULT_TOAST_SECONDS)
 
 	/** Shows a custom [Table] as a toast that always renders above windows, dialogs and the modal backdrop. */
-	fun showToast(table: Table)
+	fun showToast(table: Table, duration: Float = DEFAULT_TOAST_SECONDS)
+
+	/** Clears all visible toast notifications. Use sparingly, mainly when an actionable toast was accepted. */
+	fun clearToasts()
 
 	val currentlyActiveWindows: Array<Window>
 	val windowConfig: WindowConfig

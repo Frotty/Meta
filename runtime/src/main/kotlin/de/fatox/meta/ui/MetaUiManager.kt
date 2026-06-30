@@ -366,9 +366,11 @@ class MetaUiManager : UIManager {
 		}
 	}
 
-	override fun showToast(message: String): Unit = uiRenderer.getToastManager().show(message)
+	override fun showToast(message: String, duration: Float): Unit = uiRenderer.getToastManager().show(message, duration)
 
-	override fun showToast(table: Table): Unit = uiRenderer.getToastManager().show(table)
+	override fun showToast(table: Table, duration: Float): Unit = uiRenderer.getToastManager().show(table, duration)
+
+	override fun clearToasts(): Unit = uiRenderer.getToastManager().clear()
 
 	override fun onDialogRemoved(dialog: MetaDialog) {
 		// Called by MetaDialog the instant it leaves the stage, by ANY path. Drop it from the modal stack and let
