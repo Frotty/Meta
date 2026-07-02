@@ -10,9 +10,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.TimeUtils
-import com.kotcrab.vis.ui.widget.MenuBar
-import com.kotcrab.vis.ui.widget.VisImage
-import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
@@ -34,6 +31,8 @@ import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.reactive.effect
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
+import de.fatox.meta.ui.components.MetaMenuBar
+import de.fatox.meta.ui.tabs.MetaTab
 import de.fatox.meta.ui.windows.MetaDialog
 import java.io.File
 import kotlin.reflect.KClass
@@ -51,7 +50,7 @@ class MetaUiManager : UIManager {
 
 	private val displayedWindows = Array<Window>()
 	private val cachedWindows = Array<Window>()
-	private var mainMenuBar: MenuBar? = null
+	private var mainMenuBar: MetaMenuBar? = null
 	private val contentTable = Table()
 	private var currentScreenId: String = "(none)"
 	private val screenMetaDataKeys = mutableMapOf<String, MetaDataKey<*>>()
@@ -61,7 +60,7 @@ class MetaUiManager : UIManager {
 		Texture(pixmap).also { pixmap.dispose() }
 	}
 	private val whitePixel = TextureRegionDrawable(whitePixelTexture)
-	private val backdrop = VisImage(ColorDrawable(whitePixel, Color.valueOf("1F2025BB"))).apply {
+	private val backdrop = com.badlogic.gdx.scenes.scene2d.ui.Image(ColorDrawable(whitePixel, Color.valueOf("1F2025BB"))).apply {
 		// Swallow input so the backdrop is a real modal shield: clicks on it never reach the UI beneath.
 		addListener { true }
 	}
@@ -142,7 +141,7 @@ class MetaUiManager : UIManager {
 		changeScreen(screenConfig.classToName[screenClass]!!)
 	}
 
-	override fun <T : Tab> changeTab(tabClass: KClass<T>) {
+	override fun <T : MetaTab> changeTab(tabClass: KClass<T>) {
 		changeScreen(tabClass.qualifiedName!!)
 	}
 
@@ -296,7 +295,7 @@ class MetaUiManager : UIManager {
 		}
 	}
 
-	override fun setMainMenuBar(menuBar: MenuBar?) {
+	override fun setMainMenuBar(menuBar: MetaMenuBar?) {
 		if (menuBar != null) {
 			contentTable.row().height(26f)
 			contentTable.add(menuBar.table).growX().top()

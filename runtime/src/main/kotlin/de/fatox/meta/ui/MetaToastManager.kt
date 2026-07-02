@@ -1,66 +1,74 @@
 package de.fatox.meta.ui
 
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.utils.Align
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.TimeUtils
-import com.kotcrab.vis.ui.VisUI
-import com.kotcrab.vis.ui.util.ToastManager
-import com.kotcrab.vis.ui.widget.VisTable
-import com.kotcrab.vis.ui.widget.toast.Toast
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaTable
 
-/**
- * A [ToastManager] that (1) keeps toasts above Meta's window/dialog/backdrop layering, (2) auto-fades and
- * de-duplicates rapid repeats, and (3) styles the default string toasts like the rest of the Meta UI: a TTF
- * [MetaLabel] (not the skin's baked font), comfortable padding, the same `close-window` button windows use, and
- * sane spacing from the screen edge / between stacked toasts.
- *
- * VisUI's [ToastManager] adds its root group to the stage once and never re-fronts it, and its default `show(String)`
- * builds a cramped, baked-font table. All `show(...)` overloads funnel through `show(Toast, Float)`, so overriding
- * that keeps every entry point on top.
- */
-class MetaToastManager(stage: Stage) : ToastManager(stage) {
+class MetaToastManager(private val stage: Stage) {
+	private val root = Table()
 	private var lastText = ""
 	private var lastTextMs = 0L
 
 	init {
-		alignment = Align.bottomRight
-		setScreenPadding(MetaSpacing.LG.toInt())   // breathing room from the screen edge
-		setMessagePadding(MetaSpacing.SM.toInt())  // gap between stacked toasts
+		root.setFillParent(true)
+		root.bottom().right().pad(MetaSpacing.LG)
+		stage.addActor(root)
 	}
 
-	override fun show(message: String) {
+	fun show(message: String) {
 		show(message, UIManager.DEFAULT_TOAST_SECONDS)
 	}
 
-	override fun show(message: String, fadeOutDelay: Float) {
+	fun show(message: String, fadeOutDelay: Float) {
 		val now = TimeUtils.millis()
 		if (message == lastText && now - lastTextMs < DUPLICATE_SUPPRESSION_MS) return
 		lastText = message
 		lastTextMs = now
 
-		// Meta-styled toast instead of VisUI's cramped, baked-font default: the skin's "dark" toast style (bordered
-		// panel + matching window close button) with a TTF label and comfortable padding.
-		val skin = VisUI.getSkin()
-		val style = if (skin.has("dark", Toast.ToastStyle::class.java)) {
-			skin.get("dark", Toast.ToastStyle::class.java)
-		} else {
-			skin.get(Toast.ToastStyle::class.java)
-		}
-		val content = VisTable().apply {
+		show(MetaTable().apply {
+			background = MetaSkin.skin().getDrawable("meta.panel.raised")
 			add(MetaLabel(message, MetaType.BODY, MetaColor.TEXT))
-				.pad(MetaSpacing.SM, MetaSpacing.MD, MetaSpacing.SM, MetaSpacing.SM)
+				.pad(MetaSpacing.SM, MetaSpacing.MD, MetaSpacing.SM, MetaSpacing.MD)
 				.left()
 				.minWidth(120f)
-		}
-		show(Toast(style, content), fadeOutDelay)
+		}, fadeOutDelay)
 	}
 
-	override fun show(toast: Toast, fadeOutDelay: Float) {
-		alignment = Align.bottomRight
-		super.show(toast, fadeOutDelay)
+	fun show(table: Table, fadeOutDelay: Float) {
+		if (root.stage == null) stage.addActor(root)
+		root.add(table).right().padTop(MetaSpacing.SM).row()
+		table.color.a = 0f
+		table.addAction(
+			Actions.sequence(
+				Actions.fadeIn(0.12f),
+				Actions.delay(fadeOutDelay),
+				Actions.fadeOut(0.25f),
+				Actions.run {
+					table.remove()
+					root.invalidate()
+				},
+			)
+		)
 		toFront()
+	}
+
+	fun clear() {
+		root.clearChildren()
+	}
+
+	fun resize() = Unit
+
+	fun toFront() {
+		root.toFront()
+	}
+
+	fun dispose() {
+		clear()
+		root.remove()
 	}
 
 	private companion object {

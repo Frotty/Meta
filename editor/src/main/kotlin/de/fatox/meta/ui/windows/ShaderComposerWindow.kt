@@ -4,12 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
-import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
-import com.badlogic.gdx.utils.Scaling
-import com.kotcrab.vis.ui.widget.VisImageButton
-import com.kotcrab.vis.ui.widget.VisSelectBox
-import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.api.ui.showDialog
@@ -19,7 +14,10 @@ import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.shader.ShaderComposition
 import de.fatox.meta.ui.UiControlHelper
+import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaSelectBox
+import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.RenderBufferButton
 import de.fatox.meta.ui.dialogs.ShaderCompositionWizard
 import java.util.*
@@ -32,9 +30,9 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	private val shaderComposer: MetaShaderComposer by lazyInject()
 	private val uiControlHelper: UiControlHelper by lazyInject()
 
-	private lateinit var renderSelectbox: VisSelectBox<String>
-	private lateinit var bufferTable: VisTable
-	private lateinit var addButton: VisImageButton
+	private lateinit var renderSelectbox: MetaSelectBox<String>
+	private lateinit var bufferTable: MetaTable
+	private lateinit var addButton: MetaIconButton
 
 	private var handles: Array<RenderBufferHandle> = Array()
 
@@ -51,18 +49,15 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	}
 
 	private fun setupEmpty() {
-		val visImageButton = VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
+		val visImageButton = MetaIconButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
 		visImageButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				uiManager.showDialog<ShaderCompositionWizard>()
 			}
 		})
-		visImageButton.image.setScaling(Scaling.fill)
-		visImageButton.image.setSize(24f, 24f)
-
-		bufferTable = VisTable()
+		bufferTable = MetaTable()
 		bufferTable.top().left()
-		renderSelectbox = VisSelectBox()
+		renderSelectbox = MetaSelectBox()
 		renderSelectbox.items = Array()
 		renderSelectbox.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
@@ -88,13 +83,12 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	}
 
 	private fun setupNewBufferButton() {
-		addButton = VisImageButton(assetProvider.getDrawable("ui/appbar.layer.add.png")).apply {
+		addButton = MetaIconButton(assetProvider.getDrawable("ui/appbar.layer.add.png")).apply {
 			addListener(object : ClickListener() {
 				override fun clicked(event: InputEvent, x: Float, y: Float) {
 					onAddBuffer()
 				}
 			})
-			image.align = Align.center
 		}
 		uiControlHelper.selectedActor = addButton
 		bufferTable.add(addButton).size(175f, 168f).left()

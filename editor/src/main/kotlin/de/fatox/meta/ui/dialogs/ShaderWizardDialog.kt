@@ -2,10 +2,6 @@ package de.fatox.meta.ui.dialogs
 
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup
 import com.badlogic.gdx.utils.Align
-import com.kotcrab.vis.ui.widget.VisCheckBox
-import com.kotcrab.vis.ui.widget.VisLabel
-import com.kotcrab.vis.ui.widget.VisTable
-import com.kotcrab.vis.ui.widget.VisTextButton
 import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.error.MetaError
@@ -15,6 +11,10 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.ui.components.AssetSelectButton
 import de.fatox.meta.ui.components.MetaInputValidator
+import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaTable
+import de.fatox.meta.ui.components.MetaTextButton
+import de.fatox.meta.ui.components.MetaToggleButton
 import de.fatox.meta.ui.components.MetaValidTextField
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaDialog.DialogListener
@@ -27,10 +27,10 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
 
-	private val cancelBtn: VisTextButton = addButton(VisTextButton("Cancel"), Align.left, false)
-	private val createBtn: VisTextButton = addButton(VisTextButton("Create"), Align.right, true)
+	private val cancelBtn: MetaTextButton = addButton(MetaTextButton("Cancel"), Align.left, false)
+	private val createBtn: MetaTextButton = addButton(MetaTextButton("Create"), Align.right, true)
 	private val shaderNameTF: MetaValidTextField = MetaValidTextField("Shader name:", statusLabel)
-	private val renderTargetGroup = ButtonGroup<VisCheckBox>()
+	private val renderTargetGroup = ButtonGroup<MetaToggleButton>()
 	private lateinit var vertexSelect: AssetSelectButton
 	private lateinit var fragmentSelect: AssetSelectButton
 	private fun checkButton() {
@@ -40,21 +40,21 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 	}
 
 	private fun setupTable() {
-		val visTable = VisTable()
+		val visTable = MetaTable()
 		visTable.defaults().pad(4f)
 		visTable.add(shaderNameTF.description).growX()
 		visTable.add(shaderNameTF.textField).growX()
 		visTable.row()
-		val visLabel = VisLabel("Render Target:")
+		val visLabel = MetaLabel("Render Target:", 14)
 		visLabel.setAlignment(Align.center)
 		visTable.add(visLabel).colspan(2).pad(4f)
 		visTable.row()
-		val geometryButton = VisCheckBox("Geometry", true)
-		val fullscreenButton = VisCheckBox("Fullscreen", false)
+		val geometryButton = MetaToggleButton("Geometry", true)
+		val fullscreenButton = MetaToggleButton("Fullscreen", false)
 		visTable.add(geometryButton)
 		visTable.add(fullscreenButton)
 		visTable.row()
-		val visLabel2 = VisLabel("Shader Files:")
+		val visLabel2 = MetaLabel("Shader Files:", 14)
 		visLabel2.setAlignment(Align.center)
 		visTable.add(visLabel2).colspan(2).pad(4f)
 		visTable.row()

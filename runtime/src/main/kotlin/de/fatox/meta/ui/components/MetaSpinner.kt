@@ -1,13 +1,16 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.VisSelectBox
+import com.kotcrab.vis.ui.widget.VisTextField.VisTextFieldStyle
 import com.kotcrab.vis.ui.widget.VisValidatableTextField
 import com.kotcrab.vis.ui.widget.spinner.Spinner
 import com.kotcrab.vis.ui.widget.spinner.SpinnerModel
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.UiControlHelper
 
 /**
@@ -21,7 +24,12 @@ open class MetaSpinner(spinnerModel: SpinnerModel, fontSize: Int = 22) : Spinner
 
 	init {
 		cells.find { it.actor is VisValidatableTextField }?.let {
-			(it.actor as VisValidatableTextField).style.font = fontProvider.getFont(fontSize, FontType.REGULAR)
+			val field = it.actor as VisValidatableTextField
+			val skin = VisUI.getSkin()
+			if (skin.has(MetaSkin.TEXT_FIELD, VisTextFieldStyle::class.java)) {
+				field.style = VisTextFieldStyle(skin.get(MetaSkin.TEXT_FIELD, VisTextFieldStyle::class.java))
+			}
+			field.style.font = fontProvider.getFont(fontSize, FontType.REGULAR)
 		}
 	}
 

@@ -1,14 +1,14 @@
 package de.fatox.meta.ui
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.kotcrab.vis.ui.widget.VisTable
-import com.kotcrab.vis.ui.widget.tabbedpane.Tab
-import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane
-import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPaneAdapter
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.info
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.components.MetaTabbedPane
+import de.fatox.meta.ui.components.MetaTabbedPaneAdapter
+import de.fatox.meta.ui.components.MetaTable
+import de.fatox.meta.ui.tabs.MetaTab
 import de.fatox.meta.ui.tabs.WelcomeTab
 
 private val log = MetaLoggerFactory.logger {}
@@ -21,16 +21,16 @@ class MetaEditorUI {
 
 	lateinit var metaToolbar: EditorMenuBar
 
-	private lateinit var tabbedPane: TabbedPane
+	private lateinit var tabbedPane: MetaTabbedPane
 	private val tabTable = Table()
 	fun setup() {
 		metaToolbar = EditorMenuBar()
 		log.info { "Toolbar created" }
 		uiManager.setMainMenuBar(metaToolbar.menuBar)
-		tabbedPane = TabbedPane()
-		tabbedPane.addListener(object : TabbedPaneAdapter() {
-			override fun switchedTab(tab: Tab) {
-				tabbedPane.activeTab.onHide()
+		tabbedPane = MetaTabbedPane()
+		tabbedPane.addListener(object : MetaTabbedPaneAdapter() {
+			override fun switchedMetaTab(tab: MetaTab) {
+				tabbedPane.activeMetaTab?.onHide()
 				uiManager.changeTab(tab::class)
 				apply()
 				val content = tab.contentTable
@@ -41,7 +41,7 @@ class MetaEditorUI {
 				uiManager.bringWindowsToFront()
 			}
 		})
-		val visTable = VisTable()
+		val visTable = MetaTable()
 		visTable.add().top()
 		visTable.add().grow()
 		addTab(WelcomeTab())
@@ -52,13 +52,14 @@ class MetaEditorUI {
 		uiManager.addTable(tabTable, growX = true, growY = true)
 	}
 
-	fun addTab(tab: Tab) {
+	fun addTab(tab: MetaTab) {
 		tabbedPane.add(tab)
 	}
 
-	private fun getTab(name: String): Tab? = tabbedPane.tabs.firstOrNull { it.tabTitle.equals(name, ignoreCase = true) }
+	private fun getTab(name: String): MetaTab? =
+		tabbedPane.tabs.firstOrNull { it.tabTitle.equals(name, ignoreCase = true) } as? MetaTab
 
-	val currentTab: Tab? get() = tabbedPane.activeTab
+	val currentTab: MetaTab? get() = tabbedPane.activeMetaTab
 
 	/**
 	 * @return `true` if the focus was successfully gained, `false` otherwise

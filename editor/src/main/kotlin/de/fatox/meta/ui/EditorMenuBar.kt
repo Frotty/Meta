@@ -5,10 +5,6 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
-import com.kotcrab.vis.ui.widget.Menu
-import com.kotcrab.vis.ui.widget.MenuBar
-import com.kotcrab.vis.ui.widget.MenuItem
-import com.kotcrab.vis.ui.widget.Separator
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.info
@@ -21,6 +17,10 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.dialogs.OpenProjectDialog
 import de.fatox.meta.ui.dialogs.ProjectWizardDialog
 import de.fatox.meta.ui.dialogs.SceneWizardDialog
+import de.fatox.meta.ui.components.MetaMenu
+import de.fatox.meta.ui.components.MetaMenuBar
+import de.fatox.meta.ui.components.MetaMenuItem
+import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.windows.MetaConfirmDialog
 import kotlin.reflect.KClass
 
@@ -32,12 +32,12 @@ class EditorMenuBar {
 	private val projectManager: ProjectManager by lazyInject()
 	private val uiManager: UIManager by lazyInject()
 
-	val menuBar: MenuBar
-	private var windowsMenu: Menu? = null
+	val menuBar: MetaMenuBar
+	private var windowsMenu: MetaMenu? = null
 
 	init {
 
-		this.menuBar = MenuBar()
+		this.menuBar = MetaMenuBar()
 		log.info { "Created MenuBar" }
 		val fileMenu = createFileMenu()
 		menuBar.addMenu(fileMenu)
@@ -45,7 +45,7 @@ class EditorMenuBar {
 		log.info { "Added File Menu" }
 		menuBar.table.add().growX()
 		menuBar.table.row().height(1f).left()
-		menuBar.table.add(Separator()).colspan(2).left().growX()
+		menuBar.table.add(MetaSeparator()).colspan(2).left().growX()
 	}
 
 	fun clear() {
@@ -53,21 +53,21 @@ class EditorMenuBar {
 	}
 
 	fun addAvailableWindow(windowClass: KClass<out Window>, icon: Image?) {
-		val menuItem = MenuItem(windowClass.simpleName!!.substring(0, windowClass.simpleName!!.indexOf("Window")), icon)
+		val menuItem = MetaMenuItem(windowClass.simpleName!!.substring(0, windowClass.simpleName!!.indexOf("Window")), icon)
 		menuItem.onChange { uiManager.showWindow(windowClass) }
 		windowsMenu!!.addItem(menuItem)
 	}
 
-	private fun createFileMenu(): Menu {
-		val fileMenu = Menu(languageBundle["filemenu.title"])
-		val menuItemNewProject = MenuItem(languageBundle["filemenu.new.project"], Image(assetProvider.getResource("ui/appbar.new.png", Texture::class.java)))
+	private fun createFileMenu(): MetaMenu {
+		val fileMenu = MetaMenu(languageBundle["filemenu.title"])
+		val menuItemNewProject = MetaMenuItem(languageBundle["filemenu.new.project"], Image(assetProvider.getResource("ui/appbar.new.png", Texture::class.java)))
 		menuItemNewProject.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				uiManager.showDialog<ProjectWizardDialog>()
 			}
 		})
 		fileMenu.addItem(menuItemNewProject)
-		val menuItemNewScene = MenuItem(languageBundle["filemenu.new.scene"], Image(assetProvider.getResource("ui/appbar.new.png", Texture::class.java)))
+		val menuItemNewScene = MetaMenuItem(languageBundle["filemenu.new.scene"], Image(assetProvider.getResource("ui/appbar.new.png", Texture::class.java)))
 		menuItemNewScene.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				if (projectManager.currentProject != null) {
@@ -78,7 +78,7 @@ class EditorMenuBar {
 			}
 		})
 		fileMenu.addItem(menuItemNewScene)
-		val menuItemOpen = MenuItem(languageBundle["filemenu.open"], Image(assetProvider.getResource("ui/appbar.folder.open.png", Texture::class.java)))
+		val menuItemOpen = MetaMenuItem(languageBundle["filemenu.open"], Image(assetProvider.getResource("ui/appbar.folder.open.png", Texture::class.java)))
 		menuItemOpen.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				uiManager.showDialog<OpenProjectDialog>()
@@ -89,9 +89,9 @@ class EditorMenuBar {
 		return fileMenu
 	}
 
-	private fun createWindowsMenu(): Menu {
-		windowsMenu = Menu(languageBundle["windowsmenu.title"])
-		return windowsMenu as Menu
+	private fun createWindowsMenu(): MetaMenu {
+		windowsMenu = MetaMenu(languageBundle["windowsmenu.title"])
+		return windowsMenu as MetaMenu
 	}
 
 

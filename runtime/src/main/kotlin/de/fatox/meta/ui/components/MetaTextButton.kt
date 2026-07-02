@@ -6,10 +6,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
-import com.kotcrab.vis.ui.VisUI
-import com.kotcrab.vis.ui.widget.VisTextButton.VisTextButtonStyle
 import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.util.GoldenRatio
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -23,7 +22,7 @@ open class MetaTextButton @JvmOverloads constructor(
 	size: Int = 12,
 	type: FontType = FontType.REGULAR
 ) :
-	Button(VisUI.getSkin().get(VisTextButtonStyle::class.java)) {
+	Button(MetaSkin.skin().get(MetaSkin.BUTTON, Button.ButtonStyle::class.java)) {
 
 	private var labelCell: Cell<MetaLabel>
 	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE, type) { setAlignment(Align.center) }

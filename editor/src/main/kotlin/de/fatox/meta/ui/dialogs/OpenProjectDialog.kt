@@ -6,17 +6,16 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
-import com.kotcrab.vis.ui.widget.Tooltip
-import com.kotcrab.vis.ui.widget.VisLabel
-import com.kotcrab.vis.ui.widget.VisTable
-import com.kotcrab.vis.ui.widget.VisTextButton
-import com.kotcrab.vis.ui.widget.file.FileChooser
-import com.kotcrab.vis.ui.widget.file.FileChooserAdapter
-import com.kotcrab.vis.ui.widget.file.FileTypeFilter
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.components.MetaFileChooser
+import de.fatox.meta.ui.components.MetaFileChooserAdapter
+import de.fatox.meta.ui.components.MetaFileTypeFilter
+import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.MetaTextButton
+import de.fatox.meta.ui.components.MetaTooltip
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaDialog.DialogListener
 import de.fatox.meta.util.truncate
@@ -26,25 +25,25 @@ import de.fatox.meta.util.truncate
  */
 class OpenProjectDialog : MetaDialog("Open Project", true) {
 	private val languageBundle: LanguageBundle by lazyInject()
-	private val fileChooser: FileChooser by lazyInject("open")
+	private val fileChooser: MetaFileChooser by lazyInject("open")
 	private val projectManager: ProjectManager by lazyInject()
 
-	private var folderLabel: VisLabel? = null
-	private val openBtn: VisTextButton
+	private var folderLabel: MetaLabel? = null
+	private val openBtn: MetaTextButton
 	private var folderButton: MetaTextButton? = null
 	private var rootfile: FileHandle? = null
 	private fun createFolderButton() {
-		folderLabel = VisLabel(languageBundle["newproj.dia.project.root"])
+		folderLabel = MetaLabel(languageBundle["newproj.dia.project.root"], 14)
 		folderButton = MetaTextButton(languageBundle["newproj.dia.select.project"])
 		folderButton!!.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
-				fileChooser.selectionMode = FileChooser.SelectionMode.FILES
-				val fileTypeFilter = FileTypeFilter(false)
+				fileChooser.selectionMode = MetaFileChooser.SELECT_FILES
+				val fileTypeFilter = MetaFileTypeFilter(false)
 				fileTypeFilter.addRule("Meta Project File", "json")
 				fileChooser.setFileTypeFilter(fileTypeFilter)
 				fileChooser.fadeIn()
 				stage.keyboardFocus = fileChooser
-				fileChooser.setListener(object : FileChooserAdapter() {
+				fileChooser.setListener(object : MetaFileChooserAdapter() {
 					override fun selected(file: Array<FileHandle>) {
 						if (file.size == 1) {
 							rootfile = file[0]
@@ -60,16 +59,16 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 				fileChooser.fadeIn()
 			}
 		})
-		Tooltip.Builder(languageBundle["newproj.dia.tooltip.location"]).target(folderLabel).build()
+		MetaTooltip.attach(folderLabel, languageBundle["newproj.dia.tooltip.location"])
 	}
 
 	init {
 		setDefaultSize(450f, 200f)
-		addButton<Button>(VisTextButton("Cancel"), Align.left, false)
-		openBtn = addButton(VisTextButton("Open"), Align.left, true)
+		addButton<Button>(MetaTextButton("Cancel"), Align.left, false)
+		openBtn = addButton(MetaTextButton("Open"), Align.left, true)
 		openBtn.isDisabled = true
 		createFolderButton()
-		val visTable = VisTable()
+		val visTable = MetaTable()
 		visTable.defaults().pad(4f)
 		visTable.add(folderLabel).growX()
 		visTable.add(folderButton).growX()

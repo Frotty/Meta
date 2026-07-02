@@ -1,17 +1,23 @@
 package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Scaling
-import com.kotcrab.vis.ui.widget.*
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.api.model.AssetDiscovererData
 import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.ide.AssetDiscoverer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FolderListAdapter
+import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaIconTextButton
+import de.fatox.meta.ui.components.MetaListView
+import de.fatox.meta.ui.components.MetaScrollPane
+import de.fatox.meta.ui.components.MetaSeparator
+import de.fatox.meta.ui.components.MetaTable
+import de.fatox.meta.ui.components.MetaTextField
 
 private const val TAG = "adwSettings"
 
@@ -24,9 +30,9 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 
 	private var adapter: FolderListAdapter<FolderModel>? = null
 	private var filePane: ScrollPane? = null
-	private lateinit var view: ListView<FolderModel>
-	private val toolbarTable = VisTable()
-	private val fileViewTable = VisTable()
+	private lateinit var view: MetaListView<FolderModel>
+	private val toolbarTable = MetaTable()
+	private val fileViewTable = MetaTable()
 	private var selectionMode = false
 	private var listener: SelectListener? = null
 	private var data: AssetDiscovererData? = null
@@ -47,7 +53,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 
 	private fun setup() {
 		adapter = FolderListAdapter(Array())
-		view = ListView(adapter).apply {
+		view = MetaListView(adapter!!).apply {
 			mainTable.defaults().pad(2f)
 			setItemClickListener {
 				assetDiscoverer.openFolder((it as FolderModel).fileHandle)
@@ -58,7 +64,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 			row().left().top().height(24f)
 			add(toolbarTable).growX()
 			row().height(1f)
-			add(Separator()).growX()
+			add(MetaSeparator()).growX()
 			row()
 			add(fileViewTable).left().grow()
 		}
@@ -69,20 +75,19 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 	private fun createToolbarBar() {
 		toolbarTable.left().top()
 		toolbarTable.row().height(24f)
-		val newFileButton = VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
-		newFileButton.image.setScaling(Scaling.fill)
+		val newFileButton = MetaIconButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
 		toolbarTable.add(newFileButton).size(24f).left()
-		val searchIcon = VisImage(assetProvider.getDrawable("ui/appbar.page.search.png"))
+		val searchIcon = Image(assetProvider.getDrawable("ui/appbar.page.search.png"))
 		searchIcon.setScaling(Scaling.fill)
 		toolbarTable.add(searchIcon).size(24f).left()
-		val searchTF = VisTextField()
+		val searchTF = MetaTextField()
 		toolbarTable.add(searchTF).height(24f).growX()
 	}
 
 	private fun createFileView() {
 		fileViewTable.left()
 		fileViewTable.add(view.mainTable).growY().pad(2f).minWidth(128f)
-		fileViewTable.add(Separator()).width(2f).growY()
+		fileViewTable.add(MetaSeparator()).width(2f).growY()
 		createFilePane()
 	}
 
@@ -91,7 +96,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		if (assetDiscoverer.currentChildFiles == null) {
 			return
 		}
-		val visTable2 = VisTable()
+		val visTable2 = MetaTable()
 		visTable2.defaults().pad(2f)
 		visTable2.top()
 		visTable2.setSize(((width - 128).toInt()).toFloat(), height - 64)
@@ -116,7 +121,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 			}
 		}
 		if (filePane == null) {
-			filePane = VisScrollPane(visTable2)
+			filePane = MetaScrollPane(visTable2)
 			fileViewTable.add(filePane).growY().top().pad(2f)
 		} else {
 			filePane!!.clear()

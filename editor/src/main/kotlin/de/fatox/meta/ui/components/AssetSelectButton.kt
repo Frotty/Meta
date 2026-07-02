@@ -5,10 +5,6 @@ import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
-import com.kotcrab.vis.ui.widget.VisTable
-import com.kotcrab.vis.ui.widget.VisTextButton
-import com.kotcrab.vis.ui.widget.VisTextField
-import com.kotcrab.vis.ui.widget.VisWindow
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.showWindow
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -18,9 +14,9 @@ import de.fatox.meta.ui.windows.AssetDiscovererWindow
  * Created by Frotty on 04.07.2016.
  */
 class AssetSelectButton {
-	val table = VisTable()
-	private lateinit var selectAssetButton: VisTextButton
-	private lateinit var assetNameLabel: VisTextField
+	val table = MetaTable()
+	private lateinit var selectAssetButton: MetaTextButton
+	private lateinit var assetNameLabel: MetaTextField
 	private var name: String? = null
 	var file: FileHandle? = null
 		private set
@@ -41,7 +37,7 @@ class AssetSelectButton {
 	}
 
 	private fun setup() {
-		selectAssetButton = VisTextButton("...")
+		selectAssetButton = MetaTextButton("...")
 		selectAssetButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				uiManager.showWindow<AssetDiscovererWindow> {
@@ -55,19 +51,18 @@ class AssetSelectButton {
 							table = table.parent
 						}
 						if (table != null) {
-							val visWindow = table as VisWindow?
-							visWindow?.toFront()
+							table.toFront()
 						}
 
 					}
 				}
 			}
 		})
-		assetNameLabel = VisTextField()
+		assetNameLabel = MetaTextField()
 		assetNameLabel.isDisabled = true
 		assetNameLabel.isFocusBorderEnabled = false
-		table.add<VisTextField>(assetNameLabel).growX()
-		table.add<VisTextButton>(selectAssetButton).padLeft(2f)
+		table.add(assetNameLabel).growX()
+		table.add(selectAssetButton).padLeft(2f)
 	}
 
 	fun hasFile(): Boolean {

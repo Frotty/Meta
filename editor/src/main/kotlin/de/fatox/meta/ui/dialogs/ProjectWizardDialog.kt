@@ -6,17 +6,20 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
-import com.kotcrab.vis.ui.widget.*
-import com.kotcrab.vis.ui.widget.file.FileChooser
-import com.kotcrab.vis.ui.widget.file.FileChooserAdapter
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.api.model.MetaProjectData
 import de.fatox.meta.error.MetaError
 import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.components.MetaCheckBox
+import de.fatox.meta.ui.components.MetaFileChooser
+import de.fatox.meta.ui.components.MetaFileChooserAdapter
 import de.fatox.meta.ui.components.MetaInputValidator
+import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.MetaTextButton
+import de.fatox.meta.ui.components.MetaTooltip
 import de.fatox.meta.ui.components.MetaValidTextField
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaDialog.DialogListener
@@ -24,24 +27,24 @@ import de.fatox.meta.util.isValidFolderName
 import de.fatox.meta.util.truncate
 
 class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
-	private val createBtn: VisTextButton
+	private val createBtn: MetaTextButton
 
 	private val languageBundle: LanguageBundle by lazyInject()
-	private val fileChooser: FileChooser by lazyInject("open")
+	private val fileChooser: MetaFileChooser by lazyInject("open")
 	private val projectManager: ProjectManager by lazyInject()
 
 	private lateinit var projectNameTF: MetaValidTextField
 	private lateinit var folderButton: MetaTextButton
-	private lateinit var folderLabel: VisLabel
+	private lateinit var folderLabel: MetaLabel
 	private var rootfile: FileHandle? = null
 	private var namevalid = false
 	private var locationValid = false
-	private var checkbox: VisCheckBox? = null
-	private var checkboxLabel: VisLabel? = null
+	private var checkbox: MetaCheckBox? = null
+	private var checkboxLabel: MetaLabel? = null
 	private fun createExampleCheckbox() {
-		checkboxLabel = VisLabel("Include Example:")
-		checkbox = VisCheckBox("", true)
-		Tooltip.Builder(languageBundle["newproj.dia.tooltip.example"]).target(checkboxLabel).build()
+		checkboxLabel = MetaLabel("Include Example:", 14)
+		checkbox = MetaCheckBox(initialChecked = true)
+		MetaTooltip.attach(checkboxLabel, languageBundle["newproj.dia.tooltip.example"])
 	}
 
 	private fun checkValid() {
@@ -51,13 +54,13 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 	}
 
 	private fun createFolderButton() {
-		folderLabel = VisLabel(languageBundle["newproj.dia.project.root"])
+		folderLabel = MetaLabel(languageBundle["newproj.dia.project.root"], 14)
 		folderButton = MetaTextButton(languageBundle["newproj.dia.select.folder"])
 		folderButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
-				fileChooser.selectionMode = FileChooser.SelectionMode.DIRECTORIES
+				fileChooser.selectionMode = MetaFileChooser.SELECT_DIRECTORIES
 				fileChooser.fadeIn()
-				fileChooser.setListener(object : FileChooserAdapter() {
+				fileChooser.setListener(object : MetaFileChooserAdapter() {
 					override fun selected(file: Array<FileHandle>) {
 						if (file.size == 1) {
 							rootfile = file[0]
@@ -74,7 +77,7 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 				fileChooser.fadeIn()
 			}
 		})
-		Tooltip.Builder(languageBundle["newproj.dia.tooltip.location"]).target(folderLabel).build()
+		MetaTooltip.attach(folderLabel, languageBundle["newproj.dia.tooltip.location"])
 	}
 
 	private fun createProjectNameTF() {
@@ -90,16 +93,16 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 				checkValid()
 			}
 		})
-		Tooltip.Builder(languageBundle["newproj.dia.tooltip.name"]).target(projectNameTF.description).build()
+		MetaTooltip.attach(projectNameTF.description, languageBundle["newproj.dia.tooltip.name"])
 	}
 
 	init {
-		addButton<Button>(VisTextButton("Cancel"), Align.left, false)
-		createBtn = addButton(VisTextButton("Create"), Align.right, true)
+		addButton<Button>(MetaTextButton("Cancel"), Align.left, false)
+		createBtn = addButton(MetaTextButton("Create"), Align.right, true)
 		createProjectNameTF()
 		createFolderButton()
 		createExampleCheckbox()
-		val visTable = VisTable()
+		val visTable = MetaTable()
 		visTable.defaults().pad(4f)
 		visTable.add(projectNameTF.description).growX()
 		visTable.add(projectNameTF.textField).growX()

@@ -2,20 +2,20 @@ package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g2d.Batch
-import com.kotcrab.vis.ui.widget.VisTextField
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaTextField
 
 /**
  * Created by Frotty on 20.05.2016.
  */
 class CameraWindow : MetaWindow("Camera", true, true) {
-	private val xPosField: VisTextField
-	private val yPosField: VisTextField
-	private val zPosField: VisTextField
-	private val xUpField: VisTextField
-	private val yUpField: VisTextField
-	private val zUpField: VisTextField
+	private val xPosField: MetaTextField
+	private val yPosField: MetaTextField
+	private val zPosField: MetaTextField
+	private val xUpField: MetaTextField
+	private val yUpField: MetaTextField
+	private val zUpField: MetaTextField
 
 	val camera: PerspectiveCamera by lazyInject()
 
@@ -30,12 +30,12 @@ class CameraWindow : MetaWindow("Camera", true, true) {
 	}
 
 	init {
-		xPosField = VisTextField("0.0")
-		yPosField = VisTextField("0.0")
-		zPosField = VisTextField("0.0")
-		xUpField = VisTextField("0.0")
-		yUpField = VisTextField("0.0")
-		zUpField = VisTextField("0.0")
+		xPosField = MetaTextField("0.0")
+		yPosField = MetaTextField("0.0")
+		zPosField = MetaTextField("0.0")
+		xUpField = MetaTextField("0.0")
+		yUpField = MetaTextField("0.0")
+		zUpField = MetaTextField("0.0")
 		contentTable.add(MetaLabel("Position:", 14)).colspan(6).center().row()
 		contentTable.add(MetaLabel("x:", 12))
 		contentTable.add(xPosField).width(64f).pad(2f)

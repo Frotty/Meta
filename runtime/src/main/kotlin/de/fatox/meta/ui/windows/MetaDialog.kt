@@ -6,16 +6,16 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.utils.Align
-import com.kotcrab.vis.ui.widget.VisImageButton
-import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaIconButton
+import de.fatox.meta.ui.components.MetaTable
 
 /**
  * Created by Frotty on 04.06.2016.
  */
 abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWindow(title, false, hasCloseButton) {
-	protected val buttonTable = VisTable()
+	protected val buttonTable = MetaTable()
 	protected val statusLabel = MetaLabel("", 14)
 
 	var dialogListener: DialogListener = EmptyListener
@@ -97,7 +97,7 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 	init {
 		if (hasCloseButton) {
 			val btn = titleTable.cells[titleTable.cells.size - 1].actor
-			(btn as? VisImageButton)?.addListener {
+			(btn as? MetaIconButton)?.addListener {
 				dialogListener.onResult(null)
 				false
 			}

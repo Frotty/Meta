@@ -3,14 +3,11 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.ui.Button
-import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Scaling
-import com.kotcrab.vis.ui.VisUI
-import com.kotcrab.vis.ui.widget.*
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.RenderBufferHandle
@@ -26,15 +23,15 @@ import de.fatox.meta.util.GoldenRatio
  * A Button displayed in the shader composer representing one shaderpass
  * They can be moved left & right and be deleted.
  */
-class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(VisTextButton.VisTextButtonStyle::class.java)) {
+class RenderBufferButton(text: String, size: Int) : MetaButtonContainer() {
 	private val assetProvider: AssetProvider by lazyInject()
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val shaderComposer: MetaShaderComposer by lazyInject()
 
 	private val nameLabel: MetaLabel = MetaLabel(text, size, Color.WHITE)
-	private val inSelect = VisSelectBox<RenderBufferData.IN>()
-	private val shaderSelect = VisSelectBox<GLShaderHandle>()
-	private val depthCheckBox = VisCheckBox("depth", false)
+	private val inSelect = MetaSelectBox<RenderBufferData.IN>()
+	private val shaderSelect = MetaSelectBox<GLShaderHandle>()
+	private val depthCheckBox = MetaToggleButton("Depth", false, 11)
 	lateinit var handle: RenderBufferHandle
 	var prevHandle: RenderBufferHandle? = null
 
@@ -71,19 +68,19 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
 		add(nameLabel).colspan(2).center().growX()
 		row().padBottom(2f)
 
-		val codeImage = VisImage(assetProvider.getDrawable("ui/appbar.page.code.png"))
+		val codeImage = Image(assetProvider.getDrawable("ui/appbar.page.code.png"))
 		codeImage.setScaling(Scaling.fit)
 		add(codeImage).size(26f).padRight(2f).left()
 		add(shaderSelect).growX()
 		row().padTop(2f)
 
-		val boxImage = VisImage(assetProvider.getDrawable("ui/appbar.box.png"))
+		val boxImage = Image(assetProvider.getDrawable("ui/appbar.box.png"))
 		boxImage.setScaling(Scaling.fit)
 		add(boxImage).size(26f).padRight(2f).left()
-		add<VisSelectBox<RenderBufferData.IN>>(inSelect).growX()
+		add(inSelect).growX()
 		row().padTop(2f)
 
-		val dImage = VisImage(assetProvider.getDrawable("ui/appbar.grade.d.png"))
+		val dImage = Image(assetProvider.getDrawable("ui/appbar.grade.d.png"))
 		dImage.setScaling(Scaling.fit)
 		add(dImage).size(26f).padRight(2f).left()
 		add(depthCheckBox).growX()
@@ -101,9 +98,9 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
 	}
 
 	private fun setupUniforms() {
-		val table = Table()
+		val table = MetaTable()
 		table.center()
-		table.add(VisLabel("Uniforms"))
+		table.add(MetaLabel("Uniforms", 14))
 		table.row()
 
 		add(table).colspan(2)
@@ -111,21 +108,18 @@ class RenderBufferButton(text: String, size: Int) : Button(VisUI.getSkin().get(V
 	}
 
 	private fun setupFooter() {
-		val table = Table()
+		val table = MetaTable()
 		table.center()
-		val moveLeftBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.chevron.left.png"))
-		moveLeftBtn.image.setScaling(Scaling.fill)
+		val moveLeftBtn = MetaIconButton(assetProvider.getDrawable("ui/appbar.chevron.left.png"))
 		table.add(moveLeftBtn).size(26f)
-		val deleteBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.delete.png"))
+		val deleteBtn = MetaIconButton(assetProvider.getDrawable("ui/appbar.delete.png"))
 		deleteBtn.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				shaderComposer.removeBufferHandle(handle)
 			}
 		})
-		deleteBtn.image.setScaling(Scaling.fill)
 		table.add(deleteBtn).size(26f)
-		val moveRightBtn = VisImageButton(assetProvider.getDrawable("ui/appbar.chevron.right.png"))
-		moveRightBtn.image.setScaling(Scaling.fill)
+		val moveRightBtn = MetaIconButton(assetProvider.getDrawable("ui/appbar.chevron.right.png"))
 		table.add(moveRightBtn).size(26f)
 
 		add(table).growX().center().colspan(2)

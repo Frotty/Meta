@@ -2,7 +2,6 @@ package de.fatox.meta.ui.tabs
 
 import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.api.MetaInputProcessor
 
 import de.fatox.meta.api.ui.UIRenderer
@@ -10,6 +9,7 @@ import de.fatox.meta.camera.ArcCamControl
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaSceneHandle
 import de.fatox.meta.ui.MetaEditorUI
+import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.SceneWidget
 import de.fatox.meta.ui.windows.*
 
@@ -50,7 +50,7 @@ class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
 	init {
 
 		this.sceneHandle = sceneHandle
-		table = VisTable()
+		table = MetaTable()
 		table.add(SceneWidget(this.sceneHandle)).grow()
 		table.invalidate()
 		//        table.debugAll();

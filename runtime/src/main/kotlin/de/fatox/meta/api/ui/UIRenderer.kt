@@ -3,8 +3,8 @@ package de.fatox.meta.api.ui
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.utils.Disposable
-import com.kotcrab.vis.ui.util.ToastManager
 import de.fatox.meta.reactive.Signal
+import de.fatox.meta.ui.MetaToastManager
 
 interface UIRenderer : Disposable {
 	fun load()
@@ -13,7 +13,7 @@ interface UIRenderer : Disposable {
 	fun draw()
 	fun resize(width: Int, height: Int)
 	fun getCamera(): Camera
-	fun getToastManager(): ToastManager
+	fun getToastManager(): MetaToastManager
 	fun setFocusedActor(actor: Actor?)
 
 	/**

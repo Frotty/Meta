@@ -1,16 +1,15 @@
 package de.fatox.meta.ui.windows
 
-import com.badlogic.gdx.utils.Scaling
-import com.kotcrab.vis.ui.widget.Separator
-import com.kotcrab.vis.ui.widget.VisImageButton
-import com.kotcrab.vis.ui.widget.VisScrollPane
-import com.kotcrab.vis.ui.widget.VisTable
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.ui.showDialog
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderLibrary
+import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaScrollPane
+import de.fatox.meta.ui.components.MetaSeparator
+import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.MetaTextButton
 import de.fatox.meta.ui.dialogs.ShaderWizardDialog
 
@@ -20,8 +19,8 @@ import de.fatox.meta.ui.dialogs.ShaderWizardDialog
 class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 
-	private val visTable: VisTable
-	private val scrollPane: VisScrollPane
+	private val visTable: MetaTable
+	private val scrollPane: MetaScrollPane
 
 	fun addShader(shader: GLShaderHandle) {
 		val metaTextButton = MetaTextButton(shader.data.name + ".msh", 16)
@@ -34,14 +33,12 @@ class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
 	}
 
 	private fun createToolbar() {
-		val visImageButton = VisImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
+		val visImageButton = MetaIconButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
 		visImageButton.onClick { uiManager.showDialog<ShaderWizardDialog>() }
-		visImageButton.image.setScaling(Scaling.fill)
-		visImageButton.image.setSize(24f, 24f)
 		contentTable.row().size(26f)
 		contentTable.add(visImageButton).size(24f).top().left()
 		contentTable.row().height(1f)
-		contentTable.add(Separator()).growX()
+		contentTable.add(MetaSeparator()).growX()
 		contentTable.row()
 	}
 
@@ -49,10 +46,10 @@ class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
 		setSize(240f, 320f)
 		createToolbar()
 		setPosition(1200f, 328f)
-		visTable = VisTable()
+		visTable = MetaTable()
 		visTable.top()
 		visTable.defaults().pad(4f)
-		scrollPane = VisScrollPane(visTable)
+		scrollPane = MetaScrollPane(visTable)
 		contentTable.add(scrollPane).top().grow()
 		for (shader in shaderLibrary.getLoadedShaders()) {
 			addShader(shader)

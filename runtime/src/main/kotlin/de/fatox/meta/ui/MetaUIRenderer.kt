@@ -14,8 +14,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.kotcrab.vis.ui.VisUI
-import com.kotcrab.vis.ui.util.ToastManager
-import com.kotcrab.vis.ui.widget.file.FileChooser
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.extensions.MetaLoggerFactory
@@ -31,6 +29,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
+import de.fatox.meta.ui.components.MetaFileChooser
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -116,7 +115,8 @@ class MetaUIRenderer : UIRenderer {
 		} else {
 			VisUI.load()
 		}
-		FileChooser.setDefaultPrefsName("de.fatox.meta")
+		MetaSkin.install(VisUI.getSkin())
+		MetaFileChooser.setDefaultPrefsName("de.fatox.meta")
 		VisUI.setDefaultTitleAlign(Align.center)
 		log.debug { "Loaded VisUi." }
 	}
@@ -160,7 +160,7 @@ class MetaUIRenderer : UIRenderer {
 		return stage.camera
 	}
 
-	override fun getToastManager(): ToastManager {
+	override fun getToastManager(): MetaToastManager {
 		return toastManager
 	}
 

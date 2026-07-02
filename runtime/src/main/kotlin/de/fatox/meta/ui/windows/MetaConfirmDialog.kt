@@ -2,8 +2,8 @@ package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
-import com.kotcrab.vis.ui.widget.VisLabel
 import de.fatox.meta.api.extensions.onClick
+import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaTextButton
 import kotlin.math.roundToInt
 
@@ -24,7 +24,7 @@ class MetaConfirmDialog(title: String = "", message: String?) : MetaWindow(title
 
 	init {
 		defaults().pad(4f)
-		add(VisLabel(message)).growX()
+		add(MetaLabel(message ?: "", 14)).growX()
 		row()
 		add(MetaTextButton("Close", 14).onClick { close() })
 	}

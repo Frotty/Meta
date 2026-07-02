@@ -13,7 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Align
-import com.kotcrab.vis.ui.widget.Tooltip
+import de.fatox.meta.ui.components.MetaTooltip
 
 inline fun <reified T : Actor> T.onClick(
 	button: Int = Input.Buttons.LEFT,
@@ -37,11 +37,7 @@ inline fun <reified T : Actor> T.onChange(crossinline action: ChangeListener.(ev
 }
 
 inline fun <reified T : Actor> T.tooltip(text: String, align: Int = Align.center) {
-	Tooltip().apply {
-		setText(text)
-		align(align)
-		target = this@tooltip
-	}
+	MetaTooltip.attach(this, text, align)
 }
 
 inline fun <reified T : Actor> T.cursorPointer() {

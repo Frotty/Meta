@@ -11,8 +11,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
-import com.kotcrab.vis.ui.widget.MenuBar
-import com.kotcrab.vis.ui.widget.tabbedpane.Tab
 import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
@@ -20,6 +18,8 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.ui.bindDisabled
+import de.fatox.meta.ui.components.MetaMenuBar
+import de.fatox.meta.ui.tabs.MetaTab
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaWindow
 import kotlin.reflect.KClass
@@ -107,7 +107,7 @@ interface UIManager : Disposable {
 
 	fun <T : Screen> changeScreen(screenClass: KClass<T>)
 
-	fun <T : Tab> changeTab(tabClass: KClass<T>)
+	fun <T : MetaTab> changeTab(tabClass: KClass<T>)
 
 	fun addTable(table: Table?, growX: Boolean, growY: Boolean)
 
@@ -116,7 +116,7 @@ interface UIManager : Disposable {
 	fun hideOtherWindowsAndPreventNew(window: Window)
 	fun restoreOtherWindowsAndAllowNew()
 	fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>, showBackdrop: Boolean): T
-	fun setMainMenuBar(menuBar: MenuBar?)
+	fun setMainMenuBar(menuBar: MetaMenuBar?)
 	fun <T : Window> getWindow(windowClass: KClass<out T>): T
 	fun closeWindow(window: Window)
 	fun updateWindow(window: Window)

@@ -4,20 +4,23 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
-import com.kotcrab.vis.ui.VisUI
-import com.kotcrab.vis.ui.widget.Separator
-import com.kotcrab.vis.ui.widget.VisImageButton
-import com.kotcrab.vis.ui.widget.VisTable
-import com.kotcrab.vis.ui.widget.VisWindow
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.onChange
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveScope
+import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.components.MetaIconButton
+import de.fatox.meta.ui.components.MetaSeparator
+import de.fatox.meta.ui.components.MetaTable
 
 /**
  * Created by Frotty on 08.05.2016.
@@ -26,12 +29,13 @@ abstract class MetaWindow(
 	title: String,
 	resizable: Boolean = false,
 	closeButton: Boolean = false,
-) : VisWindow(title, if (resizable) "resizable" else "default") {
+) : Window(title, MetaSkin.skin(), if (resizable) MetaSkin.WINDOW_RESIZABLE else MetaSkin.WINDOW) {
 	protected val uiManager: UIManager by lazyInject()
 	protected val assetProvider: AssetProvider by lazyInject()
 	protected val metaData: MetaData by lazyInject()
+	private val fontProvider: FontProvider by lazyInject()
 
-	var contentTable: Table = VisTable()
+	var contentTable: Table = MetaTable()
 
 	/**
 	 * Reactive bindings owned by this window's current on-screen presentation. Create bindings/effects here inside
@@ -46,11 +50,12 @@ abstract class MetaWindow(
 
 	init {
 		titleLabel.setAlignment(Align.left)
+		titleLabel.style = Label.LabelStyle(fontProvider.getFont(14, FontType.REGULAR), titleLabel.color)
 
 		titleTable.apply {
 			left().padLeft(2f)
 			if (closeButton) {
-				val exitButton = VisImageButton("close-window").apply {
+				val exitButton = MetaIconButton(MetaSkin.skin().getDrawable(MetaSkin.ICON_CLOSE)).apply {
 					setColor(1f, 1f, 1f, 0.2f)
 					onChange { close() }
 					addListener(object : ClickListener() {
@@ -72,7 +77,7 @@ abstract class MetaWindow(
 			// Separator
 			top()
 			row().height(2f)
-			add(Separator()).growX().padTop(2f).colspan(if (closeButton) 2 else 1)
+			add(MetaSeparator()).growX().padTop(2f).colspan(if (closeButton) 2 else 1)
 			padTop(2f)
 		}
 
@@ -116,14 +121,21 @@ abstract class MetaWindow(
 
 	override fun setResizable(isResizable: Boolean) {
 		super.setResizable(isResizable)
-		if (VisUI.getSkin().has("resizeable", WindowStyle::class.java)) {
-			style = VisUI.getSkin().get(if (isResizable) "resizeable" else "default", WindowStyle::class.java)
+		val skin = MetaSkin.skin()
+		val styleName = if (isResizable) MetaSkin.WINDOW_RESIZABLE else MetaSkin.WINDOW
+		if (skin.has(styleName, WindowStyle::class.java)) {
+			style = skin.get(styleName, WindowStyle::class.java)
 		}
 	}
 
-	public override fun close() {
-		super.close()
+	open fun close() {
+		remove()
 		uiManager.closeWindow(this)
+	}
+
+	fun centerWindow() {
+		val stage = stage ?: return
+		setPosition((stage.width - width) * 0.5f, (stage.height - height) * 0.5f)
 	}
 
 	/**
