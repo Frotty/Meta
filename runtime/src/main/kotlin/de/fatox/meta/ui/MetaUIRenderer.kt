@@ -31,27 +31,20 @@ import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.components.MetaFileChooser
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 private val log = MetaLoggerFactory.logger {}
 
 /**
- * A DPI-aware suggested UI scale so controls stay a roughly constant *physical* size across monitors: ~1.0 on a
- * standard ~96 PPI desktop display, larger on 4K/HiDPI. It targets `ppi/96` but divides out the OS content scale
- * libGDX already applies in HdpiMode.Logical (the back-buffer/logical-width ratio), so a Retina Mac gets a modest
- * bump rather than double-scaling. Snapped to 0.25 steps, clamped to a sane range, and falls back to 1.0 when the
- * monitor reports no usable physical size. Use it as the default when the user hasn't picked a UI scale.
+ * Suggested default UI scale. On desktop (the only target for this library today) libGDX's HdpiMode.Logical
+ * already divides out real OS-level HiDPI scaling (Retina, Windows 125/150%, ...) into the back-buffer/logical-
+ * width ratio, so no further per-monitor guess is needed here. We deliberately do NOT factor in
+ * `Gdx.graphics.density`: on desktop it's derived from the monitor's EDID-reported physical size in millimeters
+ * (`glfwGetMonitorPhysicalSize`), which is notoriously unreliable — many monitors, laptop panels, and virtually
+ * all VMs/remote-desktop sessions misreport it, which previously inflated the "auto" scale above 100% even on
+ * small/low-DPI screens. Use this as the default when the user hasn't picked a UI scale; they can still scale up
+ * or down manually via the settings slider.
  */
-fun suggestedUiScale(): Float {
-	val g = Gdx.graphics
-	val contentScale = if (g.width > 0) g.backBufferWidth.toFloat() / g.width else 1f
-	// density ≈ ppi/160 on libGDX desktop, so density/0.6 ≈ ppi/96. <=0 means the monitor reported no size → no scale.
-	val ppiScale = if (g.density > 0f) g.density / 0.6f else contentScale
-	val raw = if (contentScale > 0f) ppiScale / contentScale else ppiScale
-	// Never go below 1.0: downscaling the UI blurs AND shrinks it. On OS-scaled displays (e.g. Windows 125/150%)
-	// the compositor already enlarged things, so 1.0 is correct there; only HiDPI-at-100% needs a bump.
-	return ((raw * 4f).roundToInt() / 4f).coerceIn(1f, 2.5f)
-}
+fun suggestedUiScale(): Float = 1f
 
 class MetaUIRenderer : UIRenderer {
 	private var focusedActor: Actor? = null
