@@ -244,7 +244,7 @@ object MetaSkin {
 			minWidth = 24f
 			minHeight = 24f
 		}
-		skin.add(name, drawable)
+		skin.add(name, drawable, Drawable::class.java)
 	}
 
 	private fun checkbox(
@@ -278,7 +278,7 @@ object MetaSkin {
 		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
 			minWidth = ICON_SIZE.toFloat()
 			minHeight = ICON_SIZE.toFloat()
-		})
+		}, Drawable::class.java)
 	}
 
 	private fun icon(skin: Skin, name: String, plus: Boolean) {
@@ -294,7 +294,7 @@ object MetaSkin {
 		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
 			minWidth = ICON_SIZE.toFloat()
 			minHeight = ICON_SIZE.toFloat()
-		})
+		}, Drawable::class.java)
 	}
 
 	private fun closeIcon(skin: Skin, name: String) {
@@ -312,7 +312,7 @@ object MetaSkin {
 		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
 			minWidth = ICON_SIZE.toFloat()
 			minHeight = ICON_SIZE.toFloat()
-		})
+		}, Drawable::class.java)
 	}
 
 	private fun drawRoundedPixels(pixmap: Pixmap, fill: Color, stroke: Color, radius: Int, border: Int) {
