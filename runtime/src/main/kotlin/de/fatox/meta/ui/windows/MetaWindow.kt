@@ -151,7 +151,7 @@ abstract class MetaWindow(
 	}
 
 	override fun getMinHeight(): Float {
-		val contentMin = contentTable.prefHeight + padTop + padBottom + MetaSpacing.SM
+		val contentMin = contentTable.minHeight + padTop + padBottom + MetaSpacing.SM
 		return max(max(super.getMinHeight(), contentMin), MIN_WINDOW_HEIGHT)
 	}
 
