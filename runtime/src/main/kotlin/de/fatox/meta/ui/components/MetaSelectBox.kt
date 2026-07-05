@@ -7,17 +7,19 @@ import com.badlogic.gdx.scenes.scene2d.ui.SelectBox.SelectBoxStyle
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.UiControlHelper
 
 /**
  * Created by Frotty on 04.06.2016.
  */
-open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()) {
+open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()), MetaFocusable {
 
 	private val uiControlHelper: UiControlHelper = inject()
 	private var wasHelperActive = false
 	private val fontProvider: FontProvider = inject()
+	private val focusStyle: MetaSelectBoxFocusStyle<T>
 
 	init {
 		val skin = MetaSkin.skin()
@@ -28,11 +30,16 @@ open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()) 
 		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
 		style.font = font
 		list.style.font = font
+		focusStyle = MetaSelectBoxFocusStyle(this, style, MetaSkin::focusedSelectBoxStyle)
+		focusStyle.install(style)
+	}
+
+	override fun setMetaFocused(focused: Boolean) {
+		focusStyle.setFocused(focused)
 	}
 
 	override fun showScrollPane() {
 		super.showScrollPane()
-
 
 		if (uiControlHelper.activated) {
 			wasHelperActive = true
@@ -48,6 +55,4 @@ open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()) 
 			wasHelperActive = false
 		}
 	}
-
-
 }

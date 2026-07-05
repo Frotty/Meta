@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
 
@@ -14,15 +15,22 @@ open class MetaTextField @JvmOverloads constructor(
 	text: String = "",
 	size: Int = MetaType.BODY,
 	fontProvider: FontProvider = inject(),
-) : TextField(text, textFieldStyle(size, fontProvider)) {
+) : TextField(text, textFieldStyle(size, fontProvider)), MetaFocusable {
+	private val focusStyle = MetaTextFieldFocusStyle(this, style, MetaSkin::focusedTextFieldStyle)
 
 	var isFocusBorderEnabled: Boolean = true
 		set(value) {
 			field = value
-			style = TextFieldStyle(style).apply {
-				if (!value) focusedBackground = background
-			}
+			focusStyle.setFocusEnabled(value)
 		}
+
+	protected fun installMetaTextFieldStyle(style: TextFieldStyle) {
+		focusStyle.install(style, isFocusBorderEnabled)
+	}
+
+	override fun setMetaFocused(focused: Boolean) {
+		focusStyle.setFocused(focused)
+	}
 
 	companion object {
 		fun textFieldStyle(

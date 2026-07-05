@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.util.GoldenRatio
 import kotlin.contracts.ExperimentalContracts
@@ -22,10 +23,11 @@ open class MetaTextButton @JvmOverloads constructor(
 	size: Int = 12,
 	type: FontType = FontType.REGULAR
 ) :
-	Button(MetaSkin.skin().get(MetaSkin.BUTTON, Button.ButtonStyle::class.java)) {
+	Button(MetaSkin.skin().get(MetaSkin.BUTTON, Button.ButtonStyle::class.java)), MetaFocusable {
 
 	private var labelCell: Cell<MetaLabel>
 	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE, type) { setAlignment(Align.center) }
+	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
 
 	fun setText(text: String = "") {
 		label.setText(text)
@@ -39,6 +41,14 @@ open class MetaTextButton @JvmOverloads constructor(
 		labelCell = add(label)
 		centerText()
 		cursorPointer()
+	}
+
+	protected fun installMetaStyle(style: Button.ButtonStyle) {
+		focusStyle.install(style)
+	}
+
+	override fun setMetaFocused(focused: Boolean) {
+		focusStyle.setFocused(focused)
 	}
 
 	fun centerText() {

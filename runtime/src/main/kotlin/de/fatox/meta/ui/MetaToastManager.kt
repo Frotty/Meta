@@ -15,7 +15,7 @@ class MetaToastManager(private val stage: Stage) {
 
 	init {
 		root.setFillParent(true)
-		root.bottom().right().pad(MetaSpacing.LG)
+		root.top().center().padTop(MetaSpacing.LG)
 		stage.addActor(root)
 	}
 
@@ -30,9 +30,7 @@ class MetaToastManager(private val stage: Stage) {
 		lastTextMs = now
 
 		show(MetaTable().apply {
-			background = MetaSkin.skin().getDrawable("meta.panel.raised")
 			add(MetaLabel(message, MetaType.BODY, MetaColor.TEXT))
-				.pad(MetaSpacing.SM, MetaSpacing.MD, MetaSpacing.SM, MetaSpacing.MD)
 				.left()
 				.minWidth(120f)
 		}, fadeOutDelay)
@@ -40,15 +38,16 @@ class MetaToastManager(private val stage: Stage) {
 
 	fun show(table: Table, fadeOutDelay: Float) {
 		if (root.stage == null) stage.addActor(root)
-		root.add(table).right().padTop(MetaSpacing.SM).row()
-		table.color.a = 0f
-		table.addAction(
+		val toast = wrapToast(table)
+		root.add(toast).center().padTop(MetaSpacing.SM).row()
+		toast.color.a = 0f
+		toast.addAction(
 			Actions.sequence(
 				Actions.fadeIn(0.12f),
 				Actions.delay(fadeOutDelay),
 				Actions.fadeOut(0.25f),
 				Actions.run {
-					table.remove()
+					toast.remove()
 					root.invalidate()
 				},
 			)
@@ -69,6 +68,13 @@ class MetaToastManager(private val stage: Stage) {
 	fun dispose() {
 		clear()
 		root.remove()
+	}
+
+	private fun wrapToast(content: Table): Table {
+		return MetaTable().apply {
+			background = MetaSkin.skin().getDrawable(MetaSkin.TOAST)
+			add(content).pad(MetaSpacing.XS, MetaSpacing.SM, MetaSpacing.XS, MetaSpacing.SM)
+		}
 	}
 
 	private companion object {

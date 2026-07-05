@@ -38,7 +38,7 @@ class MetaValidatableTextField @JvmOverloads constructor(
 		var valid = true
 		for (i in 0 until validators.size) valid = validators[i].validateInput(text) && valid
 		isInputValid = valid
-		style = if (valid) defaultStyle else errorStyle
+		installMetaTextFieldStyle(if (valid) defaultStyle else errorStyle)
 		return valid
 	}
 }

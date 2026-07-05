@@ -12,7 +12,7 @@ class MetaToggleButton @JvmOverloads constructor(
 	type: FontType = FontType.REGULAR,
 ) : MetaTextButton(text, size, type) {
 	init {
-		style = Button.ButtonStyle(MetaSkin.skin().get(MetaSkin.BUTTON_TOGGLE, Button.ButtonStyle::class.java))
+		installMetaStyle(Button.ButtonStyle(MetaSkin.skin().get(MetaSkin.BUTTON_TOGGLE, Button.ButtonStyle::class.java)))
 		isChecked = checked
 	}
 }

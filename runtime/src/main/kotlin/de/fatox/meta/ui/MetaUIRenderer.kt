@@ -158,11 +158,11 @@ class MetaUIRenderer : UIRenderer {
 	}
 
 	override fun setFocusedActor(actor: Actor?) {
-		focusedActor = actor
+		focusedActor = MetaFocus.assign(focusedActor, actor)
 	}
 
 	override fun dispose() {
-		focusedActor = null
+		setFocusedActor(null)
 		metaInput.removeGlobalInputProcessor(stage)
 		focusRenderer.dispose()
 		stage.dispose()
