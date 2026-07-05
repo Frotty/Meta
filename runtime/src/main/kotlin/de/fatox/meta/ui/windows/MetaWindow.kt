@@ -2,12 +2,12 @@ package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.onChange
@@ -18,9 +18,11 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.components.MetaTable
+import kotlin.math.max
 
 /**
  * Created by Frotty on 08.05.2016.
@@ -50,15 +52,18 @@ abstract class MetaWindow(
 
 	init {
 		titleLabel.setAlignment(Align.left)
-		titleLabel.style = Label.LabelStyle(fontProvider.getFont(14, FontType.REGULAR), titleLabel.color)
+		applyTitleStyle()
+		applyWindowMetrics(resizable)
 
 		titleTable.apply {
-			left().padLeft(2f)
+			clearChildren()
+			left().top()
+			add(titleLabel).growX().height(HEADER_CONTENT_HEIGHT).padLeft(MetaSpacing.SM)
 			if (closeButton) {
 				val exitButton = MetaIconButton(MetaSkin.skin().getDrawable(MetaSkin.ICON_CLOSE)).apply {
-					setColor(1f, 1f, 1f, 0.2f)
+					setColor(1f, 1f, 1f, 0.72f)
 					onChange { close() }
-					addListener(object : ClickListener() {
+					addListener(object : InputListener() {
 						override fun touchDown(
 							event: InputEvent,
 							x: Float,
@@ -66,27 +71,24 @@ abstract class MetaWindow(
 							pointer: Int,
 							button: Int
 						): Boolean {
-							event.cancel()
-							return true
+							event.stop()
+							return false
 						}
 					})
 				}
-				add(exitButton).padRight(-padRight + 0.7f)
+				add(exitButton).size(HEADER_CONTENT_HEIGHT).padRight(MetaSpacing.XS)
 			}
 
-			// Separator
-			top()
 			row().height(2f)
-			add(MetaSeparator()).growX().padTop(2f).colspan(if (closeButton) 2 else 1)
-			padTop(2f)
+			add(MetaSeparator()).growX().colspan(if (closeButton) 2 else 1)
 		}
 
 		if (resizable) {
-			padBottom(6f)
 			super.setResizable(true)
 		}
-		contentTable.top().pad(5f, 1f, 1f, 1f)
-		add(contentTable).top().grow()
+		applyWindowMetrics(resizable)
+		contentTable.top().left().pad(5f, 1f, 1f, 1f)
+		add(contentTable).top().grow().pad(MetaSpacing.XS)
 		row()
 	}
 
@@ -125,7 +127,32 @@ abstract class MetaWindow(
 		val styleName = if (isResizable) MetaSkin.WINDOW_RESIZABLE else MetaSkin.WINDOW
 		if (skin.has(styleName, WindowStyle::class.java)) {
 			style = skin.get(styleName, WindowStyle::class.java)
+			applyTitleStyle()
 		}
+		applyWindowMetrics(isResizable)
+	}
+
+	override fun layout() {
+		val minW = minWidth
+		val minH = minHeight
+		val newW = max(width, minW)
+		val newH = max(height, minH)
+		if (newW != width || newH != height) {
+			val oldH = height
+			val top = y + height
+			setSize(newW, newH)
+			if (newH != oldH) setY(top - newH)
+		}
+		super.layout()
+	}
+
+	override fun getMinWidth(): Float {
+		return max(super.getMinWidth(), MIN_WINDOW_WIDTH)
+	}
+
+	override fun getMinHeight(): Float {
+		val contentMin = contentTable.prefHeight + padTop + padBottom + MetaSpacing.SM
+		return max(max(super.getMinHeight(), contentMin), MIN_WINDOW_HEIGHT)
 	}
 
 	open fun close() {
@@ -160,4 +187,23 @@ abstract class MetaWindow(
 
 	/** Called once when this window is detached from the stage by ANY path (close, screen change, direct remove). */
 	protected open fun onRemovedFromStage() {}
+
+	private fun applyTitleStyle() {
+		titleLabel.style = Label.LabelStyle(fontProvider.getFont(14, FontType.REGULAR), titleLabel.color)
+	}
+
+	private fun applyWindowMetrics(resizable: Boolean) {
+		padTop(HEADER_HEIGHT)
+		padLeft(1f)
+		padRight(1f)
+		padBottom(if (resizable) RESIZE_BOTTOM_PAD else 1f)
+	}
+
+	private companion object {
+		const val HEADER_HEIGHT = 34f
+		const val HEADER_CONTENT_HEIGHT = 30f
+		const val RESIZE_BOTTOM_PAD = 7f
+		const val MIN_WINDOW_WIDTH = 96f
+		const val MIN_WINDOW_HEIGHT = 64f
+	}
 }

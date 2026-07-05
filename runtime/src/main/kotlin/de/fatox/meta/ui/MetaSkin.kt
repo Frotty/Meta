@@ -34,6 +34,7 @@ object MetaSkin {
 	const val SLIDER_HORIZONTAL = "meta.slider.horizontal"
 	const val PROGRESS_HORIZONTAL = "meta.progress.horizontal"
 	const val SEPARATOR = "meta.separator"
+	const val BOTTOM_BAR = "meta.bottomBar"
 	const val WINDOW = "meta.window"
 	const val WINDOW_RESIZABLE = "meta.window.resizable"
 
@@ -43,7 +44,10 @@ object MetaSkin {
 
 	private const val INSTALLED_COLOR = "meta.skin.installed"
 	private const val PATCH_SIZE = 32
+	private const val SHAPE_AA_SAMPLES = 4
 	private const val ICON_SIZE = 24
+	private const val ICON_PIXMAP_SCALE = 3
+	private const val ICON_PIXMAP_SIZE = ICON_SIZE * ICON_PIXMAP_SCALE
 
 	fun skin(): Skin = VisUI.getSkin()
 
@@ -74,11 +78,12 @@ object MetaSkin {
 		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
 		rounded(skin, "meta.panel.raised", MetaColor.SURFACE_RAISED, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
 		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f)
+		topRounded(skin, BOTTOM_BAR, Color.valueOf("080A0ECC"), Color.valueOf("2F333BAA"), radius = 12, border = 1, padding = 14f)
 	}
 
 	private fun addControlDrawables(skin: Skin) {
 		rounded(skin, "meta.button.up", Color.valueOf("34363CFF"), Color.valueOf("4A4D56FF"), radius = 6, border = 1, padding = 9f)
-		rounded(skin, "meta.button.over", Color.valueOf("3E424BFF"), Color.valueOf("5A6572FF"), radius = 6, border = 1, padding = 9f)
+		rounded(skin, "meta.button.over", Color.valueOf("454A54FF"), Color.valueOf("718196FF"), radius = 6, border = 1, padding = 9f)
 		rounded(skin, "meta.button.down", Color.valueOf("25282EFF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 9f)
 		rounded(skin, "meta.button.checked", Color.valueOf("253849FF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 9f)
 		rounded(skin, "meta.button.disabled", Color.valueOf("292A2EFF"), Color.valueOf("34363AFF"), radius = 6, border = 1, padding = 9f)
@@ -89,12 +94,12 @@ object MetaSkin {
 		rounded(skin, "meta.field.error", Color.valueOf("241E20FF"), MetaColor.NEGATIVE, radius = 5, border = 2, padding = 7f)
 		rounded(skin, "meta.selection", Color.valueOf("2F5D86FF"), null, radius = 3, border = 0, padding = 4f)
 
-		rounded(skin, "meta.scroll.track", Color.valueOf("20212688"), null, radius = 4, border = 0, padding = 0f)
-		rounded(skin, "meta.scroll.knob", Color.valueOf("5B626EFF"), null, radius = 4, border = 0, padding = 0f)
-		rounded(skin, SEPARATOR, Color.valueOf("444850FF"), null, radius = 1, border = 0, padding = 0f)
-		rounded(skin, "meta.slider.track", Color.valueOf("24262BFF"), Color.valueOf("363A42FF"), radius = 4, border = 1, padding = 0f)
-		rounded(skin, "meta.slider.fill", Color.valueOf("376F9FFF"), null, radius = 4, border = 0, padding = 0f)
-		rounded(skin, "meta.slider.knob", MetaColor.ACCENT, Color.valueOf("A7D7FFFF"), radius = 8, border = 1, padding = 0f)
+		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 4, border = 0, padding = 0f, minWidth = 8f, minHeight = 8f)
+		rounded(skin, "meta.scroll.knob", Color.valueOf("858F9EFF"), null, radius = 4, border = 0, padding = 0f, minWidth = 8f, minHeight = 8f)
+		rounded(skin, SEPARATOR, Color.valueOf("444850FF"), null, radius = 1, border = 0, padding = 0f, minWidth = 1f, minHeight = 1f)
+		rounded(skin, "meta.slider.track", Color.valueOf("24262BFF"), Color.valueOf("4B515EFF"), radius = 4, border = 1, padding = 0f, minHeight = 8f)
+		rounded(skin, "meta.slider.fill", Color.valueOf("4F9DDEFF"), null, radius = 4, border = 0, padding = 0f, minHeight = 8f)
+		rounded(skin, "meta.slider.knob", MetaColor.ACCENT, Color.valueOf("D3ECFFFF"), radius = 8, border = 1, padding = 0f, minWidth = 18f, minHeight = 18f)
 
 		checkbox(skin, "meta.checkbox.off", checked = false, over = false, down = false)
 		checkbox(skin, "meta.checkbox.over", checked = false, over = true, down = false)
@@ -116,13 +121,12 @@ object MetaSkin {
 			up = skin.getDrawable("meta.button.up")
 			over = skin.getDrawable("meta.button.over")
 			down = skin.getDrawable("meta.button.down")
-			checked = skin.getDrawable("meta.button.checked")
-			checkedOver = skin.getDrawable("meta.button.over")
 			disabled = skin.getDrawable("meta.button.disabled")
 		})
 		skin.add(BUTTON_TOGGLE, Button.ButtonStyle(skin.get(BUTTON, Button.ButtonStyle::class.java)).apply {
 			up = skin.getDrawable("meta.button.up")
 			checked = skin.getDrawable("meta.button.checked")
+			checkedOver = skin.getDrawable("meta.button.checked")
 		})
 		skin.add(ICON_BUTTON, Button.ButtonStyle(skin.get(BUTTON, Button.ButtonStyle::class.java)))
 		skin.add(CHECKBOX, Button.ButtonStyle().apply {
@@ -211,24 +215,31 @@ object MetaSkin {
 		radius: Int,
 		border: Int,
 		padding: Float,
+		minWidth: Float = 24f,
+		minHeight: Float = 24f,
 	) {
 		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
-		val fillBits = Color.rgba8888(fill)
-		val strokeBits = if (stroke != null && border > 0) Color.rgba8888(stroke) else 0
 		val innerRadius = (radius - border).coerceAtLeast(0)
 		for (y in 0 until PATCH_SIZE) {
 			for (x in 0 until PATCH_SIZE) {
-				val outer = insideRoundRect(x + 0.5f, y + 0.5f, PATCH_SIZE.toFloat(), PATCH_SIZE.toFloat(), radius.toFloat())
-				if (!outer) continue
-				val inner = border <= 0 || insideRoundRect(
-					x + 0.5f - border,
-					y + 0.5f - border,
-					(PATCH_SIZE - border * 2).toFloat(),
-					(PATCH_SIZE - border * 2).toFloat(),
-					innerRadius.toFloat(),
+				val pixel = sampleShapePixel(
+					x,
+					y,
+					fill,
+					stroke,
+					outer = { sx, sy -> insideRoundRect(sx, sy, PATCH_SIZE.toFloat(), PATCH_SIZE.toFloat(), radius.toFloat()) },
+					inner = { sx, sy ->
+						border <= 0 || insideRoundRect(
+							sx - border,
+							sy - border,
+							(PATCH_SIZE - border * 2).toFloat(),
+							(PATCH_SIZE - border * 2).toFloat(),
+							innerRadius.toFloat(),
+						)
+					},
 				)
-				pixmap.drawPixel(x, y, if (!inner && stroke != null) strokeBits else fillBits)
+				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
 			}
 		}
 		val texture = Texture(pixmap)
@@ -241,8 +252,57 @@ object MetaSkin {
 			rightWidth = padding
 			topHeight = padding
 			bottomHeight = padding
-			minWidth = 24f
-			minHeight = 24f
+			this.minWidth = minWidth
+			this.minHeight = minHeight
+		}
+		skin.add(name, drawable, Drawable::class.java)
+	}
+
+	private fun topRounded(
+		skin: Skin,
+		name: String,
+		fill: Color,
+		stroke: Color?,
+		radius: Int,
+		border: Int,
+		padding: Float,
+	) {
+		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
+		pixmap.setBlending(Pixmap.Blending.None)
+		val innerRadius = (radius - border).coerceAtLeast(0)
+		for (y in 0 until PATCH_SIZE) {
+			for (x in 0 until PATCH_SIZE) {
+				val pixel = sampleShapePixel(
+					x,
+					y,
+					fill,
+					stroke,
+					outer = { sx, sy -> insideTopRoundRect(sx, sy, PATCH_SIZE.toFloat(), PATCH_SIZE.toFloat(), radius.toFloat()) },
+					inner = { sx, sy ->
+						border <= 0 || insideTopRoundRect(
+							sx - border,
+							sy - border,
+							(PATCH_SIZE - border * 2).toFloat(),
+							(PATCH_SIZE - border * 2).toFloat(),
+							innerRadius.toFloat(),
+						)
+					},
+				)
+				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
+			}
+		}
+		val texture = Texture(pixmap)
+		pixmap.dispose()
+		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+		skin.add("$name.texture", texture)
+		val split = radius + 2
+		val drawable = NinePatchDrawable(NinePatch(texture, split, split, split, 0)).apply {
+			leftWidth = padding
+			rightWidth = padding
+			topHeight = padding
+			bottomHeight = padding * 0.5f
+			minWidth = 28f
+			minHeight = 30f
 		}
 		skin.add(name, drawable, Drawable::class.java)
 	}
@@ -255,7 +315,8 @@ object MetaSkin {
 		down: Boolean,
 		disabled: Boolean = false,
 	) {
-		val pixmap = Pixmap(ICON_SIZE, ICON_SIZE, Pixmap.Format.RGBA8888)
+		val scale = ICON_PIXMAP_SCALE
+		val pixmap = Pixmap(ICON_PIXMAP_SIZE, ICON_PIXMAP_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		val fill = when {
 			disabled -> Color.valueOf("292A2EFF")
@@ -269,8 +330,8 @@ object MetaSkin {
 			over -> Color.valueOf("6D7584FF")
 			else -> Color.valueOf("4A4D56FF")
 		}
-		drawRoundedPixels(pixmap, fill, stroke, radius = 5, border = 2)
-		if (checked) drawCheck(pixmap, if (disabled) MetaColor.TEXT_DISABLED else MetaColor.TEXT)
+		drawRoundedPixels(pixmap, fill, stroke, radius = 5 * scale, border = 2 * scale)
+		if (checked) drawCheck(pixmap, if (disabled) MetaColor.TEXT_DISABLED else MetaColor.TEXT, scale)
 		val texture = Texture(pixmap)
 		pixmap.dispose()
 		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
@@ -316,30 +377,35 @@ object MetaSkin {
 	}
 
 	private fun drawRoundedPixels(pixmap: Pixmap, fill: Color, stroke: Color, radius: Int, border: Int) {
-		val fillBits = Color.rgba8888(fill)
-		val strokeBits = Color.rgba8888(stroke)
 		for (y in 0 until pixmap.height) {
 			for (x in 0 until pixmap.width) {
-				val outer = insideRoundRect(x + 0.5f, y + 0.5f, pixmap.width.toFloat(), pixmap.height.toFloat(), radius.toFloat())
-				if (!outer) continue
-				val inner = insideRoundRect(
-					x + 0.5f - border,
-					y + 0.5f - border,
-					(pixmap.width - border * 2).toFloat(),
-					(pixmap.height - border * 2).toFloat(),
-					(radius - border).coerceAtLeast(0).toFloat(),
+				val pixel = sampleShapePixel(
+					x,
+					y,
+					fill,
+					stroke,
+					outer = { sx, sy -> insideRoundRect(sx, sy, pixmap.width.toFloat(), pixmap.height.toFloat(), radius.toFloat()) },
+					inner = { sx, sy ->
+						insideRoundRect(
+							sx - border,
+							sy - border,
+							(pixmap.width - border * 2).toFloat(),
+							(pixmap.height - border * 2).toFloat(),
+							(radius - border).coerceAtLeast(0).toFloat(),
+						)
+					},
 				)
-				pixmap.drawPixel(x, y, if (inner) fillBits else strokeBits)
+				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
 			}
 		}
 	}
 
-	private fun drawCheck(pixmap: Pixmap, color: Color) {
+	private fun drawCheck(pixmap: Pixmap, color: Color, scale: Int = 1) {
 		val bits = Color.rgba8888(color)
-		drawLine(pixmap, 6, 12, 10, 16, bits)
-		drawLine(pixmap, 10, 16, 18, 7, bits)
-		drawLine(pixmap, 6, 13, 10, 17, bits)
-		drawLine(pixmap, 10, 17, 18, 8, bits)
+		for (offset in 0 until 2 * scale) {
+			drawLine(pixmap, 6 * scale, 12 * scale + offset, 10 * scale, 16 * scale + offset, bits)
+			drawLine(pixmap, 10 * scale, 16 * scale + offset, 18 * scale, 7 * scale + offset, bits)
+		}
 	}
 
 	private fun drawLine(pixmap: Pixmap, x0: Int, y0: Int, x1: Int, y1: Int, colorBits: Int) {
@@ -374,4 +440,53 @@ object MetaSkin {
 		val dy = py - cy
 		return dx * dx + dy * dy <= r * r
 	}
+
+	private inline fun sampleShapePixel(
+		x: Int,
+		y: Int,
+		fill: Color,
+		stroke: Color?,
+		outer: (Float, Float) -> Boolean,
+		inner: (Float, Float) -> Boolean,
+	): Color {
+		var fillSamples = 0
+		var strokeSamples = 0
+		for (sy in 0 until SHAPE_AA_SAMPLES) {
+			for (sx in 0 until SHAPE_AA_SAMPLES) {
+				val sampleX = x + (sx + 0.5f) / SHAPE_AA_SAMPLES
+				val sampleY = y + (sy + 0.5f) / SHAPE_AA_SAMPLES
+				if (outer(sampleX, sampleY)) {
+					if (inner(sampleX, sampleY) || stroke == null) fillSamples++ else strokeSamples++
+				}
+			}
+		}
+		val total = SHAPE_AA_SAMPLES * SHAPE_AA_SAMPLES
+		val covered = fillSamples + strokeSamples
+		if (covered == 0) return TRANSPARENT
+		if (strokeSamples == 0) return TMP_COLOR.set(fill.r, fill.g, fill.b, fill.a * covered / total)
+		if (fillSamples == 0) return TMP_COLOR.set(stroke!!.r, stroke.g, stroke.b, stroke.a * covered / total)
+
+		val fillWeight = fillSamples.toFloat() / covered
+		val strokeWeight = strokeSamples.toFloat() / covered
+		return TMP_COLOR.set(
+			fill.r * fillWeight + stroke!!.r * strokeWeight,
+			fill.g * fillWeight + stroke.g * strokeWeight,
+			fill.b * fillWeight + stroke.b * strokeWeight,
+			(fill.a * fillSamples + stroke.a * strokeSamples) / total,
+		)
+	}
+
+	private fun insideTopRoundRect(px: Float, py: Float, width: Float, height: Float, radius: Float): Boolean {
+		if (width <= 0f || height <= 0f) return false
+		val r = radius.coerceAtMost(width * 0.5f).coerceAtMost(height)
+		if (py >= r) return px >= 0f && px <= width && py <= height
+		val cx = px.coerceIn(r, width - r)
+		val cy = r
+		val dx = px - cx
+		val dy = py - cy
+		return dx * dx + dy * dy <= r * r
+	}
+
+	private val TRANSPARENT = Color(0f, 0f, 0f, 0f)
+	private val TMP_COLOR = Color()
 }

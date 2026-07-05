@@ -77,10 +77,10 @@ class MetaFontProvider : FontProvider {
 		}).generateFont(defaultFontParam(physicalSize))
 		if (scale != 1f) {
 			font.data.setScale(1f / scale)
-			// A scaled BitmapFont MUST use sub-pixel positions, else glyphs are rounded in logical space and land
-			// between physical pixels after the viewport scales up -> blur + uneven spacing ("bad kerning").
-			font.setUseIntegerPositions(false)
 		}
+		// Integer positions snap every glyph advance to whole pixels. That looks especially bad on kerning-sensitive
+		// pairs ("VA", "To") and gets worse once UI scale is applied by the viewport.
+		font.setUseIntegerPositions(false)
 		return font
 	}
 
@@ -89,7 +89,8 @@ class MetaFontProvider : FontProvider {
 			incremental = true
 			minFilter = Texture.TextureFilter.Linear
 			magFilter = Texture.TextureFilter.Linear
-			hinting = FreeTypeFontGenerator.Hinting.Medium
+			hinting = FreeTypeFontGenerator.Hinting.Slight
+			kerning = true
 			size = requestedSize
 		}
 	}

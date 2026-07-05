@@ -30,6 +30,12 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
   (padding rhythm), `MetaColor` (dark palette). Prefer these over magic numbers/colors. Helpers: `metaLabel(...)`,
   `metaButton(...)`, `Table.metaDefaults()`. `MetaColor` values are shared mutable `Color`s — treat read-only, use
   `.cpy()` for variants.
+- **Use `MetaScrollPane`, not raw `ScrollPane`/`VisScrollPane`.** It owns Meta's thin generated scrollbar style,
+  mouse-wheel step, and the right-side content gutter so text/icons never sit flush against the scrollbar. If you need
+  a scrollable list, wrap it in `MetaScrollPane` and let the component enforce the padding.
+- **Use `MetaBottomBar` for bottom prompt/status strips.** It is a generic, content-width container with rounded top
+  corners and reactive visibility/content binding helpers; keep game-specific glyph/font lookup in the consuming game
+  and pass the resulting actor as content.
 - **Verify layouts with `ui/layout/MetaLayout`** instead of only eyeballing the running game. `MetaLayout.problems(root)`
   / `assertValid(root)` find overflow (child outside parent) and clipping (actor smaller than its preferred size).
   It is pure geometry (no GL), so it runs in plain unit tests: bootstrap with `GdxTestEnvironment.ensure()` (test
