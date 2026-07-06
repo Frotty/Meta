@@ -7,6 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.extensions.onClick
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.UiControlHelper
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaTable
@@ -20,6 +22,7 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 
 	var dialogListener: DialogListener = EmptyListener
 	private var buttonCount = 0
+	private val uiControlHelper: UiControlHelper by lazyInject()
 
 	fun interface DialogListener {
 		fun onResult(any: Any?)
@@ -61,8 +64,10 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 	open fun focusDialog() {
 		val stage = stage ?: return
 		toFront()
-		stage.keyboardFocus = firstTextField() ?: this
+		val keyboardTarget = firstTextField()
+		stage.keyboardFocus = keyboardTarget ?: this
 		stage.scrollFocus = this
+		uiControlHelper.focusFirstIn(this, keyboardTarget)
 	}
 
 	private fun firstTextField(group: Group = this): TextField? {
@@ -83,6 +88,7 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 	 */
 	override fun onRemovedFromStage() {
 		onHidden()
+		uiControlHelper.clearFocusIfInside(this)
 		uiManager.onDialogRemoved(this)
 	}
 

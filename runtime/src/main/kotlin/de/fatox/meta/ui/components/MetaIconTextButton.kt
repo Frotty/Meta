@@ -24,6 +24,7 @@ class MetaIconTextButton(
 		if (maxWidth != null) setMaxWidth(maxWidth)
 	}
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
+	private val disabledTint = MetaDisabledTint(this)
 	var text: CharSequence
 		get() = label.text
 		set(value) = label.setText(value)
@@ -37,5 +38,10 @@ class MetaIconTextButton(
 
 	override fun setMetaFocused(focused: Boolean) {
 		focusStyle.setFocused(focused)
+	}
+
+	override fun setDisabled(isDisabled: Boolean) {
+		super.setDisabled(isDisabled)
+		disabledTint.apply(isDisabled)
 	}
 }

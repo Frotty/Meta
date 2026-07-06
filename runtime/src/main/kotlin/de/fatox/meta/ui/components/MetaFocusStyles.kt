@@ -1,9 +1,14 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
+import com.badlogic.gdx.utils.ObjectMap
+import de.fatox.meta.ui.MetaColor
 
 internal class MetaButtonFocusStyle(
 	private val button: Button,
@@ -94,5 +99,40 @@ internal class MetaSelectBoxFocusStyle<T>(
 	private fun apply() {
 		selectBox.style = SelectBox.SelectBoxStyle(if (focused) focusedStyle else normalStyle)
 		selectBox.list.style = List.ListStyle(selectBox.style.listStyle)
+	}
+}
+
+internal class MetaDisabledTint(private val root: Group) {
+	private val originalColors = ObjectMap<Actor, Color>()
+
+	fun apply(disabled: Boolean) {
+		if (disabled) {
+			tintChildren(root)
+		} else {
+			restore()
+		}
+	}
+
+	private fun tintChildren(group: Group) {
+		val children = group.children
+		for (i in 0 until children.size) {
+			val child = children[i]
+			if (!originalColors.containsKey(child)) originalColors.put(child, Color(child.color))
+			child.color.set(DISABLED_CHILD_COLOR)
+			if (child is Group) tintChildren(child)
+		}
+	}
+
+	private fun restore() {
+		val entries = originalColors.entries()
+		while (entries.hasNext()) {
+			val entry = entries.next()
+			entry.key.color.set(entry.value)
+		}
+		originalColors.clear()
+	}
+
+	private companion object {
+		private val DISABLED_CHILD_COLOR = Color(MetaColor.TEXT_DISABLED)
 	}
 }

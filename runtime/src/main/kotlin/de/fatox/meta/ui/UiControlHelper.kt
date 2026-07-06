@@ -5,21 +5,25 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
+import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.Timer
 import de.fatox.meta.api.MetaInputProcessor
-import de.fatox.meta.api.addGlobalKeyListener
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import de.fatox.meta.input.KeyListener
+import de.fatox.meta.input.MetaUiAction
+import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.reactive.effect
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.windows.MetaDialog
 import kotlin.math.absoluteValue
 import kotlin.math.sqrt
 
@@ -37,18 +41,23 @@ import kotlin.math.sqrt
 class UiControlHelper {
 	private val metaInput: MetaInputProcessor by lazyInject()
 	private val metaUIRenderer: UIRenderer by lazyInject()
+	private val uiBindings: MetaUiInputBindings by lazyInject()
 	private val focusedActorSignal = signal<Actor?>(null) { a, b -> a === b }
 
 	/** The widget currently focused by keyboard/controller navigation, as a reactive value (read it in an effect). */
 	val focusedActor: ReactiveValue<Actor?> get() = focusedActorSignal
 
 	private val clickPosition = Vector2()
+	private val emptySelection = Actor()
+	private var selectedActorBacking: Actor = emptySelection
+	private var focusedRoot: Group? = null
+	private var synthesizingCanonicalAction = false
 
 	// Whether we are actively controlling UI focus
 	var activated: Boolean = true
 		set(value) {
 			field = value
-			if (value && selectedActor.isVisible) {
+			if (value && canFocus(selectedActor)) {
 				setFocusedActor(selectedActor)
 			} else {
 				setFocusedActor(null)
@@ -58,12 +67,10 @@ class UiControlHelper {
 	var canMove: Boolean = true
 
 	// The actor that is currently selected/focused
-	var selectedActor: Actor = Actor()
+	var selectedActor: Actor
+		get() = selectedActorBacking
 		set(value) {
-			field = value
-			if (!activated) return
-			setFocusedActor(value)
-			scrollIfNeeded(value)
+			selectActor(value, focus = true)
 		}
 
 	@Deprecated("Read focusedActor (a ReactiveValue) inside an effect instead.")
@@ -79,39 +86,125 @@ class UiControlHelper {
 		focusedActorSignal.value = actor // notifies any effect observing focusedActor (incl. legacy bridges)
 	}
 
+	private fun selectActor(actor: Actor, focus: Boolean) {
+		selectedActorBacking = actor
+		if (!activated || !focus) return
+		if (canFocus(actor)) {
+			setFocusedActor(actor)
+			scrollIfNeeded(actor)
+		} else {
+			setFocusedActor(null)
+		}
+	}
+
+	fun focusFirstIn(root: Group, preferred: Actor? = null): Actor? {
+		focusedRoot = root
+		if (preferred != null && isNavigable(preferred) && preferred.isDescendantOf(root)) {
+			selectedActor = preferred
+			return preferred
+		}
+		val first = firstNavigable(root) ?: return null
+		selectedActor = first
+		return first
+	}
+
+	fun clearFocusIfInside(root: Group) {
+		val focused = focusedActorSignal.peek()
+		if (focused != null && focused.isDescendantOf(root)) setFocusedActor(null)
+		if (selectedActor.isDescendantOf(root)) selectActor(emptySelection, focus = false)
+		val scopedRoot = focusedRoot
+		if (scopedRoot != null && scopedRoot.isDescendantOf(root)) focusedRoot = null
+	}
+
 	// We gather potential navigation targets from the parent's hierarchy
 	private var targets = Array<Actor>()
+	private val repeatTasks = ObjectMap<MetaUiAction, Timer.Task>()
 
-	/** Registers a held-repeating navigation key that moves focus via [navigate] while [activated] and [canMove]. */
-	private fun addNavKey(keycode: Int, navigate: () -> Actor) {
-		metaInput.addGlobalKeyListener(keycode, 0, object : KeyListener() {
-			override fun onDown() {
-				// Repeat while held down.
-				task = Timer.schedule(object : Timer.Task() {
-					override fun run() {
-						if (Gdx.input.isKeyPressed(keycode)) onEvent() else cancel()
-					}
-				}, 0.4f, 0.2f)
+	init {
+		metaInput.addGlobalInputProcessor(object : InputAdapter() {
+			override fun keyDown(keycode: Int): Boolean {
+				if (synthesizingCanonicalAction) return false
+				val action = uiBindings.actionForKey(keycode) ?: return false
+				handleActionDown(action, keycode)
+				return false
 			}
 
-			override fun onEvent() {
-				if (activated && canMove) selectedActor = navigate()
+			override fun keyUp(keycode: Int): Boolean {
+				if (synthesizingCanonicalAction) return false
+				val action = uiBindings.actionForKey(keycode) ?: return false
+				handleActionUp(action, keycode)
+				return false
 			}
 		})
 	}
 
-	init {
-		// Arrow listeners to move focus.
-		addNavKey(Input.Keys.RIGHT) { getNextX(left = false) }
-		addNavKey(Input.Keys.LEFT) { getNextX(left = true) }
-		addNavKey(Input.Keys.DOWN) { getNextY(up = false) }
-		addNavKey(Input.Keys.UP) { getNextY(up = true) }
+	private fun handleActionDown(action: MetaUiAction, keycode: Int) {
+		if (isNavigationAction(action)) {
+			navigate(action)
+			scheduleRepeat(action)
+		}
+		synthesizeCanonicalKeyDown(action, keycode)
+	}
 
-		// Simulate clicking the selectedActor on ENTER
-		metaInput.addGlobalKeyListener(Input.Keys.ENTER) {
-			activateSelectedActor()
+	private fun handleActionUp(action: MetaUiAction, keycode: Int) {
+		cancelRepeat(action)
+		if (action == MetaUiAction.CONFIRM) activateSelectedActor()
+		synthesizeCanonicalKeyUp(action, keycode)
+	}
+
+	private fun synthesizeCanonicalKeyDown(action: MetaUiAction, keycode: Int) {
+		val canonicalKey = uiBindings.canonicalKeyFor(action)
+		if (keycode == canonicalKey) return
+		synthesizingCanonicalAction = true
+		try {
+			metaInput.keyDown(canonicalKey)
+		} finally {
+			synthesizingCanonicalAction = false
 		}
 	}
+
+	private fun synthesizeCanonicalKeyUp(action: MetaUiAction, keycode: Int) {
+		val canonicalKey = uiBindings.canonicalKeyFor(action)
+		if (keycode == canonicalKey) return
+		synthesizingCanonicalAction = true
+		try {
+			metaInput.keyUp(canonicalKey)
+		} finally {
+			synthesizingCanonicalAction = false
+		}
+	}
+
+	private fun scheduleRepeat(action: MetaUiAction) {
+		cancelRepeat(action)
+		val task = object : Timer.Task() {
+			override fun run() {
+				navigate(action)
+			}
+		}
+		repeatTasks.put(action, task)
+		Timer.schedule(task, NAV_REPEAT_DELAY_SECONDS, NAV_REPEAT_SECONDS)
+	}
+
+	private fun cancelRepeat(action: MetaUiAction) {
+		repeatTasks.remove(action)?.cancel()
+	}
+
+	private fun navigate(action: MetaUiAction) {
+		if (!activated || !canMove) return
+		selectedActor = when (action) {
+			MetaUiAction.NAVIGATE_UP -> getNextY(up = true)
+			MetaUiAction.NAVIGATE_DOWN -> getNextY(up = false)
+			MetaUiAction.NAVIGATE_LEFT -> getNextX(left = true)
+			MetaUiAction.NAVIGATE_RIGHT -> getNextX(left = false)
+			else -> selectedActor
+		}
+	}
+
+	private fun isNavigationAction(action: MetaUiAction): Boolean =
+		action == MetaUiAction.NAVIGATE_UP ||
+			action == MetaUiAction.NAVIGATE_DOWN ||
+			action == MetaUiAction.NAVIGATE_LEFT ||
+			action == MetaUiAction.NAVIGATE_RIGHT
 
 	private fun activateSelectedActor() {
 		if (
@@ -187,16 +280,17 @@ class UiControlHelper {
 		get() {
 			targets.clear()
 
-			// If selectedActor is invisible but has a valid stage, fallback
-			if (!selectedActor.isVisible && selectedActor.stage != null && selectedActor.stage.actors.size > 0) {
-				selectedActor = selectedActor.stage.actors[0]
+			val scopedRoot = selectedActor.enclosingDialog()
+				?: focusedRoot?.takeIf { selectedActor.isDescendantOf(it) }
+			if (scopedRoot != null) {
+				targetsInGroup(scopedRoot)
+				return targets
 			}
-			val rootGroup = if (selectedActor is Group) selectedActor as Group else selectedActor.parent
-			var parent: Group? = rootGroup
 
-			while (parent != null) {
-				targetsInGroup(parent)
-				parent = parent.parent
+			var rootGroup = selectedActor.parent ?: selectedActor as? Group ?: return targets
+			while (true) {
+				targetsInGroup(rootGroup)
+				rootGroup = rootGroup.parent ?: break
 			}
 			return targets
 		}
@@ -204,13 +298,56 @@ class UiControlHelper {
 	private fun targetsInGroup(group: Group) {
 		for (actor in group.children) {
 			if (actor.isVisible) {
-				if (actor != selectedActor && (actor is Button || actor is SelectBox<*>) && !targets.contains(actor, true)) {
+				if (actor != selectedActor && isNavigable(actor) && !targets.contains(actor, true)) {
 					targets.add(actor)
 				} else if (actor is Group) {
 					targetsInGroup(actor)
 				}
 			}
 		}
+	}
+
+	private fun firstNavigable(group: Group): Actor? {
+		for (actor in group.children) {
+			if (!actor.isVisible) continue
+			if (isNavigable(actor)) return actor
+			if (actor is Group) firstNavigable(actor)?.let { return it }
+		}
+		return null
+	}
+
+	private fun canFocus(actor: Actor): Boolean =
+		actor.isVisible &&
+			actor.stage != null &&
+			!(actor is Disableable && actor.isDisabled)
+
+	private fun isNavigable(actor: Actor): Boolean {
+		if (!canFocus(actor)) return false
+		return when (actor) {
+			is Button -> !actor.isDisabled
+			is SelectBox<*> -> !actor.isDisabled
+			is TextField -> !actor.isDisabled
+			is MetaFocusable -> true
+			else -> false
+		}
+	}
+
+	private fun Actor.isDescendantOf(root: Group): Boolean {
+		var actor: Actor? = this
+		while (actor != null) {
+			if (actor === root) return true
+			actor = actor.parent
+		}
+		return false
+	}
+
+	private fun Actor.enclosingDialog(): MetaDialog? {
+		var actor: Actor? = this
+		while (actor != null) {
+			if (actor is MetaDialog) return actor
+			actor = actor.parent
+		}
+		return null
 	}
 
 	// --------------------------------------------------------------
@@ -374,5 +511,10 @@ class UiControlHelper {
 	 */
 	private fun Actor.bottomEdgeCenterOnStage(): Vector2 {
 		return Vector2(leftEdgeOnStage() + width * 0.5f, bottomEdgeOnStage())
+	}
+
+	private companion object {
+		const val NAV_REPEAT_DELAY_SECONDS = 0.4f
+		const val NAV_REPEAT_SECONDS = 0.2f
 	}
 }

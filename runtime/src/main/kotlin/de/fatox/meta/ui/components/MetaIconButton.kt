@@ -13,6 +13,7 @@ class MetaIconButton(drawable: Drawable?) :
 	MetaFocusable {
 	private val image = Image(drawable)
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
+	private val disabledTint = MetaDisabledTint(this)
 
 	init {
 		add(image).size(24f).pad(MetaSpacing.XS)
@@ -20,5 +21,10 @@ class MetaIconButton(drawable: Drawable?) :
 
 	override fun setMetaFocused(focused: Boolean) {
 		focusStyle.setFocused(focused)
+	}
+
+	override fun setDisabled(isDisabled: Boolean) {
+		super.setDisabled(isDisabled)
+		disabledTint.apply(isDisabled)
 	}
 }

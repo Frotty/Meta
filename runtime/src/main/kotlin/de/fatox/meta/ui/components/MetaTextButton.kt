@@ -28,6 +28,7 @@ open class MetaTextButton @JvmOverloads constructor(
 	private var labelCell: Cell<MetaLabel>
 	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE, type) { setAlignment(Align.center) }
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
+	private val disabledTint = MetaDisabledTint(this)
 
 	fun setText(text: String = "") {
 		label.setText(text)
@@ -49,6 +50,11 @@ open class MetaTextButton @JvmOverloads constructor(
 
 	override fun setMetaFocused(focused: Boolean) {
 		focusStyle.setFocused(focused)
+	}
+
+	override fun setDisabled(isDisabled: Boolean) {
+		super.setDisabled(isDisabled)
+		disabledTint.apply(isDisabled)
 	}
 
 	fun centerText() {

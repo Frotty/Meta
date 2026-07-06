@@ -1,17 +1,19 @@
 package de.fatox.meta.input
 
-import com.badlogic.gdx.Input
 import com.badlogic.gdx.controllers.Controller
 import com.badlogic.gdx.controllers.ControllerListener
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.absoluteValue
 
 private val log = MetaLoggerFactory.logger {}
 
 object MetaControllerListener : ControllerListener {
 	var metaInput: MetaInput? = null
-	private var currentDownKey = -1
+	private val uiBindings: MetaUiInputBindings by lazyInject()
+	private var currentHorDownKey = -1
+	private var currentVertDownKey = -1
 	var deadzone = 0.39f
 
 	override fun connected(controller: Controller) {
@@ -20,70 +22,94 @@ object MetaControllerListener : ControllerListener {
 
 	override fun disconnected(controller: Controller) {
 		log.debug { "Controller disconnected." }
+		releaseAxisKeys()
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
-		return false
+		return uiBindings.actionForButton(controller, buttonCode)?.let {
+			emitKeyDown(uiBindings.canonicalKeyFor(it))
+			true
+		} ?: false
 	}
 
 	override fun buttonUp(controller: Controller, buttonCode: Int): Boolean {
-		log.debug { "$buttonCode" }
-		return false
+		return uiBindings.actionForButton(controller, buttonCode)?.let {
+			emitKeyUp(uiBindings.canonicalKeyFor(it))
+			true
+		} ?: false
 	}
 
 	override fun axisMoved(controller: Controller, axisCode: Int, value: Float): Boolean {
-		checkVert(controller)
-		checkHor(controller)
-		return false
+		if (!uiBindings.axisNavigationEnabled) return false
+		return checkVert(controller) || checkHor(controller)
 	}
 
 	private fun checkVert(controller: Controller): Boolean {
-		val axisValue = controller.getAxis(1)
-		if (currentDownKey != Input.Keys.UP && axisValue < -deadzone) {
-			metaInput?.keyUp(currentDownKey)
-			currentDownKey = Input.Keys.UP
-			metaInput?.keyDown(currentDownKey)
+		val axisValue = controller.getAxis(uiBindings.verticalAxis)
+		val upKey = uiBindings.canonicalKeyFor(MetaUiAction.NAVIGATE_UP)
+		val downKey = uiBindings.canonicalKeyFor(MetaUiAction.NAVIGATE_DOWN)
+		if (currentVertDownKey != upKey && axisValue < -deadzone) {
+			emitKeyUp(currentVertDownKey)
+			currentVertDownKey = upKey
+			emitKeyDown(currentVertDownKey)
 			return true
-		} else if (currentDownKey == Input.Keys.UP && axisValue > -deadzone) {
-			metaInput?.keyUp(currentDownKey)
-			currentDownKey = -1
+		} else if (currentVertDownKey == upKey && axisValue > -deadzone) {
+			emitKeyUp(currentVertDownKey)
+			currentVertDownKey = -1
 			return true
 		}
-		if (currentDownKey != Input.Keys.DOWN && axisValue > deadzone) {
-			metaInput?.keyUp(currentDownKey)
-			currentDownKey = Input.Keys.DOWN
-			metaInput?.keyDown(currentDownKey)
+		if (currentVertDownKey != downKey && axisValue > deadzone) {
+			emitKeyUp(currentVertDownKey)
+			currentVertDownKey = downKey
+			emitKeyDown(currentVertDownKey)
 			return true
-		} else if (currentDownKey == Input.Keys.DOWN && axisValue < deadzone) {
-			metaInput?.keyUp(currentDownKey)
-			currentDownKey = -1
+		} else if (currentVertDownKey == downKey && axisValue < deadzone) {
+			emitKeyUp(currentVertDownKey)
+			currentVertDownKey = -1
 			return true
 		}
 		return false
 	}
 
 	private fun checkHor(controller: Controller): Boolean {
-		val axisValue = controller.getAxis(0)
-		if (currentDownKey != Input.Keys.LEFT && axisValue < -deadzone) {
-			metaInput?.keyUp(currentDownKey)
-			currentDownKey = Input.Keys.LEFT
-			metaInput?.keyDown(currentDownKey)
+		val axisValue = controller.getAxis(uiBindings.horizontalAxis)
+		val leftKey = uiBindings.canonicalKeyFor(MetaUiAction.NAVIGATE_LEFT)
+		val rightKey = uiBindings.canonicalKeyFor(MetaUiAction.NAVIGATE_RIGHT)
+		if (currentHorDownKey != leftKey && axisValue < -deadzone) {
+			emitKeyUp(currentHorDownKey)
+			currentHorDownKey = leftKey
+			emitKeyDown(currentHorDownKey)
 			return true
-		} else if (currentDownKey == Input.Keys.LEFT && axisValue > -deadzone) {
-			metaInput?.keyUp(currentDownKey)
-			currentDownKey = -1
+		} else if (currentHorDownKey == leftKey && axisValue > -deadzone) {
+			emitKeyUp(currentHorDownKey)
+			currentHorDownKey = -1
 			return true
 		}
-		if (currentDownKey != Input.Keys.RIGHT && axisValue > deadzone) {
-			metaInput?.keyUp(currentDownKey)
-			currentDownKey = Input.Keys.RIGHT
-			metaInput?.keyDown(currentDownKey)
+		if (currentHorDownKey != rightKey && axisValue > deadzone) {
+			emitKeyUp(currentHorDownKey)
+			currentHorDownKey = rightKey
+			emitKeyDown(currentHorDownKey)
 			return true
-		} else if (currentDownKey == Input.Keys.RIGHT && axisValue < deadzone) {
-			metaInput?.keyUp(currentDownKey)
-			currentDownKey = -1
+		} else if (currentHorDownKey == rightKey && axisValue < deadzone) {
+			emitKeyUp(currentHorDownKey)
+			currentHorDownKey = -1
 			return true
 		}
 		return false
+	}
+
+	private fun releaseAxisKeys() {
+		emitKeyUp(currentHorDownKey)
+		emitKeyUp(currentVertDownKey)
+		currentHorDownKey = -1
+		currentVertDownKey = -1
+	}
+
+	private fun emitKeyDown(keycode: Int) {
+		if (keycode != -1) metaInput?.keyDown(keycode)
+	}
+
+	private fun emitKeyUp(keycode: Int) {
+		if (keycode != -1) metaInput?.keyUp(keycode)
 	}
 }

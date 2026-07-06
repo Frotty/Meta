@@ -9,8 +9,14 @@ open class MetaButtonContainer :
 	Button(MetaSkin.skin().get(MetaSkin.BUTTON, ButtonStyle::class.java)),
 	MetaFocusable {
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
+	private val disabledTint = MetaDisabledTint(this)
 
 	override fun setMetaFocused(focused: Boolean) {
 		focusStyle.setFocused(focused)
+	}
+
+	override fun setDisabled(isDisabled: Boolean) {
+		super.setDisabled(isDisabled)
+		disabledTint.apply(isDisabled)
 	}
 }
