@@ -3,6 +3,7 @@ package de.fatox.meta.ui
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.ui.components.MetaLabel
@@ -10,12 +11,15 @@ import de.fatox.meta.ui.components.MetaTable
 
 class MetaToastManager(private val stage: Stage) {
 	private val root = Table()
+	internal val rootForLayoutTest: Table
+		get() = root
 	private var lastText = ""
 	private var lastTextMs = 0L
 
 	init {
 		root.setFillParent(true)
-		root.top().center().padTop(MetaSpacing.LG)
+		root.align(Align.top)
+		root.padTop(MetaSpacing.LG)
 		stage.addActor(root)
 	}
 
