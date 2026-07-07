@@ -5,9 +5,13 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.batch
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.util.GoldenRatio
@@ -30,8 +34,13 @@ open class MetaTextButton @JvmOverloads constructor(
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
 	private val disabledTint = MetaDisabledTint(this)
 
+	val textValue: Signal<String> = signal(text)
+	val checkedValue: Signal<Boolean> = signal(isChecked)
+	val disabledValue: Signal<Boolean> = signal(isDisabled)
+
 	fun setText(text: String = "") {
 		label.setText(text)
+		textValue.value = text
 	}
 
 	val text: CharSequence = label.text
@@ -42,6 +51,11 @@ open class MetaTextButton @JvmOverloads constructor(
 		labelCell = add(label)
 		centerText()
 		cursorPointer()
+		addListener(object : ChangeListener() {
+			override fun changed(event: ChangeEvent, actor: Actor) {
+				checkedValue.value = isChecked
+			}
+		})
 	}
 
 	protected fun installMetaStyle(style: Button.ButtonStyle) {
@@ -54,7 +68,15 @@ open class MetaTextButton @JvmOverloads constructor(
 
 	override fun setDisabled(isDisabled: Boolean) {
 		super.setDisabled(isDisabled)
-		disabledTint.apply(isDisabled)
+		batch {
+			disabledValue.value = isDisabled
+			disabledTint.apply(isDisabled)
+		}
+	}
+
+	override fun setChecked(isChecked: Boolean) {
+		super.setChecked(isChecked)
+		checkedValue.value = this.isChecked
 	}
 
 	fun centerText() {

@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.kotcrab.vis.ui.VisUI
+import com.kotcrab.vis.ui.widget.VisTextField
 
 /**
  * Runtime-generated Meta skin resources. These are deliberately created from code instead of bundled UI textures so
@@ -29,6 +30,7 @@ object MetaSkin {
 	const val CHECKBOX = "meta.checkbox"
 	const val TEXT_FIELD = "meta.textField"
 	const val TEXT_FIELD_ERROR = "meta.textField.error"
+	const val TEXT_AREA = "meta.textArea"
 	const val SELECT_BOX = "meta.selectBox"
 	const val SCROLL_PANE = "meta.scrollPane"
 	const val SLIDER_HORIZONTAL = "meta.slider.horizontal"
@@ -97,7 +99,11 @@ object MetaSkin {
 		rounded(skin, "meta.field.over", Color.valueOf("24262BFF"), Color.valueOf("596170FF"), radius = 5, border = 1, padding = 7f)
 		rounded(skin, "meta.field.focus", Color.valueOf("202126FF"), MetaColor.ACCENT, radius = 5, border = 2, padding = 7f)
 		rounded(skin, "meta.field.error", Color.valueOf("241E20FF"), MetaColor.NEGATIVE, radius = 5, border = 2, padding = 7f)
+		rounded(skin, "meta.field.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = 5, border = 1, padding = 7f)
+		rounded(skin, "meta.field.focusBorder", TRANSPARENT, MetaColor.ACCENT, radius = 5, border = 2, padding = 0f)
+		rounded(skin, "meta.field.errorBorder", TRANSPARENT, MetaColor.NEGATIVE, radius = 5, border = 2, padding = 0f)
 		rounded(skin, "meta.selection", Color.valueOf("2F5D86FF"), null, radius = 3, border = 0, padding = 4f)
+		solid(skin, "meta.cursor", MetaColor.TEXT, minWidth = 2f, minHeight = 20f)
 
 		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 4, border = 0, padding = 0f, minWidth = 8f, minHeight = 8f)
 		rounded(skin, "meta.scroll.knob", Color.valueOf("858F9EFF"), null, radius = 4, border = 0, padding = 0f, minWidth = 8f, minHeight = 8f)
@@ -164,13 +170,32 @@ object MetaSkin {
 			skin.add(TEXT_FIELD, TextField.TextFieldStyle(base).apply {
 				background = skin.getDrawable("meta.field.up")
 				focusedBackground = skin.getDrawable("meta.field.focus")
+				disabledBackground = skin.getDrawable("meta.field.disabled")
+				cursor = skin.getDrawable("meta.cursor")
 				selection = skin.getDrawable("meta.selection")
+				fontColor = MetaColor.TEXT.cpy()
+				focusedFontColor = MetaColor.TEXT.cpy()
+				disabledFontColor = MetaColor.TEXT_DISABLED.cpy()
+				messageFontColor = MetaColor.TEXT_MUTED.cpy()
 			})
 			skin.add(TEXT_FIELD_ERROR, TextField.TextFieldStyle(base).apply {
 				background = skin.getDrawable("meta.field.error")
 				focusedBackground = skin.getDrawable("meta.field.error")
+				disabledBackground = skin.getDrawable("meta.field.disabled")
+				cursor = skin.getDrawable("meta.cursor")
 				selection = skin.getDrawable("meta.selection")
+				fontColor = MetaColor.TEXT.cpy()
+				focusedFontColor = MetaColor.TEXT.cpy()
+				disabledFontColor = MetaColor.TEXT_DISABLED.cpy()
+				messageFontColor = MetaColor.TEXT_MUTED.cpy()
 			})
+		}
+
+		if (skin.has("default", VisTextField.VisTextFieldStyle::class.java)) {
+			val base = skin.get("default", VisTextField.VisTextFieldStyle::class.java)
+			skin.add(TEXT_FIELD, visTextFieldStyle(base), VisTextField.VisTextFieldStyle::class.java)
+			skin.add(TEXT_FIELD_ERROR, visTextFieldStyle(base, invalid = true), VisTextField.VisTextFieldStyle::class.java)
+			skin.add(TEXT_AREA, visTextFieldStyle(base), VisTextField.VisTextFieldStyle::class.java)
 		}
 
 		if (skin.has("default", ScrollPane.ScrollPaneStyle::class.java)) {
@@ -269,6 +294,20 @@ object MetaSkin {
 		skin.add(name, drawable, Drawable::class.java)
 	}
 
+	private fun solid(skin: Skin, name: String, color: Color, minWidth: Float, minHeight: Float) {
+		val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
+		pixmap.setBlending(Pixmap.Blending.None)
+		pixmap.drawPixel(0, 0, Color.rgba8888(color))
+		val texture = Texture(pixmap)
+		pixmap.dispose()
+		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+		skin.add("$name.texture", texture)
+		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
+			this.minWidth = minWidth
+			this.minHeight = minHeight
+		}, Drawable::class.java)
+	}
+
 	internal fun focusedButtonStyle(base: Button.ButtonStyle): Button.ButtonStyle {
 		val skin = skin()
 		return Button.ButtonStyle(base).apply {
@@ -309,6 +348,27 @@ object MetaSkin {
 		return TextField.TextFieldStyle(base).apply {
 			background = skin.getDrawable("meta.field.focus")
 			focusedBackground = skin.getDrawable("meta.field.focus")
+		}
+	}
+
+	private fun visTextFieldStyle(
+		base: VisTextField.VisTextFieldStyle,
+		invalid: Boolean = false,
+	): VisTextField.VisTextFieldStyle {
+		val skin = skin()
+		return VisTextField.VisTextFieldStyle(base).apply {
+			background = skin.getDrawable(if (invalid) "meta.field.error" else "meta.field.up")
+			focusedBackground = skin.getDrawable(if (invalid) "meta.field.error" else "meta.field.up")
+			disabledBackground = skin.getDrawable("meta.field.disabled")
+			backgroundOver = skin.getDrawable(if (invalid) "meta.field.error" else "meta.field.over")
+			focusBorder = skin.getDrawable(if (invalid) "meta.field.errorBorder" else "meta.field.focusBorder")
+			errorBorder = skin.getDrawable("meta.field.errorBorder")
+			cursor = skin.getDrawable("meta.cursor")
+			selection = skin.getDrawable("meta.selection")
+			fontColor = MetaColor.TEXT.cpy()
+			focusedFontColor = MetaColor.TEXT.cpy()
+			disabledFontColor = MetaColor.TEXT_DISABLED.cpy()
+			messageFontColor = MetaColor.TEXT_MUTED.cpy()
 		}
 	}
 

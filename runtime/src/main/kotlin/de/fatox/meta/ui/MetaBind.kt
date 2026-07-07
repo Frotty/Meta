@@ -2,6 +2,7 @@ package de.fatox.meta.ui
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
@@ -10,7 +11,12 @@ import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.reactive.effect
 import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaInputField
+import de.fatox.meta.ui.components.MetaSelectBox
+import de.fatox.meta.ui.components.MetaTextArea
 import de.fatox.meta.ui.components.MetaTextButton
+import de.fatox.meta.ui.components.MetaTextField
+import de.fatox.meta.ui.components.SliderWithButtons
 
 /**
  * Reactive bindings for Meta's scene2d/VisUI widgets: bind a widget to a [ReactiveValue] (or any tracking lambda)
@@ -44,6 +50,24 @@ fun MetaTextButton.bindText(value: ReactiveValue<out String>): Disposable = bind
 /** Keeps a plain scene2d [Label]'s text in sync with [text] (for non-Meta labels). */
 fun Label.bindText(text: () -> CharSequence): Disposable = effect("bindText") { setText(text()) }
 
+/** Keeps a [MetaTextField]'s text in sync with [text]. */
+fun MetaTextField.bindText(text: () -> String): Disposable = effect("bindTextFieldText") {
+	val next = text()
+	if (this.text != next) setText(next)
+}
+
+/** Keeps a [MetaInputField]'s text in sync with [text]. */
+fun MetaInputField.bindText(text: () -> String): Disposable = effect("bindInputFieldText") {
+	val next = text()
+	if (this.text != next) setText(next)
+}
+
+/** Keeps a [MetaTextArea]'s text in sync with [text]. */
+fun MetaTextArea.bindText(text: () -> String): Disposable = effect("bindTextAreaText") {
+	val next = text()
+	if (this.text != next) setText(next)
+}
+
 // --- visibility / color / disabled ------------------------------------------------------------------------------
 
 /** Keeps an [Actor]'s visibility in sync with [visible]. */
@@ -58,11 +82,36 @@ fun Disableable.bindDisabled(disabled: () -> Boolean): Disposable = effect("bind
 /** Keeps a table [Cell]'s actor's visibility in sync with [visible] (handy for show/hide-driven layouts). */
 fun Cell<*>.bindVisible(visible: () -> Boolean): Disposable = effect("bindCellVisible") { actor?.isVisible = visible() }
 
+/** Keeps a [Button]'s checked state in sync with [checked]. */
+fun Button.bindChecked(checked: () -> Boolean): Disposable = effect("bindChecked") {
+	val next = checked()
+	if (isChecked != next) isChecked = next
+}
+
+/** Keeps a [SliderWithButtons]'s value in sync with [value]. */
+fun SliderWithButtons.bindValue(value: () -> Float): Disposable = effect("bindSliderValue") {
+	val next = value()
+	if (this.value != next) this.value = next
+}
+
+/** Keeps a [MetaSelectBox]'s selected item in sync with [selected]. */
+fun <T> MetaSelectBox<T>.bindSelected(selected: () -> T?): Disposable = effect("bindSelectBoxSelected") {
+	val next = selected()
+	if (this.selected != next) this.selected = next
+}
+
 // --- scope-owned convenience: `scope.bindText(label) { ... }` registers the binding for automatic teardown --------
 
 fun ReactiveScope.bindText(label: MetaLabel, text: () -> CharSequence): Disposable = register(label.bindText(text))
 fun ReactiveScope.bindText(button: MetaTextButton, text: () -> String): Disposable = register(button.bindText(text))
+fun ReactiveScope.bindText(field: MetaTextField, text: () -> String): Disposable = register(field.bindText(text))
+fun ReactiveScope.bindText(field: MetaInputField, text: () -> String): Disposable = register(field.bindText(text))
+fun ReactiveScope.bindText(area: MetaTextArea, text: () -> String): Disposable = register(area.bindText(text))
 fun ReactiveScope.bindVisible(actor: Actor, visible: () -> Boolean): Disposable = register(actor.bindVisible(visible))
 fun ReactiveScope.bindColor(actor: Actor, color: () -> Color): Disposable = register(actor.bindColor(color))
 fun ReactiveScope.bindDisabled(widget: Disableable, disabled: () -> Boolean): Disposable =
 	register(widget.bindDisabled(disabled))
+fun ReactiveScope.bindChecked(button: Button, checked: () -> Boolean): Disposable = register(button.bindChecked(checked))
+fun ReactiveScope.bindValue(slider: SliderWithButtons, value: () -> Float): Disposable = register(slider.bindValue(value))
+fun <T> ReactiveScope.bindSelected(selectBox: MetaSelectBox<T>, selected: () -> T?): Disposable =
+	register(selectBox.bindSelected(selected))

@@ -1,13 +1,18 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
+import kotlin.math.abs
 
 /**
  * A [Slider] flanked by decrement/increment buttons, laid out horizontally or vertically. Each button steps the
@@ -34,17 +39,24 @@ class SliderWithButtons(
 
 	val decrementButton: MetaIconButton = MetaIconButton(MetaSkin.skin().getDrawable(MetaSkin.ICON_MINUS))
 	val incrementButton: MetaIconButton = MetaIconButton(MetaSkin.skin().getDrawable(MetaSkin.ICON_PLUS))
+	val valueValue: Signal<Float> = signal(slider.value) { a, b -> abs(a - b) < 0.0001f }
 
 	/** Syntactic sugar for the current slider value. */
 	var value: Float
 		get() = slider.value
 		set(value) {
 			slider.value = value
+			valueValue.value = slider.value
 		}
 
 	init {
 		decrementButton.onStep(-stepSize)
 		incrementButton.onStep(+stepSize)
+		slider.addListener(object : ChangeListener() {
+			override fun changed(event: ChangeEvent, actor: Actor) {
+				valueValue.value = slider.value
+			}
+		})
 
 		if (!vertical) {
 			add<Button>(decrementButton).height(40f).width(26f)

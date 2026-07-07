@@ -3,6 +3,8 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import kotlin.contracts.ExperimentalContracts
@@ -19,6 +21,8 @@ class MetaCheckBox @JvmOverloads constructor(
 	initialChecked: Boolean = false,
 ) : Button(Button.ButtonStyle(MetaSkin.skin().get(MetaSkin.CHECKBOX, Button.ButtonStyle::class.java))), MetaFocusable {
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedCheckboxStyle)
+	val checkedValue: Signal<Boolean> = signal(initialChecked)
+	val disabledValue: Signal<Boolean> = signal(isDisabled)
 
 	init {
 		isChecked = initialChecked
@@ -26,6 +30,16 @@ class MetaCheckBox @JvmOverloads constructor(
 
 	override fun setMetaFocused(focused: Boolean) {
 		focusStyle.setFocused(focused)
+	}
+
+	override fun setChecked(isChecked: Boolean) {
+		super.setChecked(isChecked)
+		checkedValue.value = this.isChecked
+	}
+
+	override fun setDisabled(isDisabled: Boolean) {
+		super.setDisabled(isDisabled)
+		disabledValue.value = isDisabled
 	}
 }
 

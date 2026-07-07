@@ -1,9 +1,13 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
@@ -17,6 +21,10 @@ open class MetaTextField @JvmOverloads constructor(
 	fontProvider: FontProvider = inject(),
 ) : TextField(text, textFieldStyle(size, fontProvider)), MetaFocusable {
 	private val focusStyle = MetaTextFieldFocusStyle(this, style, MetaSkin::focusedTextFieldStyle)
+	private var metaInitialized = false
+
+	val textValue: Signal<String> = signal(text)
+	val disabledValue: Signal<Boolean> = signal(isDisabled)
 
 	var isFocusBorderEnabled: Boolean = true
 		set(value) {
@@ -24,12 +32,36 @@ open class MetaTextField @JvmOverloads constructor(
 			focusStyle.setFocusEnabled(value)
 		}
 
+	init {
+		metaInitialized = true
+		addListener(object : ChangeListener() {
+			override fun changed(event: ChangeEvent, actor: Actor) {
+				syncTextValue()
+			}
+		})
+	}
+
 	protected fun installMetaTextFieldStyle(style: TextFieldStyle) {
 		focusStyle.install(style, isFocusBorderEnabled)
 	}
 
 	override fun setMetaFocused(focused: Boolean) {
 		focusStyle.setFocused(focused)
+	}
+
+	override fun setText(str: String) {
+		super.setText(str)
+		if (metaInitialized) syncTextValue()
+	}
+
+	override fun setDisabled(disabled: Boolean) {
+		super.setDisabled(disabled)
+		disabledValue.value = disabled
+	}
+
+	private fun syncTextValue() {
+		val current = text
+		if (textValue.peek() != current) textValue.value = current
 	}
 
 	companion object {

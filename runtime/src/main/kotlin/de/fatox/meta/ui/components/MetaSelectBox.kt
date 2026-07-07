@@ -4,9 +4,12 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox.SelectBoxStyle
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.UiControlHelper
@@ -20,6 +23,7 @@ open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()),
 	private var wasHelperActive = false
 	private val fontProvider: FontProvider = inject()
 	private val focusStyle: MetaSelectBoxFocusStyle<T>
+	val selectedValue: Signal<T?> = signal(selected)
 
 	init {
 		val skin = MetaSkin.skin()
@@ -32,6 +36,11 @@ open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()),
 		list.style.font = font
 		focusStyle = MetaSelectBoxFocusStyle(this, style, MetaSkin::focusedSelectBoxStyle)
 		focusStyle.install(style)
+		addListener(object : ChangeListener() {
+			override fun changed(event: ChangeEvent, actor: Actor) {
+				selectedValue.value = selected
+			}
+		})
 	}
 
 	override fun setMetaFocused(focused: Boolean) {
@@ -54,5 +63,15 @@ open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()),
 			uiControlHelper.activated = true
 			wasHelperActive = false
 		}
+	}
+
+	override fun setSelected(item: T?) {
+		super.setSelected(item)
+		selectedValue.value = selected
+	}
+
+	override fun setSelectedIndex(index: Int) {
+		super.setSelectedIndex(index)
+		selectedValue.value = selected
 	}
 }

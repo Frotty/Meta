@@ -6,10 +6,15 @@ abstract class MetaInputValidator {
 	var errorLabel: MetaLabel? = null
 
 	fun validateInput(input: String): Boolean {
+		val labelText = validationErrorText(input)
+		errorLabel?.setText(labelText)
+		return labelText.isEmpty()
+	}
+
+	fun validationErrorText(input: String): String {
 		val errors = MetaErrorHandler()
 		validateInput(input, errors)
-		errorLabel?.setText(errors.labelText)
-		return !errors.hasErrors()
+		return errors.labelText
 	}
 
 	abstract fun validateInput(input: String, errors: MetaErrorHandler)

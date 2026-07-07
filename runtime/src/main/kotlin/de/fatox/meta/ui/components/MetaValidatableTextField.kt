@@ -5,6 +5,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.batch
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
 
@@ -20,6 +23,7 @@ class MetaValidatableTextField @JvmOverloads constructor(
 
 	var isInputValid: Boolean = true
 		private set
+	val inputValidValue: Signal<Boolean> = signal(true)
 
 	init {
 		addListener(object : ChangeListener() {
@@ -37,8 +41,11 @@ class MetaValidatableTextField @JvmOverloads constructor(
 	fun validateInput(): Boolean {
 		var valid = true
 		for (i in 0 until validators.size) valid = validators[i].validateInput(text) && valid
-		isInputValid = valid
-		installMetaTextFieldStyle(if (valid) defaultStyle else errorStyle)
+		batch {
+			isInputValid = valid
+			inputValidValue.value = valid
+			installMetaTextFieldStyle(if (valid) defaultStyle else errorStyle)
+		}
 		return valid
 	}
 }
