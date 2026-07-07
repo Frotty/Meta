@@ -36,8 +36,18 @@ inline fun <reified T : Actor> T.onChange(crossinline action: ChangeListener.(ev
 	return this
 }
 
-inline fun <reified T : Actor> T.tooltip(text: String, align: Int = Align.center) {
-	MetaTooltip.attach(this, text, align)
+inline fun <reified T : Actor> T.tooltip(
+	text: String,
+	align: Int = Align.center,
+	showDelaySeconds: Float = 0f,
+	hideDelaySeconds: Float = 0.04f,
+	maxWidth: Float = 280f,
+) {
+	MetaTooltip.attach(this, text, align, showDelaySeconds, hideDelaySeconds, maxWidth)
+}
+
+inline fun <reified T : Actor> T.removeTooltip() {
+	MetaTooltip.remove(this)
 }
 
 inline fun <reified T : Actor> T.cursorPointer() {

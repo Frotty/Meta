@@ -33,6 +33,7 @@ object MetaSkin {
 	const val TEXT_AREA = "meta.textArea"
 	const val SELECT_BOX = "meta.selectBox"
 	const val SCROLL_PANE = "meta.scrollPane"
+	const val SCROLL_PANE_FLAT = "meta.scrollPane.flat"
 	const val SLIDER_HORIZONTAL = "meta.slider.horizontal"
 	const val PROGRESS_HORIZONTAL = "meta.progress.horizontal"
 	const val SEPARATOR = "meta.separator"
@@ -199,8 +200,16 @@ object MetaSkin {
 		}
 
 		if (skin.has("default", ScrollPane.ScrollPaneStyle::class.java)) {
-			skin.add(SCROLL_PANE, ScrollPane.ScrollPaneStyle(skin.get(ScrollPane.ScrollPaneStyle::class.java)).apply {
+			val defaultStyle = ScrollPane.ScrollPaneStyle(skin.get(ScrollPane.ScrollPaneStyle::class.java))
+			skin.add(SCROLL_PANE, ScrollPane.ScrollPaneStyle(defaultStyle).apply {
 				background = skin.getDrawable("meta.panel")
+				vScroll = skin.getDrawable("meta.scroll.track")
+				hScroll = skin.getDrawable("meta.scroll.track")
+				vScrollKnob = skin.getDrawable("meta.scroll.knob")
+				hScrollKnob = skin.getDrawable("meta.scroll.knob")
+			})
+			skin.add(SCROLL_PANE_FLAT, ScrollPane.ScrollPaneStyle(defaultStyle).apply {
+				background = null
 				vScroll = skin.getDrawable("meta.scroll.track")
 				hScroll = skin.getDrawable("meta.scroll.track")
 				vScrollKnob = skin.getDrawable("meta.scroll.knob")

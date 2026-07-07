@@ -10,6 +10,8 @@ import de.fatox.meta.ui.MetaSpacing
  * A [ScrollPane] with a faster mouse-wheel step, Meta's thin generated scrollbar style and a small content gutter
  * before the scrollbar. Use this instead of raw `ScrollPane`/`VisScrollPane` so scrollable content never sits flush
  * against the thumb.
+ * Uses the borderless `meta.scrollPane.flat` style by default; use `MetaSkin.SCROLL_PANE` explicitly when you need
+ * a bordered container look.
  */
 class MetaScrollPane : ScrollPane {
 	constructor(widget: Actor?, style: ScrollPaneStyle) : super(wrapContent(widget), style) {
@@ -37,7 +39,13 @@ class MetaScrollPane : ScrollPane {
 		const val SCROLLBAR_GUTTER = MetaSpacing.SM
 
 		fun defaultStyleName(): String =
-			if (MetaSkin.skin().has(MetaSkin.SCROLL_PANE, ScrollPaneStyle::class.java)) MetaSkin.SCROLL_PANE else "list"
+			if (MetaSkin.skin().has(MetaSkin.SCROLL_PANE_FLAT, ScrollPaneStyle::class.java)) {
+				MetaSkin.SCROLL_PANE_FLAT
+			} else if (MetaSkin.skin().has(MetaSkin.SCROLL_PANE, ScrollPaneStyle::class.java)) {
+				MetaSkin.SCROLL_PANE
+			} else {
+				"list"
+			}
 
 		fun wrapContent(widget: Actor?): Actor? {
 			if (widget == null) return null

@@ -35,6 +35,8 @@ fun removeSoundSource(source: MetaSoundSource) {
 			soundClustering.clusters[i].stopNow()
 		}
 		soundClustering.clusters.clear()
+		soundClustering.sourcesNear.clear()
+		soundSourceMap.remove(source.definition)
 	}
 }
 
