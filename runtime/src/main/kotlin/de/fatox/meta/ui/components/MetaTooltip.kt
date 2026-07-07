@@ -4,6 +4,7 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
@@ -38,6 +39,7 @@ object MetaTooltip {
 		private val target: Actor,
 		private val tooltip: MetaTable,
 		private val label: MetaLabel,
+		private val labelCell: Cell<MetaLabel>,
 		align: Int,
 		showDelaySeconds: Float,
 		hideDelaySeconds: Float,
@@ -70,10 +72,13 @@ object MetaTooltip {
 				label.setWrap(true)
 				label.setAlignment(Align.left)
 				label.width = maxWidth
+				labelCell.width(maxWidth)
+				labelCell.align(Align.left)
 			} else {
 				label.setWrap(false)
 				label.setAlignment(Align.center)
 				label.width = 0f
+				labelCell.width(label.prefWidth)
 			}
 			tooltip.pack()
 		}
@@ -190,15 +195,15 @@ object MetaTooltip {
 		}
 		val tooltip = MetaTable().apply {
 			background = MetaSkin.skin().getDrawable("meta.tooltip")
-			add(label).pad(MetaSpacing.SM)
-			pack()
 			isVisible = false
 		}
+		val labelCell = tooltip.add(label).pad(MetaSpacing.SM)
 		lateinit var attachment: Attachment
 		attachment = Attachment(
 			target = target,
 			tooltip = tooltip,
 			label = label,
+			labelCell = labelCell,
 			align = align,
 			showDelaySeconds = showDelaySeconds,
 			hideDelaySeconds = hideDelaySeconds,
