@@ -27,6 +27,7 @@ object MetaSkin {
 	const val BUTTON = "meta.button"
 	const val BUTTON_TOGGLE = "meta.button.toggle"
 	const val ICON_BUTTON = "meta.iconButton"
+	const val IMAGE_BUTTON = "meta.imageButton"
 	const val CHECKBOX = "meta.checkbox"
 	const val TEXT_FIELD = "meta.textField"
 	const val TEXT_FIELD_ERROR = "meta.textField.error"
@@ -96,6 +97,12 @@ object MetaSkin {
 		rounded(skin, "meta.button.checkedFocus", Color.valueOf("294963FF"), Color.valueOf("B8E3FFFF"), radius = 6, border = 2, padding = 9f)
 		rounded(skin, "meta.button.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = 6, border = 1, padding = 9f)
 
+		rounded(skin, "meta.imageButton.up", Color.valueOf("23262BFF"), Color.valueOf("3B3F46FF"), radius = 6, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.over", Color.valueOf("282B30FF"), Color.valueOf("5D646FFF"), radius = 6, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.focus", Color.valueOf("26292DFF"), Color.valueOf("79C1FBFF"), radius = 6, border = 2, padding = 8f)
+		rounded(skin, "meta.imageButton.down", Color.valueOf("20252BFF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.disabled", Color.valueOf("1E2025FF"), Color.valueOf("2A2B31FF"), radius = 6, border = 1, padding = 8f)
+
 		rounded(skin, "meta.field.up", Color.valueOf("202126FF"), Color.valueOf("42454DFF"), radius = 5, border = 1, padding = 7f)
 		rounded(skin, "meta.field.over", Color.valueOf("24262BFF"), Color.valueOf("596170FF"), radius = 5, border = 1, padding = 7f)
 		rounded(skin, "meta.field.focus", Color.valueOf("202126FF"), MetaColor.ACCENT, radius = 5, border = 2, padding = 7f)
@@ -145,6 +152,16 @@ object MetaSkin {
 			checkedFocused = skin.getDrawable("meta.button.checkedFocus")
 		})
 		skin.add(ICON_BUTTON, Button.ButtonStyle(skin.get(BUTTON, Button.ButtonStyle::class.java)))
+		skin.add(IMAGE_BUTTON, Button.ButtonStyle().apply {
+			up = skin.getDrawable("meta.imageButton.up")
+			over = skin.getDrawable("meta.imageButton.over")
+			checked = skin.getDrawable("meta.imageButton.focus")
+			checkedOver = skin.getDrawable("meta.imageButton.focus")
+			checkedFocused = skin.getDrawable("meta.imageButton.focus")
+			focused = skin.getDrawable("meta.imageButton.focus")
+			down = skin.getDrawable("meta.imageButton.down")
+			disabled = skin.getDrawable("meta.imageButton.disabled")
+		})
 		skin.add(CHECKBOX, Button.ButtonStyle().apply {
 			up = skin.getDrawable("meta.checkbox.off")
 			over = skin.getDrawable("meta.checkbox.over")
@@ -327,6 +344,22 @@ object MetaSkin {
 				checked = skin.getDrawable("meta.button.checkedFocus")
 				checkedOver = skin.getDrawable("meta.button.checkedFocus")
 				checkedFocused = skin.getDrawable("meta.button.checkedFocus")
+			}
+		}
+	}
+
+	internal fun focusedImageButtonStyle(base: Button.ButtonStyle): Button.ButtonStyle {
+		val skin = skin()
+		return Button.ButtonStyle(base).apply {
+			up = skin.getDrawable("meta.imageButton.focus")
+			over = skin.getDrawable("meta.imageButton.focus")
+			focused = skin.getDrawable("meta.imageButton.focus")
+			down = skin.getDrawable("meta.imageButton.down")
+			disabled = skin.getDrawable("meta.imageButton.disabled")
+			if (base.checked != null || base.checkedOver != null || base.checkedFocused != null) {
+				checked = skin.getDrawable("meta.imageButton.focus")
+				checkedOver = skin.getDrawable("meta.imageButton.focus")
+				checkedFocused = skin.getDrawable("meta.imageButton.focus")
 			}
 		}
 	}

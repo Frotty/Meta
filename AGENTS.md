@@ -26,6 +26,8 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
   raw `VisLabel`/`VisTextButton`/`VisTextField` for visible text. If a needed widget still uses skin glyphs, add a
   `Meta*` wrapper that swaps in `fontProvider.getFont(size, type)` (see `MetaTextField` for the pattern: clone the
   style once, never mutate the shared skin style).
+- **Use icon-style controls intentionally.** `MetaIconButton` is the full action icon button (same visual family as
+  normal buttons). For a plain image that is clickable but should stay visually lighter/subtle, use `MetaImageButton`.
 - **Design tokens live in `ui/MetaUi.kt`** — `MetaType` (typographic scale in px: CAPTION…DISPLAY), `MetaSpacing`
   (padding rhythm), `MetaColor` (dark palette). Prefer these over magic numbers/colors. Helpers: `metaLabel(...)`,
   `metaButton(...)`, `Table.metaDefaults()`. `MetaColor` values are shared mutable `Color`s — treat read-only, use
