@@ -74,7 +74,7 @@ class MetaSoundPlayer {
 				for (i in 0 until handleList.size) {
 					val handle = handleList[i]
 					if (furthest == null ||
-						handle.soundPos.dst2(lp) > furthest!!.soundPos.dst2(lp)
+						handle.soundPos.dst2(lp) > furthest.soundPos.dst2(lp)
 					) {
 						furthest = handle
 					}
@@ -222,6 +222,7 @@ class MetaSoundPlayer {
 	 */
 	@Suppress("GDXKotlinUnsafeIterator")
 	fun stopAllSounds() {
+		stopAllSoundSources()
 		for (soundHandles in playingHandles.values()) {
 			for (i in soundHandles.size - 1 downTo 0) {
 				val soundHandle = soundHandles[i]
