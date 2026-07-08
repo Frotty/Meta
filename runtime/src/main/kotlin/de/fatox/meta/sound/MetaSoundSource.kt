@@ -116,6 +116,10 @@ class MetaSoundCluster(
 
 	fun update(listenerPos: Vector2, delta: Float) {
 		centroidLerp.dlerp(centroid, 0.25f, delta)
+		if (effectiveBaseVolume() <= 0f) {
+			stop()
+			return
+		}
 		if (!starting && !started) start()
 		if (started) calcVolAndPan(listenerPos, delta)
 	}
@@ -123,6 +127,12 @@ class MetaSoundCluster(
 	private fun calcPan(listenerPos: Vector2): Float {
 		val xPan = centroid.x - listenerPos.x
 		return MathUtils.clamp(xPan / definition.audibleRange, -1f, 1f) * 0.90f
+	}
+
+	private fun effectiveBaseVolume(): Float {
+		if (definition.volume <= 0f || focusVolume <= 0f) return 0f
+		val audioVideoData = metaData[audioVideoDataKey]
+		return definition.volume * audioVideoData.masterVolume * audioVideoData.soundVolume * focusVolume
 	}
 
 	private fun calcVolume(listenerPos: Vector2): Float {
@@ -139,8 +149,7 @@ class MetaSoundCluster(
 				(1f / (1f + rolloff * t * t) - 1f / (1f + rolloff)) / (1f - 1f / (1f + rolloff))
 			}
 		}
-		val audioVideoData = metaData[audioVideoDataKey]
-		return attenuated * definition.volume * audioVideoData.masterVolume * audioVideoData.soundVolume * focusVolume
+		return attenuated * effectiveBaseVolume()
 	}
 
 	private fun calcVolAndPan(listenerPos: Vector2, delta: Float) {
@@ -166,6 +175,10 @@ class MetaSoundCluster(
 			override fun run() {
 				if (!starting) return
 				Gdx.app.postRunnable {
+					if (!starting || effectiveBaseVolume() <= 0f) {
+						starting = false
+						return@postRunnable
+					}
 					val pitch = 1f + MathUtils.random(-definition.randomPitchRange, definition.randomPitchRange)
 					handleId = definition.sound.loop(0f, pitch, 0f)
 					starting = false
