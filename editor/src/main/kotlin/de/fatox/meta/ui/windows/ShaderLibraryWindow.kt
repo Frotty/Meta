@@ -5,7 +5,7 @@ import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.ui.showDialog
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderLibrary
-import de.fatox.meta.ui.components.MetaIconButton
+import de.fatox.meta.ui.components.MetaImageButton
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaScrollPane
 import de.fatox.meta.ui.components.MetaSeparator
@@ -33,7 +33,7 @@ class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
 	}
 
 	private fun createToolbar() {
-		val visImageButton = MetaIconButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
+		val visImageButton = MetaImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
 		visImageButton.onClick { uiManager.showDialog<ShaderWizardDialog>() }
 		contentTable.row().size(26f)
 		contentTable.add(visImageButton).size(24f).top().left()

@@ -11,7 +11,7 @@ import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.ide.AssetDiscoverer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FolderListAdapter
-import de.fatox.meta.ui.components.MetaIconButton
+import de.fatox.meta.ui.components.MetaImageButton
 import de.fatox.meta.ui.components.MetaIconTextButton
 import de.fatox.meta.ui.components.MetaListView
 import de.fatox.meta.ui.components.MetaScrollPane
@@ -75,7 +75,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 	private fun createToolbarBar() {
 		toolbarTable.left().top()
 		toolbarTable.row().height(24f)
-		val newFileButton = MetaIconButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
+		val newFileButton = MetaImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
 		toolbarTable.add(newFileButton).size(24f).left()
 		val searchIcon = Image(assetProvider.getDrawable("ui/appbar.page.search.png"))
 		searchIcon.setScaling(Scaling.fill)

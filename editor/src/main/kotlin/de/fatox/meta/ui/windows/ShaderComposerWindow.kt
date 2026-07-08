@@ -14,7 +14,7 @@ import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.shader.ShaderComposition
 import de.fatox.meta.ui.UiControlHelper
-import de.fatox.meta.ui.components.MetaIconButton
+import de.fatox.meta.ui.components.MetaImageButton
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaSelectBox
 import de.fatox.meta.ui.components.MetaTable
@@ -32,7 +32,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 
 	private lateinit var renderSelectbox: MetaSelectBox<String>
 	private lateinit var bufferTable: MetaTable
-	private lateinit var addButton: MetaIconButton
+	private lateinit var addButton: MetaImageButton
 
 	private var handles: Array<RenderBufferHandle> = Array()
 
@@ -49,7 +49,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	}
 
 	private fun setupEmpty() {
-		val visImageButton = MetaIconButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
+		val visImageButton = MetaImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
 		visImageButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				uiManager.showDialog<ShaderCompositionWizard>()
@@ -83,7 +83,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	}
 
 	private fun setupNewBufferButton() {
-		addButton = MetaIconButton(assetProvider.getDrawable("ui/appbar.layer.add.png")).apply {
+		addButton = MetaImageButton(assetProvider.getDrawable("ui/appbar.layer.add.png")).apply {
 			addListener(object : ClickListener() {
 				override fun clicked(event: InputEvent, x: Float, y: Float) {
 					onAddBuffer()

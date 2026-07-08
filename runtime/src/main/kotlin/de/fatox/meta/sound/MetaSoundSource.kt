@@ -85,7 +85,7 @@ class MetaPositionalSoundDefinition(
 	var attenuation = MetaSoundAttenuation.SMOOTH
 
 	val sound: Sound by lazy {
-		Gdx.audio.newSound(assetProvider.getResource(soundName, FileHandle::class.java))
+		Gdx.audio.newSound(assetProvider.getResource(this.soundName, FileHandle::class.java))
 	}
 }
 
