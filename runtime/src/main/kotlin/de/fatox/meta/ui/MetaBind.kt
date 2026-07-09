@@ -39,13 +39,13 @@ import de.fatox.meta.ui.components.SliderWithButtons
 fun MetaLabel.bindText(text: () -> CharSequence): Disposable = effect("bindText") { setText(text()) }
 
 /** Keeps a [MetaLabel]'s text in sync with a reactive value. */
-fun MetaLabel.bindText(value: ReactiveValue<out CharSequence>): Disposable = bindText { value.value }
+fun MetaLabel.bindText(value: ReactiveValue<CharSequence>): Disposable = bindText { value.value }
 
 /** Keeps a [MetaTextButton]'s label in sync with [text]. */
 fun MetaTextButton.bindText(text: () -> String): Disposable = effect("bindText") { setText(text()) }
 
 /** Keeps a [MetaTextButton]'s label in sync with a reactive value. */
-fun MetaTextButton.bindText(value: ReactiveValue<out String>): Disposable = bindText { value.value }
+fun MetaTextButton.bindText(value: ReactiveValue<String>): Disposable = bindText { value.value }
 
 /** Keeps a plain scene2d [Label]'s text in sync with [text] (for non-Meta labels). */
 fun Label.bindText(text: () -> CharSequence): Disposable = effect("bindText") { setText(text()) }

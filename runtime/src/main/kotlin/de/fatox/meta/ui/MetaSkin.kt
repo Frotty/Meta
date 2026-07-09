@@ -110,7 +110,7 @@ object MetaSkin {
 
 		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 4, border = 0, padding = 0f, minWidth = 8f, minHeight = 8f)
 		rounded(skin, "meta.scroll.knob", Color.valueOf("858F9EFF"), null, radius = 4, border = 0, padding = 0f, minWidth = 8f, minHeight = 8f)
-		rounded(skin, SEPARATOR, Color.valueOf("444850FF"), null, radius = 1, border = 0, padding = 0f, minWidth = 1f, minHeight = 1f)
+		solid(skin, SEPARATOR, Color.valueOf("444850FF"), minWidth = 1f, minHeight = 1f)
 		rounded(skin, "meta.slider.track", Color.valueOf("24262BFF"), Color.valueOf("4B515EFF"), radius = 4, border = 1, padding = 0f, minHeight = 8f)
 		rounded(skin, "meta.slider.fill", Color.valueOf("4F9DDEFF"), null, radius = 4, border = 0, padding = 0f, minHeight = 8f)
 		rounded(skin, "meta.slider.knob", MetaColor.ACCENT, Color.valueOf("D3ECFFFF"), radius = 8, border = 1, padding = 0f, minWidth = 18f, minHeight = 18f)
@@ -502,7 +502,6 @@ object MetaSkin {
 			else -> Color.valueOf("4A4D56FF")
 		}
 		drawRoundedPixels(pixmap, fill, stroke, radius = 5 * scale, border = 2 * scale)
-		if (checked) drawCheck(pixmap, if (disabled) MetaColor.TEXT_DISABLED else MetaColor.TEXT, scale)
 		val texture = Texture(pixmap)
 		pixmap.dispose()
 		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
@@ -533,37 +532,6 @@ object MetaSkin {
 					},
 				)
 				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
-			}
-		}
-	}
-
-	private fun drawCheck(pixmap: Pixmap, color: Color, scale: Int = 1) {
-		val bits = Color.rgba8888(color)
-		for (offset in 0 until 2 * scale) {
-			drawLine(pixmap, 6 * scale, 12 * scale + offset, 10 * scale, 16 * scale + offset, bits)
-			drawLine(pixmap, 10 * scale, 16 * scale + offset, 18 * scale, 7 * scale + offset, bits)
-		}
-	}
-
-	private fun drawLine(pixmap: Pixmap, x0: Int, y0: Int, x1: Int, y1: Int, colorBits: Int) {
-		var x = x0
-		var y = y0
-		val dx = kotlin.math.abs(x1 - x0)
-		val sx = if (x0 < x1) 1 else -1
-		val dy = -kotlin.math.abs(y1 - y0)
-		val sy = if (y0 < y1) 1 else -1
-		var err = dx + dy
-		while (true) {
-			pixmap.drawPixel(x, y, colorBits)
-			if (x == x1 && y == y1) break
-			val e2 = 2 * err
-			if (e2 >= dy) {
-				err += dy
-				x += sx
-			}
-			if (e2 <= dx) {
-				err += dx
-				y += sy
 			}
 		}
 	}

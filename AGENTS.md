@@ -36,7 +36,10 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
   screenshots, skin atlases, or generated drawables that cannot be expressed as a Remix icon.
 - **Use `MetaIconButtonGroup` for icon tool palettes.** Brush/tool pickers should mark the active tool with
   `MetaIconButton.selected` / `MetaIconButtonGroup`, not scene2d checked state or Meta keyboard focus. Regular
-  icon buttons stay momentary by default; the selected border is a visual-only active marker.
+  icon buttons stay momentary by default; the selected border is a visual-only active marker. For brush palettes,
+  stay 100% Remix: use names like `ri-brush-line`, `ri-pencil-line`, `ri-paint-line`, `ri-magic-line`,
+  `ri-eraser-line`, `ri-square-fill`/`ri-square-line`, and `ri-circle-fill`/`ri-circle-line` instead of custom
+  drawn glyphs.
 - **Design tokens live in `ui/MetaUi.kt`** — `MetaType` (typographic scale in px: CAPTION…DISPLAY), `MetaSpacing`
   (padding rhythm), `MetaColor` (dark palette). Prefer these over magic numbers/colors. Helpers: `metaLabel(...)`,
   `metaButton(...)`, `Table.metaDefaults()`. `MetaColor` values are shared mutable `Color`s — treat read-only, use

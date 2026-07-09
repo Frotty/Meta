@@ -30,6 +30,7 @@ import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.components.MetaFileChooser
+import de.fatox.meta.ui.components.MetaTooltip
 import kotlin.math.abs
 
 private val log = MetaLoggerFactory.logger {}
@@ -119,6 +120,7 @@ class MetaUIRenderer : UIRenderer {
 			stage.addActor(actor)
 			// Newly added windows/dialogs land on top of the toast layer; lift toasts back above them.
 			toastManager.toFront()
+			MetaTooltip.bringVisibleToFront()
 		} catch (e: Exception) {
 			log.error(e) { "Failed to add actor: $actor!" }
 		}
@@ -140,6 +142,7 @@ class MetaUIRenderer : UIRenderer {
 		)
 
 		val deltaTime = Gdx.graphics.deltaTime
+		MetaTooltip.bringVisibleToFront()
 		stage.draw()
 		focusRenderer.draw(stage, focusedActor, deltaTime)
 	}

@@ -1,5 +1,6 @@
 package de.fatox.meta.graphics.font
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
@@ -50,7 +51,7 @@ class MetaFontProvider : FontProvider {
 	 * resolution. (Old fonts are still referenced by live labels until those rebuild - we don't dispose them here.)
 	 */
 	private fun refreshScaleIfChanged() {
-		val scale = uiRenderer.uiScale.peek()
+		val scale = physicalUiScale()
 		if (scale != generationScale) {
 			generationScale = scale
 			normalFontMap.clear()
@@ -68,10 +69,8 @@ class MetaFontProvider : FontProvider {
 	}
 
 	private fun generateFont(size: Int, type: FontType): BitmapFont {
-		// Rasterize at PHYSICAL pixels (logical size x UI scale) so the glyph atlas is native-resolution, then scale
-		// the font DOWN by 1/scale so it still measures/lays out at the logical size. The scaled viewport then draws
-		// it 1:1 instead of magnifying a low-res atlas -> crisp text on HiDPI instead of blurry upscaling. At scale
-		// 1.0 this is a no-op (physical == logical, no setScale), so non-HiDPI rendering is unchanged.
+		// Rasterize at physical pixels (Meta UI scale x OS/backbuffer scale) so the glyph atlas is native-resolution,
+		// then scale the font down by the same factor so it still measures/lays out in logical UI units.
 		val scale = generationScale.coerceAtLeast(0.01f)
 		val physicalSize = (size * scale).roundToInt().coerceAtLeast(1)
 		val generator = when(type) {
@@ -89,10 +88,19 @@ class MetaFontProvider : FontProvider {
 		if (scale != 1f) {
 			font.data.setScale(1f / scale)
 		}
-		// Integer positions snap every glyph advance to whole pixels. That looks especially bad on kerning-sensitive
-		// pairs ("VA", "To") and gets worse once UI scale is applied by the viewport.
-		font.setUseIntegerPositions(false)
+		// Meta UI favors crisp, stable text over subpixel glyph placement.
+		font.setUseIntegerPositions(true)
 		return font
+	}
+
+	private fun physicalUiScale(): Float {
+		val graphics = Gdx.graphics
+		val contentScale = if (graphics.width > 0) {
+			graphics.backBufferWidth.toFloat() / graphics.width
+		} else {
+			1f
+		}
+		return (uiRenderer.uiScale.peek() * contentScale).coerceAtLeast(0.01f)
 	}
 
 	private fun defaultFontParam(
@@ -103,7 +111,11 @@ class MetaFontProvider : FontProvider {
 			incremental = true
 			minFilter = Texture.TextureFilter.Linear
 			magFilter = Texture.TextureFilter.Linear
-			hinting = FreeTypeFontGenerator.Hinting.Slight
+			hinting = if (type == FontType.ICON) {
+				FreeTypeFontGenerator.Hinting.Slight
+			} else {
+				FreeTypeFontGenerator.Hinting.Full
+			}
 			kerning = true
 			size = requestedSize
 			if (type == FontType.ICON) {

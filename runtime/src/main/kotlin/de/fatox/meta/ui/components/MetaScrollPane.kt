@@ -32,6 +32,7 @@ class MetaScrollPane : ScrollPane {
 		setScrollbarsOnTop(false)
 		setFadeScrollBars(false)
 		setOverscroll(false, false)
+		setFlickScroll(false)
 	}
 
 	private companion object {

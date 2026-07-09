@@ -20,9 +20,8 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
-import de.fatox.meta.ui.MetaColor
-import de.fatox.meta.ui.components.MetaIcon
 import de.fatox.meta.ui.components.MetaIconButton
+import de.fatox.meta.ui.components.MetaResizeGrip
 import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.components.MetaTable
 import kotlin.math.max
@@ -52,9 +51,11 @@ abstract class MetaWindow(
 		private set
 
 	private var startDrag = false
-	private val resizeIndicator = MetaIcon("ri-draggable", 13, MetaColor.TEXT_MUTED.cpy()).apply {
+	private val headerSeparator = MetaSeparator().apply {
 		touchable = Touchable.disabled
-		setColor(1f, 1f, 1f, 0.7f)
+	}
+	private val resizeIndicator = MetaResizeGrip().apply {
+		touchable = Touchable.disabled
 		isVisible = resizable
 	}
 
@@ -70,7 +71,7 @@ abstract class MetaWindow(
 			if (closeButton) {
 				val exitButton = MetaIconButton("ri-close-line").apply {
 					setColor(1f, 1f, 1f, 0.72f)
-					setIconSize(18f)
+					setIconSize(16f)
 					onChange { close() }
 					addListener(object : InputListener() {
 						override fun touchDown(
@@ -85,11 +86,9 @@ abstract class MetaWindow(
 						}
 					})
 				}
-				add(exitButton).size(28f).padTop(1f).padRight(MetaSpacing.XS)
+				add(exitButton).size(CLOSE_BUTTON_SIZE).padTop(3f).padBottom(3f).padRight(MetaSpacing.XS)
 			}
 
-			row().height(1f)
-			add(MetaSeparator()).growX().colspan(if (closeButton) 2 else 1)
 		}
 
 		if (resizable) {
@@ -99,6 +98,7 @@ abstract class MetaWindow(
 		contentTable.top().left().pad(5f, 1f, 1f, 1f)
 		add(contentTable).top().grow().pad(MetaSpacing.XS)
 		row()
+		addActor(headerSeparator)
 		addActor(resizeIndicator)
 	}
 
@@ -155,7 +155,7 @@ abstract class MetaWindow(
 			if (newH != oldH) setY(top - newH)
 		}
 		super.layout()
-		positionResizeIndicator()
+		positionChrome()
 	}
 
 	override fun getMinWidth(): Float {
@@ -211,18 +211,29 @@ abstract class MetaWindow(
 		padBottom(if (resizable) RESIZE_BOTTOM_PAD else 1f)
 	}
 
-	private fun positionResizeIndicator() {
+	private fun positionChrome() {
+		headerSeparator.setBounds(1f, height - HEADER_HEIGHT, width - 2f, HEADER_SEPARATOR_HEIGHT)
+		headerSeparator.toFront()
 		resizeIndicator.isVisible = isResizable
 		if (!resizeIndicator.isVisible) return
-		resizeIndicator.setSize(RESIZE_INDICATOR_SIZE, RESIZE_INDICATOR_SIZE)
-		resizeIndicator.setPosition(width - RESIZE_INDICATOR_SIZE - 4f, 2f)
+		resizeIndicator.setBounds(
+			width - RESIZE_INDICATOR_SIZE - RESIZE_GRIP_RIGHT_PAD,
+			RESIZE_GRIP_BOTTOM_PAD,
+			RESIZE_INDICATOR_SIZE,
+			RESIZE_INDICATOR_SIZE,
+		)
+		resizeIndicator.toFront()
 	}
 
 	private companion object {
 		const val HEADER_HEIGHT = 32f
 		const val HEADER_CONTENT_HEIGHT = 30f
-		const val RESIZE_BOTTOM_PAD = 7f
-		const val RESIZE_INDICATOR_SIZE = 14f
+		const val HEADER_SEPARATOR_HEIGHT = 1f
+		const val CLOSE_BUTTON_SIZE = 24f
+		const val RESIZE_BOTTOM_PAD = 11f
+		const val RESIZE_INDICATOR_SIZE = 12f
+		const val RESIZE_GRIP_RIGHT_PAD = 8f
+		const val RESIZE_GRIP_BOTTOM_PAD = 8f
 		const val MIN_WINDOW_WIDTH = 96f
 		const val MIN_WINDOW_HEIGHT = 64f
 	}

@@ -2,8 +2,11 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.utils.Disableable
 import com.badlogic.gdx.utils.Align
@@ -24,6 +27,8 @@ object MetaTooltip {
 
 	private val attachments = ObjectMap<Actor, AttachedTooltip>(16)
 	private val detachedTargets = Array<Actor>(16)
+	private val visibleTooltips = Array<MetaTable>(4)
+	private val layers = ObjectMap<Stage, Group>(2)
 	private val orphanCleanupTask = object : Task() {
 		override fun run() {
 			removeDetachedTargets()
@@ -129,18 +134,24 @@ object MetaTooltip {
 
 		private fun showNow() {
 			val stage = target.stage ?: return
-			if (tooltip.parent == null || tooltip.stage !== stage) {
+			val layer = layerFor(stage)
+			if (tooltip.parent !== layer) {
 				tooltip.remove()
-				stage.addActor(tooltip)
+				layer.addActor(tooltip)
 			}
 			positionTooltip(stage)
 			tooltip.isVisible = true
+			markVisible(tooltip)
+			bringLayerToFront(stage)
 			tooltip.toFront()
 		}
 
 		private fun hideNow() {
+			val stage = tooltip.stage
 			tooltip.remove()
 			tooltip.isVisible = false
+			markHidden(tooltip)
+			if (stage != null) removeLayerIfEmpty(stage)
 		}
 
 		private fun canShow(): Boolean {
@@ -303,6 +314,59 @@ object MetaTooltip {
 	private fun scheduleOrphanCleanupIfNeeded() {
 		if (orphanCleanupTask.isScheduled) return
 		Timer.schedule(orphanCleanupTask, ORPHAN_CLEANUP_DELAY_SECONDS, ORPHAN_CLEANUP_INTERVAL_SECONDS)
+	}
+
+	internal fun bringVisibleToFront() {
+		var i = 0
+		while (i < visibleTooltips.size) {
+			val tooltip = visibleTooltips[i]
+			val stage = tooltip.stage
+			if (!tooltip.isVisible || stage == null) {
+				visibleTooltips.removeIndex(i)
+				continue
+			}
+			if (tooltip.parent?.children?.peek() !== tooltip) tooltip.toFront()
+			bringLayerToFront(stage)
+			i++
+		}
+	}
+
+	private fun layerFor(stage: Stage): Group {
+		val existing = layers[stage]
+		if (existing != null && existing.stage === stage) {
+			existing.setSize(stage.width, stage.height)
+			return existing
+		}
+
+		existing?.remove()
+		val layer = Group().apply {
+			touchable = Touchable.disabled
+			setSize(stage.width, stage.height)
+		}
+		layers.put(stage, layer)
+		stage.addActor(layer)
+		return layer
+	}
+
+	private fun bringLayerToFront(stage: Stage) {
+		val layer = layers[stage] ?: return
+		layer.setSize(stage.width, stage.height)
+		if (layer.parent?.children?.peek() !== layer) layer.toFront()
+	}
+
+	private fun removeLayerIfEmpty(stage: Stage) {
+		val layer = layers[stage] ?: return
+		if (layer.children.size > 0) return
+		layer.remove()
+		layers.remove(stage)
+	}
+
+	private fun markVisible(tooltip: MetaTable) {
+		if (!visibleTooltips.contains(tooltip, true)) visibleTooltips.add(tooltip)
+	}
+
+	private fun markHidden(tooltip: MetaTable) {
+		visibleTooltips.removeValue(tooltip, true)
 	}
 
 	internal fun resolveTextWidth(contentWidth: Float, maxWidth: Float): TextWidth {

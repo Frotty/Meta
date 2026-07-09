@@ -1,5 +1,6 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
@@ -16,6 +17,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
@@ -50,6 +52,7 @@ open class MetaLabel @JvmOverloads constructor(
 	private var fontScaleX = 1f
 	private var fontScaleY = 1f
 	private var ellipsis: String? = null
+	private val drawPosition = Vector2()
 
 	private val metaFontProvider: FontProvider by lazyInject()
 
@@ -140,7 +143,7 @@ open class MetaLabel @JvmOverloads constructor(
 		}
 		if (!bitmapFontCache.font.isFlipped) y += textHeight
 		layout.setText(font, text, 0, text.length, Color.WHITE, textWidth, lineAlign, wrap, ellipsis)
-		bitmapFontCache.setText(layout, x, y)
+		bitmapFontCache.setText(layout, x.roundToInt().toFloat(), y.roundToInt().toFloat())
 		if (fontScaleX != oldScaleX || fontScaleY != oldScaleY) font.data.setScale(oldScaleX, oldScaleY)
 	}
 
@@ -150,8 +153,32 @@ open class MetaLabel @JvmOverloads constructor(
 		color.a *= parentAlpha
 		if (fontColor != null) color.mul(fontColor)
 		bitmapFontCache.tint(color)
-		bitmapFontCache.setPosition(x, y)
+		snapDrawPosition()
+		bitmapFontCache.setPosition(drawPosition.x, drawPosition.y)
 		bitmapFontCache.draw(batch)
+	}
+
+	private fun snapDrawPosition() {
+		if (stage == null) {
+			drawPosition.set(x.roundToInt().toFloat(), y.roundToInt().toFloat())
+			return
+		}
+		localToStageCoordinates(drawPosition.set(0f, 0f))
+		val pixelsPerUnit = pixelsPerStageUnit()
+		drawPosition.set(
+			x + snapToPixel(drawPosition.x, pixelsPerUnit) - drawPosition.x,
+			y + snapToPixel(drawPosition.y, pixelsPerUnit) - drawPosition.y,
+		)
+	}
+
+	private fun pixelsPerStageUnit(): Float {
+		val stage = stage ?: return 1f
+		if (stage.width <= 0f) return 1f
+		return max(1f, Gdx.graphics.backBufferWidth / stage.width)
+	}
+
+	private fun snapToPixel(value: Float, pixelsPerUnit: Float): Float {
+		return (value * pixelsPerUnit).roundToInt() / pixelsPerUnit
 	}
 
 	override fun getPrefWidth(): Float {

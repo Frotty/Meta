@@ -32,6 +32,7 @@ import de.fatox.meta.reactive.effect
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.components.MetaMenuBar
+import de.fatox.meta.ui.components.MetaTooltip
 import de.fatox.meta.ui.tabs.MetaTab
 import de.fatox.meta.ui.windows.MetaDialog
 import java.io.File
@@ -101,6 +102,7 @@ class MetaUiManager : UIManager {
 		}
 		// Dialogs were just (re)fronted; keep toasts above them.
 		uiRenderer.getToastManager().toFront()
+		MetaTooltip.bringVisibleToFront()
 	}
 	private val preventShowWindowSignal = signal(false)
 	override val preventShowWindowState: ReactiveValue<Boolean> get() = preventShowWindowSignal
@@ -350,6 +352,7 @@ class MetaUiManager : UIManager {
 		}
 		mainMenuBar?.table?.toFront()
 		uiRenderer.getToastManager().toFront()
+		MetaTooltip.bringVisibleToFront()
 	}
 
 	private fun cacheWindow(window: Window, forceClose: Boolean) {

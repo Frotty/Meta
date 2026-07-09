@@ -38,6 +38,20 @@ run {
 		jvmArgs += "-XstartOnFirstThread"
 	}
 }
+
+tasks.register('runMetaUiPlayground', JavaExec) {
+	group = 'application'
+	description = 'Runs the Meta UI component playground.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'de.fatox.meta.desktop.DesktopLauncherPlaygroundKt'
+	workingDir = rootProject.file('assets').path
+	setIgnoreExitValue(true)
+
+	if (OperatingSystem.current() == OperatingSystem.MAC_OS) {
+		jvmArgs += "-XstartOnFirstThread"
+	}
+}
+
 jar {
 	duplicatesStrategy = DuplicatesStrategy.INCLUDE // allow duplicates
 	archiveBaseName.set('MetaEditor')
