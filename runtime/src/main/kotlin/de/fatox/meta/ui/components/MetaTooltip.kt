@@ -20,6 +20,7 @@ import kotlin.math.min
 
 object MetaTooltip {
 	private data class AttachedTooltip(val attachment: Attachment, val listener: InputListener)
+	internal data class TextWidth(val width: Float, val wrap: Boolean)
 
 	private val attachments = ObjectMap<Actor, AttachedTooltip>(16)
 	private val detachedTargets = Array<Actor>(16)
@@ -70,18 +71,17 @@ object MetaTooltip {
 			this.align = align
 			this.showDelaySeconds = showDelaySeconds
 			this.hideDelaySeconds = hideDelaySeconds
-			if (maxWidth > 0f) {
-				label.setWrap(true)
-				label.setAlignment(Align.left)
-				label.width = maxWidth
-				labelCell.width(maxWidth)
-				labelCell.align(Align.left)
-			} else {
-				label.setWrap(false)
-				label.setAlignment(Align.center)
-				label.width = 0f
-				labelCell.width(label.prefWidth)
-			}
+			label.setWrap(false)
+			label.setAlignment(Align.center)
+			label.width = 0f
+			label.invalidateHierarchy()
+
+			val textWidth = resolveTextWidth(label.prefWidth, maxWidth)
+			label.setWrap(textWidth.wrap)
+			label.setAlignment(if (textWidth.wrap) Align.left else Align.center)
+			label.width = textWidth.width
+			labelCell.width(textWidth.width)
+			labelCell.align(if (textWidth.wrap) Align.left else Align.center)
 			tooltip.pack()
 		}
 
@@ -223,11 +223,7 @@ object MetaTooltip {
 		}
 
 		val label = MetaLabel(text, MetaType.CAPTION, MetaColor.TEXT).apply {
-			if (maxWidth > 0f) {
-				setWrap(true)
-				setAlignment(Align.left)
-				width = maxWidth
-			}
+			setAlignment(Align.center)
 		}
 		val tooltip = MetaTable().apply {
 			background = MetaSkin.skin().getDrawable("meta.tooltip")
@@ -307,5 +303,10 @@ object MetaTooltip {
 	private fun scheduleOrphanCleanupIfNeeded() {
 		if (orphanCleanupTask.isScheduled) return
 		Timer.schedule(orphanCleanupTask, ORPHAN_CLEANUP_DELAY_SECONDS, ORPHAN_CLEANUP_INTERVAL_SECONDS)
+	}
+
+	internal fun resolveTextWidth(contentWidth: Float, maxWidth: Float): TextWidth {
+		if (maxWidth <= 0f || contentWidth <= maxWidth) return TextWidth(contentWidth, false)
+		return TextWidth(maxWidth, true)
 	}
 }

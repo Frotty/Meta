@@ -3,6 +3,7 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
@@ -20,6 +21,7 @@ open class MetaButtonContainer :
 	val disabledValue: Signal<Boolean> = signal(isDisabled)
 
 	init {
+		cursorPointer()
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				checkedValue.value = isChecked

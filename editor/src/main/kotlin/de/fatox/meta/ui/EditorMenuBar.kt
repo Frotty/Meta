@@ -17,7 +17,6 @@ import de.fatox.meta.ui.dialogs.SceneWizardDialog
 import de.fatox.meta.ui.components.MetaMenu
 import de.fatox.meta.ui.components.MetaMenuBar
 import de.fatox.meta.ui.components.MetaMenuItem
-import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.windows.MetaConfirmDialog
 import kotlin.reflect.KClass
 
@@ -40,8 +39,6 @@ class EditorMenuBar {
 		menuBar.addMenu(createWindowsMenu())
 		log.info { "Added File Menu" }
 		menuBar.table.add().growX()
-		menuBar.table.row().height(1f).left()
-		menuBar.table.add(MetaSeparator()).colspan(2).left().growX()
 	}
 
 	fun clear() {

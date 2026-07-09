@@ -130,7 +130,6 @@ object MetaSkin {
 		skin.add(BUTTON, Button.ButtonStyle().apply {
 			up = skin.getDrawable("meta.button.up")
 			over = skin.getDrawable("meta.button.over")
-			focused = skin.getDrawable("meta.button.focus")
 			down = skin.getDrawable("meta.button.down")
 			disabled = skin.getDrawable("meta.button.disabled")
 		})
@@ -147,7 +146,6 @@ object MetaSkin {
 			checked = skin.getDrawable("meta.imageButton.focus")
 			checkedOver = skin.getDrawable("meta.imageButton.focus")
 			checkedFocused = skin.getDrawable("meta.imageButton.focus")
-			focused = skin.getDrawable("meta.imageButton.focus")
 			down = skin.getDrawable("meta.imageButton.down")
 			disabled = skin.getDrawable("meta.imageButton.disabled")
 		})
@@ -350,6 +348,32 @@ object MetaSkin {
 				checkedOver = skin.getDrawable("meta.imageButton.focus")
 				checkedFocused = skin.getDrawable("meta.imageButton.focus")
 			}
+		}
+	}
+
+	internal fun selectedButtonStyle(base: Button.ButtonStyle): Button.ButtonStyle {
+		val skin = skin()
+		return Button.ButtonStyle(base).apply {
+			up = skin.getDrawable("meta.button.focus")
+			over = skin.getDrawable("meta.button.focusOver")
+			down = skin.getDrawable("meta.button.focus")
+			checked = skin.getDrawable("meta.button.focus")
+			checkedOver = skin.getDrawable("meta.button.focusOver")
+			checkedFocused = skin.getDrawable("meta.button.focus")
+			focused = skin.getDrawable("meta.button.focus")
+		}
+	}
+
+	internal fun selectedImageButtonStyle(base: Button.ButtonStyle): Button.ButtonStyle {
+		val skin = skin()
+		return Button.ButtonStyle(base).apply {
+			up = skin.getDrawable("meta.imageButton.focus")
+			over = skin.getDrawable("meta.imageButton.focus")
+			down = skin.getDrawable("meta.imageButton.down")
+			checked = skin.getDrawable("meta.imageButton.focus")
+			checkedOver = skin.getDrawable("meta.imageButton.focus")
+			checkedFocused = skin.getDrawable("meta.imageButton.focus")
+			focused = skin.getDrawable("meta.imageButton.focus")
 		}
 	}
 

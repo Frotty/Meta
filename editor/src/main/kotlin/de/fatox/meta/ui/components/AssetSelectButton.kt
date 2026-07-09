@@ -8,6 +8,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.showWindow
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.windows.AssetDiscovererWindow
 
 /**
@@ -18,14 +20,19 @@ class AssetSelectButton {
 	private lateinit var selectAssetButton: MetaTextButton
 	private lateinit var assetNameLabel: MetaTextField
 	private var name: String? = null
+	val fileValue: Signal<FileHandle?> = signal(null)
 	var file: FileHandle? = null
-		private set
+		private set(value) {
+			field = value
+			fileValue.value = value
+		}
 	private var selectListener: AssetDiscovererWindow.SelectListener? = null
 
 	private val uiManager: UIManager by lazyInject()
 
 	constructor(selectedAsset: FileHandle) {
 		this.name = selectedAsset.name()
+		this.file = selectedAsset
 		setup()
 		assetNameLabel.text = name
 	}
@@ -44,7 +51,11 @@ class AssetSelectButton {
 					enableSelectionMode { selected: FileHandle? ->
 						this@AssetSelectButton.file = selected
 						selectListener?.onSelect(selected)
-						assetNameLabel.text = name + ": " + file!!.name()
+						assetNameLabel.text = if (selected != null) {
+							name + ": " + selected.name()
+						} else {
+							"Select " + name
+						}
 						// Bring window to Front
 						var table: Group? = this@AssetSelectButton.table
 						while (table != null && table !is Window) {
@@ -66,7 +77,7 @@ class AssetSelectButton {
 	}
 
 	fun hasFile(): Boolean {
-		return file != null && file!!.exists()
+		return fileValue()?.exists() == true
 	}
 
 	fun setSelectListener(selectListener: AssetDiscovererWindow.SelectListener) {

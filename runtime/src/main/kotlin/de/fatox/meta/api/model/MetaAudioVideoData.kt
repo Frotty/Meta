@@ -92,5 +92,6 @@ data class MetaAudioVideoData(
 			Gdx.graphics.setWindowedMode(width, height)
 		}
 		Gdx.graphics.setVSync(vsyncEnabled)
+		Meta.instance.windowHandler.focus()
 	}
 }

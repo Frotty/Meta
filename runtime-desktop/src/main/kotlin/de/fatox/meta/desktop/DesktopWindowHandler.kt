@@ -20,6 +20,14 @@ class DesktopWindowHandler : WindowHandler, Lwjgl3WindowListener {
 	override fun modify(x: Int, y: Int) {
 		log.debug { "Modify $currentWindow from ${this.x},${this.y} to $x,$y!" }
 		currentWindow.setPosition(x, y)
+		focus()
+	}
+
+	override fun focus() {
+		if (!::currentWindow.isInitialized) return
+		currentWindow.setVisible(true)
+		currentWindow.restoreWindow()
+		currentWindow.focusWindow()
 	}
 
 	override fun iconify() {
@@ -29,6 +37,7 @@ class DesktopWindowHandler : WindowHandler, Lwjgl3WindowListener {
 
 	override fun created(window: Lwjgl3Window) {
 		currentWindow = window
+		focus()
 	}
 
 	override fun iconified(isIconified: Boolean) = Meta.instance.iconified(isIconified)

@@ -60,12 +60,12 @@ object MetaModule {
 				@Suppress("SpellCheckingInspection")
 				@Language("GLSL") val vertexShader =
 					"""
-in vec4 $POSITION_ATTRIBUTE;
-in vec4 $COLOR_ATTRIBUTE;
-in vec2 ${TEXCOORD_ATTRIBUTE}0;
+attribute vec4 $POSITION_ATTRIBUTE;
+attribute vec4 $COLOR_ATTRIBUTE;
+attribute vec2 ${TEXCOORD_ATTRIBUTE}0;
 uniform mat4 u_projTrans;
-out vec4 v_color;
-out vec2 v_texCoords;
+varying vec4 v_color;
+varying vec2 v_texCoords;
 
 void main()
 {
@@ -86,13 +86,12 @@ precision mediump float;
 #else
 #define LOWP 
 #endif
-in LOWP vec4 v_color;
-in vec2 v_texCoords;
+varying LOWP vec4 v_color;
+varying vec2 v_texCoords;
 uniform sampler2D u_texture;
-out vec4 fragData;
 void main()
 {
-	fragData = v_color * texture(u_texture, v_texCoords);
+	gl_FragColor = v_color * texture2D(u_texture, v_texCoords);
 }
 """.trimMargin()
 				val shader = ShaderProgram(vertexShader, fragmentShader)

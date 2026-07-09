@@ -34,6 +34,9 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
   `ui/icons/remixicon.tsv`); search it for supported names/categories instead of adding a giant enum. Do not add
   singular texture assets for ordinary UI glyphs. Bitmap textures are for actual game/editor art, logos, previews,
   screenshots, skin atlases, or generated drawables that cannot be expressed as a Remix icon.
+- **Use `MetaIconButtonGroup` for icon tool palettes.** Brush/tool pickers should mark the active tool with
+  `MetaIconButton.selected` / `MetaIconButtonGroup`, not scene2d checked state or Meta keyboard focus. Regular
+  icon buttons stay momentary by default; the selected border is a visual-only active marker.
 - **Design tokens live in `ui/MetaUi.kt`** — `MetaType` (typographic scale in px: CAPTION…DISPLAY), `MetaSpacing`
   (padding rhythm), `MetaColor` (dark palette). Prefer these over magic numbers/colors. Helpers: `metaLabel(...)`,
   `metaButton(...)`, `Table.metaDefaults()`. `MetaColor` values are shared mutable `Color`s — treat read-only, use

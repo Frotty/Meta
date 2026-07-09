@@ -6,6 +6,7 @@ import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderComposer
+import de.fatox.meta.ui.bindDisabled
 import de.fatox.meta.ui.components.MetaInputValidator
 import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.MetaTextButton
@@ -22,9 +23,6 @@ class ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 	private val cancelBtn: MetaTextButton = addButton(MetaTextButton("Cancel"), Align.left, false)
 	private val createBtn: MetaTextButton = addButton(MetaTextButton("Create"), Align.right, true)
 	private val compNameTF: MetaValidTextField = MetaValidTextField("Composition name:", statusLabel)
-	private fun checkButton() {
-		createBtn.isDisabled = compNameTF.textField.text.isBlank()
-	}
 
 	private fun setupTable() {
 		val visTable = MetaTable()
@@ -35,7 +33,7 @@ class ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 		contentTable.add(visTable).top().growX()
 		dialogListener = object : DialogListener {
 			override fun onResult(any: Any?) {
-				if (any != null && any as Boolean) {
+				if (any == true) {
 					metaShaderComposer.newShaderComposition(compNameTF.textField.text)
 //                      ShaderComposerWindow window = uiManager.getWindow(ShaderComposerWindow.class);
 //                      if(window != null) {
@@ -52,13 +50,15 @@ class ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 			override fun validateInput(input: String, errors: MetaErrorHandler) {
 				if (input.isBlank()) {
 					errors.add(MetaError("Invalid composition name", ""))
-				} else {
-					checkButton()
 				}
 			}
 		})
-		createBtn.isDisabled = true
 		setDefaultSize(400f, 120f)
 		setupTable()
+	}
+
+	override fun onShown() {
+		super.onShown()
+		reactiveScope.bindDisabled(createBtn) { !compNameTF.textField.inputValidValue() }
 	}
 }

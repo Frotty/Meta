@@ -9,6 +9,7 @@ import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderLibrary
+import de.fatox.meta.ui.bindDisabled
 import de.fatox.meta.ui.components.AssetSelectButton
 import de.fatox.meta.ui.components.MetaInputValidator
 import de.fatox.meta.ui.components.MetaLabel
@@ -33,11 +34,6 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 	private val renderTargetGroup = ButtonGroup<MetaToggleButton>()
 	private lateinit var vertexSelect: AssetSelectButton
 	private lateinit var fragmentSelect: AssetSelectButton
-	private fun checkButton() {
-		createBtn.isDisabled = (shaderNameTF.textField.text.isBlank()
-			|| !vertexSelect.hasFile()
-			|| !fragmentSelect.hasFile())
-	}
 
 	private fun setupTable() {
 		val visTable = MetaTable()
@@ -59,11 +55,9 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 		visTable.add(visLabel2).colspan(2).pad(4f)
 		visTable.row()
 		vertexSelect = AssetSelectButton("Vertex Shader")
-		vertexSelect.setSelectListener { checkButton() }
 		visTable.add(vertexSelect.table).colspan(2).growX()
 		visTable.row()
 		fragmentSelect = AssetSelectButton("Fragment Shader")
-		fragmentSelect.setSelectListener { checkButton() }
 		visTable.add(fragmentSelect.table).colspan(2).growX()
 		visTable.row()
 		renderTargetGroup.add(geometryButton)
@@ -76,18 +70,15 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 			override fun validateInput(input: String, errors: MetaErrorHandler) {
 				if (input.isBlank()) {
 					errors.add(MetaError("Invalid Shader name", ""))
-				} else {
-					checkButton()
 				}
 			}
 		})
 		renderTargetGroup.setMaxCheckCount(1)
 		renderTargetGroup.setMinCheckCount(1)
-		createBtn.isDisabled = true
 		setDefaultSize(300f, 450f)
 		setupTable()
 		dialogListener = DialogListener { any ->
-			if (any as Boolean) {
+			if (any == true) {
 				val vertFile = projectManager.relativize(vertexSelect.file!!)
 				val fragFile = projectManager.relativize(fragmentSelect.file!!)
 				val shaderData = GLShaderData(shaderNameTF.textField.text, vertFile, fragFile)
@@ -96,6 +87,13 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 				window.addShader(glShaderHandle)
 			}
 			close()
+		}
+	}
+
+	override fun onShown() {
+		super.onShown()
+		reactiveScope.bindDisabled(createBtn) {
+			!shaderNameTF.textField.inputValidValue() || !vertexSelect.hasFile() || !fragmentSelect.hasFile()
 		}
 	}
 }

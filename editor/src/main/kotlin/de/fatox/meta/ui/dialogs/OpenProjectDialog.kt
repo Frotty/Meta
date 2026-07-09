@@ -9,6 +9,8 @@ import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.bindDisabled
 import de.fatox.meta.ui.components.MetaFileChooser
 import de.fatox.meta.ui.components.MetaFileChooserAdapter
 import de.fatox.meta.ui.components.MetaFileTypeFilter
@@ -31,7 +33,7 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 	private var folderLabel: MetaLabel? = null
 	private val openBtn: MetaTextButton
 	private var folderButton: MetaTextButton? = null
-	private var rootfile: FileHandle? = null
+	private val rootFileValue = signal<FileHandle?>(null)
 	private fun createFolderButton() {
 		folderLabel = MetaLabel(languageBundle["newproj.dia.project.root"], 14)
 		folderButton = MetaTextButton(languageBundle["newproj.dia.select.project"])
@@ -46,11 +48,10 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 				fileChooser.setListener(object : MetaFileChooserAdapter() {
 					override fun selected(file: Array<FileHandle>) {
 						if (file.size == 1) {
-							rootfile = file[0]
+							rootFileValue.value = file[0].takeIf { projectManager.verifyProjectFile(it) }
 							folderButton!!.setText(file[0].pathWithoutExtension().truncate(30))
-							if (projectManager.verifyProjectFile(rootfile!!)) {
-								openBtn.isDisabled = false
-							}
+						} else {
+							rootFileValue.value = null
 						}
 						fileChooser.fadeOut()
 					}
@@ -66,7 +67,6 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 		setDefaultSize(450f, 200f)
 		addButton<Button>(MetaTextButton("Cancel"), Align.left, false)
 		openBtn = addButton(MetaTextButton("Open"), Align.left, true)
-		openBtn.isDisabled = true
 		createFolderButton()
 		val visTable = MetaTable()
 		visTable.defaults().pad(4f)
@@ -75,10 +75,15 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 		visTable.row()
 		contentTable.add(visTable).top().growX()
 		dialogListener = DialogListener { any ->
-			if (any != null && any as Boolean) {
-				projectManager.loadProject(rootfile!!)
+			if (any == true) {
+				projectManager.loadProject(rootFileValue.peek()!!)
 			}
 			close()
 		}
+	}
+
+	override fun onShown() {
+		super.onShown()
+		reactiveScope.bindDisabled(openBtn) { rootFileValue() == null }
 	}
 }

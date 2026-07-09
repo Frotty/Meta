@@ -2,6 +2,7 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
@@ -26,6 +27,7 @@ class MetaCheckBox @JvmOverloads constructor(
 
 	init {
 		isChecked = initialChecked
+		cursorPointer()
 	}
 
 	override fun setMetaFocused(focused: Boolean) {

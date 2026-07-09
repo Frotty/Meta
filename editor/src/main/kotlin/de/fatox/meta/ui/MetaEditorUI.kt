@@ -23,6 +23,8 @@ class MetaEditorUI {
 
 	private lateinit var tabbedPane: MetaTabbedPane
 	private val tabTable = Table()
+	private var shownTab: MetaTab? = null
+
 	fun setup() {
 		metaToolbar = EditorMenuBar()
 		log.info { "Toolbar created" }
@@ -30,7 +32,7 @@ class MetaEditorUI {
 		tabbedPane = MetaTabbedPane()
 		tabbedPane.addListener(object : MetaTabbedPaneAdapter() {
 			override fun switchedMetaTab(tab: MetaTab) {
-				tabbedPane.activeMetaTab?.onHide()
+				shownTab?.onHide()
 				uiManager.changeTab(tab::class)
 				apply()
 				val content = tab.contentTable
@@ -38,6 +40,8 @@ class MetaEditorUI {
 				tabTable.add(content).grow()
 				tabTable.toFront()
 				content.toBack()
+				tab.onShow()
+				shownTab = tab
 				uiManager.bringWindowsToFront()
 			}
 		})
@@ -48,6 +52,7 @@ class MetaEditorUI {
 	}
 
 	fun apply() {
+		uiManager.setMainMenuBar(metaToolbar.menuBar)
 		uiManager.addTable(tabbedPane.table, growX = true, growY = false)
 		uiManager.addTable(tabTable, growX = true, growY = true)
 	}

@@ -5,6 +5,7 @@ import de.fatox.meta.error.MetaError
 import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.SceneManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.bindDisabled
 import de.fatox.meta.ui.components.MetaInputValidator
 import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.MetaTextButton
@@ -33,8 +34,6 @@ class SceneWizardDialog : MetaDialog("Scene Wizard", true) {
 					errors.add(object : MetaError("Scene name required", "") {
 						override fun gotoError() {}
 					})
-				} else {
-					createBtn.isDisabled = false
 				}
 			}
 		})
@@ -44,14 +43,18 @@ class SceneWizardDialog : MetaDialog("Scene Wizard", true) {
 		visTable.add(sceneNameTF.textField).growX()
 		visTable.row()
 		contentTable.add(visTable).top().growX()
-		createBtn.isDisabled = true
 		dialogListener = DialogListener { any ->
 			close()
-			if (any as Boolean) {
+			if (any == true) {
 				sceneManager.createNew(sceneNameTF.textField.text)
 			}
 		}
 		pack()
 //		setDefaultSize(200f, 400f)
+	}
+
+	override fun onShown() {
+		super.onShown()
+		reactiveScope.bindDisabled(createBtn) { !sceneNameTF.textField.inputValidValue() }
 	}
 }

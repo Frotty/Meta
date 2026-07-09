@@ -131,8 +131,12 @@ class MetaUiManager : UIManager {
 		uiRenderer.resize(width, height)
 		if (backdrop.hasParent()) backdrop.setSize(uiRenderer.uiWidth, uiRenderer.uiHeight)
 		for(i in 0 until displayedWindows.size) {
-			if (displayedWindows[i] is MetaDialog) {
-				(displayedWindows[i] as MetaDialog).centerWindow()
+			val window = displayedWindows[i]
+			if (window is MetaDialog) {
+				window.centerWindow()
+			} else {
+				val name = windowConfig.nameOf(window::class)
+				if (metaHas(name)) metaGet<MetaWindowData>(name)?.set(window, uiRenderer.uiWidth, uiRenderer.uiHeight)
 			}
 		}
 	}
@@ -161,7 +165,7 @@ class MetaUiManager : UIManager {
 				val metaWindowData = metaGet<MetaWindowData>(name)!!
 				if (metaWindowData.displayed) {
 					// There exists saved window metadata
-					metaWindowData.set(window)
+					metaWindowData.set(window, uiRenderer.uiWidth, uiRenderer.uiHeight)
 				} else {
 					cacheWindow(window, true)
 				}
@@ -193,7 +197,7 @@ class MetaUiManager : UIManager {
 						}
 					}
 					if (metaWindowData.displayed) {
-						metaWindowData.set(showWindow(windowClass))
+						metaWindowData.set(showWindow(windowClass), uiRenderer.uiWidth, uiRenderer.uiHeight)
 					}
 				} else {
 					log.debug { "Window class not found: ${fh.name()}" }
@@ -234,7 +238,7 @@ class MetaUiManager : UIManager {
 		if (metaHas(configName)) {
 			// There exists metadata for this window.
 			val windowData: MetaWindowData = metaGet(configName)!!
-			windowData.set(this)
+			windowData.set(this, uiRenderer.uiWidth, uiRenderer.uiHeight)
 			if (!windowData.displayed) {
 				windowData.displayed = true
 				metaSave(configName, windowData)
@@ -296,16 +300,22 @@ class MetaUiManager : UIManager {
 	}
 
 	override fun setMainMenuBar(menuBar: MetaMenuBar?) {
-		if (menuBar != null) {
-			contentTable.row().height(26f)
-			contentTable.add(menuBar.table).growX().top()
-		} else if (mainMenuBar != null) {
-			val cell = contentTable.getCell(mainMenuBar!!.table)
-			cell.clearActor()
-			contentTable.cells.removeValue(cell, true)
-			contentTable.invalidate()
+		if (mainMenuBar === menuBar && menuBar?.table?.parent === contentTable) return
+		mainMenuBar?.table?.let { table ->
+			val cell = contentTable.getCell(table)
+			if (cell != null) {
+				cell.clearActor()
+				contentTable.cells.removeValue(cell, true)
+			}
+			table.remove()
 		}
 		mainMenuBar = menuBar
+		if (menuBar != null) {
+			contentTable.row().height(MENU_BAR_HEIGHT)
+			contentTable.add(menuBar.table).growX().top()
+			menuBar.table.toFront()
+		}
+		contentTable.invalidate()
 	}
 
 	override fun <T : Window> getWindow(windowClass: KClass<out T>): T {
@@ -329,7 +339,7 @@ class MetaUiManager : UIManager {
 		val name = windowConfig.nameOf(window::class)
 		if (metaHas(name)) {
 			val metaWindowData = metaGet<MetaWindowData>(name)!!
-			metaWindowData.setFrom(window)
+			metaWindowData.setFrom(window, uiRenderer.uiWidth, uiRenderer.uiHeight)
 			metaSave(name, metaWindowData)
 		}
 	}
@@ -391,6 +401,10 @@ class MetaUiManager : UIManager {
 	private fun <T : Any> screenMetaKey(name: String): MetaDataKey<T> {
 		val id = currentScreenId + File.separator + name
 		return screenMetaDataKeys.getOrPut(id) { MetaDataKey<Any>(id) } as MetaDataKey<T>
+	}
+
+	private companion object {
+		const val MENU_BAR_HEIGHT = 26f
 	}
 
 	override fun dispose() {

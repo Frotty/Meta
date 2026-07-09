@@ -22,6 +22,7 @@ dependencies {
 	// Headless libGDX backend (+ native libs) so scene2d layout (Table/Cell) can be exercised in plain unit tests.
 	testImplementation "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
 	testRuntimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+	testRuntimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
 }
 
 tasks {

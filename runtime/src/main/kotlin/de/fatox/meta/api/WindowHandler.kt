@@ -10,6 +10,9 @@ interface WindowHandler {
 	/** Tries to set the current window position to the given coordinates ([x], [y]). */
 	fun modify(x: Int, y: Int)
 
+	/** Tries to bring the current window to the foreground and give it focus. */
+	fun focus() = Unit
+
 	/** Tries to iconify the current window. */
 	fun iconify()
 }
@@ -19,6 +22,5 @@ object NoWindowHandler : WindowHandler {
 	override val y: Int = 0
 
 	override fun modify(x: Int, y: Int): Unit = Unit
-
 	override fun iconify(): Unit = Unit
 }

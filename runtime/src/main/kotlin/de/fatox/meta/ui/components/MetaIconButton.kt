@@ -2,6 +2,7 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Container
 import com.badlogic.gdx.scenes.scene2d.ui.Image
@@ -30,28 +31,41 @@ open class MetaIconButton private constructor(
 	constructor(
 		drawable: Drawable?,
 		style: String = MetaSkin.ICON_BUTTON,
-	) : this(Image(drawable).apply { setScaling(Scaling.fit) }, DEFAULT_ICON_SIZE, style)
+	) : this(Image(drawable).apply {
+		setScaling(Scaling.fit)
+		touchable = Touchable.disabled
+	}, DEFAULT_ICON_SIZE, style)
 
 	constructor(
 		icon: String,
 		style: String = MetaSkin.ICON_BUTTON,
 		size: Int = DEFAULT_ICON_SIZE.toInt(),
 		color: Color? = Color.WHITE,
-	) : this(MetaIcon(icon, size, color), size.toFloat(), style)
+	) : this(MetaIcon(icon, size, color).apply { touchable = Touchable.disabled }, size.toFloat(), style)
 
-	private val iconContainer = Container<Actor>(iconActor)
+	private val iconContainer = Container<Actor>(iconActor).apply { touchable = Touchable.disabled }
 	private val iconCell = add(iconContainer).size(iconSize).pad(MetaSpacing.XS)
-	private val buttonStyle = MetaSkin.skin().get(style, ButtonStyle::class.java)
+	private val buttonStyle = ButtonStyle(MetaSkin.skin().get(style, ButtonStyle::class.java))
 	private val focusStyle = MetaButtonFocusStyle(
 		this,
 		buttonStyle,
 		if (style == MetaSkin.IMAGE_BUTTON) MetaSkin::focusedImageButtonStyle else MetaSkin::focusedButtonStyle,
 	)
+	private val selectedStyleFactory =
+		if (style == MetaSkin.IMAGE_BUTTON) MetaSkin::selectedImageButtonStyle else MetaSkin::selectedButtonStyle
 	private val disabledTint = MetaDisabledTint(this)
 
 	val checkedValue: Signal<Boolean> = signal(isChecked)
 	val disabledValue: Signal<Boolean> = signal(isDisabled)
+	val selectedValue: Signal<Boolean> = signal(false)
 	var momentary: Boolean = true
+	var selected: Boolean = false
+		set(value) {
+			if (field == value) return
+			field = value
+			selectedValue.value = value
+			installVisualStyle()
+		}
 
 	init {
 		cursorPointer()
@@ -84,11 +98,14 @@ open class MetaIconButton private constructor(
 	}
 
 	fun setIcon(drawable: Drawable?, scaling: Scaling = Scaling.fit, size: Float = DEFAULT_ICON_SIZE) {
-		setIconActor(Image(drawable).apply { setScaling(scaling) }, size)
+		setIconActor(Image(drawable).apply {
+			setScaling(scaling)
+			touchable = Touchable.disabled
+		}, size)
 	}
 
 	fun setIcon(icon: String, size: Int = DEFAULT_ICON_SIZE.toInt(), color: Color? = Color.WHITE) {
-		setIconActor(MetaIcon(icon, size, color), size.toFloat())
+		setIconActor(MetaIcon(icon, size, color).apply { touchable = Touchable.disabled }, size.toFloat())
 	}
 
 	fun setIconSize(size: Float) {
@@ -97,7 +114,12 @@ open class MetaIconButton private constructor(
 		invalidateHierarchy()
 	}
 
+	private fun installVisualStyle() {
+		focusStyle.install(if (selected) selectedStyleFactory(buttonStyle) else buttonStyle)
+	}
+
 	private fun setIconActor(actor: Actor, size: Float) {
+		actor.touchable = Touchable.disabled
 		iconContainer.actor = actor
 		iconCell.size(size)
 		invalidateHierarchy()

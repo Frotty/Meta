@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -19,6 +20,8 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
+import de.fatox.meta.ui.MetaColor
+import de.fatox.meta.ui.components.MetaIcon
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.components.MetaTable
@@ -49,6 +52,11 @@ abstract class MetaWindow(
 		private set
 
 	private var startDrag = false
+	private val resizeIndicator = MetaIcon("ri-draggable", 13, MetaColor.TEXT_MUTED.cpy()).apply {
+		touchable = Touchable.disabled
+		setColor(1f, 1f, 1f, 0.7f)
+		isVisible = resizable
+	}
 
 	init {
 		titleLabel.setAlignment(Align.left)
@@ -91,6 +99,7 @@ abstract class MetaWindow(
 		contentTable.top().left().pad(5f, 1f, 1f, 1f)
 		add(contentTable).top().grow().pad(MetaSpacing.XS)
 		row()
+		addActor(resizeIndicator)
 	}
 
 	fun setDefaultSize(width: Float, height: Float) {
@@ -131,6 +140,7 @@ abstract class MetaWindow(
 			applyTitleStyle()
 		}
 		applyWindowMetrics(isResizable)
+		resizeIndicator.isVisible = isResizable
 	}
 
 	override fun layout() {
@@ -145,6 +155,7 @@ abstract class MetaWindow(
 			if (newH != oldH) setY(top - newH)
 		}
 		super.layout()
+		positionResizeIndicator()
 	}
 
 	override fun getMinWidth(): Float {
@@ -200,10 +211,18 @@ abstract class MetaWindow(
 		padBottom(if (resizable) RESIZE_BOTTOM_PAD else 1f)
 	}
 
+	private fun positionResizeIndicator() {
+		resizeIndicator.isVisible = isResizable
+		if (!resizeIndicator.isVisible) return
+		resizeIndicator.setSize(RESIZE_INDICATOR_SIZE, RESIZE_INDICATOR_SIZE)
+		resizeIndicator.setPosition(width - RESIZE_INDICATOR_SIZE - 4f, 2f)
+	}
+
 	private companion object {
 		const val HEADER_HEIGHT = 32f
 		const val HEADER_CONTENT_HEIGHT = 30f
 		const val RESIZE_BOTTOM_PAD = 7f
+		const val RESIZE_INDICATOR_SIZE = 14f
 		const val MIN_WINDOW_WIDTH = 96f
 		const val MIN_WINDOW_HEIGHT = 64f
 	}
