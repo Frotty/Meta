@@ -80,11 +80,23 @@ fun onCleanup(block: () -> Unit) {
 /** Defers dependent-effect execution until [block] returns, so a burst of writes flushes effects once. */
 fun <T> batch(block: () -> T): T {
 	batchDepth++
+	var thrown: Throwable? = null
 	try {
 		return block()
+	} catch (t: Throwable) {
+		thrown = t
+		throw t
 	} finally {
 		batchDepth--
-		if (batchDepth == 0) flushEffects()
+		if (batchDepth == 0) {
+			// Writes made before a throw are already committed, so still flush - but never let a flush failure
+			// swallow the block's own exception.
+			try {
+				flushEffects()
+			} catch (flushError: Throwable) {
+				if (thrown != null) thrown.addSuppressed(flushError) else throw flushError
+			}
+		}
 	}
 }
 
@@ -108,7 +120,8 @@ fun ReactiveValue<*>.subscribe(block: () -> Unit): Disposable {
 	var primed = false
 	return effect {
 		value // read to subscribe
-		if (primed) block() else primed = true
+		// The callback runs untracked so signals it happens to read don't become extra triggers.
+		if (primed) untracked(block) else primed = true
 	}
 }
 
@@ -188,13 +201,16 @@ private abstract class ReactiveNode {
 
 	// Observer role.
 	@JvmField val sources = ArrayList<ReactiveNode>()
-	@JvmField val sourceVersions = ArrayList<Int>()
+	@JvmField val sourceVersions = com.badlogic.gdx.utils.IntArray(4) // primitive ints - no boxing per tracked read
 	@JvmField var state = NodeState.CLEAN
+
+	/** True once an [EffectNode] is disposed; a disposed observer must never re-register anywhere. */
+	@JvmField var disposed = false
 
 	/** Subscribe the running observer (if any) to this source. */
 	fun trackRead() {
 		val obs = currentObserver ?: return
-		if (obs === this || obs.sources.contains(this)) return
+		if (obs === this || obs.disposed || obs.sources.contains(this)) return
 		obs.sources.add(this)
 		obs.sourceVersions.add(version)
 		observers.add(obs)
@@ -218,13 +234,14 @@ private abstract class ReactiveNode {
 	}
 
 	private fun markStale(newState: NodeState) {
-		if (state.ordinal >= newState.ordinal) return
 		val wasClean = state == NodeState.CLEAN
-		state = newState
+		if (state.ordinal < newState.ordinal) state = newState
+		// onStale runs even when the state did not upgrade: an effect can be stale-but-unqueued (e.g. after its
+		// body threw during a flush) and must be able to re-enqueue itself on the next source change.
 		onStale(wasClean)
 	}
 
-	/** ComputedNode propagates CHECK downstream; EffectNode schedules itself. */
+	/** ComputedNode propagates CHECK downstream (once); EffectNode schedules itself (if not already queued). */
 	protected open fun onStale(wasClean: Boolean) {}
 
 	/** Recompute / run if stale. Default: nothing (a plain SignalNode is never stale). */
@@ -306,10 +323,18 @@ private class ComputedNode<T>(
 	}
 
 	private fun recompute() {
-		var next: T? = null
-		runTracked { next = compute() }
+		// Inlined runTracked: capturing the result through a lambda would allocate a closure + ref per recompute.
+		clearSources()
+		val prev = currentObserver
+		currentObserver = this
+		val next: T
+		try {
+			next = compute()
+		} finally {
+			currentObserver = prev
+		}
 		@Suppress("UNCHECKED_CAST")
-		if (cached === UNSET || !equals(cached as T, next as T)) {
+		if (cached === UNSET || !equals(cached as T, next)) {
 			cached = next
 			version++ // observers compare against this to know we really changed
 		}
@@ -318,8 +343,13 @@ private class ComputedNode<T>(
 }
 
 private class EffectNode(private val run: () -> Unit, private val name: String?) : ReactiveNode(), Disposable {
-	private var disposed = false
 	private val cleanups = ArrayList<() -> Unit>()
+
+	/** True while this effect sits in [pendingEffects] - tracked explicitly so it is never enqueued twice. */
+	@JvmField var queued = false
+
+	/** True while [execute] runs the body; a mid-run self-write must not reschedule the running effect. */
+	private var running = false
 
 	// Cycle detection: how many times this effect has executed within the current flush ([flushId]).
 	private var lastFlushId = -1
@@ -335,7 +365,10 @@ private class EffectNode(private val run: () -> Unit, private val name: String?)
 	}
 
 	override fun onStale(wasClean: Boolean) {
-		if (wasClean && !disposed) pendingEffects.addLast(this)
+		if (!queued && !running && !disposed) {
+			queued = true
+			pendingEffects.addLast(this)
+		}
 	}
 
 	override fun updateIfNecessary() {
@@ -350,8 +383,15 @@ private class EffectNode(private val run: () -> Unit, private val name: String?)
 	private fun execute() {
 		guardAgainstCycle()
 		runCleanups()
-		runTracked(run)
-		state = NodeState.CLEAN
+		running = true
+		try {
+			runTracked(run)
+		} finally {
+			running = false
+			// Reset even when the body threw, so the effect stays runnable: the next change to a source it did
+			// read re-marks it stale and onStale re-enqueues it, instead of wedging it DIRTY-but-unqueued forever.
+			state = NodeState.CLEAN
+		}
 	}
 
 	/** Trips when this effect keeps re-executing within one flush - i.e. it is part of a feedback loop. */
@@ -379,7 +419,10 @@ private class EffectNode(private val run: () -> Unit, private val name: String?)
 		disposed = true
 		runCleanups()
 		clearSources()
-		pendingEffects.remove(this)
+		if (queued) {
+			queued = false
+			pendingEffects.remove(this)
+		}
 	}
 }
 
@@ -387,16 +430,22 @@ private fun flushEffects() {
 	if (flushing) return // a write inside an effect just queues more work; the loop below drains it
 	flushing = true
 	flushId++ // new flush: effects reset their per-flush run counters on first execution
+	var thrown: Throwable? = null
 	try {
 		while (pendingEffects.isNotEmpty()) {
-			pendingEffects.removeFirst().updateIfNecessary()
+			val next = pendingEffects.removeFirst()
+			next.queued = false
+			try {
+				next.updateIfNecessary()
+			} catch (t: Throwable) {
+				// One bad effect must not wedge the innocent ones queued behind it: keep draining, remember the
+				// first failure and rethrow it afterwards (later ones ride along as suppressed). A tripped cycle
+				// cannot spin here - its guard rethrows without running the body, and its peers are capped too.
+				if (thrown == null) thrown = t else thrown.addSuppressed(t)
+			}
 		}
-	} catch (t: Throwable) {
-		// A cycle (or any effect error) escaped the drain. Drop the rest of the queue so one bad effect can't
-		// leave stale work wedged in the system; the caller is expected to catch and recover.
-		pendingEffects.clear()
-		throw t
 	} finally {
 		flushing = false
 	}
+	thrown?.let { throw it }
 }

@@ -2,6 +2,7 @@ package de.fatox.meta.input
 
 import com.badlogic.gdx.controllers.Controller
 import com.badlogic.gdx.controllers.ControllerListener
+import com.badlogic.gdx.utils.IntSet
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -14,6 +15,9 @@ object MetaControllerListener : ControllerListener {
 	private val uiBindings: MetaUiInputBindings by lazyInject()
 	private var currentHorDownKey = -1
 	private var currentVertDownKey = -1
+
+	/** Canonical keys currently held down via controller buttons, so a disconnect can release them (no stuck keys). */
+	private val downButtonKeys = IntSet()
 	var deadzone = 0.39f
 
 	override fun connected(controller: Controller) {
@@ -23,18 +27,23 @@ object MetaControllerListener : ControllerListener {
 	override fun disconnected(controller: Controller) {
 		log.debug { "Controller disconnected." }
 		releaseAxisKeys()
+		releaseButtonKeys()
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
 		return uiBindings.actionForButton(controller, buttonCode)?.let {
-			emitKeyDown(uiBindings.canonicalKeyFor(it))
+			val key = uiBindings.canonicalKeyFor(it)
+			downButtonKeys.add(key)
+			emitKeyDown(key)
 			true
 		} ?: false
 	}
 
 	override fun buttonUp(controller: Controller, buttonCode: Int): Boolean {
 		return uiBindings.actionForButton(controller, buttonCode)?.let {
-			emitKeyUp(uiBindings.canonicalKeyFor(it))
+			val key = uiBindings.canonicalKeyFor(it)
+			downButtonKeys.remove(key)
+			emitKeyUp(key)
 			true
 		} ?: false
 	}
@@ -103,6 +112,14 @@ object MetaControllerListener : ControllerListener {
 		emitKeyUp(currentVertDownKey)
 		currentHorDownKey = -1
 		currentVertDownKey = -1
+	}
+
+	private fun releaseButtonKeys() {
+		val iterator = downButtonKeys.iterator()
+		while (iterator.hasNext) {
+			emitKeyUp(iterator.next())
+		}
+		downButtonKeys.clear()
 	}
 
 	private fun emitKeyDown(keycode: Int) {

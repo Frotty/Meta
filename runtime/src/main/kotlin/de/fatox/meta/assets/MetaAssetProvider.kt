@@ -7,7 +7,7 @@ import com.badlogic.gdx.assets.loaders.FileHandleResolver
 import com.badlogic.gdx.assets.loaders.ModelLoader.ModelParameters
 import com.badlogic.gdx.assets.loaders.TextureLoader.TextureParameter
 import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.graphics.GL30
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion
@@ -17,6 +17,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.ObjectMap
@@ -33,6 +34,31 @@ private val defaultTexParam: TextureParameter = TextureParameter().apply {
 private val defaultModelParam: ModelParameters = ModelParameters().apply { textureParameter = defaultTexParam }
 
 class MetaAssetProvider : AssetProvider {
+	/**
+	 * Maximum supported anisotropy, queried once on first use (GL thread). 0 when the
+	 * GL_EXT_texture_filter_anisotropic extension is unavailable.
+	 */
+	private val maxAnisotropy: Float by lazy {
+		if (Gdx.graphics.supportsExtension("GL_EXT_texture_filter_anisotropic")) {
+			val buffer = BufferUtils.newFloatBuffer(16)
+			Gdx.gl.glGetFloatv(GL20.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, buffer)
+			buffer.get(0)
+		} else {
+			0f
+		}
+	}
+
+	/** Applies anisotropic filtering to the currently bound texture, if supported. */
+	private fun applyAnisotropy() {
+		if (maxAnisotropy > 0f) {
+			Gdx.gl.glTexParameterf(
+				GL20.GL_TEXTURE_2D,
+				GL20.GL_TEXTURE_MAX_ANISOTROPY_EXT,
+				minOf(16f, maxAnisotropy)
+			)
+		}
+	}
+
 	private val assetManager = AssetManager(MetaFileHandleResolver())
 	private val atlasCache = Array<TextureAtlas>()
 	private val animCache = IntMap<Array<out TextureRegion>>()
@@ -105,7 +131,7 @@ class MetaAssetProvider : AssetProvider {
 			descriptor.type == Model::class.java ->
 				assetManager.load(descriptor.fileName, Model::class.java, defaultModelParam)
 			descriptor.type == Texture::class.java && !descriptor.fileName.contains("ui") -> {
-				log.debug { "ui load" }
+				log.debug { "non-ui texture load (mipmapped)" }
 				assetManager.load(descriptor.fileName, Texture::class.java, defaultTexParam)
 			}
 			else -> {
@@ -118,12 +144,12 @@ class MetaAssetProvider : AssetProvider {
 			val model = assetManager.get(descriptor.fileName, Model::class.java)
 			val attribute = model.materials.first()[TextureAttribute.Diffuse] as TextureAttribute
 			attribute.textureDescription.texture.bind()
-			Gdx.gl30.glTexParameterf(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_MAX_ANISOTROPY_EXT, 16f)
+			applyAnisotropy()
 		}
 		if (descriptor.type == Texture::class.java) {
 			val texture = assetManager.get(descriptor.fileName, Texture::class.java)
 			texture.bind()
-			Gdx.gl30.glTexParameterf(GL30.GL_TEXTURE_2D, GL30.GL_TEXTURE_MAX_ANISOTROPY_EXT, 16f)
+			applyAnisotropy()
 		}
 		if (descriptor.type == TextureAtlas::class.java) {
 			atlasCache.add(assetManager.get(descriptor.fileName, TextureAtlas::class.java))

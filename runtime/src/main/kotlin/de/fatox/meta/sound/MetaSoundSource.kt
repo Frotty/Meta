@@ -125,7 +125,8 @@ class MetaSoundCluster(
 	}
 
 	private fun calcPan(listenerPos: Vector2): Float {
-		val xPan = centroid.x - listenerPos.x
+		// Use the smoothed centroid so pan doesn't jump when re-clustering moves the raw centroid.
+		val xPan = centroidLerp.x - listenerPos.x
 		return MathUtils.clamp(xPan / definition.audibleRange, -1f, 1f) * 0.90f
 	}
 
@@ -136,7 +137,8 @@ class MetaSoundCluster(
 	}
 
 	private fun calcVolume(listenerPos: Vector2): Float {
-		val distance = sqrt(listenerPos.dst2(centroid))
+		// Use the smoothed centroid so volume doesn't jump when re-clustering moves the raw centroid.
+		val distance = sqrt(listenerPos.dst2(centroidLerp))
 		val t = MathUtils.clamp(distance / definition.audibleRange, 0f, 1f)
 		val attenuated = when (definition.attenuation) {
 			MetaSoundAttenuation.LINEAR -> 1f - t

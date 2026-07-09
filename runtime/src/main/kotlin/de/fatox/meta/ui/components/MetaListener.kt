@@ -57,6 +57,8 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 
 	override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
 		if (isPressed) return false
+		// Ignore presses from the wrong mouse button (ClickListener semantics; -1 accepts any button).
+		if (pointer == 0 && this.button != -1 && button != this.button) return false
 		isPressed = true
 		pressedPointer = pointer
 		pressedButton = button
@@ -79,8 +81,9 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 	override fun touchUp(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int) {
 		if (pointer == pressedPointer) {
 			if (!cancelled) {
-				val touchUpOver = isOver(event!!.listenerActor, x, y)
+				var touchUpOver = isOver(event!!.listenerActor, x, y)
 				// Ignore touch up if the wrong mouse button.
+				if (touchUpOver && pointer == 0 && this.button != -1 && button != this.button) touchUpOver = false
 				if (touchUpOver) {
 					val time = TimeUtils.nanoTime()
 					if (time - lastTapTime > tapCountInterval) tapCount = 0

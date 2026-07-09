@@ -61,7 +61,9 @@ class MetaSoundPlayer {
 		// Ensure we don't spam the same sound within minimumPause time
 		// (this is a simple approach; you can refine logic as needed).
 		if (handleList.size > 0) {
-			val lastPlayTime = handleList.first().startTime
+			// Handles are appended in play order, so the last entry is the most recent play.
+			// (first() would be the OLDEST live handle, disabling the check while older instances exist.)
+			val lastPlayTime = handleList.peek().startTime
 			if (TimeUtils.timeSinceMillis(lastPlayTime) < minimumPause) {
 				return null
 			}
@@ -104,6 +106,9 @@ class MetaSoundPlayer {
 		soundHandle.soundPos = soundPos
 
 		Gdx.app.postRunnable {
+			// stopSound/stopAllSounds may have run between playSound and this deferred start;
+			// never start playback on a handle that was already stopped (would leak an untracked loop).
+			if (soundHandle.isDone) return@postRunnable
 			// If positional, compute initial volume/pan. Otherwise play at global volume.
 			if (listenerPos != null) {
 				val mappedVolume = max(0.001f, soundHandle.calcVolume(listenerPos))
@@ -132,7 +137,12 @@ class MetaSoundPlayer {
 	private fun cleanupHandles(handleList: Array<MetaSoundHandle>) {
 		for (i in handleList.size - 1 downTo 0) {
 			val soundHandle = handleList[i]
-			if (soundHandle.isDone || TimeUtils.timeSinceMillis(soundHandle.startTime) > soundHandle.definition.durationMs) {
+			// Looping handles never expire by time; they are only evicted once explicitly stopped/done.
+			// Time-evicting them would orphan an infinite OpenAL loop that stopAllSounds could no longer reach.
+			if (soundHandle.isDone ||
+				(!soundHandle.definition.isLooping &&
+					TimeUtils.timeSinceMillis(soundHandle.startTime) > soundHandle.definition.durationMs)
+			) {
 				// remove if finished
 				handleList.removeIndex(i)
 			}
@@ -225,12 +235,14 @@ class MetaSoundPlayer {
 		stopAllSoundSources()
 		for (soundHandles in playingHandles.values()) {
 			for (i in soundHandles.size - 1 downTo 0) {
-				val soundHandle = soundHandles[i]
-				stopSound(soundHandle, false)
-				soundHandles.removeIndex(i)
+				stopSound(soundHandles[i], false)
 			}
-			// If using fade out, we only clear the list if no fade out is happening.
 			soundHandles.clear()
+		}
+		// Dynamic handles may have been evicted from playingHandles but still be playing; stop them too.
+		// stopSound is idempotent, so handles present in both collections are stopped only once.
+		for (i in dynamicHandles.size - 1 downTo 0) {
+			stopSound(dynamicHandles[i], false)
 		}
 		dynamicHandles.clear()
 	}

@@ -11,6 +11,7 @@ import com.kotcrab.vis.ui.widget.spinner.SimpleFloatSpinnerModel
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaSkin
 
 interface MetaSpinnerModel {
@@ -143,8 +144,8 @@ private class MetaSpinnerModelAdapter(
  */
 open class MetaSpinner @JvmOverloads constructor(
 	spinnerModel: MetaSpinnerModel,
-	fontSize: Int = 22,
-) : Spinner("", spinnerModel.getSpinnerModel()) {
+	private val fontSize: Int = 22,
+) : Spinner("", spinnerModel.getSpinnerModel()), FontRefreshable {
 	val metaModel: MetaSpinnerModel = spinnerModel
 
 	@Deprecated(
@@ -159,16 +160,28 @@ open class MetaSpinner @JvmOverloads constructor(
 	private val fontProvider: FontProvider = inject()
 
 	init {
+		applyFieldFont()
+	}
+
+	/** Re-fetches the text field font after a UI-scale change. Rare event, so re-cloning the style is fine. */
+	override fun refreshFont() {
+		applyFieldFont()
+		invalidateHierarchy()
+	}
+
+	private fun applyFieldFont() {
 		cells.find { it.actor is VisValidatableTextField }?.let {
 			val field = it.actor as VisValidatableTextField
 			val skin = VisUI.getSkin()
-			if (skin.has(MetaSkin.TEXT_FIELD, VisTextFieldStyle::class.java)) {
-				field.style = VisTextFieldStyle(skin.get(MetaSkin.TEXT_FIELD, VisTextFieldStyle::class.java))
+			// Clone before mutating - never write into the shared skin style (see MetaTextField for the pattern).
+			val baseStyle = if (skin.has(MetaSkin.TEXT_FIELD, VisTextFieldStyle::class.java)) {
+				skin.get(MetaSkin.TEXT_FIELD, VisTextFieldStyle::class.java)
+			} else {
+				field.style as VisTextFieldStyle
 			}
-			field.style.font = fontProvider.getFont(fontSize, FontType.REGULAR)
+			field.style = VisTextFieldStyle(baseStyle).apply {
+				font = fontProvider.getFont(fontSize, FontType.REGULAR)
+			}
 		}
 	}
-
-
-
 }

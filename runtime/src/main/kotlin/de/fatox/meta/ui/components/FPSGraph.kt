@@ -5,10 +5,12 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType
+import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.scenes.scene2d.Actor
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.FontRefreshable
 
 /**
  * A rolling FPS graph actor: plots the last [historySize] frame-rate samples, auto-scaling vertically to the peak
@@ -22,10 +24,12 @@ class FPSGraph(
 	width: Float,
 	height: Float,
 	private val historySize: Int,
-) : Actor() {
+) : Actor(), FontRefreshable {
 
 	private val fontProvider: FontProvider by lazyInject()
-	private val font by lazy { fontProvider.getFont(FONT_SIZE, FontType.MONO) }
+
+	// Fetched lazily on first draw and dropped on [refreshFont], so a UI-scale change can't leave it stale/disposed.
+	private var font: BitmapFont? = null
 
 	private val fpsHistory = FloatArray(historySize)
 	private var currentIndex = 0
@@ -84,8 +88,13 @@ class FPSGraph(
 		batch.begin()
 
 		updateStatsText(Gdx.graphics.framesPerSecond, averageFps, minFps)
+		val font = this.font ?: fontProvider.getFont(FONT_SIZE, FontType.MONO).also { this.font = it }
 		font.color = Color.WHITE
 		font.draw(batch, statsText, x, y + height + font.lineHeight)
+	}
+
+	override fun refreshFont() {
+		font = null
 	}
 
 	private fun updateStatsText(current: Int, average: Float, min: Float) {

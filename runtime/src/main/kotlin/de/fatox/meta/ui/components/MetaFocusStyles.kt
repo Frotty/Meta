@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.ui.Button
@@ -70,7 +71,17 @@ internal class MetaTextFieldFocusStyle(
 		apply()
 	}
 
+	/** Swaps in a re-fetched font (UI-scale change) on both cloned styles, keeping all other customizations. */
+	fun refreshFont(font: BitmapFont) {
+		normalStyle.font = font
+		normalStyle.messageFont = font
+		focusedStyle.font = font
+		focusedStyle.messageFont = font
+		apply()
+	}
+
 	private fun apply() {
+		// TextField.setStyle re-derives text metrics/display text even when the style instance is unchanged.
 		field.style = if (focused) focusedStyle else normalStyle
 	}
 }
@@ -93,6 +104,15 @@ internal class MetaSelectBoxFocusStyle<T>(
 	fun setFocused(value: Boolean) {
 		if (focused == value) return
 		focused = value
+		apply()
+	}
+
+	/** Swaps in a re-fetched font (UI-scale change) on both cloned styles, keeping all other customizations. */
+	fun refreshFont(font: BitmapFont) {
+		normalStyle.font = font
+		normalStyle.listStyle.font = font
+		focusedStyle.font = font
+		focusedStyle.listStyle.font = font
 		apply()
 	}
 

@@ -51,7 +51,6 @@ object MetaTooltip {
 		hideDelaySeconds: Float,
 		maxWidth: Float,
 	) {
-		private val anchor = Vector2()
 		private val targetMin = Vector2()
 		private val targetMax = Vector2()
 
@@ -88,11 +87,6 @@ object MetaTooltip {
 			labelCell.width(textWidth.width)
 			labelCell.align(if (textWidth.wrap) Align.left else Align.center)
 			tooltip.pack()
-		}
-
-		fun setAnchor(x: Float, y: Float) {
-			if (target.stage == null) return
-			target.localToStageCoordinates(anchor.set(x, y))
 		}
 
 		fun requestShow() {
@@ -257,7 +251,6 @@ object MetaTooltip {
 			override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
 				if (pointer != -1) return
 				if (target is Disableable && target.isDisabled) return
-				attachment.setAnchor(x, y)
 				attachment.requestShow()
 			}
 

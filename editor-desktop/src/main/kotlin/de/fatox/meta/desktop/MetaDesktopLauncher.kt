@@ -13,6 +13,9 @@ object MetaDesktopLauncher {
 		}
 		config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 2)
 		config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 4)
+		// Don't burn full frames while unfocused/minimised.
+		config.setIdleFPS(10)
+		config.setPauseWhenMinimized(true)
 		Lwjgl3Application(meta, config)
 	}
 }

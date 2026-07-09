@@ -158,6 +158,25 @@ internal class ReactiveTest {
 		assertEquals(runsAfterX + 1, runs)
 	}
 
+	@Test
+	fun `an effect disposing itself mid-run does not re-register`() {
+		val s = signal(0)
+		var runs = 0
+		var handle: Disposable? = null
+		handle = effect {
+			runs++
+			handle?.dispose() // null on the initial run; disposes itself on the first re-run
+			s() // reads after the self-dispose must not re-subscribe
+		}
+		assertEquals(1, runs)
+
+		s.value = 1 // triggers the re-run in which the effect disposes itself
+		assertEquals(2, runs)
+
+		s.value = 2 // fully unsubscribed - no further runs
+		assertEquals(2, runs)
+	}
+
 	// ----------------------------------------------------------------------------------------- onCleanup
 
 	@Test
@@ -181,6 +200,24 @@ internal class ReactiveTest {
 		// Disposed: cleanup is not registered again, so further (no-op) state stays put.
 		s.value = 3
 		assertEquals(3, cleanups)
+	}
+
+	@Test
+	fun `multiple onCleanup callbacks run in registration order`() {
+		val s = signal(0)
+		val order = mutableListOf<String>()
+		val handle = effect {
+			s()
+			onCleanup { order.add("first") }
+			onCleanup { order.add("second") }
+		}
+		assertEquals(emptyList<String>(), order)
+
+		s.value = 1 // before the re-run
+		assertEquals(listOf("first", "second"), order)
+
+		handle.dispose() // and again on dispose
+		assertEquals(listOf("first", "second", "first", "second"), order)
 	}
 
 	// ----------------------------------------------------------------------------------------- computed
@@ -289,6 +326,53 @@ internal class ReactiveTest {
 		assertEquals(42, result)
 	}
 
+	@Test
+	fun `nested batches flush once at the outermost close`() {
+		val a = signal(0)
+		val b = signal(0)
+		var runs = 0
+		effect { a(); b(); runs++ }
+		assertEquals(1, runs)
+
+		batch {
+			a.value = 1
+			batch { b.value = 1 }
+			assertEquals(1, runs) // the inner batch closing does not flush while the outer is still open
+		}
+		assertEquals(2, runs) // single flush at the outermost close
+	}
+
+	@Test
+	fun `batch propagates the block's exception and still flushes prior writes`() {
+		val s = signal(0)
+		var seen = 0
+		effect { seen = s() }
+
+		val ex = assertFailsWith<IllegalStateException> {
+			batch {
+				s.value = 5
+				throw IllegalStateException("block failed")
+			}
+		}
+		assertEquals("block failed", ex.message)
+		assertEquals(5, seen) // the write committed before the throw still reached effects
+	}
+
+	@Test
+	fun `batch keeps the block's exception when the flush also throws`() {
+		val s = signal(0)
+		effect { if (s() == 5) throw UnsupportedOperationException("effect failed") }
+
+		val ex = assertFailsWith<IllegalStateException> {
+			batch {
+				s.value = 5
+				throw IllegalStateException("block failed")
+			}
+		}
+		assertEquals("block failed", ex.message) // the block's exception wins...
+		assertTrue(ex.suppressed.any { it is UnsupportedOperationException }) // ...the flush failure rides along
+	}
+
 	// ----------------------------------------------------------------------------------------- untracked
 
 	@Test
@@ -344,6 +428,23 @@ internal class ReactiveTest {
 		handle.dispose()
 		s.value = 2
 		assertEquals(1, fired) // no longer notified
+	}
+
+	@Test
+	fun `subscribe callback reads do not become extra triggers`() {
+		val tracked = signal(0)
+		val other = signal(0)
+		var fired = 0
+		tracked.subscribe { other(); fired++ }
+
+		tracked.value = 1
+		assertEquals(1, fired)
+
+		other.value = 1 // read inside the callback, but untracked -> not a trigger
+		assertEquals(1, fired)
+
+		tracked.value = 2
+		assertEquals(2, fired)
 	}
 
 	// ----------------------------------------------------------------------------------------- reentrancy
@@ -500,6 +601,53 @@ internal class ReactiveTest {
 
 			a.value = 10
 			assertEquals(12, result) // 10 -> 11 -> 12, each effect ran once
+		}
+	}
+
+	// ----------------------------------------------------------------------------------------- error recovery
+
+	@Test
+	fun `an effect whose body throws stays runnable and does not wedge others`() {
+		val s = signal(0)
+		var shouldThrow = true
+		var badRuns = 0
+		var goodRuns = 0
+		effect("good") { s(); goodRuns++ }
+		// Registered last -> notified (and thus flushed) FIRST, so "good" is genuinely queued behind the thrower.
+		effect("bad") {
+			s()
+			badRuns++
+			if (shouldThrow && s.peek() == 1) throw IllegalStateException("boom")
+		}
+		assertEquals(1, badRuns)
+		assertEquals(1, goodRuns)
+
+		val ex = assertFailsWith<IllegalStateException> { s.value = 1 }
+		assertEquals("boom", ex.message)
+		assertEquals(2, badRuns)
+		assertEquals(2, goodRuns) // the innocent effect queued behind the throwing one still ran
+
+		shouldThrow = false
+		s.value = 2 // the throwing effect recovered: it re-runs on the next change
+		assertEquals(3, badRuns)
+		assertEquals(3, goodRuns)
+	}
+
+	@Test
+	fun `effects unrelated to a cycle keep updating after it is caught`() {
+		withMaxRuns(50) {
+			val unrelated = signal(0)
+			var seen = -1
+			effect { seen = unrelated() }
+
+			val a = signal(0)
+			val b = signal(0)
+			effect { a.value = b() + 1 }
+			effect { b.value = a() + 1 }
+			assertFailsWith<ReactiveCycleException> { b.value = 100 }
+
+			unrelated.value = 7 // the pre-existing, well-behaved effect still updates
+			assertEquals(7, seen)
 		}
 	}
 

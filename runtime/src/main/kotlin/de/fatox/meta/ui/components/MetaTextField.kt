@@ -8,6 +8,7 @@ import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
@@ -19,9 +20,11 @@ open class MetaTextField @JvmOverloads constructor(
 	text: String = "",
 	size: Int = MetaType.BODY,
 	fontProvider: FontProvider = inject(),
-) : TextField(text, textFieldStyle(size, fontProvider)), MetaFocusable {
+) : TextField(text, textFieldStyle(size, fontProvider)), MetaFocusable, FontRefreshable {
 	private val focusStyle = MetaTextFieldFocusStyle(this, style, MetaSkin::focusedTextFieldStyle)
 	private var metaInitialized = false
+	private val fontSize = size
+	private val fontProvider = fontProvider
 
 	val textValue: Signal<String> = signal(text)
 	val disabledValue: Signal<Boolean> = signal(isDisabled)
@@ -43,6 +46,12 @@ open class MetaTextField @JvmOverloads constructor(
 
 	protected fun installMetaTextFieldStyle(style: TextFieldStyle) {
 		focusStyle.install(style, isFocusBorderEnabled)
+	}
+
+	/** Re-fetches the font into the (cloned) normal/focused styles after a UI-scale change. */
+	override fun refreshFont() {
+		focusStyle.refreshFont(fontProvider.getFont(fontSize, FontType.REGULAR))
+		invalidateHierarchy()
 	}
 
 	override fun setMetaFocused(focused: Boolean) {

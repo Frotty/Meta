@@ -9,7 +9,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.TimeUtils
+import com.badlogic.gdx.utils.Timer
 import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
@@ -50,7 +52,6 @@ class MetaUiManager : UIManager {
 	private val assetProvider: AssetProvider by lazyInject()
 
 	private val displayedWindows = Array<Window>()
-	private val cachedWindows = Array<Window>()
 	private var mainMenuBar: MetaMenuBar? = null
 	private val contentTable = Table()
 	private var currentScreenId: String = "(none)"
@@ -160,22 +161,22 @@ class MetaUiManager : UIManager {
 
 		if (preventShowWindow) restoreOtherWindowsAndAllowNew()
 
-		// Close or move currently shown windows
-		for (window: Window in displayedWindows) {
+		// Close or move currently shown windows. A window whose metadata says it is displayed on the new screen
+		// survives the change: it stays on stage AND stays registered in displayedWindows, so restoreWindows will
+		// recognize it instead of creating a duplicate instance. Everything else is detached (letting the window's
+		// stage-driven lifecycle dispose its reactive scope) and forgotten.
+		for (i in displayedWindows.size - 1 downTo 0) {
+			val window = displayedWindows[i]
 			val name = windowConfig.nameOf(window::class)
-			if (metaHas(name)) {
-				val metaWindowData = metaGet<MetaWindowData>(name)!!
-				if (metaWindowData.displayed) {
-					// There exists saved window metadata
-					metaWindowData.set(window, uiRenderer.uiWidth, uiRenderer.uiHeight)
-				} else {
-					cacheWindow(window, true)
-				}
+			val metaWindowData = if (metaHas(name)) metaGet<MetaWindowData>(name) else null
+			if (metaWindowData != null && metaWindowData.displayed) {
+				// There exists saved window metadata for the new screen; keep the instance and reposition it.
+				metaWindowData.set(window, uiRenderer.uiWidth, uiRenderer.uiHeight)
 			} else {
-				cacheWindow(window, true)
+				window.remove()
+				displayedWindows.removeIndex(i)
 			}
 		}
-		displayedWindows.clear()
 		contentTable.remove()
 		contentTable.clear()
 		mainMenuBar = null
@@ -193,7 +194,8 @@ class MetaUiManager : UIManager {
 					for (displayedWindow in displayedWindows) {
 						if (displayedWindow.javaClass == windowClass) {
 							if (!metaWindowData.displayed) {
-								cacheWindow(displayedWindow, true)
+								displayedWindow.remove()
+								displayedWindows.removeValue(displayedWindow, true)
 							}
 							continue@outer
 						}
@@ -260,6 +262,9 @@ class MetaUiManager : UIManager {
 				hiddenWindows.add(it)
 			}
 		}
+		// Visibility changed outside show/remove: re-derive the backdrop, or it would stay up (swallowing input)
+		// over a now-invisible modal dialog.
+		modalRevision.update { it + 1 }
 	}
 
 	override fun restoreOtherWindowsAndAllowNew() {
@@ -267,6 +272,8 @@ class MetaUiManager : UIManager {
 			preventShowWindow = false
 			hiddenWindows.forEach { it.isVisible = true }
 			hiddenWindows.clear()
+			// Visibility changed outside show/remove: re-derive the backdrop for any re-shown modal dialog.
+			modalRevision.update { it + 1 }
 		}
 	}
 
@@ -333,7 +340,10 @@ class MetaUiManager : UIManager {
 				it.displayed = false
 				metaSave(name, it)
 			}
-			cacheWindow(window, false)
+			// Detach from the stage so the window's stage-driven lifecycle runs (MetaWindow disposes its reactive
+			// scope on setStage(null)). Closed windows are not pooled: singletons are cached by WindowConfig and
+			// creator-registered windows are constructed fresh, so the instance can simply be dropped/GC'd here.
+			window.remove()
 		}
 	}
 
@@ -355,14 +365,6 @@ class MetaUiManager : UIManager {
 		MetaTooltip.bringVisibleToFront()
 	}
 
-	private fun cacheWindow(window: Window, forceClose: Boolean) {
-		cachedWindows.add(window)
-		window.isVisible = false
-		if (forceClose) {
-			window.remove()
-		}
-	}
-
 	override fun metaHas(name: String): Boolean {
 		return metaData.has(screenMetaKey<Any>(name))
 	}
@@ -371,11 +373,34 @@ class MetaUiManager : UIManager {
 		return metaData.get(screenMetaKey(name), c)
 	}
 
+	// Trailing-edge companion to the metaSave throttle: latest throttled value per key, flushed shortly after.
+	private val pendingSaves = ObjectMap<MetaDataKey<Any>, Any>()
+	private val flushPendingSavesTask = object : Timer.Task() {
+		override fun run() = flushPendingSaves()
+	}
+
 	override fun metaSave(name: String, windowData: Any) {
 		val key = screenMetaKey<Any>(name)
-		if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(key).lastModified()) > 200) {
+		if (TimeUtils.timeSinceMillis(metaData.getCachedHandle(key).lastModified()) > SAVE_THROTTLE_MILLIS) {
 			metaData.save(key, windowData)
+			// A newer value just hit the disk; a stale pending value must not overwrite it later.
+			pendingSaves.remove(key)
+		} else {
+			// Throttled (leading edge). Remember the LATEST value and schedule a trailing flush, so the final state
+			// (e.g. displayed=false right after a drag-save) is guaranteed to be persisted.
+			pendingSaves.put(key, windowData)
+			if (!flushPendingSavesTask.isScheduled) {
+				Timer.schedule(flushPendingSavesTask, SAVE_THROTTLE_MILLIS / 1000f)
+			}
 		}
+	}
+
+	private fun flushPendingSaves() {
+		if (pendingSaves.isEmpty) return
+		for (entry in pendingSaves.entries()) {
+			metaData.save(entry.key, entry.value)
+		}
+		pendingSaves.clear()
 	}
 
 	override fun showToast(message: String, duration: Float): Unit = uiRenderer.getToastManager().show(message, duration)
@@ -408,15 +433,17 @@ class MetaUiManager : UIManager {
 
 	private companion object {
 		const val MENU_BAR_HEIGHT = 26f
+		const val SAVE_THROTTLE_MILLIS = 200L
 	}
 
 	override fun dispose() {
 		backdropEffect.dispose()
+		flushPendingSavesTask.cancel()
+		flushPendingSaves() // don't lose a trailing save that was still in flight
 		for (window in displayedWindows) {
 			window.remove()
 		}
 		displayedWindows.clear()
-		cachedWindows.clear()
 		hiddenWindows.clear()
 		modalDialogs.clear()
 		topDialog = null

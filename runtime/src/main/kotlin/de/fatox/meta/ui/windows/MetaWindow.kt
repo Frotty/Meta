@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.scenes.scene2d.Action
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
@@ -18,7 +19,9 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveScope
+import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.refreshFontsRecursively
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaResizeGrip
@@ -33,7 +36,7 @@ abstract class MetaWindow(
 	title: String,
 	resizable: Boolean = false,
 	closeButton: Boolean = false,
-) : Window(title, MetaSkin.skin(), if (resizable) MetaSkin.WINDOW_RESIZABLE else MetaSkin.WINDOW) {
+) : Window(title, MetaSkin.skin(), if (resizable) MetaSkin.WINDOW_RESIZABLE else MetaSkin.WINDOW), FontRefreshable {
 	protected val uiManager: UIManager by lazyInject()
 	protected val assetProvider: AssetProvider by lazyInject()
 	protected val metaData: MetaData by lazyInject()
@@ -51,6 +54,10 @@ abstract class MetaWindow(
 		private set
 
 	private var startDrag = false
+	private var fadeInAction: Action? = null
+
+	/** The provider font generation this window's fonts were fetched for; see [refreshFontsIfStale]. */
+	private var fontGeneration = 0
 	private val headerSeparator = MetaSeparator().apply {
 		touchable = Touchable.disabled
 	}
@@ -62,6 +69,7 @@ abstract class MetaWindow(
 	init {
 		titleLabel.setAlignment(Align.left)
 		applyTitleStyle()
+		fontGeneration = fontProvider.fontGeneration
 		applyWindowMetrics(resizable)
 
 		titleTable.apply {
@@ -127,8 +135,16 @@ abstract class MetaWindow(
 
 	override fun setVisible(visible: Boolean) {
 		super.setVisible(visible)
-		setColor(1f, 1f, 1f, 0f)
-		addAction(Actions.alpha(0.9f, 0.75f))
+		// Drop any pending fade first so rapid show/hide can't stack conflicting alpha actions.
+		fadeInAction?.let { removeAction(it) }
+		fadeInAction = null
+		if (visible) {
+			// Fade in only when showing; hiding must not reset alpha or keep animating in the background.
+			setColor(1f, 1f, 1f, 0f)
+			val fade = Actions.alpha(0.9f, 0.75f)
+			fadeInAction = fade
+			addAction(fade)
+		}
 	}
 
 	override fun setResizable(isResizable: Boolean) {
@@ -186,6 +202,7 @@ abstract class MetaWindow(
 		val wasOnStage = this.stage != null
 		super.setStage(stage)
 		if (stage != null && !wasOnStage) {
+			refreshFontsIfStale()
 			if (reactiveScope.isDisposed) reactiveScope = ReactiveScope()
 			onShown()
 		} else if (wasOnStage && stage == null) {
@@ -199,6 +216,24 @@ abstract class MetaWindow(
 
 	/** Called once when this window is detached from the stage by ANY path (close, screen change, direct remove). */
 	protected open fun onRemovedFromStage() {}
+
+	/** Re-fetches the title font after a UI-scale change; child Meta widgets refresh via the recursive stage walk. */
+	override fun refreshFont() {
+		fontGeneration = fontProvider.fontGeneration
+		applyTitleStyle()
+		titleLabel.invalidateHierarchy()
+	}
+
+	/**
+	 * Windows are cached off-stage (see `WindowConfig.singletonCache`/`UIManager`), so the renderer's on-scale-change
+	 * stage walk misses hidden ones — and their old fonts get disposed. Detect that via the provider's font
+	 * generation and refresh this window's whole subtree when it is re-shown with stale fonts.
+	 */
+	private fun refreshFontsIfStale() {
+		if (fontGeneration != fontProvider.fontGeneration) {
+			refreshFontsRecursively()
+		}
+	}
 
 	private fun applyTitleStyle() {
 		titleLabel.style = Label.LabelStyle(fontProvider.getFont(14, FontType.REGULAR), titleLabel.color)

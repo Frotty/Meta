@@ -1,6 +1,5 @@
 package de.fatox.meta.sound
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.MathUtils
@@ -12,7 +11,6 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import kotlin.math.max
 
 /**
  * Improved MetaSoundHandle supporting fade-out.
@@ -54,6 +52,12 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 	 * Begin fade-out sequence; the handle will remain "active" until fade-out finishes.
 	 */
 	fun beginFadeOut() {
+		if (handleId == -1L) {
+			// Playback has not started yet (deferred start pending) or already stopped —
+			// there is nothing to fade; flag done so a pending deferred start never plays.
+			setDone()
+			return
+		}
 		if (!isFadingOut) {
 			isFadingOut = true
 		}
@@ -84,9 +88,10 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 		get() = !isDone && handleId != -1L
 
 	fun calcPan(listenerPos: Vector2): Float {
-		val audibleRange = max(definition.audibleRange, Gdx.graphics.width * 0.5f)
+		// Pan is based purely on the definition's audible range (world units) —
+		// never on Gdx.graphics pixels, which would make audio falloff DPI/window-size dependent.
 		val xPan = soundPos.x - listenerPos.x
-		return MathUtils.clamp(xPan / audibleRange, -0.9f, 0.9f)
+		return MathUtils.clamp(xPan / definition.audibleRange, -0.9f, 0.9f)
 	}
 
 	/**
@@ -94,10 +99,8 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 	 * If [terminate] is true, handle will setDone if out of audible range.
 	 */
 	fun calcVolume(listenerPos: Vector2): Float {
-		val audibleRange2 = max(
-			definition.audibleRange2,
-			(Gdx.graphics.width * 0.5f) * (Gdx.graphics.width * 0.5f)
-		)
+		// Falloff uses the definition's audible range (world units) only; see calcPan.
+		val audibleRange2 = definition.audibleRange2
 		val distSquared = listenerPos.dst2(soundPos)
 		val globalVolume = audioVideoData.masterVolume * audioVideoData.soundVolume
 		val volume = definition.volume * MathUtils.clamp(1 - distSquared / audibleRange2, 0f, 1f) * globalVolume
@@ -130,9 +133,10 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 			currentVolume = currentVolume.dlerp(0f, 0.5f, delta)
 
 			if (currentVolume <= 0.001f) {
-				// Fade-out finished
+				// Fade-out finished; handleId is now invalid, so don't fall through to setPan below.
 				stopImmediately()
 				setDone()
+				return
 			}
 		}
 
@@ -152,6 +156,14 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 	 * Sets the LibGDX sound handle ID.
 	 */
 	fun setHandleId(handleId: Long) {
+		if (isDone) {
+			// Handle was stopped before its deferred start delivered an id; kill the instance
+			// immediately instead of adopting it, so no untracked playback survives a stop.
+			if (handleId != -1L) {
+				definition.sound.stop(handleId)
+			}
+			return
+		}
 		if (handleId == -1L) {
 			log.debug("HandleId is -1 – sound failed to play or invalid handle!")
 		}

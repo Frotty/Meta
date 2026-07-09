@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.CharArray
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.FontRefreshable
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -33,7 +34,7 @@ open class MetaLabel @JvmOverloads constructor(
 	size: Int = 10,
 	color: Color? = Color.WHITE,
 	type: FontType = FontType.REGULAR
-) : Widget() {
+) : Widget(), FontRefreshable {
 	val glyphLayout: GlyphLayout = GlyphLayout()
 	private val prefSize = Vector2()
 	val text: CharArray = CharArray()
@@ -282,10 +283,17 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	fun setMaxWidth(maxWidth: Int) {
-		while (glyphLayout.width > maxWidth) {
-			size = size.times(0.95f)
+		// Guard: a non-positive max width (or an unreachable one) must not shrink forever and churn font caches.
+		if (maxWidth <= 0) return
+		while (glyphLayout.width > maxWidth && size > MIN_FONT_SIZE) {
+			size = size.times(0.95f).coerceAtLeast(MIN_FONT_SIZE)
 			updateFont()
 		}
+	}
+
+	/** Re-fetches the font from the provider (e.g. after a UI-scale change) and rebuilds the glyph cache. */
+	override fun refreshFont() {
+		updateFont()
 	}
 
 	private fun updateFont() {
@@ -293,6 +301,8 @@ open class MetaLabel @JvmOverloads constructor(
 		adoptFontBaseScale()
 		setText(text)
 		bitmapFontCache = font.newFontCache()
+		// New font metrics: invalidate pref size and parents, then relayout so glyphLayout reflects the new font.
+		invalidateHierarchy()
 		layout()
 	}
 
@@ -334,6 +344,7 @@ open class MetaLabel @JvmOverloads constructor(
 	companion object {
 		private val tempColor = Color()
 		private val prefSizeLayout = GlyphLayout()
+		private const val MIN_FONT_SIZE = 4f
 	}
 
 	init {

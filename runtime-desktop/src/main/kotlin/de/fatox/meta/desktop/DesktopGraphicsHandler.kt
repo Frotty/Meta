@@ -4,7 +4,6 @@ import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.GL30
-import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.glutils.GLFrameBuffer
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.GdxRuntimeException
@@ -18,6 +17,10 @@ import java.nio.ByteOrder
 
 private val log: Logger = MetaLoggerFactory.logger {}
 
+/** Sample count shared by ALL attachments (colour textures and depth/stencil renderbuffers). Mixed sample counts
+ * cause GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE on strict drivers. */
+private const val MSAA_SAMPLES = 4
+
 class DesktopGraphicsHandler : GraphicsHandler {
 	override fun createTexture(fbo: MultisampleFBO, attachmentSpec: MultisampleFBO.FrameBufferTextureAttachmentSpec): Int {
 		try {
@@ -25,16 +28,13 @@ class DesktopGraphicsHandler : GraphicsHandler {
 			Gdx.gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, texture)
 			GL32.glTexImage2DMultisample(
 				GL32.GL_TEXTURE_2D_MULTISAMPLE,
-				2,
+				MSAA_SAMPLES,
 				attachmentSpec.internalFormat,
 				fbo.width,
 				fbo.height,
 				true
 			)
-			Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_MIN_FILTER, Texture.TextureFilter.Nearest.glEnum.toFloat())
-			Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_MAG_FILTER, Texture.TextureFilter.Nearest.glEnum.toFloat())
-			Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_WRAP_S, Texture.TextureWrap.ClampToEdge.glEnum.toFloat())
-			Gdx.gl.glTexParameterf(texture, GL20.GL_TEXTURE_WRAP_T, Texture.TextureWrap.ClampToEdge.glEnum.toFloat())
+			// Note: multisample textures do not accept sampler parameters (filter/wrap); setting them is an error.
 			Gdx.gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, 0)
 			return texture
 		} catch (e: Exception) {
@@ -69,7 +69,7 @@ class DesktopGraphicsHandler : GraphicsHandler {
 			gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, fbo.depthbufferHandle)
 			Gdx.gl30.glRenderbufferStorageMultisample(
 				GL20.GL_RENDERBUFFER,
-				4,
+				MSAA_SAMPLES,
 				fbo.bufferBuilder.depthRenderBufferSpec!!.internalFormat,
 				width,
 				height
@@ -80,7 +80,7 @@ class DesktopGraphicsHandler : GraphicsHandler {
 			gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, fbo.stencilbufferHandle)
 			Gdx.gl30.glRenderbufferStorageMultisample(
 				GL20.GL_RENDERBUFFER,
-				4,
+				MSAA_SAMPLES,
 				fbo.bufferBuilder.stencilRenderBufferSpec!!.internalFormat,
 				width,
 				height
@@ -91,14 +91,13 @@ class DesktopGraphicsHandler : GraphicsHandler {
 			gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, fbo.depthStencilPackedBufferHandle)
 			Gdx.gl30.glRenderbufferStorageMultisample(
 				GL20.GL_RENDERBUFFER,
-				4,
+				MSAA_SAMPLES,
 				fbo.bufferBuilder.packedStencilDepthRenderBufferSpec!!.internalFormat,
 				width,
 				height
 			)
 		}
 		fbo.isMRT = fbo.bufferBuilder.textureAttachmentSpecs.size > 1
-		fbo.isMRT = true
 		var colorTextureCounter = 0
 		if (fbo.isMRT) {
 			@Suppress("GDXKotlinUnsafeIterator")

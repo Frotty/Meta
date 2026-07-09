@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
@@ -20,6 +21,8 @@ class MetaValidatableTextField @JvmOverloads constructor(
 	private val validators = Array<MetaInputValidator>()
 	private val defaultStyle = textFieldStyle(size, fontProvider)
 	private val errorStyle = textFieldStyle(size, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
+	private val fontSize = size
+	private val fontProvider = fontProvider
 
 	var isInputValid: Boolean = true
 		private set
@@ -31,6 +34,16 @@ class MetaValidatableTextField @JvmOverloads constructor(
 				validateInput()
 			}
 		})
+	}
+
+	/** Also refresh the validation style clones, which get re-installed into the focus style on [validateInput]. */
+	override fun refreshFont() {
+		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
+		defaultStyle.font = font
+		defaultStyle.messageFont = font
+		errorStyle.font = font
+		errorStyle.messageFont = font
+		super.refreshFont()
 	}
 
 	fun addValidator(validator: MetaInputValidator) {

@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
+import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.IntMap
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.getOrPut
@@ -35,6 +37,15 @@ class MetaFontProvider : FontProvider {
 	/** The UI scale the currently-cached fonts were rasterized for; if it changes, fonts are regenerated crisply. */
 	private var generationScale = 1f
 
+	/**
+	 * Fonts dropped from the caches by a scale change. Live widgets may still reference them until they refresh
+	 * (see [de.fatox.meta.ui.FontRefreshable]); the UI renderer calls [disposeOrphanedFonts] after its stage walk.
+	 */
+	private val orphanedFonts = Array<BitmapFont>()
+
+	override var fontGeneration: Int = 0
+		private set
+
 	override fun getFont(size: Int, type: FontType): BitmapFont {
 		refreshScaleIfChanged()
 		val bitmapFonts = when(type) {
@@ -43,22 +54,64 @@ class MetaFontProvider : FontProvider {
 			FontType.MONO -> monoFontMap
 			FontType.ICON -> iconFontMap
 		}
-		return bitmapFonts.getOrPut(size) { generateFont(if (size > 1) size else 5, type) }
+		// Clamp BEFORE the cache lookup so all degenerate sizes (<= 1) share one cached font entry.
+		val clampedSize = if (size > 1) size else 5
+		return bitmapFonts.getOrPut(clampedSize) { generateFont(clampedSize, type) }
 	}
 
 	/**
-	 * When the UI scale changes, drop the cached fonts so the next [getFont] re-rasterizes at the new physical
-	 * resolution. (Old fonts are still referenced by live labels until those rebuild - we don't dispose them here.)
+	 * When the UI scale changes, move the cached fonts aside so the next [getFont] re-rasterizes at the new physical
+	 * resolution. Old fonts are still referenced by live widgets until those refresh, so they are only parked in
+	 * [orphanedFonts] here and disposed later via [disposeOrphanedFonts] (after the renderer's refresh walk).
 	 */
 	private fun refreshScaleIfChanged() {
 		val scale = physicalUiScale()
 		if (scale != generationScale) {
 			generationScale = scale
-			normalFontMap.clear()
-			boldFontMap.clear()
-			monoFontMap.clear()
-			iconFontMap.clear()
+			fontGeneration++
+			orphanFonts(normalFontMap)
+			orphanFonts(boldFontMap)
+			orphanFonts(monoFontMap)
+			orphanFonts(iconFontMap)
 		}
+	}
+
+	private fun orphanFonts(fontMap: IntMap<BitmapFont>) {
+		for (entry in fontMap.entries()) orphanedFonts.add(entry.value)
+		fontMap.clear()
+	}
+
+	override fun disposeOrphanedFonts() {
+		// Force the scale check even if no widget called getFont since the change (e.g. an empty stage): anything
+		// still cached for a stale scale is unreferenced by on-stage widgets at this point and safe to release.
+		refreshScaleIfChanged()
+		for (i in 0 until orphanedFonts.size) disposeFont(orphanedFonts.get(i))
+		orphanedFonts.clear()
+	}
+
+	override fun dispose() {
+		disposeAll(normalFontMap)
+		disposeAll(boldFontMap)
+		disposeAll(monoFontMap)
+		disposeAll(iconFontMap)
+		for (i in 0 until orphanedFonts.size) disposeFont(orphanedFonts.get(i))
+		orphanedFonts.clear()
+		normalGenerator.dispose()
+		boldGenerator.dispose()
+		monoGenerator.dispose()
+		iconGenerator.dispose()
+	}
+
+	private fun disposeAll(fontMap: IntMap<BitmapFont>) {
+		for (entry in fontMap.entries()) disposeFont(entry.value)
+		fontMap.clear()
+	}
+
+	private fun disposeFont(font: BitmapFont) {
+		// The font owns its glyph atlas textures (we never pass a shared packer); incremental FreeType font data
+		// additionally holds a PixmapPacker whose pixmaps must be released separately.
+		font.dispose()
+		(font.data as? Disposable)?.dispose()
 	}
 
 	override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) {
@@ -88,8 +141,12 @@ class MetaFontProvider : FontProvider {
 		if (scale != 1f) {
 			font.data.setScale(1f / scale)
 		}
-		// Meta UI favors crisp, stable text over subpixel glyph placement.
-		font.setUseIntegerPositions(true)
+		// Integer positions round glyph positions to whole *UI units*. At scale 1 that IS the physical pixel grid,
+		// so keep it for crisp, stable text. At any other scale a whole UI unit is a fractional (125%/150%) or
+		// coarser (200%) number of physical pixels, so rounding would blur or mis-space glyphs; disable it there —
+		// glyph advances derive from physically-integer FreeType metrics scaled by 1/scale, and MetaLabel snaps the
+		// draw origin to the physical pixel grid, so unrounded positions land on physical pixels naturally.
+		font.setUseIntegerPositions(scale == 1f)
 		return font
 	}
 

@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.utils.Align
+import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.UiControlHelper
@@ -23,6 +24,8 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 	var dialogListener: DialogListener = EmptyListener
 	private var buttonCount = 0
 	private val uiControlHelper: UiControlHelper by lazyInject()
+	private var previousCursorCatched = false
+	private var cursorCatchedCaptured = false
 
 	fun interface DialogListener {
 		fun onResult(any: Any?)
@@ -52,6 +55,11 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 		setColor(1f, 1f, 1f, 0f)
 		clearActions()
 		addAction(Actions.alpha(0.95f, 0.75f))
+		// Remember the caller's cursor-catch state so onRemovedFromStage can restore it on EVERY exit path.
+		if (!cursorCatchedCaptured) {
+			previousCursorCatched = Gdx.input.isCursorCatched
+			cursorCatchedCaptured = true
+		}
 		Gdx.input.isCursorCatched = false
 		focusDialog()
 	}
@@ -88,6 +96,10 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 	 */
 	override fun onRemovedFromStage() {
 		onHidden()
+		if (cursorCatchedCaptured) {
+			cursorCatchedCaptured = false
+			Gdx.input.isCursorCatched = previousCursorCatched
+		}
 		uiControlHelper.clearFocusIfInside(this)
 		uiManager.onDialogRemoved(this)
 	}
@@ -102,11 +114,10 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 
 	init {
 		if (hasCloseButton) {
+			// onChange (not a raw EventListener, whose handle() runs for every enter/exit/touch event) so a click
+			// fires onResult(null) exactly once.
 			val btn = titleTable.cells[titleTable.cells.size - 1].actor
-			(btn as? MetaIconButton)?.addListener {
-				dialogListener.onResult(null)
-				false
-			}
+			(btn as? MetaIconButton)?.onChange { dialogListener.onResult(null) }
 		}
 		contentTable.top().padTop(4f)
 		statusLabel.setAlignment(Align.center)

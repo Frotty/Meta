@@ -1,11 +1,20 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
+import com.badlogic.gdx.utils.Array
 import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.VisTextField
+import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.api.lang.AvailableLanguages
@@ -15,6 +24,8 @@ import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.injection.MetaInject.Companion.global
 import de.fatox.meta.test.GdxTestEnvironment
 import de.fatox.meta.ui.MetaColor
+import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.refreshFontsRecursively
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInstance
@@ -148,5 +159,86 @@ internal class MetaInputComponentsTest {
 
 		layout.labelTextValue.value = "Renamed"
 		assertEquals("Renamed", layout.label.text.toString())
+	}
+
+	@Test
+	fun `refreshFontsRecursively re-fetches fonts into nested Meta widgets after a rebuild`() {
+		val secondFont = testFont()
+		var currentFont = font
+		val switchingProvider = object : FontProvider {
+			override fun getFont(size: Int, type: FontType): BitmapFont = currentFont
+			override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) = Unit
+		}
+		val field = MetaInputField("text", fontProvider = switchingProvider)
+		val root = Group().apply { addActor(Table().apply { add(field) }) }
+		assertSame(font, field.style.font)
+
+		// Simulate a UI-scale change: the provider now hands out a re-rasterized font instance.
+		currentFont = secondFont
+		root.refreshFontsRecursively()
+
+		assertSame(secondFont, field.style.font)
+		assertSame(secondFont, (field.style as VisTextField.VisTextFieldStyle).messageFont)
+		// The invalid-state style clone must be refreshed too, or invalid fields would draw a disposed font.
+		field.setInputValid(false)
+		assertSame(secondFont, field.style.font)
+	}
+
+	@Test
+	fun `MetaCheckBox external signal write updates isChecked and check glyph without consumer events`() {
+		installCheckboxSkin()
+		val checkBox = MetaCheckBox(stubAssetProvider(), initialChecked = false)
+		var consumerChangeEvents = 0
+		checkBox.onChange { consumerChangeEvents++ }
+
+		assertFalse(checkBox.isChecked)
+		assertEquals(0, checkBox.children.size)
+
+		checkBox.checkedValue.value = true
+		assertTrue(checkBox.isChecked)
+		assertEquals(1, checkBox.children.size)
+
+		checkBox.checkedValue.value = false
+		assertFalse(checkBox.isChecked)
+		assertEquals(0, checkBox.children.size)
+
+		// Signal writes are programmatic state sync; they must not fire consumer ChangeEvents.
+		assertEquals(0, consumerChangeEvents)
+	}
+
+	@Test
+	fun `MetaCheckBox click round-trips into the signal and glyph`() {
+		installCheckboxSkin()
+		val checkBox = MetaCheckBox(stubAssetProvider(), initialChecked = false)
+
+		// Emulate the user-click path: Button's ClickListener sets the checked state and fires a ChangeEvent.
+		checkBox.setProgrammaticChangeEvents(true)
+		checkBox.isChecked = true
+
+		assertTrue(checkBox.checkedValue.value)
+		assertEquals(1, checkBox.children.size)
+
+		checkBox.isChecked = false
+		assertFalse(checkBox.checkedValue.value)
+		assertEquals(0, checkBox.children.size)
+	}
+
+	private fun installCheckboxSkin() {
+		val skin = VisUI.getSkin()
+		skin.add("meta.checkbox.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.checkbox.onFocus", BaseDrawable(), Drawable::class.java)
+		skin.add(MetaSkin.CHECKBOX, Button.ButtonStyle())
+	}
+
+	private fun stubAssetProvider(): AssetProvider = object : AssetProvider {
+		override fun loadPackedAssetsFromFolder(folder: FileHandle): Boolean = false
+		override fun loadRawAssetsFromFolder(folder: FileHandle): Boolean = false
+		override fun <T : Any> load(name: String, type: Class<T>) = Unit
+		override fun <T : Any> getResource(fileName: String, type: Class<T>, index: Int): T =
+			error("Not used in tests")
+
+		override fun getDrawable(name: String): Drawable = BaseDrawable()
+		override fun finish() = Unit
+		override fun loadAnimationFrames(baseName: String, frames: Int): Array<out TextureRegion> = Array()
 	}
 }

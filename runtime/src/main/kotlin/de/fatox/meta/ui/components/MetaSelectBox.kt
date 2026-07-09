@@ -10,6 +10,7 @@ import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.UiControlHelper
@@ -17,7 +18,7 @@ import de.fatox.meta.ui.UiControlHelper
 /**
  * Created by Frotty on 04.06.2016.
  */
-open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()), MetaFocusable {
+open class MetaSelectBox<T>(private val fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()), MetaFocusable, FontRefreshable {
 
 	private val uiControlHelper: UiControlHelper = inject()
 	private var wasHelperActive = false
@@ -27,12 +28,19 @@ open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()),
 
 	init {
 		val skin = MetaSkin.skin()
-		if (skin.has(MetaSkin.SELECT_BOX, SelectBoxStyle::class.java)) {
-			style = SelectBoxStyle(skin.get(MetaSkin.SELECT_BOX, SelectBoxStyle::class.java))
-			list.style = List.ListStyle(style.listStyle)
+		// Clone before mutating - never write into the shared skin style (see MetaTextField for the pattern).
+		val baseStyle = if (skin.has(MetaSkin.SELECT_BOX, SelectBoxStyle::class.java)) {
+			skin.get(MetaSkin.SELECT_BOX, SelectBoxStyle::class.java)
+		} else {
+			style
 		}
+		style = SelectBoxStyle(baseStyle)
+		list.style = List.ListStyle(style.listStyle)
 		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
 		style.font = font
+		// Set the font on style.listStyle (not just the list's current clone): focusStyle re-clones list.style from
+		// style.listStyle on every apply(), so the dropdown would otherwise fall back to the skin's baked font.
+		style.listStyle.font = font
 		list.style.font = font
 		focusStyle = MetaSelectBoxFocusStyle(this, style, MetaSkin::focusedSelectBoxStyle)
 		focusStyle.install(style)
@@ -45,6 +53,12 @@ open class MetaSelectBox<T>(fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()),
 
 	override fun setMetaFocused(focused: Boolean) {
 		focusStyle.setFocused(focused)
+	}
+
+	/** Re-fetches the font into the (cloned) box + dropdown-list styles after a UI-scale change. */
+	override fun refreshFont() {
+		focusStyle.refreshFont(fontProvider.getFont(fontSize, FontType.REGULAR))
+		invalidateHierarchy()
 	}
 
 	override fun showScrollPane() {

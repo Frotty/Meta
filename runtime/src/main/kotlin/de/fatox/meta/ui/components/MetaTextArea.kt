@@ -6,10 +6,12 @@ import com.kotcrab.vis.ui.widget.VisTextArea
 import com.kotcrab.vis.ui.util.InputValidator
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
@@ -23,11 +25,14 @@ open class MetaTextArea @JvmOverloads constructor(
 	fontProvider: FontProvider = inject(),
 	placeholder: String = "",
 	prefRows: Float = DEFAULT_PREF_ROWS,
-) : VisTextArea(text, MetaInputField.inputFieldStyle(size, fontProvider, MetaSkin.TEXT_AREA)), MetaFocusable {
+) : VisTextArea(text, MetaInputField.inputFieldStyle(size, fontProvider, MetaSkin.TEXT_AREA)), MetaFocusable,
+	FontRefreshable {
 	private val validators = Array<InputValidator>()
 	private val validStyle = MetaInputField.inputFieldStyle(size, fontProvider, MetaSkin.TEXT_AREA)
 	private val invalidStyle = MetaInputField.inputFieldStyle(size, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
 	private var metaInitialized = false
+	private val fontSize = size
+	private val fontProvider = fontProvider
 
 	val textValue: Signal<String> = signal(text)
 	val inputValidValue: Signal<Boolean> = signal(true)
@@ -54,6 +59,18 @@ open class MetaTextArea @JvmOverloads constructor(
 
 	override fun setMetaFocused(focused: Boolean) {
 		if (focused) focusGained() else focusLost()
+	}
+
+	/** Re-fetches the font into both (cloned) valid/invalid styles after a UI-scale change. */
+	override fun refreshFont() {
+		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
+		validStyle.font = font
+		validStyle.messageFont = font
+		invalidStyle.font = font
+		invalidStyle.messageFont = font
+		// Re-apply so the area re-derives its text metrics from the new font.
+		setStyle(style)
+		invalidateHierarchy()
 	}
 
 	override fun setInputValid(valid: Boolean) {

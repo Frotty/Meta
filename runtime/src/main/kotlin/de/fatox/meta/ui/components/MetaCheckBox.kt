@@ -33,10 +33,14 @@ class MetaCheckBox @JvmOverloads constructor(
 	private var checkIconAttached = false
 	val checkedValue: Signal<Boolean> = signal(initialChecked)
 	val disabledValue: Signal<Boolean> = signal(isDisabled)
-	private val checkedBinding = checkedValue.subscribe { syncCheckIcon() }
+	private val checkedBinding = checkedValue.subscribe { applySignalToButton() }
 	private val disabledBinding = disabledValue.subscribe { syncCheckIcon() }
 
 	init {
+		// Signal writes sync back into the widget in [applySignalToButton]; disable programmatic ChangeEvents so
+		// that sync (and programmatic setChecked calls) can't fire consumer ChangeListeners or recurse. User clicks
+		// still fire their ChangeEvent unconditionally.
+		setProgrammaticChangeEvents(false)
 		isChecked = initialChecked
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
@@ -64,6 +68,17 @@ class MetaCheckBox @JvmOverloads constructor(
 
 	private fun syncSignalsFromButton() {
 		if (checkedValue.peek() != isChecked) checkedValue.value = isChecked
+	}
+
+	/**
+	 * Signal -> widget direction: an external [checkedValue] write updates [isChecked] and the check glyph. No
+	 * recursion: setChecked -> [syncSignalsFromButton] sees the states already equal, and programmaticChangeEvents
+	 * is off so no consumer ChangeEvent fires.
+	 */
+	private fun applySignalToButton() {
+		val desired = checkedValue.peek()
+		if (isChecked != desired) isChecked = desired
+		syncCheckIcon()
 	}
 
 	private fun syncCheckIcon() {

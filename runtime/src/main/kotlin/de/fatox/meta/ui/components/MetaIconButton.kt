@@ -69,6 +69,10 @@ open class MetaIconButton private constructor(
 
 	init {
 		cursorPointer()
+		// The momentary reset below calls setChecked from inside a ChangeEvent listener; with libGDX's default
+		// programmaticChangeEvents that fired a SECOND nested ChangeEvent, running every consumer onChange twice
+		// per click. Programmatic state changes still sync [checkedValue] via the setChecked override.
+		setProgrammaticChangeEvents(false)
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				if (momentary && isChecked) {

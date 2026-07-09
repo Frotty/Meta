@@ -16,6 +16,7 @@ import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.ui.bindDisabled
 import de.fatox.meta.ui.components.MetaMenuBar
@@ -175,12 +176,19 @@ inline fun <reified T : MetaDialog> UIManager.showDialog(config: T.() -> Unit = 
 
 inline fun <reified T : Screen> UIManager.changeScreen(): Unit = changeScreen(T::class)
 
+/**
+ * Wires [actor] to open window [W] on click. Pass the owning presentation's [scope] (e.g. a `MetaWindow.reactiveScope`
+ * or a screen-owned [ReactiveScope]) to also disable the actor while a modal flow suppresses new windows: the binding
+ * observes the app-lifetime [UIManager.preventShowWindowState] signal, so it MUST be owned by a disposable scope or it
+ * would retain the actor forever. Without a scope no binding is created (showing is still blocked by the manager).
+ */
 inline fun <reified W : MetaWindow> UIManager.showWindowOnClick(
 	actor: Actor,
 	button: Int = Input.Buttons.LEFT,
+	scope: ReactiveScope? = null,
 	crossinline config: W.() -> Unit = {},
 ): Actor {
-	if (actor is Disableable) actor.bindDisabled { preventShowWindowState.value }
+	if (scope != null && actor is Disableable) scope.register(actor.bindDisabled { preventShowWindowState.value })
 	actor.addListener(object : ClickListener(button) {
 		override fun clicked(event: InputEvent, x: Float, y: Float) {
 			showWindow(config)
@@ -189,12 +197,17 @@ inline fun <reified W : MetaWindow> UIManager.showWindowOnClick(
 	return actor
 }
 
+/**
+ * Wires [actor] to open dialog [D] on click. See [showWindowOnClick] for the [scope] parameter: it owns the
+ * disabled-while-modal binding; without a scope no binding is created (showing is still blocked by the manager).
+ */
 inline fun <reified D : MetaDialog> UIManager.showDialogOnClick(
 	actor: Actor,
 	button: Int = Input.Buttons.LEFT,
+	scope: ReactiveScope? = null,
 	crossinline config: D.() -> Unit = {},
 ): Actor {
-	if (actor is Disableable) actor.bindDisabled { preventShowWindowState.value }
+	if (scope != null && actor is Disableable) scope.register(actor.bindDisabled { preventShowWindowState.value })
 	actor.addListener(object : ClickListener(button) {
 		override fun clicked(event: InputEvent, x: Float, y: Float) {
 			showDialog(config)

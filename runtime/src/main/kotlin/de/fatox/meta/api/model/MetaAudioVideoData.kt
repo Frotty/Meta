@@ -92,6 +92,9 @@ data class MetaAudioVideoData(
 			Gdx.graphics.setWindowedMode(width, height)
 		}
 		Gdx.graphics.setVSync(vsyncEnabled)
+		// LWJGL3 treats 0 as "never sleep" (uncapped); map any non-positive value to that.
+		// Applied regardless of vsync so the cap takes effect immediately if vsync is toggled off.
+		Gdx.graphics.setForegroundFPS(if (maxFps > 0) maxFps else 0)
 		Meta.instance.windowHandler.focus()
 	}
 }

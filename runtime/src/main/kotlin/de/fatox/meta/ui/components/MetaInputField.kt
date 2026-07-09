@@ -11,6 +11,7 @@ import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
@@ -24,10 +25,12 @@ open class MetaInputField @JvmOverloads constructor(
 	fontProvider: FontProvider = inject(),
 	placeholder: String = "",
 	styleName: String = MetaSkin.TEXT_FIELD,
-) : VisValidatableTextField(text, inputFieldStyle(size, fontProvider, styleName)), MetaFocusable {
+) : VisValidatableTextField(text, inputFieldStyle(size, fontProvider, styleName)), MetaFocusable, FontRefreshable {
 	private val validStyle = inputFieldStyle(size, fontProvider, styleName)
 	private val invalidStyle = inputFieldStyle(size, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
 	private var metaInitialized = false
+	private val fontSize = size
+	private val fontProvider = fontProvider
 
 	val textValue: Signal<String> = signal(text)
 	val inputValidValue: Signal<Boolean> = signal(true)
@@ -60,6 +63,18 @@ open class MetaInputField @JvmOverloads constructor(
 
 	override fun setMetaFocused(focused: Boolean) {
 		if (focused) focusGained() else focusLost()
+	}
+
+	/** Re-fetches the font into both (cloned) valid/invalid styles after a UI-scale change. */
+	override fun refreshFont() {
+		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
+		validStyle.font = font
+		validStyle.messageFont = font
+		invalidStyle.font = font
+		invalidStyle.messageFont = font
+		// Re-apply so the field re-derives its text metrics from the new font.
+		setStyle(style)
+		invalidateHierarchy()
 	}
 
 	override fun setText(str: String) {

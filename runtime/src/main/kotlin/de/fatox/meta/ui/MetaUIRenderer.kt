@@ -20,6 +20,7 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.extensions.trace
+import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.FocusRenderer
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.assets.MetaData
@@ -55,6 +56,7 @@ class MetaUIRenderer : UIRenderer {
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val metaData: MetaData by lazyInject()
 	private val focusRenderer: FocusRenderer by lazyInject()
+	private val fontProvider: FontProvider by lazyInject()
 
 	private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
 	private val audioVideoData = metaData[audioVideoDataKey]
@@ -93,7 +95,14 @@ class MetaUIRenderer : UIRenderer {
 		// HiDPI: every consumer gets DPI-correct UI by default (no per-game wiring). Re-apply live on any uiScale
 		// change (e.g. a settings slider), and seed the default from the display. Games may override uiScale.value
 		// afterwards with a user-chosen / persisted value.
-		uiScale.subscribe { applyViewport(Gdx.graphics.width, Gdx.graphics.height) }
+		uiScale.subscribe {
+			applyViewport(Gdx.graphics.width, Gdx.graphics.height)
+			// Fonts are rasterized per scale: walk the stage so every widget that caches a font re-fetches it from
+			// the (now regenerated) provider, then release the orphaned old-scale fonts. Order matters: dispose only
+			// after the walk, when nothing on stage references them anymore. Rare event - allocation is acceptable.
+			stage.root.refreshFontsRecursively()
+			fontProvider.disposeOrphanedFonts()
+		}
 		uiScale.value = suggestedUiScale()
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
 		val g = Gdx.graphics
@@ -169,5 +178,6 @@ class MetaUIRenderer : UIRenderer {
 		metaInput.removeGlobalInputProcessor(stage)
 		focusRenderer.dispose()
 		stage.dispose()
+		fontProvider.dispose()
 	}
 }

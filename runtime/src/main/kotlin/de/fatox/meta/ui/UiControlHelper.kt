@@ -178,6 +178,12 @@ class UiControlHelper {
 		cancelRepeat(action)
 		val task = object : Timer.Task() {
 			override fun run() {
+				// While an exclusive grab is active, MetaInput routes keyUp to the grab owner only, so cancelRepeat
+				// would never be reached - self-cancel instead of stepping navigation forever behind the grab.
+				if (metaInput.exclusiveProcessor != null) {
+					cancel()
+					return
+				}
 				navigate(action)
 			}
 		}
@@ -366,31 +372,32 @@ class UiControlHelper {
 	 * of the current actor and the "opposite side center" of the candidate.
 	 */
 	private fun getNextX(left: Boolean): Actor {
-		val candidates = possibleTargets.filter { !(it is Disableable && it.isDisabled) }
+		val candidates = possibleTargets
 
 		// Determine which side is relevant
 		val currRight = selectedActor.rightEdgeOnStage()
 		val currLeft = selectedActor.leftEdgeOnStage()
 
-		val filtered = if (left) {
-			candidates.filter { it.rightEdgeOnStage() <= currLeft }
-		} else {
-			candidates.filter { it.leftEdgeOnStage() >= currRight }
-		}
-
-		if (filtered.isEmpty()) return selectedActor
-
 		// We'll compute the Euclidian distance from currentActor's "rightEdgeCenter" (or leftEdgeCenter)
-		// to candidateActor's "leftEdgeCenter" (or rightEdgeCenter)
-		val startPoint = if (left) selectedActor.leftEdgeCenterOnStage() else selectedActor.rightEdgeCenterOnStage()
+		// to candidateActor's "leftEdgeCenter" (or rightEdgeCenter). This runs at repeat rate (5Hz) while a nav
+		// key is held, so filtering and edge centers are computed in-place - no intermediate lists or vectors.
+		if (left) selectedActor.leftEdgeCenterOnStage(navStart) else selectedActor.rightEdgeCenterOnStage(navStart)
 
 		var best: Actor? = null
 		var bestDist = Float.MAX_VALUE
 
-		for (cand in filtered) {
-			val endPoint = if (left) cand.rightEdgeCenterOnStage() else cand.leftEdgeCenterOnStage()
-			val dx = endPoint.x - startPoint.x
-			val dy = (endPoint.y - startPoint.y) * 2f // Y-axis weighted more to prefer straight targets
+		for (i in 0 until candidates.size) {
+			val cand = candidates[i]
+			if (cand is Disableable && cand.isDisabled) continue
+			if (left) {
+				if (cand.rightEdgeOnStage() > currLeft) continue
+				cand.rightEdgeCenterOnStage(navEnd)
+			} else {
+				if (cand.leftEdgeOnStage() < currRight) continue
+				cand.leftEdgeCenterOnStage(navEnd)
+			}
+			val dx = navEnd.x - navStart.x
+			val dy = (navEnd.y - navStart.y) * 2f // Y-axis weighted more to prefer straight targets
 			val dist = sqrt(dx * dx + dy * dy)
 
 			if (dist < bestDist) {
@@ -414,28 +421,29 @@ class UiControlHelper {
 	 * "topEdgeCenter" of the candidate.
 	 */
 	private fun getNextY(up: Boolean): Actor {
-		val candidates = possibleTargets.filter { !(it is Disableable && it.isDisabled) }
+		val candidates = possibleTargets
 
 		val currTop = selectedActor.topEdgeOnStage()
 		val currBottom = selectedActor.bottomEdgeOnStage()
 
-		val filtered = if (up) {
-			candidates.filter { it.bottomEdgeOnStage() >= currTop }
-		} else {
-			candidates.filter { it.topEdgeOnStage() <= currBottom }
-		}
-
-		if (filtered.isEmpty()) return selectedActor
-
-		val startPoint = if (up) selectedActor.topEdgeCenterOnStage() else selectedActor.bottomEdgeCenterOnStage()
+		// See getNextX: filtering and edge centers are computed in-place to avoid per-step allocation.
+		if (up) selectedActor.topEdgeCenterOnStage(navStart) else selectedActor.bottomEdgeCenterOnStage(navStart)
 
 		var best: Actor? = null
 		var bestDist = Float.MAX_VALUE
 
-		for (cand in filtered) {
-			val endPoint = if (up) cand.bottomEdgeCenterOnStage() else cand.topEdgeCenterOnStage()
-			val dx = (endPoint.x - startPoint.x) * 2f // X-axis weighted more to prefer straight targets
-			val dy = endPoint.y - startPoint.y
+		for (i in 0 until candidates.size) {
+			val cand = candidates[i]
+			if (cand is Disableable && cand.isDisabled) continue
+			if (up) {
+				if (cand.bottomEdgeOnStage() < currTop) continue
+				cand.bottomEdgeCenterOnStage(navEnd)
+			} else {
+				if (cand.topEdgeOnStage() > currBottom) continue
+				cand.topEdgeCenterOnStage(navEnd)
+			}
+			val dx = (navEnd.x - navStart.x) * 2f // X-axis weighted more to prefer straight targets
+			val dy = navEnd.y - navStart.y
 			val dist = sqrt(dx * dx + dy * dy)
 
 			if (dist < bestDist) {
@@ -451,6 +459,11 @@ class UiControlHelper {
 	// --------------------------------------------------------------
 
 	private val tmpVec = Vector2()
+
+	// Reusable endpoints for the navigation distance search (getNextX/getNextY). Separate from tmpVec, which the
+	// edge helpers below clobber internally.
+	private val navStart = Vector2()
+	private val navEnd = Vector2()
 
 	/**
 	 * Left edge in stage coordinates.
@@ -485,32 +498,32 @@ class UiControlHelper {
 	}
 
 	/**
-	 * Center of the right edge in stage coordinates.
+	 * Center of the right edge in stage coordinates, written into [out] (no allocation).
 	 */
-	private fun Actor.rightEdgeCenterOnStage(): Vector2 {
+	private fun Actor.rightEdgeCenterOnStage(out: Vector2): Vector2 {
 		// x = rightEdge, y = vertical center
-		return Vector2(rightEdgeOnStage(), bottomEdgeOnStage() + height * 0.5f)
+		return out.set(rightEdgeOnStage(), bottomEdgeOnStage() + height * 0.5f)
 	}
 
 	/**
-	 * Center of the left edge in stage coordinates.
+	 * Center of the left edge in stage coordinates, written into [out] (no allocation).
 	 */
-	private fun Actor.leftEdgeCenterOnStage(): Vector2 {
-		return Vector2(leftEdgeOnStage(), bottomEdgeOnStage() + height * 0.5f)
+	private fun Actor.leftEdgeCenterOnStage(out: Vector2): Vector2 {
+		return out.set(leftEdgeOnStage(), bottomEdgeOnStage() + height * 0.5f)
 	}
 
 	/**
-	 * Center of the top edge in stage coordinates.
+	 * Center of the top edge in stage coordinates, written into [out] (no allocation).
 	 */
-	private fun Actor.topEdgeCenterOnStage(): Vector2 {
-		return Vector2(leftEdgeOnStage() + width * 0.5f, topEdgeOnStage())
+	private fun Actor.topEdgeCenterOnStage(out: Vector2): Vector2 {
+		return out.set(leftEdgeOnStage() + width * 0.5f, topEdgeOnStage())
 	}
 
 	/**
-	 * Center of the bottom edge in stage coordinates.
+	 * Center of the bottom edge in stage coordinates, written into [out] (no allocation).
 	 */
-	private fun Actor.bottomEdgeCenterOnStage(): Vector2 {
-		return Vector2(leftEdgeOnStage() + width * 0.5f, bottomEdgeOnStage())
+	private fun Actor.bottomEdgeCenterOnStage(out: Vector2): Vector2 {
+		return out.set(leftEdgeOnStage() + width * 0.5f, bottomEdgeOnStage())
 	}
 
 	private companion object {
