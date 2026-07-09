@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
+import com.badlogic.gdx.utils.Scaling
 import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
@@ -24,6 +25,7 @@ open class MetaIconButton(
 	Button(MetaSkin.skin().get(style, ButtonStyle::class.java)),
 	MetaFocusable {
 	private val image = Image(drawable)
+	private val imageCell = add(image).size(DEFAULT_ICON_SIZE).pad(MetaSpacing.XS)
 	private val buttonStyle = MetaSkin.skin().get(style, ButtonStyle::class.java)
 	private val focusStyle = MetaButtonFocusStyle(
 		this,
@@ -34,12 +36,16 @@ open class MetaIconButton(
 
 	val checkedValue: Signal<Boolean> = signal(isChecked)
 	val disabledValue: Signal<Boolean> = signal(isDisabled)
+	var momentary: Boolean = true
 
 	init {
-		add(image).size(24f).pad(MetaSpacing.XS)
 		cursorPointer()
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
+				if (momentary && isChecked) {
+					setChecked(false)
+					return
+				}
 				checkedValue.value = isChecked
 			}
 		})
@@ -60,5 +66,21 @@ open class MetaIconButton(
 	override fun setChecked(isChecked: Boolean) {
 		super.setChecked(isChecked)
 		checkedValue.value = this.isChecked
+	}
+
+	fun setIcon(drawable: Drawable?, scaling: Scaling = Scaling.fit, size: Float = DEFAULT_ICON_SIZE) {
+		image.drawable = drawable
+		image.setScaling(scaling)
+		imageCell.size(size)
+		invalidateHierarchy()
+	}
+
+	fun setIconSize(size: Float) {
+		imageCell.size(size)
+		invalidateHierarchy()
+	}
+
+	private companion object {
+		const val DEFAULT_ICON_SIZE = 24f
 	}
 }

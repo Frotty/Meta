@@ -62,6 +62,7 @@ abstract class MetaWindow(
 			if (closeButton) {
 				val exitButton = MetaIconButton(MetaSkin.skin().getDrawable(MetaSkin.ICON_CLOSE)).apply {
 					setColor(1f, 1f, 1f, 0.72f)
+					setIconSize(18f)
 					onChange { close() }
 					addListener(object : InputListener() {
 						override fun touchDown(
@@ -76,10 +77,10 @@ abstract class MetaWindow(
 						}
 					})
 				}
-				add(exitButton).size(HEADER_CONTENT_HEIGHT).padRight(MetaSpacing.XS)
+				add(exitButton).size(28f).padTop(1f).padRight(MetaSpacing.XS)
 			}
 
-			row().height(2f)
+			row().height(1f)
 			add(MetaSeparator()).growX().colspan(if (closeButton) 2 else 1)
 		}
 
@@ -200,7 +201,7 @@ abstract class MetaWindow(
 	}
 
 	private companion object {
-		const val HEADER_HEIGHT = 34f
+		const val HEADER_HEIGHT = 32f
 		const val HEADER_CONTENT_HEIGHT = 30f
 		const val RESIZE_BOTTOM_PAD = 7f
 		const val MIN_WINDOW_WIDTH = 96f

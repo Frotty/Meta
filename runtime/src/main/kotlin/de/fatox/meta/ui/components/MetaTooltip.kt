@@ -46,6 +46,8 @@ object MetaTooltip {
 		maxWidth: Float,
 	) {
 		private val anchor = Vector2()
+		private val targetMin = Vector2()
+		private val targetMax = Vector2()
 
 		var align: Int = align
 			private set
@@ -147,12 +149,46 @@ object MetaTooltip {
 		}
 
 		private fun positionTooltip(stage: com.badlogic.gdx.scenes.scene2d.Stage) {
-			var x = when {
-				align and Align.right != 0 -> anchor.x + MetaSpacing.SM
-				align and Align.left != 0 -> anchor.x - tooltip.width - MetaSpacing.SM
-				else -> anchor.x - tooltip.width * 0.5f
+			target.localToStageCoordinates(targetMin.set(0f, 0f))
+			target.localToStageCoordinates(targetMax.set(target.width, target.height))
+			val left = min(targetMin.x, targetMax.x)
+			val right = max(targetMin.x, targetMax.x)
+			val bottom = min(targetMin.y, targetMax.y)
+			val top = max(targetMin.y, targetMax.y)
+			val targetCenterX = (left + right) * 0.5f
+			val targetCenterY = (bottom + top) * 0.5f
+			val gap = MetaSpacing.SM
+
+			var x = targetCenterX - tooltip.width * 0.5f
+			var y = top + gap
+
+			when {
+				align and Align.right != 0 && right + gap + tooltip.width <= stage.width - MetaSpacing.XS -> {
+					x = right + gap
+					y = targetCenterY - tooltip.height * 0.5f
+				}
+				align and Align.left != 0 && left - gap - tooltip.width >= MetaSpacing.XS -> {
+					x = left - gap - tooltip.width
+					y = targetCenterY - tooltip.height * 0.5f
+				}
+				top + gap + tooltip.height <= stage.height - MetaSpacing.XS -> {
+					x = targetCenterX - tooltip.width * 0.5f
+					y = top + gap
+				}
+				bottom - gap - tooltip.height >= MetaSpacing.XS -> {
+					x = targetCenterX - tooltip.width * 0.5f
+					y = bottom - gap - tooltip.height
+				}
+				right + gap + tooltip.width <= stage.width - MetaSpacing.XS -> {
+					x = right + gap
+					y = targetCenterY - tooltip.height * 0.5f
+				}
+				left - gap - tooltip.width >= MetaSpacing.XS -> {
+					x = left - gap - tooltip.width
+					y = targetCenterY - tooltip.height * 0.5f
+				}
 			}
-			var y = anchor.y + MetaSpacing.SM
+
 			x = min(x, stage.width - tooltip.width - MetaSpacing.XS)
 			y = min(y, stage.height - tooltip.height - MetaSpacing.XS)
 			x = max(MetaSpacing.XS, x)
