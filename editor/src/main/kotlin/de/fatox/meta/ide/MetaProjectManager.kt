@@ -26,6 +26,8 @@ class MetaProjectManager : ProjectManager {
 
 	override lateinit var currentProject: MetaProjectData
 		private set
+	override val hasCurrentProject: Boolean
+		get() = ::currentProject.isInitialized
 	override lateinit var currentProjectRoot: FileHandle
 		private set
 	private val onLoadListeners = Array<EventListener>()

@@ -30,7 +30,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Compile
-        run: ./gradlew compileKotlin --no-daemon --stacktrace
+        run: ./gradlew :runtime:compileKotlin :runtime-desktop:compileKotlin :editor:compileKotlin :editor-desktop:compileKotlin --no-daemon --stacktrace
 
       - name: Test
         run: ./gradlew :runtime:test --no-daemon --stacktrace

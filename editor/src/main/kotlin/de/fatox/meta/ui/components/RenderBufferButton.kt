@@ -3,12 +3,9 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
-import com.badlogic.gdx.utils.Scaling
-import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.RenderBufferHandle
 import de.fatox.meta.api.model.RenderBufferData
@@ -24,7 +21,6 @@ import de.fatox.meta.util.GoldenRatio
  * They can be moved left & right and be deleted.
  */
 class RenderBufferButton(text: String, size: Int) : MetaButtonContainer() {
-	private val assetProvider: AssetProvider by lazyInject()
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val shaderComposer: MetaShaderComposer by lazyInject()
 
@@ -68,21 +64,15 @@ class RenderBufferButton(text: String, size: Int) : MetaButtonContainer() {
 		add(nameLabel).colspan(2).center().growX()
 		row().padBottom(2f)
 
-		val codeImage = Image(assetProvider.getDrawable("ui/appbar.page.code.png"))
-		codeImage.setScaling(Scaling.fit)
-		add(codeImage).size(26f).padRight(2f).left()
+		add(MetaIcon("ri-code-s-slash-line", 22)).size(26f).padRight(2f).left()
 		add(shaderSelect).growX()
 		row().padTop(2f)
 
-		val boxImage = Image(assetProvider.getDrawable("ui/appbar.box.png"))
-		boxImage.setScaling(Scaling.fit)
-		add(boxImage).size(26f).padRight(2f).left()
+		add(MetaIcon("ri-box-3-line", 22)).size(26f).padRight(2f).left()
 		add(inSelect).growX()
 		row().padTop(2f)
 
-		val dImage = Image(assetProvider.getDrawable("ui/appbar.grade.d.png"))
-		dImage.setScaling(Scaling.fit)
-		add(dImage).size(26f).padRight(2f).left()
+		add(MetaIcon("ri-stack-line", 22)).size(26f).padRight(2f).left()
 		add(depthCheckBox).growX()
 		row().padTop(2f)
 
@@ -110,16 +100,16 @@ class RenderBufferButton(text: String, size: Int) : MetaButtonContainer() {
 	private fun setupFooter() {
 		val table = MetaTable()
 		table.center()
-		val moveLeftBtn = MetaIconButton(assetProvider.getDrawable("ui/appbar.chevron.left.png"))
+		val moveLeftBtn = MetaIconButton("ri-arrow-left-s-line")
 		table.add(moveLeftBtn).size(26f)
-		val deleteBtn = MetaIconButton(assetProvider.getDrawable("ui/appbar.delete.png"))
+		val deleteBtn = MetaIconButton("ri-delete-bin-line")
 		deleteBtn.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				shaderComposer.removeBufferHandle(handle)
 			}
 		})
 		table.add(deleteBtn).size(26f)
-		val moveRightBtn = MetaIconButton(assetProvider.getDrawable("ui/appbar.chevron.right.png"))
+		val moveRightBtn = MetaIconButton("ri-arrow-right-s-line")
 		table.add(moveRightBtn).size(26f)
 
 		add(table).growX().center().colspan(2)

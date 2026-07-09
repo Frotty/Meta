@@ -1,7 +1,9 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.scenes.scene2d.ui.Container
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
@@ -18,14 +20,27 @@ import de.fatox.meta.ui.MetaSpacing
  * A dedicated "action" icon button (full button affordance, text-label-less variant). For plain clickable media, use
  * [MetaImageButton] which intentionally keeps a subtler surface treatment.
  */
-open class MetaIconButton(
-	drawable: Drawable?,
+open class MetaIconButton private constructor(
+	iconActor: Actor,
+	iconSize: Float,
 	style: String = MetaSkin.ICON_BUTTON,
 ) :
 	Button(MetaSkin.skin().get(style, ButtonStyle::class.java)),
 	MetaFocusable {
-	private val image = Image(drawable)
-	private val imageCell = add(image).size(DEFAULT_ICON_SIZE).pad(MetaSpacing.XS)
+	constructor(
+		drawable: Drawable?,
+		style: String = MetaSkin.ICON_BUTTON,
+	) : this(Image(drawable).apply { setScaling(Scaling.fit) }, DEFAULT_ICON_SIZE, style)
+
+	constructor(
+		icon: String,
+		style: String = MetaSkin.ICON_BUTTON,
+		size: Int = DEFAULT_ICON_SIZE.toInt(),
+		color: Color? = Color.WHITE,
+	) : this(MetaIcon(icon, size, color), size.toFloat(), style)
+
+	private val iconContainer = Container<Actor>(iconActor)
+	private val iconCell = add(iconContainer).size(iconSize).pad(MetaSpacing.XS)
 	private val buttonStyle = MetaSkin.skin().get(style, ButtonStyle::class.java)
 	private val focusStyle = MetaButtonFocusStyle(
 		this,
@@ -69,18 +84,26 @@ open class MetaIconButton(
 	}
 
 	fun setIcon(drawable: Drawable?, scaling: Scaling = Scaling.fit, size: Float = DEFAULT_ICON_SIZE) {
-		image.drawable = drawable
-		image.setScaling(scaling)
-		imageCell.size(size)
-		invalidateHierarchy()
+		setIconActor(Image(drawable).apply { setScaling(scaling) }, size)
+	}
+
+	fun setIcon(icon: String, size: Int = DEFAULT_ICON_SIZE.toInt(), color: Color? = Color.WHITE) {
+		setIconActor(MetaIcon(icon, size, color), size.toFloat())
 	}
 
 	fun setIconSize(size: Float) {
-		imageCell.size(size)
+		iconCell.size(size)
+		(iconContainer.actor as? MetaIcon)?.setFontSize(size.toInt())
 		invalidateHierarchy()
 	}
 
-	private companion object {
+	private fun setIconActor(actor: Actor, size: Float) {
+		iconContainer.actor = actor
+		iconCell.size(size)
+		invalidateHierarchy()
+	}
+
+	companion object {
 		const val DEFAULT_ICON_SIZE = 24f
 	}
 }

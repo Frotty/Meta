@@ -1,11 +1,8 @@
 package de.fatox.meta.ui
 
-import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
-import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.info
 import de.fatox.meta.api.extensions.onChange
@@ -28,7 +25,6 @@ private val log = MetaLoggerFactory.logger {}
 
 class EditorMenuBar {
 	private val languageBundle: LanguageBundle by lazyInject()
-	private val assetProvider: AssetProvider by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
 	private val uiManager: UIManager by lazyInject()
 
@@ -52,25 +48,40 @@ class EditorMenuBar {
 		windowsMenu!!.clear()
 	}
 
-	fun addAvailableWindow(windowClass: KClass<out Window>, icon: Image?) {
-		val menuItem = MetaMenuItem(windowClass.simpleName!!.substring(0, windowClass.simpleName!!.indexOf("Window")), icon)
+	fun addAvailableWindow(windowClass: KClass<out Window>, icon: String = windowIcon(windowClass)) {
+		val menuItem = MetaMenuItem(windowTitle(windowClass), icon)
 		menuItem.onChange { uiManager.showWindow(windowClass) }
 		windowsMenu!!.addItem(menuItem)
 	}
 
+	private fun windowTitle(windowClass: KClass<out Window>): String {
+		return windowClass.simpleName!!.substringBefore("Window")
+	}
+
+	private fun windowIcon(windowClass: KClass<out Window>): String {
+		return when (windowTitle(windowClass)) {
+			"AssetDiscoverer" -> "ri-search-2-line"
+			"ShaderLibrary" -> "ri-book-open-line"
+			"ShaderComposer" -> "ri-node-tree"
+			"SceneOptions" -> "ri-settings-3-line"
+			"Primitives" -> "ri-box-3-line"
+			else -> "ri-window-line"
+		}
+	}
+
 	private fun createFileMenu(): MetaMenu {
 		val fileMenu = MetaMenu(languageBundle["filemenu.title"])
-		val menuItemNewProject = MetaMenuItem(languageBundle["filemenu.new.project"], Image(assetProvider.getResource("ui/appbar.new.png", Texture::class.java)))
+		val menuItemNewProject = MetaMenuItem(languageBundle["filemenu.new.project"], "ri-file-add-line")
 		menuItemNewProject.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				uiManager.showDialog<ProjectWizardDialog>()
 			}
 		})
 		fileMenu.addItem(menuItemNewProject)
-		val menuItemNewScene = MetaMenuItem(languageBundle["filemenu.new.scene"], Image(assetProvider.getResource("ui/appbar.new.png", Texture::class.java)))
+		val menuItemNewScene = MetaMenuItem(languageBundle["filemenu.new.scene"], "ri-file-add-line")
 		menuItemNewScene.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
-				if (projectManager.currentProject != null) {
+				if (projectManager.hasCurrentProject) {
 					uiManager.showDialog<SceneWizardDialog>()
 				} else {
 					MetaConfirmDialog("Project required", "Please open a project first").show(fileMenu.stage)
@@ -78,7 +89,7 @@ class EditorMenuBar {
 			}
 		})
 		fileMenu.addItem(menuItemNewScene)
-		val menuItemOpen = MetaMenuItem(languageBundle["filemenu.open"], Image(assetProvider.getResource("ui/appbar.folder.open.png", Texture::class.java)))
+		val menuItemOpen = MetaMenuItem(languageBundle["filemenu.open"], "ri-folder-open-line")
 		menuItemOpen.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				uiManager.showDialog<OpenProjectDialog>()

@@ -60,6 +60,7 @@ subprojects {
 				includeGroup "org.apache.commons"
 				includeGroup "commons-io"
 				includeGroup "commons-codec"
+				includeGroup "org.tukaani"
 				includeGroup "ch.qos.logback"
 				includeGroupByRegex "org\\.junit\\..*"
 				includeGroup "org.junit"
@@ -74,15 +75,9 @@ subprojects {
 			}
 		}
 		maven {
-			url "https://oss.sonatype.org/content/repositories/snapshots/"
+			url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
 			content {
 				includeGroup "com.badlogicgames.gdx"
-			}
-		}
-		maven {
-			url 'https://jitpack.io'
-			content {
-				includeGroup "com.github.julman99"
 			}
 		}
 	}
@@ -92,8 +87,7 @@ subprojects {
 			jvmTarget = "17"
 			freeCompilerArgs += "-progressive"
 			freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
-			freeCompilerArgs += "-Xinline-classes"
-			freeCompilerArgs += "-Xjvm-default=all"
+			freeCompilerArgs += "-jvm-default=no-compatibility"
 //			freeCompilerArgs += "-XXLanguage:+DefinitelyNonNullableTypes"
 		}
 	}

@@ -60,7 +60,7 @@ abstract class MetaWindow(
 			left().top()
 			add(titleLabel).growX().height(HEADER_CONTENT_HEIGHT).padLeft(MetaSpacing.SM)
 			if (closeButton) {
-				val exitButton = MetaIconButton(MetaSkin.skin().getDrawable(MetaSkin.ICON_CLOSE)).apply {
+				val exitButton = MetaIconButton("ri-close-line").apply {
 					setColor(1f, 1f, 1f, 0.72f)
 					setIconSize(18f)
 					onChange { close() }

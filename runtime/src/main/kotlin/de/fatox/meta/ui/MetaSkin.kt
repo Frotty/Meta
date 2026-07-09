@@ -43,10 +43,6 @@ object MetaSkin {
 	const val WINDOW = "meta.window"
 	const val WINDOW_RESIZABLE = "meta.window.resizable"
 
-	const val ICON_PLUS = "meta.icon.plus"
-	const val ICON_MINUS = "meta.icon.minus"
-	const val ICON_CLOSE = "meta.icon.close"
-
 	private const val INSTALLED_COLOR = "meta.skin.installed"
 	private const val PATCH_SIZE = 32
 	private const val SHAPE_AA_SAMPLES = 4
@@ -62,7 +58,6 @@ object MetaSkin {
 		addPalette(skin)
 		addPanelDrawables(skin)
 		addControlDrawables(skin)
-		addIcons(skin)
 		addStyles(skin)
 
 		skin.add(INSTALLED_COLOR, Color.WHITE.cpy())
@@ -129,12 +124,6 @@ object MetaSkin {
 		checkbox(skin, "meta.checkbox.onFocus", checked = true, over = true, down = false, focused = true)
 		checkbox(skin, "meta.checkbox.disabled", checked = false, over = false, down = false, disabled = true)
 		checkbox(skin, "meta.checkbox.onDisabled", checked = true, over = false, down = false, disabled = true)
-	}
-
-	private fun addIcons(skin: Skin) {
-		icon(skin, ICON_MINUS, plus = false)
-		icon(skin, ICON_PLUS, plus = true)
-		closeIcon(skin, ICON_CLOSE)
 	}
 
 	private fun addStyles(skin: Skin) {
@@ -490,40 +479,6 @@ object MetaSkin {
 		}
 		drawRoundedPixels(pixmap, fill, stroke, radius = 5 * scale, border = 2 * scale)
 		if (checked) drawCheck(pixmap, if (disabled) MetaColor.TEXT_DISABLED else MetaColor.TEXT, scale)
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$name.texture", texture)
-		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
-			minWidth = ICON_SIZE.toFloat()
-			minHeight = ICON_SIZE.toFloat()
-		}, Drawable::class.java)
-	}
-
-	private fun icon(skin: Skin, name: String, plus: Boolean) {
-		val pixmap = Pixmap(ICON_SIZE, ICON_SIZE, Pixmap.Format.RGBA8888)
-		pixmap.setBlending(Pixmap.Blending.None)
-		val bits = Color.rgba8888(MetaColor.TEXT)
-		for (x in 6 until ICON_SIZE - 6) for (y in 11..13) pixmap.drawPixel(x, y, bits)
-		if (plus) for (x in 11..13) for (y in 6 until ICON_SIZE - 6) pixmap.drawPixel(x, y, bits)
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$name.texture", texture)
-		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
-			minWidth = ICON_SIZE.toFloat()
-			minHeight = ICON_SIZE.toFloat()
-		}, Drawable::class.java)
-	}
-
-	private fun closeIcon(skin: Skin, name: String) {
-		val pixmap = Pixmap(ICON_SIZE, ICON_SIZE, Pixmap.Format.RGBA8888)
-		pixmap.setBlending(Pixmap.Blending.None)
-		val bits = Color.rgba8888(MetaColor.TEXT)
-		drawLine(pixmap, 7, 7, 17, 17, bits)
-		drawLine(pixmap, 17, 7, 7, 17, bits)
-		drawLine(pixmap, 8, 7, 18, 17, bits)
-		drawLine(pixmap, 18, 7, 8, 17, bits)
 		val texture = Texture(pixmap)
 		pixmap.dispose()
 		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)

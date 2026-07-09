@@ -1,14 +1,12 @@
-![](https://i.imgur.com/8M6CSMh.png)
-
-[![Build Status](https://travis-ci.org/Frotty/Meta.svg?branch=master)](https://travis-ci.org/Frotty/Meta) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/5d29848d4aa84e46b4e4fb185222c668)](https://www.codacy.com/app/frotty/Meta?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Frotty/Meta&amp;utm_campaign=Badge_Grade)
+[![CI](https://github.com/Frotty/Meta/actions/workflows/ci.yml/badge.svg)](https://github.com/Frotty/Meta/actions/workflows/ci.yml) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/5d29848d4aa84e46b4e4fb185222c668)](https://www.codacy.com/app/frotty/Meta?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Frotty/Meta&amp;utm_campaign=Badge_Grade)
 
 # Meta
-Conceptual 2D and 3D engine with scene and shader editor, build on top of libGDX.
+Kotlin/libGDX engine layer with a batteries-included runtime UI toolkit and a scene/shader editor.
 
 ## Concept
-Meta is supposed to be used alongside libgdx and provide a more complete out of the box experience.
-The philosophy stays the same however, so you should setup a libgdx project, then add meta to the gradle.build to get access to the runtime.
-This means you will have a pure code project, which you can augment with the editor.
+Meta is used alongside libGDX to provide a more complete out-of-the-box runtime layer for JVM games.
+Create a normal libGDX project, add Meta to the Gradle build, and keep your game logic in code while using Meta for
+shared runtime services, UI, assets, input, data, and editor workflows.
 
 ## Editor
 The editor generates project data in readable json format which will be loaded by the engine at runtime.
@@ -17,9 +15,27 @@ It combines asset management and scene creation into a simple UI with the capabi
 While the editor is recommended for any beginner, advanced users can also decide to use the runtime without it.
 Your own source in the JVM language of your choice will always remain the core of your project.
 
-(Early screenshots)
-![Final Screen](https://i.imgur.com/7n8eZ1r.png)
-![Final Screen](https://i.imgur.com/SyWxgYH.png)
+## Meta UI
+Meta's UI layer is built around TTF-backed scene2d widgets so games and editor screens share one rendering path:
+`MetaLabel`, `MetaTextButton`, `MetaIconTextButton`, `MetaSelectBox`, `MetaTextField`, `MetaCheckBox`, and friends.
+
+UI icons are font-backed through Remix Icon. Prefer:
+
+```kotlin
+MetaIcon("ri-information-line")
+MetaImageButton("ri-add-line")
+MetaIconTextButton("Open", "ri-folder-open-line")
+```
+
+The bundled catalog lives at `assets/ui/icons/remixicon.tsv` and is also shipped in runtime resources as
+`ui/icons/remixicon.tsv`. Runtime code can query it through `MetaIcons.exists`, `MetaIcons.info`,
+`MetaIcons.names`, `MetaIcons.entries`, and `MetaIcons.search`. Do not add one-off PNG toolbar icons; use Remix font
+icons unless the asset is actual game/editor art rather than a UI glyph.
+
+## Screenshots
+The historical screenshots were removed because they no longer represent the current Meta UI. New screenshots should be
+captured from the current editor flow and committed as repo-local documentation assets instead of linking old external
+images.
 
 
 ## Runtime

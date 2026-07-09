@@ -25,9 +25,11 @@ class MetaFontProvider : FontProvider {
 	private val normalFontMap = IntMap<BitmapFont>()
 	private val monoFontMap = IntMap<BitmapFont>()
 	private val boldFontMap = IntMap<BitmapFont>()
+	private val iconFontMap = IntMap<BitmapFont>()
 	private val normalGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.normalFontPath])
 	private val boldGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.boldFontPath])
 	private val monoGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.monoFontPath])
+	private val iconGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.iconFontPath])
 
 	/** The UI scale the currently-cached fonts were rasterized for; if it changes, fonts are regenerated crisply. */
 	private var generationScale = 1f
@@ -38,6 +40,7 @@ class MetaFontProvider : FontProvider {
 			FontType.REGULAR -> normalFontMap
 			FontType.BOLD -> boldFontMap
 			FontType.MONO -> monoFontMap
+			FontType.ICON -> iconFontMap
 		}
 		return bitmapFonts.getOrPut(size) { generateFont(if (size > 1) size else 5, type) }
 	}
@@ -53,6 +56,7 @@ class MetaFontProvider : FontProvider {
 			normalFontMap.clear()
 			boldFontMap.clear()
 			monoFontMap.clear()
+			iconFontMap.clear()
 		}
 	}
 
@@ -74,6 +78,7 @@ class MetaFontProvider : FontProvider {
 			FontType.REGULAR -> normalGenerator
 			FontType.BOLD -> boldGenerator
 			FontType.MONO -> monoGenerator
+			FontType.ICON -> iconGenerator
 		}).generateFont(defaultFontParam(physicalSize))
 		if (scale != 1f) {
 			font.data.setScale(1f / scale)

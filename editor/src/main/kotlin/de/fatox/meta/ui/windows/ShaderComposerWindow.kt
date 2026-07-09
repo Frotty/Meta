@@ -49,7 +49,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	}
 
 	private fun setupEmpty() {
-		val visImageButton = MetaImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
+		val visImageButton = MetaImageButton("ri-file-add-line")
 		visImageButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				uiManager.showDialog<ShaderCompositionWizard>()
@@ -83,7 +83,7 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	}
 
 	private fun setupNewBufferButton() {
-		addButton = MetaImageButton(assetProvider.getDrawable("ui/appbar.layer.add.png")).apply {
+		addButton = MetaImageButton("ri-stack-line").apply {
 			addListener(object : ClickListener() {
 				override fun clicked(event: InputEvent, x: Float, y: Float) {
 					onAddBuffer()

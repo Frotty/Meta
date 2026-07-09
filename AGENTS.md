@@ -27,7 +27,13 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
   `Meta*` wrapper that swaps in `fontProvider.getFont(size, type)` (see `MetaTextField` for the pattern: clone the
   style once, never mutate the shared skin style).
 - **Use icon-style controls intentionally.** `MetaIconButton` is the full action icon button (same visual family as
-  normal buttons). For a plain image that is clickable but should stay visually lighter/subtle, use `MetaImageButton`.
+  normal buttons). For a plain icon that is clickable but should stay visually lighter/subtle, use `MetaImageButton`.
+- **Use Remix font icons for UI glyphs.** Prefer `MetaIcon("ri-information-line")`,
+  `MetaImageButton("ri-add-line")`, and `MetaIconTextButton("Open", "ri-folder-open-line")` over one-off PNG
+  toolbar icons. The bundled catalog is `assets/ui/icons/remixicon.tsv` (also shipped in runtime resources as
+  `ui/icons/remixicon.tsv`); search it for supported names/categories instead of adding a giant enum. Do not add
+  singular texture assets for ordinary UI glyphs. Bitmap textures are for actual game/editor art, logos, previews,
+  screenshots, skin atlases, or generated drawables that cannot be expressed as a Remix icon.
 - **Design tokens live in `ui/MetaUi.kt`** — `MetaType` (typographic scale in px: CAPTION…DISPLAY), `MetaSpacing`
   (padding rhythm), `MetaColor` (dark palette). Prefer these over magic numbers/colors. Helpers: `metaLabel(...)`,
   `metaButton(...)`, `Table.metaDefaults()`. `MetaColor` values are shared mutable `Color`s — treat read-only, use
@@ -157,7 +163,7 @@ Goal: consumer repos (e.g. OxRox) hold *game* code; anything generic and reusabl
 - Current baseline in this repo:
   - libGDX `1.14.2`
   - VisUI `1.5.9`
-  - Kotlin `2.3.10`
+  - Kotlin `2.4.0`
   - Gradle `9.1.0`
 
 ## Testing expectations

@@ -7,6 +7,7 @@ import kotlin.reflect.KClass
 
 interface ProjectManager {
 	val currentProject: MetaProjectData
+	val hasCurrentProject: Boolean
 	fun loadProject(projectFile: FileHandle): MetaProjectData
 	fun saveProject(projectData: MetaProjectData)
 	fun newProject(location: FileHandle, projectData: MetaProjectData)

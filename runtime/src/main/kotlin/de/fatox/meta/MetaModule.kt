@@ -45,7 +45,7 @@ object MetaModule {
 			singleton("", "default")
 			singleton(Json(), "default")
 			singleton("default") { UiControlHelper() }
-			singleton("default") { FontInfo("Montserrat.ttf", "Montserrat-Bold.ttf","RobotoMono.ttf") }
+			singleton("default") { FontInfo("fonts/Montserrat.ttf", "fonts/Montserrat-Bold.ttf", "fonts/RobotoMono.ttf") }
 			singleton("default") {
 				SpriteBatch(1000, inject("spritebatch-shader")).apply { enableBlending() }
 			}

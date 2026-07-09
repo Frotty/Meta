@@ -8,10 +8,11 @@ dependencies {
 	api "com.kotcrab.vis:vis-ui:$visUiVersion"
 	implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 
-	api group: 'org.apache.commons', name: 'commons-compress', version: commonsCompressVersion
-	api group: 'commons-io', name: 'commons-io', version: commonsIOVersion
-	implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
-	api group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion
+	api "org.apache.commons:commons-compress:$commonsCompressVersion"
+	api "org.tukaani:xz:$xzVersion"
+	api "commons-io:commons-io:$commonsIOVersion"
+	implementation "ch.qos.logback:logback-classic:$logbackVersion"
+	api "org.slf4j:slf4j-api:$slf4jVersion"
 
 	testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
 	testImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"

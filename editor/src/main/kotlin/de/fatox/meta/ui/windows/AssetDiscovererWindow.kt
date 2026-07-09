@@ -1,16 +1,15 @@
 package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.utils.Array
-import com.badlogic.gdx.utils.Scaling
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.api.model.AssetDiscovererData
 import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.ide.AssetDiscoverer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FolderListAdapter
+import de.fatox.meta.ui.components.MetaIcon
 import de.fatox.meta.ui.components.MetaImageButton
 import de.fatox.meta.ui.components.MetaIconTextButton
 import de.fatox.meta.ui.components.MetaListView
@@ -75,11 +74,9 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 	private fun createToolbarBar() {
 		toolbarTable.left().top()
 		toolbarTable.row().height(24f)
-		val newFileButton = MetaImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
+		val newFileButton = MetaImageButton("ri-file-add-line")
 		toolbarTable.add(newFileButton).size(24f).left()
-		val searchIcon = Image(assetProvider.getDrawable("ui/appbar.page.search.png"))
-		searchIcon.setScaling(Scaling.fill)
-		toolbarTable.add(searchIcon).size(24f).left()
+		toolbarTable.add(MetaIcon("ri-search-line", 22)).size(24f).left()
 		val searchTF = MetaTextField()
 		toolbarTable.add(searchTF).height(24f).growX()
 	}
@@ -104,7 +101,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		var counter = 0f
 		for (file in assetDiscoverer.currentChildFiles!!) {
 			val fileButton =
-				MetaIconTextButton(file.name(), assetProvider.getDrawable("ui/appbar.page.text.png"), maxWidth = 78)
+				MetaIconTextButton(file.name(), "ri-file-text-line", maxWidth = 78)
 			fileButton.onClick {
 				if (selectionMode) {
 					listener!!.onSelect(file)

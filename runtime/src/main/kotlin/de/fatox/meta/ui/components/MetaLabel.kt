@@ -26,7 +26,7 @@ import kotlin.math.roundToInt
  *
  * @author Nathan Sweet
  */
-class MetaLabel @JvmOverloads constructor(
+open class MetaLabel @JvmOverloads constructor(
 	text: CharSequence,
 	size: Int = 10,
 	color: Color? = Color.WHITE,
@@ -310,7 +310,7 @@ class MetaLabel @JvmOverloads constructor(
 	}
 
 	init {
-		font = metaFontProvider.getFont(size!!, type)
+		font = metaFontProvider.getFont(size, type)
 		adoptFontBaseScale()
 		setAlignment(Align.center)
 		fontColor = color

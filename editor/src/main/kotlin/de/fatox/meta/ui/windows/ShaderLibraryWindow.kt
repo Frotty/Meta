@@ -33,7 +33,7 @@ class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
 	}
 
 	private fun createToolbar() {
-		val visImageButton = MetaImageButton(assetProvider.getDrawable("ui/appbar.page.add.png"))
+		val visImageButton = MetaImageButton("ri-file-add-line")
 		visImageButton.onClick { uiManager.showDialog<ShaderWizardDialog>() }
 		contentTable.row().size(26f)
 		contentTable.add(visImageButton).size(24f).top().left()

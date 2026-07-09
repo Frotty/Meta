@@ -25,7 +25,7 @@ class PrimitivesWindow : MetaWindow("Primitives", true, true) {
 	private val renderer: Renderer by lazyInject()
 
 	init {
-		this.boxButton = MetaIconTextButton("Box", assetProvider.getDrawable("ui/appbar.box.png"))
+		this.boxButton = MetaIconTextButton("Box", "ri-box-3-line")
 		boxButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				for (i in 0..105) {

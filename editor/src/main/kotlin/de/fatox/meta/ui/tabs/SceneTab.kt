@@ -36,11 +36,11 @@ class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
 	override fun onShow() {
 		metaInput.addScreenInputProcessor(camControl)
 		editorUI.metaToolbar.clear()
-		editorUI.metaToolbar.addAvailableWindow(AssetDiscovererWindow::class, null)
-		editorUI.metaToolbar.addAvailableWindow(ShaderLibraryWindow::class, null)
-		editorUI.metaToolbar.addAvailableWindow(ShaderComposerWindow::class, null)
-		editorUI.metaToolbar.addAvailableWindow(SceneOptionsWindow::class, null)
-		editorUI.metaToolbar.addAvailableWindow(PrimitivesWindow::class, null)
+		editorUI.metaToolbar.addAvailableWindow(AssetDiscovererWindow::class)
+		editorUI.metaToolbar.addAvailableWindow(ShaderLibraryWindow::class)
+		editorUI.metaToolbar.addAvailableWindow(ShaderComposerWindow::class)
+		editorUI.metaToolbar.addAvailableWindow(SceneOptionsWindow::class)
+		editorUI.metaToolbar.addAvailableWindow(PrimitivesWindow::class)
 	}
 
 	override fun onHide() {
