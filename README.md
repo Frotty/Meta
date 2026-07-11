@@ -41,6 +41,8 @@ or use the row/column helpers for content layouts.
 
 Meta buttons manage pointer cursors automatically, background clicks release stale text-input focus, and opening a
 dialog cancels presses or drags that began behind it. These scene2d input details should not need consumer wiring.
+Tooltips can likewise be attached before an actor is shown and survive cached-window detach/re-attach cycles; their
+registry owns actors weakly, with `removeTooltip()` available for explicit early cleanup.
 
 UI icons are font-backed through Remix Icon. Prefer:
 

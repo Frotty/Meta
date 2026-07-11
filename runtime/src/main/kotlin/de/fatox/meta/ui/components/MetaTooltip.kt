@@ -18,6 +18,8 @@ import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
+import java.lang.ref.WeakReference
+import java.util.WeakHashMap
 import kotlin.math.max
 import kotlin.math.min
 
@@ -25,24 +27,16 @@ object MetaTooltip {
 	private data class AttachedTooltip(val attachment: Attachment, val listener: InputListener)
 	internal data class TextWidth(val width: Float, val wrap: Boolean)
 
-	private val attachments = ObjectMap<Actor, AttachedTooltip>(16)
-	private val detachedTargets = Array<Actor>(16)
+	private val attachments = WeakHashMap<Actor, AttachedTooltip>()
 	private val visibleTooltips = Array<MetaTable>(4)
 	private val layers = ObjectMap<Stage, Group>(2)
-	private val orphanCleanupTask = object : Task() {
-		override fun run() {
-			removeDetachedTargets()
-		}
-	}
 
 	private const val DEFAULT_SHOW_DELAY_SECONDS = 0f
 	private const val DEFAULT_HIDE_DELAY_SECONDS = 0.04f
 	private const val DEFAULT_MAX_WIDTH = 280f
-	private const val ORPHAN_CLEANUP_DELAY_SECONDS = 0.5f
-	private const val ORPHAN_CLEANUP_INTERVAL_SECONDS = 1f
 
 	private class Attachment(
-		private val target: Actor,
+		target: Actor,
 		private val tooltip: MetaTable,
 		private val label: MetaLabel,
 		private val labelCell: Cell<MetaLabel>,
@@ -51,6 +45,7 @@ object MetaTooltip {
 		hideDelaySeconds: Float,
 		maxWidth: Float,
 	) {
+		private val target = WeakReference(target)
 		private val targetMin = Vector2()
 		private val targetMax = Vector2()
 
@@ -90,6 +85,7 @@ object MetaTooltip {
 		}
 
 		fun requestShow() {
+			val target = target.get() ?: return
 			if (!canShow()) return
 			cancelHideTask()
 			cancelShowTask()
@@ -100,7 +96,8 @@ object MetaTooltip {
 			val stage = target.stage ?: return
 			showTask = Timer.schedule(object : Task() {
 				override fun run() {
-					if (!canShow() || target.stage != stage) return
+					val currentTarget = this@Attachment.target.get() ?: return
+					if (!canShow() || currentTarget.stage != stage) return
 					showNow()
 				}
 			}, showDelaySeconds)
@@ -127,6 +124,7 @@ object MetaTooltip {
 		}
 
 		private fun showNow() {
+			val target = target.get() ?: return
 			val stage = target.stage ?: return
 			val layer = layerFor(stage)
 			if (tooltip.parent !== layer) {
@@ -149,11 +147,13 @@ object MetaTooltip {
 		}
 
 		private fun canShow(): Boolean {
+			val target = target.get() ?: return false
 			if (target is Disableable && target.isDisabled) return false
 			return target.stage != null
 		}
 
 		private fun positionTooltip(stage: com.badlogic.gdx.scenes.scene2d.Stage) {
+			val target = target.get() ?: return
 			target.localToStageCoordinates(targetMin.set(0f, 0f))
 			target.localToStageCoordinates(targetMax.set(target.width, target.height))
 			val left = min(targetMin.x, targetMax.x)
@@ -210,6 +210,9 @@ object MetaTooltip {
 			hideTask?.cancel()
 			hideTask = null
 		}
+
+		fun configuredText(): String = label.text.toString()
+		fun isVisible(): Boolean = tooltip.isVisible && tooltip.stage != null
 	}
 
 	fun attach(
@@ -235,8 +238,7 @@ object MetaTooltip {
 			isVisible = false
 		}
 		val labelCell = tooltip.add(label).pad(MetaSpacing.SM)
-		lateinit var attachment: Attachment
-		attachment = Attachment(
+		val attachment = Attachment(
 			target = target,
 			tooltip = tooltip,
 			label = label,
@@ -250,19 +252,18 @@ object MetaTooltip {
 		val listener = object : InputListener() {
 			override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
 				if (pointer != -1) return
-				if (target is Disableable && target.isDisabled) return
 				attachment.requestShow()
 			}
 
 			override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
 				if (pointer != -1) return
-				if (toActor != null && (toActor === target || toActor.isDescendantOf(target))) return
+				val currentTarget = event.listenerActor
+				if (toActor != null && (toActor === currentTarget || toActor.isDescendantOf(currentTarget))) return
 				attachment.requestHide()
 			}
 		}
 		target.addListener(listener)
-		attachments.put(target, AttachedTooltip(attachment, listener))
-		scheduleOrphanCleanupIfNeeded()
+		attachments[target] = AttachedTooltip(attachment, listener)
 	}
 
 	fun remove(target: Actor?) {
@@ -270,7 +271,6 @@ object MetaTooltip {
 		val attached = attachments.remove(target) ?: return
 		attached.attachment.dispose()
 		target.removeListener(attached.listener)
-		if (attachments.size == 0) orphanCleanupTask.cancel()
 	}
 
 	// Keep parity with VisUI API shape.
@@ -283,30 +283,6 @@ object MetaTooltip {
 			current = current.parent
 		}
 		return false
-	}
-
-	private fun removeDetachedTargets() {
-		if (attachments.isEmpty) return
-
-		detachedTargets.clear()
-		for (entry in attachments) {
-			if (entry.key.stage == null) {
-				detachedTargets.add(entry.key)
-			}
-		}
-
-		for (i in 0 until detachedTargets.size) {
-			remove(detachedTargets[i])
-		}
-
-		detachedTargets.clear()
-
-		if (attachments.isEmpty) orphanCleanupTask.cancel()
-	}
-
-	private fun scheduleOrphanCleanupIfNeeded() {
-		if (orphanCleanupTask.isScheduled) return
-		Timer.schedule(orphanCleanupTask, ORPHAN_CLEANUP_DELAY_SECONDS, ORPHAN_CLEANUP_INTERVAL_SECONDS)
 	}
 
 	internal fun bringVisibleToFront() {
@@ -366,4 +342,8 @@ object MetaTooltip {
 		if (maxWidth <= 0f || contentWidth <= maxWidth) return TextWidth(contentWidth, false)
 		return TextWidth(maxWidth, true)
 	}
+
+	internal fun isAttached(target: Actor): Boolean = attachments.containsKey(target)
+	internal fun configuredText(target: Actor): String? = attachments[target]?.attachment?.configuredText()
+	internal fun isVisible(target: Actor): Boolean = attachments[target]?.attachment?.isVisible() == true
 }

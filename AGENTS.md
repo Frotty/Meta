@@ -37,6 +37,9 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
 - **Pointer cursors are automatic on Meta buttons.** The shared `cursorPointer()` behavior resolves the nearest
   enabled pointer actor, so nested controls do not fight over Hand/Arrow. Use it for custom clickable actors instead
   of installing raw cursor enter/exit listeners.
+- **Tooltips may be attached at construction time.** `actor.tooltip("...")` remains registered while an actor is
+  off-stage or temporarily detached in a cached window, and works again after re-attachment. Registrations use weak
+  actor ownership, so abandoned actors remain collectible; call `removeTooltip()` only for explicit early removal.
 - **Use `MetaIconButtonGroup` for icon tool palettes.** Brush/tool pickers should mark the active tool with
   `MetaIconButton.selected` / `MetaIconButtonGroup`, not scene2d checked state or Meta keyboard focus. Regular
   icon buttons stay momentary by default; the selected border is a visual-only active marker. For brush palettes,
