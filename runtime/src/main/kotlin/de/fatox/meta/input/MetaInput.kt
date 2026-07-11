@@ -1,5 +1,3 @@
-@file:Suppress("GDXKotlinUnsafeIterator")
-
 package de.fatox.meta.input
 
 import com.badlogic.gdx.Gdx
@@ -125,13 +123,15 @@ class MetaInput : MetaInputProcessor {
 			return false
 		}
 		if (screenKeyListeners.containsKey(keycode)) {
-			for (listener in screenKeyListeners[keycode]) listener.onDown()
+			val listeners = screenKeyListeners[keycode]
+			for (i in 0 until listeners.size) listeners[i].onDown()
 		}
 		if (globalKeyListeners.containsKey(keycode)) {
-			for (listener in globalKeyListeners[keycode]) listener.onDown()
+			val listeners = globalKeyListeners[keycode]
+			for (i in 0 until listeners.size) listeners[i].onDown()
 		}
-		for (processor in globalProcessors) processor.keyDown(keycode)
-		for (processor in screenProcessors) processor.keyDown(keycode)
+		for (i in 0 until globalProcessors.size) globalProcessors[i].keyDown(keycode)
+		for (i in 0 until screenProcessors.size) screenProcessors[i].keyDown(keycode)
 		return false
 	}
 
@@ -149,13 +149,15 @@ class MetaInput : MetaInputProcessor {
 			return false
 		}
 		if (screenKeyListeners.containsKey(keycode)) {
-			for (listener in screenKeyListeners[keycode]) listener.onUp()
+			val listeners = screenKeyListeners[keycode]
+			for (i in 0 until listeners.size) listeners[i].onUp()
 		}
 		if (globalKeyListeners.containsKey(keycode)) {
-			for (listener in globalKeyListeners[keycode]) listener.onUp()
+			val listeners = globalKeyListeners[keycode]
+			for (i in 0 until listeners.size) listeners[i].onUp()
 		}
-		for (processor in globalProcessors) processor.keyUp(keycode)
-		for (processor in screenProcessors) processor.keyUp(keycode)
+		for (i in 0 until globalProcessors.size) globalProcessors[i].keyUp(keycode)
+		for (i in 0 until screenProcessors.size) screenProcessors[i].keyUp(keycode)
 		return false
 	}
 
@@ -165,11 +167,11 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.keyTyped(character)
 			return false
 		}
-		for (processor in globalProcessors) {
-			processor.keyTyped(character)
+		for (i in 0 until globalProcessors.size) {
+			globalProcessors[i].keyTyped(character)
 		}
-		for (processor in screenProcessors) {
-			processor.keyTyped(character)
+		for (i in 0 until screenProcessors.size) {
+			screenProcessors[i].keyTyped(character)
 		}
 		return false
 	}
@@ -180,8 +182,8 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.touchDown(screenX, screenY, pointer, button)
 			return true
 		}
-		for (processor in globalProcessors) if (processor.touchDown(screenX, screenY, pointer, button)) return true
-		for (processor in screenProcessors) if (processor.touchDown(screenX, screenY, pointer, button)) return true
+		for (i in 0 until globalProcessors.size) if (globalProcessors[i].touchDown(screenX, screenY, pointer, button)) return true
+		for (i in 0 until screenProcessors.size) if (screenProcessors[i].touchDown(screenX, screenY, pointer, button)) return true
 		return true
 	}
 
@@ -191,8 +193,8 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.touchUp(screenX, screenY, pointer, button)
 			return false
 		}
-		for (processor in globalProcessors) if (processor.touchUp(screenX, screenY, pointer, button)) return true
-		for (processor in screenProcessors) if (processor.touchUp(screenX, screenY, pointer, button)) return true
+		for (i in 0 until globalProcessors.size) if (globalProcessors[i].touchUp(screenX, screenY, pointer, button)) return true
+		for (i in 0 until screenProcessors.size) if (screenProcessors[i].touchUp(screenX, screenY, pointer, button)) return true
 		return false
 	}
 
@@ -208,8 +210,8 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.touchDragged(screenX, screenY, pointer)
 			return false
 		}
-		for (processor in globalProcessors) if (processor.touchDragged(screenX, screenY, pointer)) return true
-		for (processor in screenProcessors) if (processor.touchDragged(screenX, screenY, pointer)) return true
+		for (i in 0 until globalProcessors.size) if (globalProcessors[i].touchDragged(screenX, screenY, pointer)) return true
+		for (i in 0 until screenProcessors.size) if (screenProcessors[i].touchDragged(screenX, screenY, pointer)) return true
 		return true
 	}
 
@@ -219,8 +221,8 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.mouseMoved(screenX, screenY)
 			return false
 		}
-		for (processor in globalProcessors) if (processor.mouseMoved(screenX, screenY)) return true
-		for (processor in screenProcessors) if (processor.mouseMoved(screenX, screenY)) return true
+		for (i in 0 until globalProcessors.size) if (globalProcessors[i].mouseMoved(screenX, screenY)) return true
+		for (i in 0 until screenProcessors.size) if (screenProcessors[i].mouseMoved(screenX, screenY)) return true
 		return false
 	}
 
@@ -230,10 +232,10 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.scrolled(amountX, amountY)
 			return true
 		}
-		for (listener in globalScrollListeners) listener.onScroll()
-		for (listener in screenScrollListeners) listener.onScroll()
-		for (processor in globalProcessors) if (processor.scrolled(amountX, amountY)) return true
-		for (processor in screenProcessors) if (processor.scrolled(amountX, amountY)) return true
+		for (i in 0 until globalScrollListeners.size) globalScrollListeners[i].onScroll()
+		for (i in 0 until screenScrollListeners.size) screenScrollListeners[i].onScroll()
+		for (i in 0 until globalProcessors.size) if (globalProcessors[i].scrolled(amountX, amountY)) return true
+		for (i in 0 until screenProcessors.size) if (screenProcessors[i].scrolled(amountX, amountY)) return true
 		return true
 	}
 }

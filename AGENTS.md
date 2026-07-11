@@ -133,8 +133,13 @@ here is **allocation rate** — minimize GC churn; most other micro-optimization
   (see `FPSGraph`). Reuse mutable temps (`Vector2`, `Color`, layout scratch) — keep them as fields, not locals.
 - **Use libGDX-native collections** (`Array`, `ObjectMap`, `IntMap`, `Pool`, `CharArray`) over the Kotlin/Java stdlib
   in hot code: they avoid boxing and let you control growth. `Pool` mutable objects you'd otherwise allocate per frame.
-- **Beware hidden allocations:** Kotlin lambdas that capture, `for (x in gdxArray)` iterators (the codebase suppresses
-  `GDXKotlinUnsafeIterator` and reuses iterators), autoboxing of `Int`/`Float` into generic collections, varargs.
+- **libGDX collection iterator quirk:** never iterate a libGDX `Array` with `for (value in array)`, `forEach`, or an
+  explicit iterator. libGDX reuses its `Array` iterators, so nested iteration over the same array can invalidate the
+  outer iterator and fail at runtime. Use an indexed loop (`for (i in 0 until array.size) array[i]`) whenever random
+  access is available; it is nesting-safe and avoids iterator overhead. Do not suppress `GDXKotlinUnsafeIterator` to
+  permit iterator-based loops.
+- **Beware hidden allocations:** Kotlin lambdas that capture, autoboxing of `Int`/`Float` into generic collections,
+  varargs, and iterator-based loops over other collection types.
 - **Don't chase what the JVM hides from you.** Cache-line layout, struct packing, manual SIMD, branch-elimination etc.
   are largely out of reach on the JVM (objects are boxed/scattered, the JIT decides) — spending effort there is mostly
   wasted. Spend it on: fewer allocations, fewer draw calls / batches, fewer scene2d invalidations, and algorithmic wins.
