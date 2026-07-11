@@ -98,6 +98,7 @@ abstract class Meta(
 					Gdx.app.postRunnable {
 						val audioVideoData = metaData.load(audioVideoDataKey)
 						audioVideoData?.let {
+							if (!audioVideoData.fullscreen) audioVideoData.captureWindowedBounds()
 							audioVideoData.fullscreen = !audioVideoData.fullscreen
 							metaData.save(audioVideoDataKey, audioVideoData)
 							audioVideoData.apply()

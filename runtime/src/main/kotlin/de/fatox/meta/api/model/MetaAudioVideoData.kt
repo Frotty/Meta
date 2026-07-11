@@ -3,7 +3,6 @@ package de.fatox.meta.api.model
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Graphics
 import de.fatox.meta.Meta
-import kotlin.math.abs
 
 
 data class MetaDisplayMode(
@@ -34,25 +33,49 @@ private inline val Graphics.DisplayMode.monitorIndex
 fun Graphics.DisplayMode.toMetaDisplayMode(): MetaDisplayMode = MetaDisplayMode(this)
 
 private fun getCurrentMonitor(): Graphics.Monitor {
-	val meta = Gdx.app.applicationListener as Meta
+	val graphics = Gdx.graphics
+	val monitors = graphics.monitors
+	val windowX = Meta.instance.windowHandler.x
+	val windowY = Meta.instance.windowHandler.y
+	val windowWidth = graphics.width.coerceAtLeast(1)
+	val windowHeight = graphics.height.coerceAtLeast(1)
+	val windowRight = windowX + windowWidth
+	val windowBottom = windowY + windowHeight
+	var bestMonitor = graphics.primaryMonitor
+	var bestOverlap = -1L
+	var bestCenterDistance = Long.MAX_VALUE
 
-	var currentMonitor = Gdx.graphics.primaryMonitor // Default to primary monitor
-	var minDistance = Int.MAX_VALUE // To find the closest monitor
-
-	for (monitor in Gdx.graphics.monitors) {
-		val mode = Gdx.graphics.getDisplayMode(monitor)
-		// Calculate the center of the monitor
-		val monitorCenterX = monitor.virtualX + mode.width / 2
-		val monitorCenterY = monitor.virtualY + mode.height / 2
-		// Calculate distance from window's top-left corner to monitor's center
-		val distance = (abs((monitorCenterX - meta.windowHandler.x).toDouble()) + abs((monitorCenterY - meta.windowHandler.y).toDouble())).toInt()
-
-		if (distance < minDistance) {
-			minDistance = distance
-			currentMonitor = monitor
+	for (i in monitors.indices) {
+		val monitor = monitors[i]
+		val mode = graphics.getDisplayMode(monitor)
+		val monitorRight = monitor.virtualX + mode.width
+		val monitorBottom = monitor.virtualY + mode.height
+		val overlapWidth = (minOf(windowRight, monitorRight) - maxOf(windowX, monitor.virtualX)).coerceAtLeast(0)
+		val overlapHeight = (minOf(windowBottom, monitorBottom) - maxOf(windowY, monitor.virtualY)).coerceAtLeast(0)
+		val overlap = overlapWidth.toLong() * overlapHeight.toLong()
+		val centerDx = (windowX * 2L + windowWidth) - (monitor.virtualX * 2L + mode.width)
+		val centerDy = (windowY * 2L + windowHeight) - (monitor.virtualY * 2L + mode.height)
+		val centerDistance = centerDx * centerDx + centerDy * centerDy
+		if (overlap > bestOverlap || overlap == bestOverlap && centerDistance < bestCenterDistance) {
+			bestOverlap = overlap
+			bestCenterDistance = centerDistance
+			bestMonitor = monitor
 		}
 	}
-	return currentMonitor
+	return bestMonitor
+}
+
+private fun displayModeFor(monitor: Graphics.Monitor, requested: MetaDisplayMode): Graphics.DisplayMode {
+	val graphics = Gdx.graphics
+	val modes = graphics.getDisplayModes(monitor)
+	var resolutionMatch: Graphics.DisplayMode? = null
+	for (i in modes.indices) {
+		val mode = modes[i]
+		if (mode.width != requested.width || mode.height != requested.height) continue
+		if (mode.refreshRate == requested.refreshRate && mode.bitsPerPixel == requested.bitsPerPixel) return mode
+		if (resolutionMatch == null || mode.refreshRate > resolutionMatch.refreshRate) resolutionMatch = mode
+	}
+	return resolutionMatch ?: graphics.getDisplayMode(monitor)
 }
 
 /**
@@ -78,18 +101,26 @@ data class MetaAudioVideoData(
 	var metaDisplayMode: MetaDisplayMode = MetaDisplayMode(),
 	var runWithUI: Boolean = true,
 ) {
+	fun captureWindowedBounds() {
+		if (Gdx.graphics.isFullscreen) return
+		x = Meta.instance.windowHandler.x
+		y = Meta.instance.windowHandler.y
+		width = Gdx.graphics.width
+		height = Gdx.graphics.height
+	}
+
 	fun apply() {
 		if (!runWithUI) return
 
 		if (fullscreen && Gdx.graphics.supportsDisplayModeChange()) {
-
-			val dm = Gdx.graphics.getDisplayMode(getCurrentMonitor())
+			val monitor = getCurrentMonitor()
+			val dm = displayModeFor(monitor, metaDisplayMode)
 			metaDisplayMode = dm.toMetaDisplayMode()
-
 			Gdx.graphics.setFullscreenMode(dm)
 		} else {
 			Gdx.graphics.setUndecorated(borderless)
 			Gdx.graphics.setWindowedMode(width, height)
+			Meta.instance.windowHandler.modify(x, y)
 		}
 		Gdx.graphics.setVSync(vsyncEnabled)
 		// LWJGL3 treats 0 as "never sleep" (uncapped); map any non-positive value to that.
