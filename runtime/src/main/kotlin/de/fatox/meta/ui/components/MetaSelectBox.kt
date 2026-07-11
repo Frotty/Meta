@@ -13,12 +13,13 @@ import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.UiControlHelper
 
 /**
  * Created by Frotty on 04.06.2016.
  */
-open class MetaSelectBox<T>(private val fontSize: Int = 22) : SelectBox<T>(MetaSkin.skin()), MetaFocusable, FontRefreshable {
+open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectBox<T>(MetaSkin.skin()), MetaFocusable, FontRefreshable {
 
 	private val uiControlHelper: UiControlHelper = inject()
 	private var wasHelperActive = false

@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.MetaTextButton
 
 /**
@@ -80,3 +81,17 @@ fun <T : Table> T.metaDefaults(pad: Float = MetaSpacing.SM): T = apply { default
 /** Adds a cell with standard Meta spacing around it. */
 fun <T : com.badlogic.gdx.scenes.scene2d.Actor> Table.addSpaced(actor: T, space: Float = MetaSpacing.SM): Cell<T> =
 	add(actor).pad(space)
+
+/** A content row with Meta's standard gap between children. Prefer this for ordinary control/action rows. */
+fun metaRow(spacing: Float = MetaSpacing.SM, init: MetaTable.() -> Unit = {}): MetaTable = MetaTable().apply {
+	left()
+	defaults().spaceRight(spacing)
+	init()
+}
+
+/** A content column with Meta's standard gap between children. Call [Table.row] between added children. */
+fun metaColumn(spacing: Float = MetaSpacing.SM, init: MetaTable.() -> Unit = {}): MetaTable = MetaTable().apply {
+	top().left()
+	defaults().growX().spaceBottom(spacing)
+	init()
+}

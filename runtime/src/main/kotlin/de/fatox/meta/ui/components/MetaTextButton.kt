@@ -14,7 +14,8 @@ import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
-import de.fatox.meta.util.GoldenRatio
+import de.fatox.meta.ui.MetaSpacing
+import de.fatox.meta.ui.MetaType
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -24,7 +25,7 @@ import kotlin.contracts.contract
  */
 open class MetaTextButton @JvmOverloads constructor(
 	text: String = "",
-	size: Int = 12,
+	size: Int = MetaType.BODY,
 	type: FontType = FontType.REGULAR
 ) :
 	Button(MetaSkin.skin().get(MetaSkin.BUTTON, Button.ButtonStyle::class.java)), MetaFocusable {
@@ -47,7 +48,7 @@ open class MetaTextButton @JvmOverloads constructor(
 
 
 	init {
-		pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20)
+		pad(MetaSpacing.SM, MetaSpacing.MD, MetaSpacing.SM, MetaSpacing.MD)
 		labelCell = add(label)
 		centerText()
 		cursorPointer()
@@ -100,7 +101,7 @@ open class MetaTextButton @JvmOverloads constructor(
 @OptIn(ExperimentalContracts::class)
 inline fun MetaTextButton(
 	text: String = "",
-	size: Int = 12,
+	size: Int = MetaType.BODY,
 	type: FontType = FontType.REGULAR,
 	init: MetaTextButton.() -> Unit
 ): MetaTextButton {

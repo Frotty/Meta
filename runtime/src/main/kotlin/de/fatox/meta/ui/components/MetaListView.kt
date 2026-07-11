@@ -9,6 +9,7 @@ import de.fatox.meta.reactive.Disposable
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
+import de.fatox.meta.ui.MetaSpacing
 
 class MetaListView<ItemT>(private val adapter: MetaArrayAdapter<ItemT, out Actor>) {
 	val mainTable = MetaTable()
@@ -20,6 +21,7 @@ class MetaListView<ItemT>(private val adapter: MetaArrayAdapter<ItemT, out Actor
 	}
 
 	init {
+		mainTable.defaults().spaceBottom(MetaSpacing.XXS)
 		rebuildView()
 	}
 

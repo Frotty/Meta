@@ -18,8 +18,10 @@ import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.viewport.Viewport
@@ -30,6 +32,7 @@ import de.fatox.meta.input.KeyListener
 import de.fatox.meta.input.MetaUiAction
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.input.ScrollListener
+import de.fatox.meta.ui.components.MetaScrollPane
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.test.GdxTestEnvironment
@@ -86,6 +89,30 @@ internal class UiControlHelperTest {
 			"focused ${renderer.currentFocusedActor?.name}, top=${edges(top)}, bottom=${edges(bottom)}"
 		)
 		assertSame(bottom, helper.focusedActor.value)
+	}
+
+	@Test
+	fun `nested MetaScrollPanes claim and restore mouse wheel focus on hover`() {
+		val outerContent = Group()
+		val innerContent = Actor()
+		val outer = MetaScrollPane(null, ScrollPane.ScrollPaneStyle())
+		val inner = MetaScrollPane(null, ScrollPane.ScrollPaneStyle())
+		outer.setActor(outerContent)
+		inner.setActor(innerContent)
+		outerContent.addActor(inner)
+		stage.addActor(outer)
+
+		outerContent.fire(mouseHoverEvent(InputEvent.Type.enter))
+		assertSame(outer, stage.scrollFocus)
+
+		innerContent.fire(mouseHoverEvent(InputEvent.Type.enter))
+		assertSame(inner, stage.scrollFocus)
+
+		innerContent.fire(mouseHoverEvent(InputEvent.Type.exit))
+		assertSame(outer, stage.scrollFocus)
+
+		outerContent.fire(mouseHoverEvent(InputEvent.Type.exit))
+		assertNull(stage.scrollFocus)
 	}
 
 	@Test
@@ -227,6 +254,11 @@ internal class UiControlHelperTest {
 
 	private fun testRoot(): Group =
 		Group().apply { setBounds(0f, 0f, 800f, 600f) }
+
+	private fun mouseHoverEvent(type: InputEvent.Type): InputEvent = InputEvent().apply {
+		this.type = type
+		pointer = -1
+	}
 
 	private fun edges(actor: Actor): String {
 		val tmp = Vector2()

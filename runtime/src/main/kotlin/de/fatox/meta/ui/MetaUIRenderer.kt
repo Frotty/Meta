@@ -86,7 +86,8 @@ class MetaUIRenderer : UIRenderer {
 
 		stage.root.addCaptureListener(object : InputListener() {
 			override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
-				if (!(event.target is TextField || event.target is ScrollPane)) stage.scrollFocus = null
+				if (!event.target.isInside<TextField>()) stage.keyboardFocus = null
+				if (!event.target.isInside<ScrollPane>()) stage.scrollFocus = null
 				return false
 			}
 		})
@@ -111,6 +112,17 @@ class MetaUIRenderer : UIRenderer {
 				"${g.backBufferHeight} | contentScale ${g.backBufferWidth.toFloat() / g.width} | density ${g.density}"
 		}
 	}
+
+	private inline fun <reified T : Actor> Actor?.isInside(): Boolean {
+		var current = this
+		while (current != null) {
+			if (current is T) return true
+			current = current.parent
+		}
+		return false
+	}
+
+	override fun cancelTouchFocus() = stage.cancelTouchFocus()
 
 	private fun loadVisUI() {
 		if (visuiSkin != "") {

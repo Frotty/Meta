@@ -282,6 +282,8 @@ class MetaUiManager : UIManager {
 		// Dialogs are just Window subtypes, so we show it as usual.
 		return showWindow(dialogClass).apply {
 			if (!preventShowWindow) {
+				// A press/drag that began behind the modal must not complete through it after the dialog appears.
+				uiRenderer.cancelTouchFocus()
 				// Defense-in-depth for the input contract: a fresh modal should start with NO exclusive grab active.
 				// If one is still set here it means a previous owner (e.g. a key-rebind dialog) leaked it without
 				// popping - a real bug that would otherwise make this dialog's buttons silently dead. Surface it

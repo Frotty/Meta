@@ -3,6 +3,8 @@ package de.fatox.meta.ui.windows
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import de.fatox.meta.api.extensions.onClick
+import de.fatox.meta.ui.MetaSpacing
+import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaTextButton
 import kotlin.math.roundToInt
@@ -10,7 +12,8 @@ import kotlin.math.roundToInt
 /**
  * Created by Frotty on 14.06.2016.
  */
-class MetaConfirmDialog(title: String = "", message: String?) : MetaWindow(title, false, true) {
+class MetaConfirmDialog(title: String = "", message: String?) :
+	MetaWindow(title, false, true, hasHeader = title.isNotBlank()) {
 	fun show(stage: Stage) {
 		pack()
 		setColor(1f, 1f, 1f, 0f)
@@ -23,9 +26,9 @@ class MetaConfirmDialog(title: String = "", message: String?) : MetaWindow(title
 	}
 
 	init {
-		defaults().pad(4f)
-		add(MetaLabel(message ?: "", 14)).growX()
+		defaults().pad(MetaSpacing.SM)
+		add(MetaLabel(message ?: "", MetaType.BODY)).growX()
 		row()
-		add(MetaTextButton("Close", 14).onClick { close() })
+		add(MetaTextButton("Close").onClick { close() }).right()
 	}
 }

@@ -19,6 +19,29 @@ Your own source in the JVM language of your choice will always remain the core o
 Meta's UI layer is built around TTF-backed scene2d widgets so games and editor screens share one rendering path:
 `MetaLabel`, `MetaTextButton`, `MetaIconTextButton`, `MetaSelectBox`, `MetaTextField`, `MetaCheckBox`, and friends.
 
+The default constructors use the `MetaType.BODY` type scale and generated Meta skin. Compose ordinary content with
+`metaRow` and `metaColumn`; they apply the standard spacing rhythm without forcing padding into low-level structural
+tables. Use `MetaInputLayout.field` / `area` for label + input + helper/error compositions and `MetaScrollPane` for
+scrollable content. Scroll panes automatically follow the mouse and restore an outer pane after leaving a nested one,
+so ordinary wheel scrolling needs no focus wiring.
+
+```kotlin
+val form = metaColumn {
+    add(MetaInputLayout.field("Name", placeholder = "Player name")).row()
+    add(metaRow {
+        add(MetaTextButton("Cancel"))
+        add(MetaIconTextButton("Create", "ri-add-line"))
+    }).right().row()
+}
+```
+
+`MetaIconTextButton` is a compact horizontal action by default. Set `vertical = true` only for explicit icon tiles.
+`MetaTable` deliberately remains neutral for structural scene2d layout; opt into `MetaTable(defaultSpacing = true)`
+or use the row/column helpers for content layouts.
+
+Meta buttons manage pointer cursors automatically, background clicks release stale text-input focus, and opening a
+dialog cancels presses or drags that began behind it. These scene2d input details should not need consumer wiring.
+
 UI icons are font-backed through Remix Icon. Prefer:
 
 ```kotlin

@@ -12,6 +12,7 @@ import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.MetaSpacing
 import kotlin.math.abs
 
 /**
@@ -58,13 +59,13 @@ class SliderWithButtons(
 		})
 
 		if (!vertical) {
-			add<Button>(decrementButton).height(40f).width(26f)
-			add(slider).grow().padLeft(6f).padRight(6f)
-			add<Button>(incrementButton).height(40f).width(26f)
+			add<Button>(decrementButton).size(STEP_BUTTON_SIZE)
+			add(slider).growX().padLeft(MetaSpacing.SM).padRight(MetaSpacing.SM)
+			add<Button>(incrementButton).size(STEP_BUTTON_SIZE)
 		} else {
-			add<Button>(incrementButton).height(40f).width(26f).row()
-			add(slider).expand().fill().row()
-			add<Button>(decrementButton).height(40f).width(26f)
+			add<Button>(incrementButton).size(STEP_BUTTON_SIZE).row()
+			add(slider).growY().padTop(MetaSpacing.SM).padBottom(MetaSpacing.SM).row()
+			add<Button>(decrementButton).size(STEP_BUTTON_SIZE)
 		}
 	}
 
@@ -74,5 +75,9 @@ class SliderWithButtons(
 				if (!slider.isDisabled) slider.value = slider.value + delta
 			}
 		})
+	}
+
+	private companion object {
+		const val STEP_BUTTON_SIZE = 32f
 	}
 }

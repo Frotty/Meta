@@ -13,6 +13,7 @@ import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.MetaType
 
 interface MetaSpinnerModel {
 	fun getSpinnerModel(): SpinnerModel
@@ -144,7 +145,7 @@ private class MetaSpinnerModelAdapter(
  */
 open class MetaSpinner @JvmOverloads constructor(
 	spinnerModel: MetaSpinnerModel,
-	private val fontSize: Int = 22,
+	private val fontSize: Int = MetaType.BODY,
 ) : Spinner("", spinnerModel.getSpinnerModel()), FontRefreshable {
 	val metaModel: MetaSpinnerModel = spinnerModel
 
@@ -152,7 +153,7 @@ open class MetaSpinner @JvmOverloads constructor(
 		message = "Pass a MetaSpinnerModel (e.g. MetaIntSpinnerModel/MetaFloatSpinnerModel) instead.",
 		level = DeprecationLevel.WARNING,
 	)
-	constructor(spinnerModel: SpinnerModel, fontSize: Int = 22) : this(
+	constructor(spinnerModel: SpinnerModel, fontSize: Int = MetaType.BODY) : this(
 		MetaSpinnerModelAdapter(spinnerModel),
 		fontSize
 	)

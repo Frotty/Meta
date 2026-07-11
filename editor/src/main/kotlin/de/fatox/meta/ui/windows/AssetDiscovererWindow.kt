@@ -101,7 +101,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		var counter = 0f
 		for (file in assetDiscoverer.currentChildFiles!!) {
 			val fileButton =
-				MetaIconTextButton(file.name(), "ri-file-text-line", maxWidth = 78)
+				MetaIconTextButton(file.name(), "ri-file-text-line", maxWidth = 78, vertical = true)
 			fileButton.onClick {
 				if (selectionMode) {
 					listener!!.onSelect(file)

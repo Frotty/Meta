@@ -3,6 +3,8 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
+import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import com.kotcrab.vis.ui.util.InputValidator
@@ -57,6 +59,7 @@ class MetaInputLayout<T : Actor> @JvmOverloads constructor(
 	}
 
 	private var reactiveScope = ReactiveScope()
+	private val feedbackCell: Cell<MetaLabel>
 
 	init {
 		defaults().left()
@@ -64,7 +67,8 @@ class MetaInputLayout<T : Actor> @JvmOverloads constructor(
 		row()
 		add(input).growX().minHeight(if (input is MetaTextArea) TEXT_AREA_MIN_HEIGHT else FIELD_MIN_HEIGHT)
 		row()
-		add(feedback).growX().padTop(MetaSpacing.XS)
+		feedbackCell = add(feedback).growX()
+		updateFeedbackVisibility(feedbackTextValue.value.isNotEmpty())
 		installReactiveBindings()
 	}
 
@@ -121,11 +125,18 @@ class MetaInputLayout<T : Actor> @JvmOverloads constructor(
 			feedback.color.set(feedbackColorValue.value)
 		}
 		reactiveScope.effect("MetaInputLayout.feedbackVisible") {
-			feedback.isVisible = feedbackTextValue.value.isNotEmpty()
+			updateFeedbackVisibility(feedbackTextValue.value.isNotEmpty())
 		}
 		reactiveScope.effect("MetaInputLayout.clearError") {
 			if (inputValidValue.value) errorTextValue.value = ""
 		}
+	}
+
+	private fun updateFeedbackVisibility(visible: Boolean) {
+		feedback.isVisible = visible
+		feedbackCell.padTop(if (visible) MetaSpacing.XS else MetaSpacing.NONE)
+		feedbackCell.height(if (visible) Value.prefHeight else Value.Fixed(0f))
+		invalidateHierarchy()
 	}
 
 	companion object {

@@ -34,6 +34,9 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
   `ui/icons/remixicon.tsv`); search it for supported names/categories instead of adding a giant enum. Do not add
   singular texture assets for ordinary UI glyphs. Bitmap textures are for actual game/editor art, logos, previews,
   screenshots, skin atlases, or generated drawables that cannot be expressed as a Remix icon.
+- **Pointer cursors are automatic on Meta buttons.** The shared `cursorPointer()` behavior resolves the nearest
+  enabled pointer actor, so nested controls do not fight over Hand/Arrow. Use it for custom clickable actors instead
+  of installing raw cursor enter/exit listeners.
 - **Use `MetaIconButtonGroup` for icon tool palettes.** Brush/tool pickers should mark the active tool with
   `MetaIconButton.selected` / `MetaIconButtonGroup`, not scene2d checked state or Meta keyboard focus. Regular
   icon buttons stay momentary by default; the selected border is a visual-only active marker. For brush palettes,
@@ -42,14 +45,26 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
   drawn glyphs.
 - **Design tokens live in `ui/MetaUi.kt`** — `MetaType` (typographic scale in px: CAPTION…DISPLAY), `MetaSpacing`
   (padding rhythm), `MetaColor` (dark palette). Prefer these over magic numbers/colors. Helpers: `metaLabel(...)`,
-  `metaButton(...)`, `Table.metaDefaults()`. `MetaColor` values are shared mutable `Color`s — treat read-only, use
-  `.cpy()` for variants.
+  `metaButton(...)`, `metaRow { ... }`, `metaColumn { ... }`, `Table.metaDefaults()`. Default text controls use
+  `MetaType.BODY`; pass a different token only when the hierarchy calls for it. `MetaTable` stays neutral because it
+  is also the structural layout primitive: use `MetaTable(defaultSpacing = true)` or the row/column helpers for normal
+  content rather than repeating cell gaps manually. `MetaColor` values are shared mutable `Color`s — treat read-only,
+  use `.cpy()` for variants.
+- **Take the composed-control path first.** For forms use `MetaInputLayout.field(...)` / `.area(...)`; these provide
+  label, field sizing, helper/error presentation, and collapse unused feedback space. `MetaIconTextButton` lays out a
+  normal horizontal icon + label action by default; use `vertical = true` only for deliberate tile/grid controls.
+  `SliderWithButtons` already supplies consistently sized step actions. Extend these reusable defaults when a common
+  composition is missing instead of rebuilding it in each screen.
 - **Use `MetaScrollPane`, not raw `ScrollPane`/`VisScrollPane`.** It owns Meta's thin generated scrollbar style,
-  mouse-wheel step, and the right-side content gutter so text/icons never sit flush against the scrollbar. If you need
-  a scrollable list, wrap it in `MetaScrollPane` and let the component enforce the padding.
+  mouse-wheel step, right-side content gutter, and automatic hover-based scroll focus. Nested panes claim focus on
+  mouse enter and restore the containing pane on exit, so consumers must not add their own scroll-focus listeners. If
+  you need a scrollable list, wrap it in `MetaScrollPane` and let the component enforce the behavior and padding.
 - **Use `MetaBottomBar` for bottom prompt/status strips.** It is a generic, content-width container with rounded top
   corners and reactive visibility/content binding helpers; keep game-specific glyph/font lookup in the consuming game
   and pass the resulting actor as content.
+- **Window chrome and dialog actions are automatic.** `MetaWindow` has a title header and separator by default.
+  Untitled `MetaDialog`/`MetaConfirmDialog` presentations collapse that header completely. Add dialog actions through
+  `addButton`; the shared action row owns its border padding, so consumers must not compensate with one-off edge pads.
 - **Verify layouts with `ui/layout/MetaLayout`** instead of only eyeballing the running game. `MetaLayout.problems(root)`
   / `assertValid(root)` find overflow (child outside parent) and clipping (actor smaller than its preferred size).
   It is pure geometry (no GL), so it runs in plain unit tests: bootstrap with `GdxTestEnvironment.ensure()` (test
@@ -73,6 +88,9 @@ A whole class of "the dialog opens but its buttons are dead (no visible cause) a
   `UIManager.showDialog` logs a warning and resets it so input survives — but fix the leak at its source.
 - Same rule for any other global contract you set when showing UI (stage capture listeners, controller listeners,
   `UiControlHelper` flags, `Gdx.input.inputProcessor`): set it on show, undo it on hide. Don't rely on the happy path.
+- `UIManager.showDialog` cancels existing scene2d touch focus before the modal takes over, preventing a press/drag
+  begun behind the dialog from completing through it. Normal clicks outside text inputs also clear stale keyboard
+  focus automatically; do not duplicate either behavior in consumers.
 
 ## Reactive state — USE THIS, don't reinvent it
 Meta has ONE ground-truth reactivity system (`de.fatox.meta.reactive`). Prefer it over ad-hoc

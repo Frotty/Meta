@@ -13,7 +13,8 @@ import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
-import de.fatox.meta.util.GoldenRatio
+import de.fatox.meta.ui.MetaSpacing
+import de.fatox.meta.ui.MetaType
 
 /**
  * Created by Frotty on 04.06.2016.
@@ -21,8 +22,9 @@ import de.fatox.meta.util.GoldenRatio
 class MetaIconTextButton private constructor(
 	text: String,
 	iconActor: Actor,
-	size: Int = 12,
+	size: Int = MetaType.BODY,
 	maxWidth: Int? = null,
+	vertical: Boolean = false,
 ) : Button(MetaSkin.skin().get(MetaSkin.BUTTON, Button.ButtonStyle::class.java)), MetaFocusable {
 	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE).apply {
 		setAlignment(Align.center)
@@ -43,28 +45,34 @@ class MetaIconTextButton private constructor(
 	constructor(
 		text: String,
 		drawable: Drawable?,
-		size: Int = 12,
+		size: Int = MetaType.BODY,
 		maxWidth: Int? = null,
+		vertical: Boolean = false,
 	) : this(text, com.badlogic.gdx.scenes.scene2d.ui.Image(drawable).apply {
 		touchable = Touchable.disabled
-	}, size, maxWidth)
+	}, size, maxWidth, vertical)
 
 	constructor(
 		text: String,
 		icon: String,
-		size: Int = 12,
+		size: Int = MetaType.BODY,
 		iconSize: Int = 24,
 		maxWidth: Int? = null,
 		iconColor: Color? = Color.WHITE,
-	) : this(text, MetaIcon(icon, iconSize, iconColor).apply { touchable = Touchable.disabled }, size, maxWidth)
+		vertical: Boolean = false,
+	) : this(text, MetaIcon(icon, iconSize, iconColor).apply { touchable = Touchable.disabled }, size, maxWidth, vertical)
 
 	init {
 		iconActor.touchable = Touchable.disabled
 		label.touchable = Touchable.disabled
-		pad(GoldenRatio.C * 10, GoldenRatio.A * 20, GoldenRatio.C * 10, GoldenRatio.A * 20)
-		add(iconActor).center().grow()
-		row()
-		add(label).center().grow().pad(2f)
+		pad(MetaSpacing.SM, MetaSpacing.MD, MetaSpacing.SM, MetaSpacing.MD)
+		add(iconActor).center()
+		if (vertical) {
+			row()
+			add(label).center().growX().padTop(MetaSpacing.XS)
+		} else {
+			add(label).center().growX().padLeft(MetaSpacing.SM)
+		}
 		cursorPointer()
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {

@@ -36,6 +36,8 @@ abstract class MetaWindow(
 	title: String,
 	resizable: Boolean = false,
 	closeButton: Boolean = false,
+	/** Disable only for presentations such as untitled dialogs that intentionally have no window chrome. */
+	hasHeader: Boolean = true,
 ) : Window(title, MetaSkin.skin(), if (resizable) MetaSkin.WINDOW_RESIZABLE else MetaSkin.WINDOW), FontRefreshable {
 	protected val uiManager: UIManager by lazyInject()
 	protected val assetProvider: AssetProvider by lazyInject()
@@ -55,11 +57,13 @@ abstract class MetaWindow(
 
 	private var startDrag = false
 	private var fadeInAction: Action? = null
+	private val headerEnabled = hasHeader
 
 	/** The provider font generation this window's fonts were fetched for; see [refreshFontsIfStale]. */
 	private var fontGeneration = 0
 	private val headerSeparator = MetaSeparator().apply {
 		touchable = Touchable.disabled
+		isVisible = headerEnabled
 	}
 	private val resizeIndicator = MetaResizeGrip().apply {
 		touchable = Touchable.disabled
@@ -74,6 +78,7 @@ abstract class MetaWindow(
 
 		titleTable.apply {
 			clearChildren()
+			isVisible = headerEnabled
 			left().top()
 			add(titleLabel).growX().height(HEADER_CONTENT_HEIGHT).padLeft(MetaSpacing.SM)
 			if (closeButton) {
@@ -103,7 +108,7 @@ abstract class MetaWindow(
 			super.setResizable(true)
 		}
 		applyWindowMetrics(resizable)
-		contentTable.top().left().pad(5f, 1f, 1f, 1f)
+		contentTable.top().left()
 		add(contentTable).top().grow().pad(MetaSpacing.XS)
 		row()
 		addActor(headerSeparator)
@@ -240,15 +245,18 @@ abstract class MetaWindow(
 	}
 
 	private fun applyWindowMetrics(resizable: Boolean) {
-		padTop(HEADER_HEIGHT)
-		padLeft(1f)
-		padRight(1f)
-		padBottom(if (resizable) RESIZE_BOTTOM_PAD else 1f)
+		padTop(if (headerEnabled) HEADER_HEIGHT else BORDER_PAD)
+		padLeft(BORDER_PAD)
+		padRight(BORDER_PAD)
+		padBottom(if (resizable) RESIZE_BOTTOM_PAD else BORDER_PAD)
 	}
 
 	private fun positionChrome() {
-		headerSeparator.setBounds(1f, height - HEADER_HEIGHT, width - 2f, HEADER_SEPARATOR_HEIGHT)
-		headerSeparator.toFront()
+		headerSeparator.isVisible = headerEnabled
+		if (headerEnabled) {
+			headerSeparator.setBounds(1f, height - HEADER_HEIGHT, width - 2f, HEADER_SEPARATOR_HEIGHT)
+			headerSeparator.toFront()
+		}
 		resizeIndicator.isVisible = isResizable
 		if (!resizeIndicator.isVisible) return
 		resizeIndicator.setBounds(
@@ -264,6 +272,7 @@ abstract class MetaWindow(
 		const val HEADER_HEIGHT = 32f
 		const val HEADER_CONTENT_HEIGHT = 30f
 		const val HEADER_SEPARATOR_HEIGHT = 1f
+		const val BORDER_PAD = 1f
 		const val CLOSE_BUTTON_SIZE = 24f
 		const val RESIZE_BOTTOM_PAD = 11f
 		const val RESIZE_INDICATOR_SIZE = 12f

@@ -50,18 +50,42 @@ inline fun <reified T : Actor> T.removeTooltip() {
 	MetaTooltip.remove(this)
 }
 
-inline fun <reified T : Actor> T.cursorPointer() {
-	addListener(object : InputListener() {
-		override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
-			if (this@cursorPointer is Disableable && (this@cursorPointer as Disableable).isDisabled) return
-			Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Hand);
-			super.enter(event, x, y, pointer, fromActor)
-		}
+fun <T : Actor> T.cursorPointer(): T {
+	for (i in 0 until listeners.size) if (listeners[i] is PointerCursorListener) return this
+	addListener(PointerCursorListener(this))
+	return this
+}
 
-		override fun exit(event: InputEvent?, x: Float, y: Float, pointer: Int, toActor: Actor?) {
-			if (this@cursorPointer is Disableable && (this@cursorPointer as Disableable).isDisabled) return
-			Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow);
-			super.exit(event, x, y, pointer, toActor)
+private class PointerCursorListener(private val owner: Actor) : InputListener() {
+	override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+		if (pointer == MOUSE_POINTER && event.target.nearestEnabledPointerOwner() === owner) setPointerCursor(true)
+	}
+
+	override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+		if (pointer == MOUSE_POINTER && event.target.nearestEnabledPointerOwner() === owner) {
+			setPointerCursor(toActor.nearestEnabledPointerOwner() != null)
 		}
-	})
+	}
+
+	private fun Actor?.nearestEnabledPointerOwner(): Actor? {
+		var actor = this
+		while (actor != null) {
+			val disabled = actor is Disableable && actor.isDisabled
+			if (!disabled) {
+				for (i in 0 until actor.listeners.size) {
+					if (actor.listeners[i] is PointerCursorListener) return actor
+				}
+			}
+			actor = actor.parent
+		}
+		return null
+	}
+
+	private fun setPointerCursor(pointer: Boolean) {
+		Gdx.graphics.setSystemCursor(if (pointer) Cursor.SystemCursor.Hand else Cursor.SystemCursor.Arrow)
+	}
+
+	private companion object {
+		const val MOUSE_POINTER = -1
+	}
 }

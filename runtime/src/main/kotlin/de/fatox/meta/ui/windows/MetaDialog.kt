@@ -9,6 +9,7 @@ import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.UiControlHelper
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaIconButton
@@ -17,7 +18,8 @@ import de.fatox.meta.ui.components.MetaTable
 /**
  * Created by Frotty on 04.06.2016.
  */
-abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWindow(title, false, hasCloseButton) {
+abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
+	MetaWindow(title, false, hasCloseButton, hasHeader = title.isNotBlank()) {
 	protected val buttonTable = MetaTable()
 	protected val statusLabel = MetaLabel("", 14)
 
@@ -119,11 +121,11 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) : MetaWin
 			val btn = titleTable.cells[titleTable.cells.size - 1].actor
 			(btn as? MetaIconButton)?.onChange { dialogListener.onResult(null) }
 		}
-		contentTable.top().padTop(4f)
+		contentTable.top()
 		statusLabel.setAlignment(Align.center)
 		statusLabel.setWrap(true)
 		add(statusLabel).growX()
 		row()
-		add(buttonTable).bottom().growX()
+		add(buttonTable).bottom().growX().pad(MetaSpacing.SM)
 	}
 }

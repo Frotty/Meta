@@ -15,6 +15,8 @@ interface UIRenderer : Disposable {
 	fun getCamera(): Camera
 	fun getToastManager(): MetaToastManager
 	fun setFocusedActor(actor: Actor?)
+	/** Cancels scene2d presses/drags before a modal takes over input. */
+	fun cancelTouchFocus() = Unit
 
 	/**
 	 * Global UI scale factor (1.0 = one UI unit per physical pixel). Increase it on HiDPI / 4K / Retina displays so

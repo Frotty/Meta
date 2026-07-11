@@ -15,6 +15,7 @@ import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FontRefreshable
+import de.fatox.meta.ui.MetaType
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -31,7 +32,7 @@ import kotlin.math.roundToInt
  */
 open class MetaLabel @JvmOverloads constructor(
 	text: CharSequence,
-	size: Int = 10,
+	size: Int = MetaType.BODY,
 	color: Color? = Color.WHITE,
 	type: FontType = FontType.REGULAR
 ) : Widget(), FontRefreshable {
@@ -362,7 +363,7 @@ open class MetaLabel @JvmOverloads constructor(
 @OptIn(ExperimentalContracts::class)
 inline fun MetaLabel(
 	text: CharSequence,
-	size: Int = 10,
+	size: Int = MetaType.BODY,
 	color: Color? = Color.WHITE,
 	type: FontType = FontType.REGULAR,
 	init: MetaLabel.() -> Unit

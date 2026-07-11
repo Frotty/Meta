@@ -162,6 +162,39 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
+	fun `MetaInputLayout collapses an empty feedback row`() {
+		val layout = MetaInputLayout.field(labelText = "Name", fontProvider = fontProvider)
+		layout.pack()
+		val withoutFeedback = layout.prefHeight
+
+		layout.setHelperText("Helpful context")
+		layout.pack()
+
+		assertTrue(layout.feedback.isVisible)
+		assertTrue(layout.prefHeight > withoutFeedback)
+
+		layout.setHelperText("")
+		layout.pack()
+		assertFalse(layout.feedback.isVisible)
+		assertEquals(withoutFeedback, layout.prefHeight)
+	}
+
+	@Test
+	fun `MetaIconTextButton is horizontal by default and supports explicit tiles`() {
+		val skin = VisUI.getSkin()
+		skin.add(MetaSkin.BUTTON, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+
+		val action = MetaIconTextButton("Open", BaseDrawable())
+		val tile = MetaIconTextButton("Open", BaseDrawable(), vertical = true)
+
+		assertEquals(0, action.rows)
+		assertEquals(2, action.cells.size)
+		assertEquals(1, tile.rows)
+	}
+
+	@Test
 	fun `refreshFontsRecursively re-fetches fonts into nested Meta widgets after a rebuild`() {
 		val secondFont = testFont()
 		var currentFont = font
