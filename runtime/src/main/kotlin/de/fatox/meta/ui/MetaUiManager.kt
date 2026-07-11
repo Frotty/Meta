@@ -5,7 +5,9 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
@@ -42,6 +44,9 @@ import kotlin.reflect.KClass
 
 private val log = MetaLoggerFactory.logger {}
 
+internal fun contextualBottomOverlay(screenOverlay: Actor?, hasModal: Boolean, modalOverlay: Actor?): Actor? =
+	if (hasModal) modalOverlay else screenOverlay
+
 /**
  * Created by Frotty on 20.05.2016.
  */
@@ -54,6 +59,13 @@ class MetaUiManager : UIManager {
 	private val displayedWindows = Array<Window>()
 	private var mainMenuBar: MetaMenuBar? = null
 	private val contentTable = Table()
+	private val bottomOverlayLayer = Table().apply {
+		setFillParent(true)
+		bottom()
+		touchable = Touchable.disabled
+	}
+	private var screenBottomOverlay: Actor? = null
+	private var displayedBottomOverlay: Actor? = null
 	private var currentScreenId: String = "(none)"
 	private val screenMetaDataKeys = mutableMapOf<String, MetaDataKey<*>>()
 	private val whitePixelTexture = Pixmap(1, 1, Pixmap.Format.RGBA8888).let { pixmap ->
@@ -93,8 +105,18 @@ class MetaUiManager : UIManager {
 			backdrop.setSize(topStage.width, topStage.height) // UI units (stage world), not physical pixels
 			backdrop.remove()
 			topStage.root.addActorBefore(top, backdrop)
+			updateBottomOverlay(contextualBottomOverlay(screenBottomOverlay, hasModal = true, top.bottomOverlay))
+			if (displayedBottomOverlay != null) {
+				bottomOverlayLayer.remove()
+				topStage.root.addActorBefore(top, bottomOverlayLayer)
+			}
 		} else {
 			backdrop.remove()
+			updateBottomOverlay(contextualBottomOverlay(screenBottomOverlay, hasModal = false, modalOverlay = null))
+			if (displayedBottomOverlay != null) {
+				if (bottomOverlayLayer.stage == null) uiRenderer.addActor(bottomOverlayLayer)
+				bottomOverlayLayer.toFront()
+			}
 		}
 		// Refocus only when the top dialog actually changes, so we never steal focus from a field the user clicked.
 		if (top !== topDialog) {
@@ -126,6 +148,29 @@ class MetaUiManager : UIManager {
 	override val uiWidth: Float get() = uiRenderer.uiWidth
 	override val uiHeight: Float get() = uiRenderer.uiHeight
 
+	override fun setBottomOverlay(overlay: Actor?) {
+		if (screenBottomOverlay === overlay) return
+		screenBottomOverlay = overlay
+		modalRevision.update { it + 1 }
+	}
+
+	override fun onDialogBottomOverlayChanged(dialog: MetaDialog) {
+		if (modalDialogs.contains(dialog)) modalRevision.update { it + 1 }
+	}
+
+	private fun updateBottomOverlay(overlay: Actor?) {
+		if (displayedBottomOverlay === overlay && (overlay == null || overlay.parent === bottomOverlayLayer)) return
+		displayedBottomOverlay?.remove()
+		bottomOverlayLayer.clearChildren()
+		displayedBottomOverlay = overlay
+		if (overlay == null) {
+			bottomOverlayLayer.remove()
+			return
+		}
+		overlay.remove()
+		bottomOverlayLayer.add(overlay).bottom()
+	}
+
 	override fun moveWindow(x: Int, y: Int) {
 		windowHandler.modify(x, y)
 	}
@@ -156,6 +201,7 @@ class MetaUiManager : UIManager {
 		log.debug { "Change screen to: $screenId" }
 
 		currentScreenId = screenId
+		setBottomOverlay(null)
 		screenMetaDataKeys.clear()
 		metaInput.changeScreen()
 
@@ -363,6 +409,7 @@ class MetaUiManager : UIManager {
 			window.toFront()
 		}
 		mainMenuBar?.table?.toFront()
+		modalRevision.update { it + 1 }
 		uiRenderer.getToastManager().toFront()
 		MetaTooltip.bringVisibleToFront()
 	}
@@ -448,6 +495,10 @@ class MetaUiManager : UIManager {
 		displayedWindows.clear()
 		hiddenWindows.clear()
 		modalDialogs.clear()
+		screenBottomOverlay = null
+		displayedBottomOverlay = null
+		bottomOverlayLayer.clearChildren()
+		bottomOverlayLayer.remove()
 		topDialog = null
 		backdrop.remove()
 		contentTable.remove()

@@ -37,12 +37,18 @@ class MetaScrollPane : ScrollPane {
 		setFadeScrollBars(false)
 		setOverscroll(false, false)
 		setFlickScroll(false)
-		addListener(object : InputListener() {
+		// Capture order is outer -> inner, so the deepest hovered pane gets the final focus claim.
+		addCaptureListener(object : InputListener() {
 			override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
-				if (pointer != MOUSE_POINTER || event.target.nearestMetaScrollPane() !== this@MetaScrollPane ||
-					event.stage.scrollFocus === this@MetaScrollPane) return
-				previousScrollFocus = event.stage.scrollFocus
-				event.stage.scrollFocus = this@MetaScrollPane
+				if (pointer == MOUSE_POINTER) claimScrollFocus(event)
+			}
+
+			override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
+				// scene2d does not reliably synthesize a distinct enter callback when moving between nested groups.
+				// Mouse-move events do bubble, so use their deepest target to correct ownership without the outer pane
+				// reclaiming the same event.
+				claimScrollFocus(event)
+				return false
 			}
 
 			override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
@@ -53,6 +59,13 @@ class MetaScrollPane : ScrollPane {
 				event.stage.scrollFocus = if (previous?.stage === event.stage) previous else null
 			}
 		})
+	}
+
+	private fun claimScrollFocus(event: InputEvent) {
+		val hoveredPane = event.stage.hit(event.stageX, event.stageY, true).nearestMetaScrollPane()
+		if (hoveredPane !== this || event.stage.scrollFocus === this) return
+		previousScrollFocus = event.stage.scrollFocus
+		event.stage.scrollFocus = this
 	}
 
 	private fun Actor?.nearestMetaScrollPane(): MetaScrollPane? {

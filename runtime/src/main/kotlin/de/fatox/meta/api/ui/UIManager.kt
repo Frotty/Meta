@@ -137,6 +137,16 @@ interface UIManager : Disposable {
 	/** Clears all visible toast notifications. Use sparingly, mainly when an actionable toast was accepted. */
 	fun clearToasts()
 
+	/**
+	 * Sets the current screen's contextual bottom overlay. A modal dialog temporarily replaces this with its own
+	 * [MetaDialog.bottomOverlay], or suppresses it when the dialog has no overlay. The manager owns presentation and
+	 * z-order only; the consumer owns the actor and its content.
+	 */
+	fun setBottomOverlay(overlay: Actor?) = Unit
+
+	/** Re-derives the contextual overlay after a shown dialog changes [MetaDialog.bottomOverlay]. */
+	fun onDialogBottomOverlayChanged(dialog: MetaDialog) = Unit
+
 	val currentlyActiveWindows: Array<Window>
 	val windowConfig: WindowConfig
 

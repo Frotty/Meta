@@ -93,25 +93,31 @@ internal class UiControlHelperTest {
 
 	@Test
 	fun `nested MetaScrollPanes claim and restore mouse wheel focus on hover`() {
-		val outerContent = Group()
-		val innerContent = Actor()
+		val outerContent = Group().apply { setBounds(0f, 0f, 200f, 200f) }
+		val innerContent = Actor().apply { setBounds(0f, 0f, 100f, 100f) }
 		val outer = MetaScrollPane(null, ScrollPane.ScrollPaneStyle())
-		val inner = MetaScrollPane(null, ScrollPane.ScrollPaneStyle())
+		val inner = MetaScrollPane(null, ScrollPane.ScrollPaneStyle()).apply { setBounds(50f, 50f, 100f, 100f) }
 		outer.setActor(outerContent)
 		inner.setActor(innerContent)
 		outerContent.addActor(inner)
+		outer.setBounds(0f, 0f, 200f, 200f)
 		stage.addActor(outer)
+		outer.validate()
+		inner.setBounds(50f, 50f, 100f, 100f)
+		inner.validate()
 
-		outerContent.fire(mouseHoverEvent(InputEvent.Type.enter))
+		outerContent.fire(mouseHoverEvent(InputEvent.Type.enter, 10f, 10f))
 		assertSame(outer, stage.scrollFocus)
 
-		innerContent.fire(mouseHoverEvent(InputEvent.Type.enter))
+		// Nested scene2d hierarchies do not always emit a separate enter for the inner pane. A normal mouse move
+		// over its content must still transfer focus away from the root pane.
+		innerContent.fire(mouseHoverEvent(InputEvent.Type.mouseMoved, 75f, 75f))
 		assertSame(inner, stage.scrollFocus)
 
-		innerContent.fire(mouseHoverEvent(InputEvent.Type.exit))
+		innerContent.fire(mouseHoverEvent(InputEvent.Type.exit, 10f, 10f))
 		assertSame(outer, stage.scrollFocus)
 
-		outerContent.fire(mouseHoverEvent(InputEvent.Type.exit))
+		outerContent.fire(mouseHoverEvent(InputEvent.Type.exit, 250f, 250f))
 		assertNull(stage.scrollFocus)
 	}
 
@@ -255,9 +261,11 @@ internal class UiControlHelperTest {
 	private fun testRoot(): Group =
 		Group().apply { setBounds(0f, 0f, 800f, 600f) }
 
-	private fun mouseHoverEvent(type: InputEvent.Type): InputEvent = InputEvent().apply {
+	private fun mouseHoverEvent(type: InputEvent.Type, stageX: Float, stageY: Float): InputEvent = InputEvent().apply {
 		this.type = type
 		pointer = -1
+		this.stageX = stageX
+		this.stageY = stageY
 	}
 
 	private fun edges(actor: Actor): String {

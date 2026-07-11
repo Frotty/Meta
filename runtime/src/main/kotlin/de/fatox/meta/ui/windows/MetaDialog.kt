@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.windows
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Button
@@ -28,6 +29,18 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
 	private val uiControlHelper: UiControlHelper by lazyInject()
 	private var previousCursorCatched = false
 	private var cursorCatchedCaptured = false
+
+	/**
+	 * Optional contextual bottom overlay shown above the modal backdrop while this dialog is top-most. This is kept
+	 * outside the dialog's layout so prompts stay in a stable screen-edge position. A null value intentionally hides
+	 * the underlying screen overlay while the dialog owns input.
+	 */
+	var bottomOverlay: Actor? = null
+		set(value) {
+			if (field === value) return
+			field = value
+			if (stage != null) uiManager.onDialogBottomOverlayChanged(this)
+		}
 
 	fun interface DialogListener {
 		fun onResult(any: Any?)
