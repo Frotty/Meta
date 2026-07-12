@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.kotcrab.vis.ui.util.InputValidator
 import com.kotcrab.vis.ui.widget.VisTextField.VisTextFieldStyle
@@ -11,6 +12,7 @@ import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
@@ -31,6 +33,7 @@ open class MetaInputField @JvmOverloads constructor(
 	private var metaInitialized = false
 	private val fontSize = size
 	private val fontProvider = fontProvider
+	private val fontTracker = FontGenerationTracker()
 
 	val textValue: Signal<String> = signal(text)
 	val inputValidValue: Signal<Boolean> = signal(true)
@@ -67,6 +70,7 @@ open class MetaInputField @JvmOverloads constructor(
 
 	/** Re-fetches the font into both (cloned) valid/invalid styles after a UI-scale change. */
 	override fun refreshFont() {
+		fontTracker.markFresh()
 		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
 		validStyle.font = font
 		validStyle.messageFont = font
@@ -75,6 +79,12 @@ open class MetaInputField @JvmOverloads constructor(
 		// Re-apply so the field re-derives its text metrics from the new font.
 		setStyle(style)
 		invalidateHierarchy()
+	}
+
+	/** Self-heal on (re)attach: a field that was detached during a UI-scale change holds a disposed font. */
+	override fun setStage(stage: Stage?) {
+		super.setStage(stage)
+		if (stage != null) fontTracker.refreshIfStale(this)
 	}
 
 	override fun setText(str: String) {

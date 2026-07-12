@@ -2,6 +2,7 @@ package de.fatox.meta.ui.components
 
 import com.kotcrab.vis.ui.VisUI
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.kotcrab.vis.ui.widget.VisTextField.VisTextFieldStyle
 import com.kotcrab.vis.ui.widget.VisValidatableTextField
 import com.kotcrab.vis.ui.widget.spinner.IntSpinnerModel
@@ -11,6 +12,7 @@ import com.kotcrab.vis.ui.widget.spinner.SimpleFloatSpinnerModel
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
@@ -159,6 +161,7 @@ open class MetaSpinner @JvmOverloads constructor(
 	)
 
 	private val fontProvider: FontProvider = inject()
+	private val fontTracker = FontGenerationTracker()
 
 	init {
 		applyFieldFont()
@@ -166,8 +169,15 @@ open class MetaSpinner @JvmOverloads constructor(
 
 	/** Re-fetches the text field font after a UI-scale change. Rare event, so re-cloning the style is fine. */
 	override fun refreshFont() {
+		fontTracker.markFresh()
 		applyFieldFont()
 		invalidateHierarchy()
+	}
+
+	/** Self-heal on (re)attach: a spinner that was detached during a UI-scale change holds a disposed font. */
+	override fun setStage(stage: Stage?) {
+		super.setStage(stage)
+		if (stage != null) fontTracker.refreshIfStale(this)
 	}
 
 	private fun applyFieldFont() {

@@ -66,6 +66,13 @@ class MetaCheckBox @JvmOverloads constructor(
 		disabledValue.value = isDisabled
 	}
 
+	override fun layout() {
+		super.layout()
+		// The Remix check glyph is optically top-heavy even after MetaIcon's bounds centering. Keep the actor centred
+		// horizontally, but lower this glyph slightly inside the generated square so the visible mark is centred.
+		if (checkIconAttached) checkIcon.y -= CHECK_ICON_VERTICAL_OFFSET
+	}
+
 	private fun syncSignalsFromButton() {
 		if (checkedValue.peek() != isChecked) checkedValue.value = isChecked
 	}
@@ -93,6 +100,7 @@ class MetaCheckBox @JvmOverloads constructor(
 
 	private companion object {
 		const val CHECK_ICON_SIZE = 18
+		const val CHECK_ICON_VERTICAL_OFFSET = 3f
 	}
 }
 

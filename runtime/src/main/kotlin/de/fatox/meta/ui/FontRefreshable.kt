@@ -3,6 +3,8 @@ package de.fatox.meta.ui
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.utils.Layout
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
  * Implemented by Meta widgets that cache a `BitmapFont` (or a style holding one) fetched from the
@@ -30,4 +32,26 @@ fun Actor.refreshFontsRecursively() {
 		for (i in 0 until children.size) children.get(i).refreshFontsRecursively()
 	}
 	if (this is Layout) invalidateHierarchy()
+}
+
+/**
+ * Tracks the [FontProvider.fontGeneration] a widget's cached fonts were fetched for. The renderer's on-scale-change
+ * refresh walk only reaches actors that are on the stage at that moment; a widget living detached (inactive tab
+ * content, a pooled list row, ...) keeps referencing fonts that are disposed right after the walk and would draw as
+ * black squares once re-attached. Font-caching widgets own one tracker, call [refreshIfStale] from `setStage` on
+ * attach to self-heal, and [markFresh] from [FontRefreshable.refreshFont] to record the re-fetch.
+ */
+class FontGenerationTracker {
+	private val fontProvider: FontProvider by lazyInject()
+	private var generation: Int = fontProvider.fontGeneration
+
+	/** Records that the owning widget just (re)fetched its fonts; call from [FontRefreshable.refreshFont]. */
+	fun markFresh() {
+		generation = fontProvider.fontGeneration
+	}
+
+	/** Re-fetches the widget's fonts if the provider rebuilt them while the widget was off the stage. */
+	fun refreshIfStale(widget: FontRefreshable) {
+		if (generation != fontProvider.fontGeneration) widget.refreshFont()
+	}
 }

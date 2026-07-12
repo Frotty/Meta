@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox.SelectBoxStyle
@@ -10,6 +11,7 @@ import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
@@ -24,6 +26,7 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 	private val uiControlHelper: UiControlHelper = inject()
 	private var wasHelperActive = false
 	private val fontProvider: FontProvider = inject()
+	private val fontTracker = FontGenerationTracker()
 	private val focusStyle: MetaSelectBoxFocusStyle<T>
 	val selectedValue: Signal<T?> = signal(selected)
 
@@ -58,8 +61,15 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 
 	/** Re-fetches the font into the (cloned) box + dropdown-list styles after a UI-scale change. */
 	override fun refreshFont() {
+		fontTracker.markFresh()
 		focusStyle.refreshFont(fontProvider.getFont(fontSize, FontType.REGULAR))
 		invalidateHierarchy()
+	}
+
+	/** Self-heal on (re)attach: a box that was detached during a UI-scale change holds a disposed font. */
+	override fun setStage(stage: Stage?) {
+		super.setStage(stage)
+		if (stage != null) fontTracker.refreshIfStale(this)
 	}
 
 	override fun showScrollPane() {

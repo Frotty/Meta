@@ -7,9 +7,11 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Stage
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
 
 /**
@@ -27,6 +29,7 @@ class FPSGraph(
 ) : Actor(), FontRefreshable {
 
 	private val fontProvider: FontProvider by lazyInject()
+	private val fontTracker = FontGenerationTracker()
 
 	// Fetched lazily on first draw and dropped on [refreshFont], so a UI-scale change can't leave it stale/disposed.
 	private var font: BitmapFont? = null
@@ -88,13 +91,22 @@ class FPSGraph(
 		batch.begin()
 
 		updateStatsText(Gdx.graphics.framesPerSecond, averageFps, minFps)
-		val font = this.font ?: fontProvider.getFont(FONT_SIZE, FontType.MONO).also { this.font = it }
+		val font = this.font ?: fontProvider.getFont(FONT_SIZE, FontType.MONO).also {
+			this.font = it
+			fontTracker.markFresh()
+		}
 		font.color = Color.WHITE
 		font.draw(batch, statsText, x, y + height + font.lineHeight)
 	}
 
 	override fun refreshFont() {
 		font = null
+	}
+
+	/** Self-heal on (re)attach: a graph that was detached during a UI-scale change holds a disposed font. */
+	override fun setStage(stage: Stage?) {
+		super.setStage(stage)
+		if (stage != null) fontTracker.refreshIfStale(this)
 	}
 
 	private fun updateStatsText(current: Int, average: Float, min: Float) {

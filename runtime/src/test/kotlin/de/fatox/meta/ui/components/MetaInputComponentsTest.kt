@@ -2,15 +2,20 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.viewport.Viewport
 import com.kotcrab.vis.ui.VisUI
 import com.kotcrab.vis.ui.widget.VisTextField
 import de.fatox.meta.api.AssetProvider
@@ -29,6 +34,7 @@ import de.fatox.meta.ui.refreshFontsRecursively
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInstance
+import java.lang.reflect.Proxy
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -218,6 +224,35 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
+	fun `re-attached widget self-heals fonts rebuilt while it was detached`() {
+		val secondFont = testFont()
+		var currentFont = font
+		var generation = 0
+		val rebuildingProvider = object : FontProvider {
+			override fun getFont(size: Int, type: FontType): BitmapFont = currentFont
+			override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) = Unit
+			override val fontGeneration: Int get() = generation
+		}
+		// The stale-check tracker injects the global provider, so the generation-bumping stub must be registered there.
+		global(clear = true) { singleton<FontProvider> { rebuildingProvider } }
+
+		val field = MetaInputField("text", fontProvider = rebuildingProvider)
+		val tabContent = Table().apply { add(field) }
+		val stage = Stage(TestViewport(), noopBatch())
+		stage.addActor(tabContent)
+		assertSame(font, field.style.font)
+
+		// Simulate a UI-scale change while the "tab content" is detached: the provider rebuilds its fonts and the
+		// renderer's refresh walk never reaches this subtree before the old generation is disposed.
+		tabContent.remove()
+		currentFont = secondFont
+		generation++
+
+		stage.addActor(tabContent)
+		assertSame(secondFont, field.style.font)
+	}
+
+	@Test
 	fun `MetaCheckBox external signal write updates isChecked and check glyph without consumer events`() {
 		installCheckboxSkin()
 		val checkBox = MetaCheckBox(stubAssetProvider(), initialChecked = false)
@@ -256,11 +291,53 @@ internal class MetaInputComponentsTest {
 		assertEquals(0, checkBox.children.size)
 	}
 
+	@Test
+	fun `MetaCheckBox check glyph receives its optical vertical centering offset`() {
+		installCheckboxSkin()
+		val checkBox = MetaCheckBox(stubAssetProvider(), initialChecked = true)
+		checkBox.setSize(30f, 30f)
+		checkBox.validate()
+
+		val checkIcon = checkBox.children.first()
+		assertEquals((30f - checkIcon.height) * 0.5f - 3f, checkIcon.y, 0.001f)
+	}
+
 	private fun installCheckboxSkin() {
 		val skin = VisUI.getSkin()
 		skin.add("meta.checkbox.focus", BaseDrawable(), Drawable::class.java)
 		skin.add("meta.checkbox.onFocus", BaseDrawable(), Drawable::class.java)
 		skin.add(MetaSkin.CHECKBOX, Button.ButtonStyle())
+	}
+
+	private fun noopBatch(): Batch {
+		val projection = Matrix4()
+		val transform = Matrix4()
+		return Proxy.newProxyInstance(
+			Batch::class.java.classLoader,
+			arrayOf(Batch::class.java),
+		) { _, method, _ ->
+			when (method.name) {
+				"getProjectionMatrix" -> projection
+				"getTransformMatrix" -> transform
+				"isBlendingEnabled" -> true
+				"isDrawing" -> false
+				"getBlendSrcFunc", "getBlendDstFunc", "getBlendSrcFuncAlpha", "getBlendDstFuncAlpha" -> 0
+				else -> null
+			}
+		} as Batch
+	}
+
+	private class TestViewport : Viewport() {
+		init {
+			camera = OrthographicCamera()
+			setWorldSize(800f, 600f)
+		}
+
+		override fun update(screenWidth: Int, screenHeight: Int, centerCamera: Boolean) {
+			setScreenBounds(0, 0, screenWidth, screenHeight)
+			if (centerCamera) camera.position.set(worldWidth * 0.5f, worldHeight * 0.5f, 0f)
+			camera.update()
+		}
 	}
 
 	private fun stubAssetProvider(): AssetProvider = object : AssetProvider {

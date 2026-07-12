@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
@@ -15,6 +16,7 @@ import com.badlogic.gdx.utils.CharArray
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaType
 import kotlin.contracts.ExperimentalContracts
@@ -60,6 +62,7 @@ open class MetaLabel @JvmOverloads constructor(
 	private val drawTransform = Matrix4()
 
 	private val metaFontProvider: FontProvider by lazyInject()
+	private val fontTracker = FontGenerationTracker()
 
 	private val fontColor: Color?
 	private val type: FontType = type
@@ -319,7 +322,14 @@ open class MetaLabel @JvmOverloads constructor(
 
 	/** Re-fetches the font from the provider (e.g. after a UI-scale change) and rebuilds the glyph cache. */
 	override fun refreshFont() {
+		fontTracker.markFresh()
 		updateFont()
+	}
+
+	/** Self-heal on (re)attach: a label that was detached during a UI-scale change holds a disposed font. */
+	override fun setStage(stage: Stage?) {
+		super.setStage(stage)
+		if (stage != null) fontTracker.refreshIfStale(this)
 	}
 
 	private fun updateFont() {
