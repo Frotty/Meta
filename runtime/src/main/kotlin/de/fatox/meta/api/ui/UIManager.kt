@@ -41,6 +41,16 @@ class WindowConfig {
 
 	internal fun <T : Window> create(windowClass: KClass<out T>): T = create(nameOf(windowClass))
 
+	internal fun disposeCachedWindows() {
+		for (window in singletonCache.values) {
+			if (window is Disposable) {
+				runCatching { window.dispose() }
+					.onFailure { logger.error("Failed to dispose cached window ${window.javaClass.name}", it) }
+			}
+		}
+		singletonCache.clear()
+	}
+
 	@PublishedApi
 	internal fun <T : MetaWindow> register(windowClass: KClass<T>, name: String, creator: () -> T) =
 		registerInternal(windowClass, name, creators, creator)

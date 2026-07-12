@@ -493,6 +493,7 @@ class MetaUiManager : UIManager {
 			window.remove()
 		}
 		displayedWindows.clear()
+		windowConfig.disposeCachedWindows()
 		hiddenWindows.clear()
 		modalDialogs.clear()
 		screenBottomOverlay = null

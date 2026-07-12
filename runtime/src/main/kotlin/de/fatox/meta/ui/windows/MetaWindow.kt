@@ -165,6 +165,10 @@ abstract class MetaWindow(
 	}
 
 	override fun layout() {
+		// Assign child widths before asking for minimum height. A wrapped Label reports prefWidth=0 and derives its
+		// height from its current width; querying minHeight before this pass can briefly wrap one character per line
+		// and permanently inflate a small window because this layout only grows to satisfy minima.
+		super.layout()
 		val minW = minWidth
 		val minH = minHeight
 		val newW = max(width, minW)
@@ -174,8 +178,8 @@ abstract class MetaWindow(
 			val top = y + height
 			setSize(newW, newH)
 			if (newH != oldH) setY(top - newH)
+			super.layout()
 		}
-		super.layout()
 		positionChrome()
 	}
 

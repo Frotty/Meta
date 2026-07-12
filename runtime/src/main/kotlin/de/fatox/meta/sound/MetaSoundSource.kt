@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.Timer
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.getOrPut
+import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.get
 import de.fatox.meta.audioVideoDataKey
@@ -17,6 +18,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.min
 import kotlin.math.sqrt
 
+private val log = MetaLoggerFactory.logger {}
 private val soundSourceMap = ObjectMap<MetaPositionalSoundDefinition, MetaSoundClustering>()
 private var focusVolume = 1f
 
@@ -85,7 +87,11 @@ class MetaPositionalSoundDefinition(
 	var attenuation = MetaSoundAttenuation.SMOOTH
 
 	val sound: Sound by lazy {
-		Gdx.audio.newSound(assetProvider.getResource(this.soundName, FileHandle::class.java))
+		runCatching {
+			Gdx.audio.newSound(assetProvider.getResource(this.soundName, FileHandle::class.java))
+		}.onFailure {
+			log.error("Unable to load positional sound '$soundName'; continuing with silent fallback", it)
+		}.getOrDefault(UninitializedSound)
 	}
 }
 

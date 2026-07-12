@@ -3,6 +3,40 @@ package de.fatox.meta.api.model
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Graphics
 import de.fatox.meta.Meta
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import org.slf4j.Logger
+
+private val log: Logger = MetaLoggerFactory.logger {}
+
+/** True while programmatic fullscreen/windowed callbacks must not be persisted as user-moved window bounds. */
+object MetaDisplayTransition {
+	@Volatile
+	var inProgress: Boolean = false
+		private set
+
+	internal fun begin() {
+		inProgress = true
+		System.setProperty("meta.displayTransition.inProgress", "true")
+	}
+
+	internal fun finishAfterCallbacks() {
+		// LWJGL mode changes produce resize callbacks after the setter returns. Keep the guard through two render queues.
+		Gdx.app.postRunnable {
+			Gdx.app.postRunnable {
+				inProgress = false
+				System.setProperty("meta.displayTransition.inProgress", "false")
+				log.info(
+					"Display transition settled: fullscreen={}, actual={}x{} at {},{}",
+					Gdx.graphics.isFullscreen,
+					Gdx.graphics.width,
+					Gdx.graphics.height,
+					Meta.instance.windowHandler.x,
+					Meta.instance.windowHandler.y,
+				)
+			}
+		}
+	}
+}
 
 
 data class MetaDisplayMode(
@@ -111,6 +145,12 @@ data class MetaAudioVideoData(
 
 	fun apply() {
 		if (!runWithUI) return
+		MetaDisplayTransition.begin()
+		log.info(
+			"Applying display state: fullscreen={}, borderless={}, saved={}x{} at {},{}, requestedMode={}x{}@{} monitor={}",
+			fullscreen, borderless, width, height, x, y,
+			metaDisplayMode.width, metaDisplayMode.height, metaDisplayMode.refreshRate, metaDisplayMode.monitorIndex,
+		)
 
 		if (fullscreen && Gdx.graphics.supportsDisplayModeChange()) {
 			val monitor = getCurrentMonitor()
@@ -118,6 +158,13 @@ data class MetaAudioVideoData(
 			metaDisplayMode = dm.toMetaDisplayMode()
 			Gdx.graphics.setFullscreenMode(dm)
 		} else {
+			if (!borderless) {
+				val restored = safeWindowedBounds()
+				x = restored[0]
+				y = restored[1]
+				width = restored[2]
+				height = restored[3]
+			}
 			Gdx.graphics.setUndecorated(borderless)
 			Gdx.graphics.setWindowedMode(width, height)
 			Meta.instance.windowHandler.modify(x, y)
@@ -127,5 +174,38 @@ data class MetaAudioVideoData(
 		// Applied regardless of vsync so the cap takes effect immediately if vsync is toggled off.
 		Gdx.graphics.setForegroundFPS(if (maxFps > 0) maxFps else 0)
 		Meta.instance.windowHandler.focus()
+		MetaDisplayTransition.finishAfterCallbacks()
+	}
+
+	private fun safeWindowedBounds(): IntArray {
+		val monitors = Gdx.graphics.monitors
+		var monitor = Gdx.graphics.primaryMonitor
+		var bestOverlap = -1L
+		for (i in monitors.indices) {
+			val candidate = monitors[i]
+			val mode = Gdx.graphics.getDisplayMode(candidate)
+			val overlapWidth = (minOf(x + width, candidate.virtualX + mode.width) - maxOf(x, candidate.virtualX)).coerceAtLeast(0)
+			val overlapHeight = (minOf(y + height, candidate.virtualY + mode.height) - maxOf(y, candidate.virtualY)).coerceAtLeast(0)
+			val overlap = overlapWidth.toLong() * overlapHeight.toLong()
+			if (overlap > bestOverlap) {
+				bestOverlap = overlap
+				monitor = candidate
+			}
+		}
+		val mode = Gdx.graphics.getDisplayMode(monitor)
+		val maxWidth = (mode.width - 80).coerceAtLeast(320)
+		val maxHeight = (mode.height - 80).coerceAtLeast(240)
+		val safeWidth = width.coerceIn(320, maxWidth)
+		val safeHeight = height.coerceIn(240, maxHeight)
+		val safeX = x.coerceIn(monitor.virtualX, monitor.virtualX + mode.width - safeWidth)
+		val safeY = y.coerceIn(monitor.virtualY, monitor.virtualY + mode.height - safeHeight)
+		if (safeX != x || safeY != y || safeWidth != width || safeHeight != height) {
+			log.warn(
+				"Corrected unsafe windowed bounds {}x{} at {},{} to {}x{} at {},{} on monitor {},{} {}x{}",
+				width, height, x, y, safeWidth, safeHeight, safeX, safeY,
+				monitor.virtualX, monitor.virtualY, mode.width, mode.height,
+			)
+		}
+		return intArrayOf(safeX, safeY, safeWidth, safeHeight)
 	}
 }
