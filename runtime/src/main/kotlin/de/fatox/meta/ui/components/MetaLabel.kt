@@ -159,6 +159,7 @@ open class MetaLabel @JvmOverloads constructor(
 		if (fontColor != null) color.mul(fontColor)
 		bitmapFontCache.tint(color)
 		snapDrawPosition()
+		adjustDrawPosition(drawPosition)
 		bitmapFontCache.setPosition(drawPosition.x, drawPosition.y)
 		if (rotation == 0f && scaleX == 1f && scaleY == 1f) {
 			bitmapFontCache.draw(batch)
@@ -177,6 +178,12 @@ open class MetaLabel @JvmOverloads constructor(
 		bitmapFontCache.draw(batch)
 		batch.transformMatrix = oldBatchTransform
 	}
+
+	/** Allows specialized single-glyph labels to compensate for visual font bearings before actor transforms apply. */
+	protected open fun adjustDrawPosition(position: Vector2) = Unit
+
+	protected val activeFont: BitmapFont
+		get() = bitmapFontCache.font
 
 	private fun snapDrawPosition() {
 		if (stage == null) {

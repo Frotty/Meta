@@ -53,22 +53,46 @@ object MetaDisplayTransition {
 		System.setProperty("meta.displayTransition.inProgress", "true")
 	}
 
-	internal fun finishAfterCallbacks() {
+	internal fun finishAfterCallbacks(expectedBounds: IntArray? = null) {
 		// LWJGL mode changes produce resize callbacks after the setter returns. Keep the guard through two render queues.
 		Gdx.app.postRunnable {
 			Gdx.app.postRunnable {
-				inProgress = false
-				System.setProperty("meta.displayTransition.inProgress", "false")
-				log.info(
-					"Display transition settled: fullscreen={}, actual={}x{} at {},{}",
-					Gdx.graphics.isFullscreen,
-					Gdx.graphics.width,
-					Gdx.graphics.height,
-					Meta.instance.windowHandler.x,
-					Meta.instance.windowHandler.y,
-				)
+				val expected = expectedBounds
+				if (!Gdx.graphics.isFullscreen && expected != null && !matchesExpectedBounds(expected)) {
+					log.warn(
+						"Display transition geometry drifted to {}x{} at {},{}; reapplying {}x{} at {},{}",
+						Gdx.graphics.width, Gdx.graphics.height, Meta.instance.windowHandler.x, Meta.instance.windowHandler.y,
+						expected[2], expected[3], expected[0], expected[1],
+					)
+					Gdx.graphics.setWindowedMode(expected[2], expected[3])
+					Meta.instance.windowHandler.modify(expected[0], expected[1])
+					// Let the repair's callbacks drain too; the transition guard remains active throughout.
+					Gdx.app.postRunnable { finish(expected) }
+				} else {
+					finish(expected)
+				}
 			}
 		}
+	}
+
+	private fun matchesExpectedBounds(expected: IntArray): Boolean =
+		Gdx.graphics.width == expected[2] &&
+			Gdx.graphics.height == expected[3] &&
+			Meta.instance.windowHandler.x == expected[0] &&
+			Meta.instance.windowHandler.y == expected[1]
+
+	private fun finish(expected: IntArray?) {
+		inProgress = false
+		System.setProperty("meta.displayTransition.inProgress", "false")
+		log.info(
+			"Display transition settled: fullscreen={}, actual={}x{} at {},{}, expected={}",
+			Gdx.graphics.isFullscreen,
+			Gdx.graphics.width,
+			Gdx.graphics.height,
+			Meta.instance.windowHandler.x,
+			Meta.instance.windowHandler.y,
+			expected?.let { "${it[2]}x${it[3]} at ${it[0]},${it[1]}" } ?: "fullscreen",
+		)
 	}
 }
 
@@ -146,6 +170,15 @@ private fun displayModeFor(monitor: Graphics.Monitor, requested: MetaDisplayMode
 	return resolutionMatch ?: graphics.getDisplayMode(monitor)
 }
 
+private fun requestedMonitor(requested: MetaDisplayMode): Graphics.Monitor {
+	val monitors = Gdx.graphics.monitors
+	return if (requested.width > 0 && requested.monitorIndex in monitors.indices) {
+		monitors[requested.monitorIndex]
+	} else {
+		getCurrentMonitor()
+	}
+}
+
 /**
  * Created by Frotty on 05.11.2016.
  */
@@ -176,6 +209,9 @@ data class MetaAudioVideoData(
 		y = Meta.instance.windowHandler.y
 		width = Gdx.graphics.width
 		height = Gdx.graphics.height
+		// Remember which monitor owns these bounds. The next fullscreen/borderless transition must not infer it from
+		// the launcher's temporary bootstrap window, which may live on another screen.
+		metaDisplayMode = Gdx.graphics.getDisplayMode(getCurrentMonitor()).toMetaDisplayMode()
 		windowedBoundsInitialized = true
 	}
 
@@ -188,29 +224,41 @@ data class MetaAudioVideoData(
 			metaDisplayMode.width, metaDisplayMode.height, metaDisplayMode.refreshRate, metaDisplayMode.monitorIndex,
 		)
 
+		var expectedBounds: IntArray? = null
 		if (fullscreen && Gdx.graphics.supportsDisplayModeChange()) {
-			val monitor = getCurrentMonitor()
+			val monitor = requestedMonitor(metaDisplayMode)
 			val dm = displayModeFor(monitor, metaDisplayMode)
 			metaDisplayMode = dm.toMetaDisplayMode()
 			Gdx.graphics.setFullscreenMode(dm)
 		} else {
-			if (!borderless) {
+			if (borderless) {
+				// Borderless is a monitor-sized window, not the previously saved decorated-window rectangle. Keep x/y/
+				// width/height untouched as windowed-mode history, and place this presentation on the selected monitor.
+				val monitor = requestedMonitor(metaDisplayMode)
+				val mode = Gdx.graphics.getDisplayMode(monitor)
+				metaDisplayMode = mode.toMetaDisplayMode()
+				Gdx.graphics.setUndecorated(true)
+				Gdx.graphics.setWindowedMode(mode.width, mode.height)
+				Meta.instance.windowHandler.modify(monitor.virtualX, monitor.virtualY)
+				expectedBounds = intArrayOf(monitor.virtualX, monitor.virtualY, mode.width, mode.height)
+			} else {
 				val restored = safeWindowedBounds()
 				x = restored[0]
 				y = restored[1]
 				width = restored[2]
 				height = restored[3]
+				Gdx.graphics.setUndecorated(false)
+				Gdx.graphics.setWindowedMode(width, height)
+				Meta.instance.windowHandler.modify(x, y)
+				expectedBounds = intArrayOf(x, y, width, height)
 			}
-			Gdx.graphics.setUndecorated(borderless)
-			Gdx.graphics.setWindowedMode(width, height)
-			Meta.instance.windowHandler.modify(x, y)
 		}
 		Gdx.graphics.setVSync(vsyncEnabled)
 		// LWJGL3 treats 0 as "never sleep" (uncapped); map any non-positive value to that.
 		// Applied regardless of vsync so the cap takes effect immediately if vsync is toggled off.
 		Gdx.graphics.setForegroundFPS(if (maxFps > 0) maxFps else 0)
 		Meta.instance.windowHandler.focus()
-		MetaDisplayTransition.finishAfterCallbacks()
+		MetaDisplayTransition.finishAfterCallbacks(expectedBounds)
 	}
 
 	private fun safeWindowedBounds(): IntArray {

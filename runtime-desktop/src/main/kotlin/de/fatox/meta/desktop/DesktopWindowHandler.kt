@@ -26,7 +26,9 @@ class DesktopWindowHandler : WindowHandler, Lwjgl3WindowListener {
 	override fun focus() {
 		if (!::currentWindow.isInitialized) return
 		currentWindow.setVisible(true)
-		currentWindow.restoreWindow()
+		// restoreWindow() also restores GLFW's previous window geometry. Calling it after a mode transition can undo
+		// setWindowedMode on Linux and resurrect the launcher's tiny bootstrap size (238x127). Focusing must not mutate
+		// size/position; explicit iconify restoration belongs to an explicit restore operation if one is ever needed.
 		currentWindow.focusWindow()
 	}
 
