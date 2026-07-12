@@ -3,10 +3,44 @@ package de.fatox.meta.api.model
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Graphics
 import de.fatox.meta.Meta
+import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.assets.MetaData
+import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.reactive.ReactiveValue
+import de.fatox.meta.reactive.signal
 import org.slf4j.Logger
 
 private val log: Logger = MetaLoggerFactory.logger {}
+
+/** Application-lifetime source of truth for audio/video settings. Persisted data is a snapshot, never live state. */
+object MetaAudioVideoState {
+	private val stateSignal = signal(MetaAudioVideoData())
+	val state: ReactiveValue<MetaAudioVideoData> = stateSignal
+
+	fun initialize(value: MetaAudioVideoData) {
+		val initial = value.copy()
+		// Legacy saves predate the explicit flag. A save already in decorated windowed mode necessarily has usable
+		// windowed history; fullscreen/borderless legacy saves use the new centered first-use fallback.
+		if (!initial.windowedBoundsInitialized && !initial.fullscreen && !initial.borderless) {
+			initial.windowedBoundsInitialized = true
+		}
+		stateSignal.value = initial
+	}
+
+	fun current(): MetaAudioVideoData = stateSignal.peek().copy()
+
+	fun replace(value: MetaAudioVideoData, applyDisplay: Boolean = false, persist: Boolean = true) {
+		val next = value.copy()
+		if (applyDisplay) next.apply()
+		stateSignal.value = next.copy()
+		if (persist) inject<MetaData>().save(audioVideoDataKey, next)
+	}
+
+	fun update(applyDisplay: Boolean = false, persist: Boolean = true, change: MetaAudioVideoData.() -> Unit) {
+		replace(current().apply(change), applyDisplay, persist)
+	}
+}
 
 /** True while programmatic fullscreen/windowed callbacks must not be persisted as user-moved window bounds. */
 object MetaDisplayTransition {
@@ -134,6 +168,7 @@ data class MetaAudioVideoData(
 	var soundVolume: Float = 1f,
 	var metaDisplayMode: MetaDisplayMode = MetaDisplayMode(),
 	var runWithUI: Boolean = true,
+	var windowedBoundsInitialized: Boolean = false,
 ) {
 	fun captureWindowedBounds() {
 		if (Gdx.graphics.isFullscreen) return
@@ -141,6 +176,7 @@ data class MetaAudioVideoData(
 		y = Meta.instance.windowHandler.y
 		width = Gdx.graphics.width
 		height = Gdx.graphics.height
+		windowedBoundsInitialized = true
 	}
 
 	fun apply() {
@@ -193,6 +229,19 @@ data class MetaAudioVideoData(
 			}
 		}
 		val mode = Gdx.graphics.getDisplayMode(monitor)
+		if (!windowedBoundsInitialized) {
+			val initialWidth = (mode.width * 0.75f).toInt().coerceAtLeast(320)
+			val initialHeight = (mode.height * 0.75f).toInt().coerceAtLeast(240)
+			val initialX = monitor.virtualX + (mode.width - initialWidth) / 2
+			val initialY = monitor.virtualY + (mode.height - initialHeight) / 2
+			windowedBoundsInitialized = true
+			log.info(
+				"Using initial centered windowed bounds {}x{} at {},{} on monitor {},{} {}x{}",
+				initialWidth, initialHeight, initialX, initialY,
+				monitor.virtualX, monitor.virtualY, mode.width, mode.height,
+			)
+			return intArrayOf(initialX, initialY, initialWidth, initialHeight)
+		}
 		val maxWidth = (mode.width - 80).coerceAtLeast(320)
 		val maxHeight = (mode.height - 80).coerceAtLeast(240)
 		val safeWidth = width.coerceIn(320, maxWidth)

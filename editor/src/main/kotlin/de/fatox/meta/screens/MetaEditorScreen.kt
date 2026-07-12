@@ -7,13 +7,11 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.changeScreen
-import de.fatox.meta.assets.MetaData
-import de.fatox.meta.assets.get
-import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.ide.SceneManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.MetaEditorUI
@@ -24,7 +22,6 @@ class MetaEditorScreen : ScreenAdapter() {
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val fontProvider: FontProvider by lazyInject()
 	private val metaEditorUISetup: MetaEditorUI by lazyInject()
-	private val metaData: MetaData by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
 	private val sceneManager: SceneManager by lazyInject()
 
@@ -62,13 +59,14 @@ class MetaEditorScreen : ScreenAdapter() {
 	override fun resize(width: Int, height: Int) {
 		if (isInited && width > 120 && height > 0) {
 			uiManager.resize(width, height)
-			if (!Gdx.graphics.isFullscreen) {
-				val audioVideoData = metaData[audioVideoDataKey]
-				audioVideoData.width = width
-				audioVideoData.height = height
-				audioVideoData.x = uiManager.windowHandler.x
-				audioVideoData.y = uiManager.windowHandler.y
-				metaData.save(audioVideoDataKey, audioVideoData)
+			if (!Gdx.graphics.isFullscreen && !java.lang.Boolean.getBoolean("meta.displayTransition.inProgress")) {
+				MetaAudioVideoState.update {
+					this.width = width
+					this.height = height
+					x = uiManager.windowHandler.x
+					y = uiManager.windowHandler.y
+					windowedBoundsInitialized = true
+				}
 			}
 		}
 	}

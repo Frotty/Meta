@@ -8,6 +8,8 @@ import de.fatox.meta.api.*
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.WindowConfig
+import de.fatox.meta.api.model.MetaAudioVideoData
+import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.load
 import de.fatox.meta.injection.MetaInject
@@ -91,17 +93,16 @@ abstract class Meta(
 		MetaInject.global { singleton("default") { ScreenConfig().apply { screens() } } }
 		MetaInject.global { singleton("default") { WindowConfig().apply { windows() } } }
 		config()
+		MetaAudioVideoState.initialize(metaData.load(audioVideoDataKey) ?: MetaAudioVideoData())
 
 		metaInput.addGlobalKeyListener(Input.Keys.ENTER, 0, object : KeyListener() {
 			override fun onEvent() {
 				if (Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT)) {
 					Gdx.app.postRunnable {
-						val audioVideoData = metaData.load(audioVideoDataKey)
-						audioVideoData?.let {
-							if (!audioVideoData.fullscreen) audioVideoData.captureWindowedBounds()
-							audioVideoData.fullscreen = !audioVideoData.fullscreen
-							metaData.save(audioVideoDataKey, audioVideoData)
-							audioVideoData.apply()
+						MetaAudioVideoState.update(applyDisplay = true) {
+							if (!fullscreen) captureWindowedBounds()
+							fullscreen = !fullscreen
+							if (!fullscreen) borderless = false
 						}
 					}
 				}

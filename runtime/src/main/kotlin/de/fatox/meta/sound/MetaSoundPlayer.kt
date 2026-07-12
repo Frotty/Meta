@@ -10,11 +10,9 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.api.ui.UIRenderer
-import de.fatox.meta.assets.MetaData
-import de.fatox.meta.assets.get
-import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.max
 
@@ -30,7 +28,6 @@ class MetaSoundPlayer {
 	private val shapeRenderer: ShapeRenderer by lazyInject()
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val uiRenderer: UIRenderer by lazyInject()
-	private val metaData: MetaData by lazyInject()
 
 	var soundsSilenced = false
 
@@ -46,7 +43,7 @@ class MetaSoundPlayer {
 	): MetaSoundHandle? {
 		if (soundDefinition == null || soundsSilenced) return null
 
-		val audioVideoData = metaData[audioVideoDataKey]
+		val audioVideoData = MetaAudioVideoState.state.value
 		val volume = audioVideoData.masterVolume * audioVideoData.soundVolume
 		if (volume <= 0f) return null
 

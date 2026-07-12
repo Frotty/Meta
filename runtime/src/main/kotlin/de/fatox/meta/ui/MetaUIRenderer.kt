@@ -16,6 +16,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
 import com.kotcrab.vis.ui.VisUI
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.error
@@ -23,9 +24,6 @@ import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.FocusRenderer
 import de.fatox.meta.api.ui.UIRenderer
-import de.fatox.meta.assets.MetaData
-import de.fatox.meta.assets.get
-import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
@@ -54,12 +52,10 @@ class MetaUIRenderer : UIRenderer {
 	private val assetProvider: AssetProvider by lazyInject()
 	private val visuiSkin: String by lazyInject("visuiSkin")
 	private val spriteBatch: SpriteBatch by lazyInject()
-	private val metaData: MetaData by lazyInject()
 	private val focusRenderer: FocusRenderer by lazyInject()
 	private val fontProvider: FontProvider by lazyInject()
 
 	private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
-	private val audioVideoData = metaData[audioVideoDataKey]
 	private val toastManager = MetaToastManager(stage)
 
 	override val uiScale: Signal<Float> = signal(1f) { a, b -> abs(a - b) < 0.001f }
@@ -79,8 +75,9 @@ class MetaUIRenderer : UIRenderer {
 	}
 
 	override fun load() {
-		log.trace { "load with UI enabled = ${audioVideoData.runWithUI}" }
-		if (audioVideoData.runWithUI) {
+		val runWithUI = MetaAudioVideoState.state.value.runWithUI
+		log.trace { "load with UI enabled = $runWithUI" }
+		if (runWithUI) {
 			loadVisUI()
 		}
 
@@ -152,7 +149,7 @@ class MetaUIRenderer : UIRenderer {
 	}
 
 	override fun draw() {
-		if (!audioVideoData.runWithUI) return
+		if (!MetaAudioVideoState.state.value.runWithUI) return
 
 		stage.batch.setBlendFunction(-1, -1)
 		Gdx.gl.glBlendFuncSeparate(

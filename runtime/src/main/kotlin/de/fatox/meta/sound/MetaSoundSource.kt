@@ -12,8 +12,7 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.assets.MetaData
-import de.fatox.meta.assets.get
-import de.fatox.meta.audioVideoDataKey
+import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.min
 import kotlin.math.sqrt
@@ -111,7 +110,6 @@ class MetaSoundCluster(
 	val definition: MetaPositionalSoundDefinition,
 	val centroid: Vector2 = Vector2.Zero.cpy(),
 ) {
-	private val metaData: MetaData by lazyInject()
 	private var handleId: Long = -1L
 	val sources = Array<MetaSoundSource>()
 	private var currentPan = 0f
@@ -138,7 +136,7 @@ class MetaSoundCluster(
 
 	private fun effectiveBaseVolume(): Float {
 		if (definition.volume <= 0f || focusVolume <= 0f) return 0f
-		val audioVideoData = metaData[audioVideoDataKey]
+		val audioVideoData = MetaAudioVideoState.state.value
 		return definition.volume * audioVideoData.masterVolume * audioVideoData.soundVolume * focusVolume
 	}
 

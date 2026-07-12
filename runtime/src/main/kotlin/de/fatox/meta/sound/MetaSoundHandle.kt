@@ -6,10 +6,7 @@ import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.extensions.MetaLoggerFactory
-import de.fatox.meta.api.model.MetaAudioVideoData
-import de.fatox.meta.assets.MetaData
-import de.fatox.meta.assets.get
-import de.fatox.meta.audioVideoDataKey
+import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
@@ -17,8 +14,6 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
  */
 class MetaSoundHandle(val definition: MetaSoundDefinition) {
 	private val shapeRenderer: ShapeRenderer by lazyInject()
-	private val metaData: MetaData by lazyInject()
-	private val audioVideoData: MetaAudioVideoData = metaData[audioVideoDataKey]
 	private val log = MetaLoggerFactory.logger {}
 
 	// Internal state
@@ -102,6 +97,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 		// Falloff uses the definition's audible range (world units) only; see calcPan.
 		val audibleRange2 = definition.audibleRange2
 		val distSquared = listenerPos.dst2(soundPos)
+		val audioVideoData = MetaAudioVideoState.state.value
 		val globalVolume = audioVideoData.masterVolume * audioVideoData.soundVolume
 		val volume = definition.volume * MathUtils.clamp(1 - distSquared / audibleRange2, 0f, 1f) * globalVolume
 
@@ -169,6 +165,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 		}
 		this.handleId = handleId
 		// When first set, we assume the initial volume is the full volume, so let's do a quick calc:
+		val audioVideoData = MetaAudioVideoState.state.value
 		currentVolume = definition.volume * audioVideoData.masterVolume * audioVideoData.soundVolume
 	}
 }

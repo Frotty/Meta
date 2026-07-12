@@ -9,9 +9,7 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.get
-import de.fatox.meta.assets.MetaData
-import de.fatox.meta.assets.get
-import de.fatox.meta.audioVideoDataKey
+import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import org.slf4j.Logger
 
@@ -50,7 +48,6 @@ private const val MAX_RESTART_TIMES = 10
  * Created by Frotty on 09.11.2016.
  */
 class MetaMusicPlayer : Disposable {
-	private val metaData: MetaData by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
 	private var restartCount = 0
 
@@ -96,7 +93,7 @@ class MetaMusicPlayer : Disposable {
 	}
 
 	private fun updateMusic() {
-		val audioVideoData = metaData[audioVideoDataKey]
+		val audioVideoData = MetaAudioVideoState.state.value
 		val volume = audioVideoData.masterVolume * audioVideoData.musicVolume
 		if (!musicEnabled || volume <= startVolume) {
 			if (currentMusic !== UninitializedMusic)
