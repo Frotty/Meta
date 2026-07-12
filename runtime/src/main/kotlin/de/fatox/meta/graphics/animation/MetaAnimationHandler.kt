@@ -28,12 +28,14 @@ class MetaAnimationHandler(
 		private set
 
 	override fun playDefault() {
+		animationQueue.clear()
 		stateTime = 0f
 		currentAnimation = defaultAnimation
 		isPlaying = true
 	}
 
 	override fun play(animation: Animation<TextureRegion>) {
+		animationQueue.clear()
 		stateTime = 0f
 		currentAnimation = animation
 		isPlaying = true
@@ -72,7 +74,6 @@ class MetaAnimationHandler(
 		isPlaying = false
 		stateTime = startingStateTime
 		animationQueue.clear()
-		animationQueue.setSize(startingQueueSize)
 		currentAnimation = defaultAnimation
 	}
 
