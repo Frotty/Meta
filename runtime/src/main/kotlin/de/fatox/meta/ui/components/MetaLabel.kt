@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
+import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
@@ -55,6 +56,8 @@ open class MetaLabel @JvmOverloads constructor(
 	private var fontScaleY = 1f
 	private var ellipsis: String? = null
 	private val drawPosition = Vector2()
+	private val oldBatchTransform = Matrix4()
+	private val drawTransform = Matrix4()
 
 	private val metaFontProvider: FontProvider by lazyInject()
 
@@ -157,7 +160,22 @@ open class MetaLabel @JvmOverloads constructor(
 		bitmapFontCache.tint(color)
 		snapDrawPosition()
 		bitmapFontCache.setPosition(drawPosition.x, drawPosition.y)
+		if (rotation == 0f && scaleX == 1f && scaleY == 1f) {
+			bitmapFontCache.draw(batch)
+			return
+		}
+
+		// Unlike a Group, a plain Widget is not transformed by scene2d. Apply the actor transform around its configured
+		// origin so actions targeting rotation/scale work for labels and icons while retaining the allocation-free cache.
+		oldBatchTransform.set(batch.transformMatrix)
+		drawTransform.set(oldBatchTransform)
+			.translate(x + originX, y + originY, 0f)
+			.rotate(0f, 0f, 1f, rotation)
+			.scale(scaleX, scaleY, 1f)
+			.translate(-x - originX, -y - originY, 0f)
+		batch.transformMatrix = drawTransform
 		bitmapFontCache.draw(batch)
+		batch.transformMatrix = oldBatchTransform
 	}
 
 	private fun snapDrawPosition() {
