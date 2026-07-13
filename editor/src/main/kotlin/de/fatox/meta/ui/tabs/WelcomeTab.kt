@@ -30,13 +30,8 @@ class WelcomeTab : MetaTab(false, false) {
 	private val projectManager: ProjectManager by lazyInject()
 	private val uiManager: UIManager by lazyInject()
 
-	override fun getTabTitle(): String {
-		return "Home"
-	}
-
-	override fun getContentTable(): Table {
-		return visTable
-	}
+	override val tabTitle: String get() = "Home"
+	override val contentTable: Table get() = visTable
 
 	init {
 		visTable.top()

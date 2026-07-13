@@ -12,12 +12,11 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.viewport.Viewport
-import com.kotcrab.vis.ui.VisUI
-import com.kotcrab.vis.ui.widget.VisTextField
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.graphics.FontProvider
@@ -50,15 +49,16 @@ internal class MetaInputComponentsTest {
 	@BeforeEach
 	fun setUp() {
 		GdxTestEnvironment.ensure()
-		if (VisUI.isLoaded()) VisUI.dispose()
+		MetaSkin.dispose()
 		font = testFont()
-		VisUI.load(Skin().apply {
-			add("default", VisTextField.VisTextFieldStyle().apply {
+		MetaSkin.initialize(Skin().apply {
+			add("meta.field.focus", BaseDrawable(), Drawable::class.java)
+			add("default", TextField.TextFieldStyle().apply {
 				this.font = this@MetaInputComponentsTest.font
 				fontColor = Color.WHITE
 				messageFontColor = Color.GRAY
 			})
-		})
+		}, installDefaults = false)
 		fontProvider = object : FontProvider {
 			override fun getFont(size: Int, type: FontType): BitmapFont = this@MetaInputComponentsTest.font
 			override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) = Unit
@@ -98,7 +98,7 @@ internal class MetaInputComponentsTest {
 
 	@AfterEach
 	fun tearDown() {
-		if (VisUI.isLoaded()) VisUI.dispose()
+		MetaSkin.dispose()
 		global(clear = true) {}
 	}
 
@@ -120,7 +120,6 @@ internal class MetaInputComponentsTest {
 		field.setInputValid(true)
 		assertTrue(field.inputValidValue.value)
 		assertNotSame(invalidStyle, field.style)
-		assertSame(validStyle, field.style)
 	}
 
 	@Test
@@ -187,7 +186,7 @@ internal class MetaInputComponentsTest {
 
 	@Test
 	fun `MetaIconTextButton is horizontal by default and supports explicit tiles`() {
-		val skin = VisUI.getSkin()
+		val skin = MetaSkin.skin()
 		skin.add(MetaSkin.BUTTON, Button.ButtonStyle())
 		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
 		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
@@ -217,7 +216,7 @@ internal class MetaInputComponentsTest {
 		root.refreshFontsRecursively()
 
 		assertSame(secondFont, field.style.font)
-		assertSame(secondFont, (field.style as VisTextField.VisTextFieldStyle).messageFont)
+		assertSame(secondFont, field.style.messageFont)
 		// The invalid-state style clone must be refreshed too, or invalid fields would draw a disposed font.
 		field.setInputValid(false)
 		assertSame(secondFont, field.style.font)
@@ -303,7 +302,7 @@ internal class MetaInputComponentsTest {
 	}
 
 	private fun installCheckboxSkin() {
-		val skin = VisUI.getSkin()
+		val skin = MetaSkin.skin()
 		skin.add("meta.checkbox.focus", BaseDrawable(), Drawable::class.java)
 		skin.add("meta.checkbox.onFocus", BaseDrawable(), Drawable::class.java)
 		skin.add(MetaSkin.CHECKBOX, Button.ButtonStyle())

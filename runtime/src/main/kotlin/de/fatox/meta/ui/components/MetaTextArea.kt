@@ -2,13 +2,13 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.TextArea
+import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
-import com.kotcrab.vis.ui.widget.VisTextArea
-import com.kotcrab.vis.ui.util.InputValidator
 import com.badlogic.gdx.utils.Array
+import de.fatox.meta.api.extensions.cursorText
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
-import de.fatox.meta.api.extensions.cursorText
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
@@ -19,27 +19,23 @@ import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
 
-/**
- * Multi-line text input using VisUI text-area behavior with Meta's generated drawables and TTF font.
- */
+/** Scene2d-native multiline input with Meta validation, TTF styling, and reactive state. */
 open class MetaTextArea @JvmOverloads constructor(
 	text: String = "",
-	size: Int = MetaType.BODY,
-	fontProvider: FontProvider = inject(),
+	private val fontSize: Int = MetaType.BODY,
+	private val fontProvider: FontProvider = inject(),
 	placeholder: String = "",
 	prefRows: Float = DEFAULT_PREF_ROWS,
-) : VisTextArea(text, MetaInputField.inputFieldStyle(size, fontProvider, MetaSkin.TEXT_AREA)), MetaFocusable,
-	FontRefreshable {
-	private val validators = Array<InputValidator>()
-	private val validStyle = MetaInputField.inputFieldStyle(size, fontProvider, MetaSkin.TEXT_AREA)
-	private val invalidStyle = MetaInputField.inputFieldStyle(size, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
-	private var metaInitialized = false
-	private val fontSize = size
-	private val fontProvider = fontProvider
+) : TextArea(text, MetaTextField.textFieldStyle(fontSize, fontProvider, MetaSkin.TEXT_AREA)), MetaFocusable, FontRefreshable {
+	private val validators = Array<MetaInputValidator>()
+	private val validStyle = MetaTextField.textFieldStyle(fontSize, fontProvider, MetaSkin.TEXT_AREA)
+	private val invalidStyle = MetaTextField.textFieldStyle(fontSize, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
 	private val fontTracker = FontGenerationTracker()
+	private var metaInitialized = false
 
 	val textValue: Signal<String> = signal(text)
 	val inputValidValue: Signal<Boolean> = signal(true)
+	val isInputValid: Boolean get() = inputValidValue.peek()
 
 	var isValidationEnabled: Boolean = true
 		set(value) {
@@ -59,14 +55,12 @@ open class MetaTextArea @JvmOverloads constructor(
 				validateInput()
 			}
 		})
-		validateInput()
 	}
 
 	override fun setMetaFocused(focused: Boolean) {
-		if (focused) focusGained() else focusLost()
+		stage?.keyboardFocus = if (focused) this else stage?.keyboardFocus?.takeUnless { it === this }
 	}
 
-	/** Re-fetches the font into both (cloned) valid/invalid styles after a UI-scale change. */
 	override fun refreshFont() {
 		fontTracker.markFresh()
 		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
@@ -74,25 +68,13 @@ open class MetaTextArea @JvmOverloads constructor(
 		validStyle.messageFont = font
 		invalidStyle.font = font
 		invalidStyle.messageFont = font
-		// Re-apply so the area re-derives its text metrics from the new font.
 		setStyle(style)
 		invalidateHierarchy()
 	}
 
-	/** Self-heal on (re)attach: an area that was detached during a UI-scale change holds a disposed font. */
 	override fun setStage(stage: Stage?) {
 		super.setStage(stage)
 		if (stage != null) fontTracker.refreshIfStale(this)
-	}
-
-	override fun setInputValid(valid: Boolean) {
-		super.setInputValid(valid)
-		if (!metaInitialized) return
-		batch {
-			inputValidValue.value = valid
-			val nextStyle = if (valid) validStyle else invalidStyle
-			if (style !== nextStyle) style = nextStyle
-		}
 	}
 
 	override fun setText(str: String) {
@@ -103,32 +85,30 @@ open class MetaTextArea @JvmOverloads constructor(
 		}
 	}
 
-	fun addValidator(validator: InputValidator) {
+	fun setInputValid(valid: Boolean) {
+		batch {
+			inputValidValue.value = valid
+			val next = if (valid) validStyle else invalidStyle
+			if (style !== next) style = next
+		}
+	}
+
+	fun addValidator(validator: MetaInputValidator) {
 		validators.add(validator)
 		validateInput()
 	}
 
-	fun addValidator(validator: MetaInputValidator) {
-		addValidator(InputValidator { input -> validator.validateInput(input) })
-	}
+	fun getValidators(): Array<MetaInputValidator> = validators
 
-	fun getValidators(): Array<InputValidator> = validators
-
-	fun validateInput() {
-		if (isValidationEnabled) {
-			for (i in 0 until validators.size) {
-				if (!validators[i].validateInput(text)) {
-					setInputValid(false)
-					return
-				}
-			}
-		}
-		setInputValid(true)
+	fun validateInput(): Boolean {
+		var valid = true
+		if (isValidationEnabled) for (i in 0 until validators.size) valid = validators[i].validateInput(text) && valid
+		setInputValid(valid)
+		return valid
 	}
 
 	private fun syncTextValue() {
-		val current = text
-		if (textValue.peek() != current) textValue.value = current
+		if (textValue.peek() != text) textValue.value = text
 	}
 
 	private companion object {

@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaColor
+import de.fatox.meta.ui.MetaSpacing
 import kotlin.math.min
 
 /**
@@ -23,6 +24,7 @@ class MetaLoadingSpinner @JvmOverloads constructor(
 	private val thickness: Float = 3f,
 	color: Color = MetaColor.ACCENT,
 	private val rotationsPerSecond: Float = 0.8f,
+	private val padding: Float = MetaSpacing.XS,
 ) : Widget() {
 	val activeValue: Signal<Boolean> = signal(true)
 	private val spinnerColor = color.cpy()
@@ -30,6 +32,7 @@ class MetaLoadingSpinner @JvmOverloads constructor(
 	private val shapeRenderer = ShapeRenderer()
 	private var angle = 0f
 	private var disposed = false
+	private val preferredSize = size + padding * 2f
 
 	var active: Boolean
 		get() = activeValue.peek()
@@ -38,12 +41,15 @@ class MetaLoadingSpinner @JvmOverloads constructor(
 		}
 
 	init {
-		setSize(size, size)
-		setOrigin(size * 0.5f, size * 0.5f)
+		require(size >= 0f) { "size must not be negative" }
+		require(thickness >= 0f) { "thickness must not be negative" }
+		require(padding >= 0f) { "padding must not be negative" }
+		setSize(preferredSize, preferredSize)
+		setOrigin(preferredSize * 0.5f, preferredSize * 0.5f)
 	}
 
-	override fun getPrefWidth(): Float = size
-	override fun getPrefHeight(): Float = size
+	override fun getPrefWidth(): Float = preferredSize
+	override fun getPrefHeight(): Float = preferredSize
 
 	override fun act(delta: Float) {
 		super.act(delta)
@@ -55,7 +61,8 @@ class MetaLoadingSpinner @JvmOverloads constructor(
 		if (disposed || !activeValue.peek() || color.a <= 0f) return
 		val stage = stage ?: return
 		localToStageCoordinates(center.set(width * 0.5f, height * 0.5f))
-		val outerRadius = min(width, height) * 0.5f
+		val availableRadius = (min(width, height) * 0.5f - padding).coerceAtLeast(0f)
+		val outerRadius = min(size * 0.5f, availableRadius)
 		val innerRadius = (outerRadius - thickness.coerceAtMost(outerRadius)).coerceAtLeast(0f)
 		if (outerRadius <= 0f || innerRadius >= outerRadius) return
 

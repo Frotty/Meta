@@ -1,131 +1,106 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
-import com.kotcrab.vis.ui.util.InputValidator
-import com.kotcrab.vis.ui.widget.VisTextField.VisTextFieldStyle
-import com.kotcrab.vis.ui.widget.VisValidatableTextField
+import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
-import de.fatox.meta.api.extensions.cursorText
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
-import de.fatox.meta.ui.FontGenerationTracker
-import de.fatox.meta.ui.FontRefreshable
-import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
 
-/**
- * VisUI-compatible validatable input field using Meta's generated field drawables and TTF font.
- */
+/** Scene2d-native validatable input field using Meta's generated field states and TTF font. */
 open class MetaInputField @JvmOverloads constructor(
 	text: String = "",
 	size: Int = MetaType.BODY,
 	fontProvider: FontProvider = inject(),
 	placeholder: String = "",
 	styleName: String = MetaSkin.TEXT_FIELD,
-) : VisValidatableTextField(text, inputFieldStyle(size, fontProvider, styleName)), MetaFocusable, FontRefreshable {
-	private val validStyle = inputFieldStyle(size, fontProvider, styleName)
-	private val invalidStyle = inputFieldStyle(size, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
-	private var metaInitialized = false
-	private val fontSize = size
-	private val fontProvider = fontProvider
-	private val fontTracker = FontGenerationTracker()
+) : MetaTextField(text, size, fontProvider, placeholder) {
+	private val inputFontSize = size
+	private val inputFontProvider = fontProvider
+	private val validators = Array<MetaInputValidator>()
+	private val validStyle = textFieldStyle(size, fontProvider, styleName)
+	private val invalidStyle = textFieldStyle(size, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
+	private var restoreLastValid = false
+	private var lastValidText = text
+	private var validating = false
+	private var inputInitialized = false
 
-	val textValue: Signal<String> = signal(text)
 	val inputValidValue: Signal<Boolean> = signal(true)
+	val isInputValid: Boolean get() = inputValidValue.peek()
 
 	init {
-		metaInitialized = true
-		style = validStyle
-		if (placeholder.isNotEmpty()) setMessageText(placeholder)
-		cursorText()
+		inputInitialized = true
+		installMetaTextFieldStyle(validStyle)
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
-				syncTextValue()
+				validateInput()
 			}
 		})
 	}
 
-	constructor(firstValidator: InputValidator, vararg validators: InputValidator) : this() {
-		addValidator(firstValidator)
-		for (i in validators.indices) addValidator(validators[i])
+	override fun setText(str: String) {
+		super.setText(str)
+		if (inputInitialized && !validating) validateInput()
 	}
 
-	constructor(restoreLastValid: Boolean, firstValidator: InputValidator, vararg validators: InputValidator) : this() {
-		addValidator(firstValidator)
-		for (i in validators.indices) addValidator(validators[i])
-		setRestoreLastValid(restoreLastValid)
-	}
-
-	fun addValidator(validator: MetaInputValidator) {
-		addValidator(InputValidator { input -> validator.validateInput(input) })
-	}
-
-	override fun setMetaFocused(focused: Boolean) {
-		if (focused) focusGained() else focusLost()
-	}
-
-	/** Re-fetches the font into both (cloned) valid/invalid styles after a UI-scale change. */
 	override fun refreshFont() {
-		fontTracker.markFresh()
-		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
+		val font = inputFontProvider.getFont(inputFontSize, FontType.REGULAR)
 		validStyle.font = font
 		validStyle.messageFont = font
 		invalidStyle.font = font
 		invalidStyle.messageFont = font
-		// Re-apply so the field re-derives its text metrics from the new font.
-		setStyle(style)
-		invalidateHierarchy()
+		super.refreshFont()
+		installMetaTextFieldStyle(if (isInputValid) validStyle else invalidStyle)
 	}
 
-	/** Self-heal on (re)attach: a field that was detached during a UI-scale change holds a disposed font. */
-	override fun setStage(stage: Stage?) {
-		super.setStage(stage)
-		if (stage != null) fontTracker.refreshIfStale(this)
+	constructor(firstValidator: MetaInputValidator, vararg validators: MetaInputValidator) : this() {
+		addValidator(firstValidator)
+		for (i in validators.indices) addValidator(validators[i])
 	}
 
-	override fun setText(str: String) {
-		super.setText(str)
-		if (metaInitialized) syncTextValue()
+	constructor(restoreLastValid: Boolean, firstValidator: MetaInputValidator, vararg validators: MetaInputValidator) : this() {
+		setRestoreLastValid(restoreLastValid)
+		addValidator(firstValidator)
+		for (i in validators.indices) addValidator(validators[i])
 	}
 
-	override fun setInputValid(valid: Boolean) {
-		super.setInputValid(valid)
-		if (!metaInitialized) return
+	fun addValidator(validator: MetaInputValidator) {
+		validators.add(validator)
+		validateInput()
+	}
+
+	fun getValidators(): Array<MetaInputValidator> = validators
+
+	fun setRestoreLastValid(restore: Boolean) {
+		restoreLastValid = restore
+		if (isInputValid) lastValidText = text
+	}
+
+	fun setInputValid(valid: Boolean) {
 		batch {
 			inputValidValue.value = valid
-			val nextStyle = if (valid) validStyle else invalidStyle
-			if (style !== nextStyle) style = nextStyle
+			installMetaTextFieldStyle(if (valid) validStyle else invalidStyle)
 		}
 	}
 
-	private fun syncTextValue() {
-		val current = text
-		if (textValue.peek() != current) textValue.value = current
-	}
-
-	companion object {
-		fun inputFieldStyle(
-			size: Int = MetaType.BODY,
-			fontProvider: FontProvider = inject(),
-			styleName: String = MetaSkin.TEXT_FIELD,
-		): VisTextFieldStyle {
-			val skin = MetaSkin.skin()
-			val baseStyle = if (skin.has(styleName, VisTextFieldStyle::class.java)) {
-				skin.get(styleName, VisTextFieldStyle::class.java)
-			} else {
-				skin.get(VisTextFieldStyle::class.java)
-			}
-			val font = fontProvider.getFont(size, FontType.REGULAR)
-			return VisTextFieldStyle(baseStyle).apply {
-				this.font = font
-				messageFont = font
-			}
+	fun validateInput(): Boolean {
+		if (validating) return isInputValid
+		var valid = true
+		for (i in 0 until validators.size) valid = validators[i].validateInput(text) && valid
+		if (valid) {
+			lastValidText = text
+		} else if (restoreLastValid) {
+			validating = true
+			setText(lastValidText)
+			validating = false
+			valid = true
 		}
+		setInputValid(valid)
+		return valid
 	}
 }

@@ -5,7 +5,7 @@ import com.badlogic.gdx.backends.headless.HeadlessApplication
 import com.badlogic.gdx.backends.headless.HeadlessApplicationConfiguration
 
 /**
- * Boots a single, JVM-wide headless libGDX application so unit tests can exercise scene2d/VisUI layout
+ * Boots a single, JVM-wide headless libGDX application so unit tests can exercise scene2d layout
  * (`Table`/`Cell` need `Gdx.files` to be non-null, otherwise `Cell.defaults()` recurses into a StackOverflow).
  *
  * Call [ensure] from `@BeforeEach`/`@BeforeAll` in any UI-layout test. It is idempotent and starts no render loop

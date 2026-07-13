@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.Action
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
@@ -30,6 +31,7 @@ import de.fatox.meta.ui.components.MetaResizeGrip
 import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.components.MetaTable
 import kotlin.math.max
+import kotlin.math.round
 
 /**
  * Created by Frotty on 08.05.2016.
@@ -60,6 +62,14 @@ abstract class MetaWindow(
 	private var startDrag = false
 	private var fadeInAction: Action? = null
 	private val headerEnabled = hasHeader
+	private var metaResizable = resizable
+	private var resizeEdge = 0
+	private var resizeStartStageX = 0f
+	private var resizeStartStageY = 0f
+	private var resizeStartX = 0f
+	private var resizeStartY = 0f
+	private var resizeStartWidth = 0f
+	private var resizeStartHeight = 0f
 
 	/** The provider font generation this window's fonts were fetched for; see [refreshFontsIfStale]. */
 	private var fontGeneration = 0
@@ -73,6 +83,26 @@ abstract class MetaWindow(
 	}
 	private var resizeCursorActive = false
 	private val resizeCursorListener = object : InputListener() {
+		override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+			if (pointer != 0 || button != 0) return false
+			resizeEdge = resizeEdgeAt(x, y)
+			if (resizeEdge == 0) return false
+			resizeStartStageX = event.stageX
+			resizeStartStageY = event.stageY
+			resizeStartX = this@MetaWindow.x
+			resizeStartY = this@MetaWindow.y
+			resizeStartWidth = width
+			resizeStartHeight = height
+			event.stop()
+			return true
+		}
+
+		override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
+			if (pointer != 0 || resizeEdge == 0) return
+			resizeFrom(event.stageX, event.stageY)
+			event.stop()
+		}
+
 		override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
 			updateResizeCursor(x, y)
 			return false
@@ -83,7 +113,9 @@ abstract class MetaWindow(
 		}
 
 		override fun touchUp(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int) {
-			if (pointer == 0) updateResizeCursor(x, y)
+			if (pointer != 0) return
+			resizeEdge = 0
+			updateResizeCursor(x, y)
 		}
 	}
 
@@ -122,10 +154,9 @@ abstract class MetaWindow(
 
 		}
 
-		if (resizable) {
-			super.setResizable(true)
-		}
-		setResizeBorder(RESIZE_BORDER)
+		// libGDX Window expands every detected resize edge by an additional 25 px. Keep its resize path disabled and
+		// use Meta's precise capture listener so scroll panes and other content cannot steal a resize press.
+		super.setResizable(false)
 		addCaptureListener(resizeCursorListener)
 		applyWindowMetrics()
 		contentTable.top().left()
@@ -150,6 +181,7 @@ abstract class MetaWindow(
 	}
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
+		snapBoundsToPixelGrid()
 		super.draw(batch, parentAlpha)
 		if (isDragging) {
 			startDrag = true
@@ -167,14 +199,15 @@ abstract class MetaWindow(
 		if (visible) {
 			// Fade in only when showing; hiding must not reset alpha or keep animating in the background.
 			setColor(1f, 1f, 1f, 0f)
-			val fade = Actions.alpha(0.9f, 0.75f)
+			val fade = Actions.alpha(1f, 0.75f)
 			fadeInAction = fade
 			addAction(fade)
 		}
 	}
 
 	override fun setResizable(isResizable: Boolean) {
-		super.setResizable(isResizable)
+		metaResizable = isResizable
+		super.setResizable(false)
 		val skin = MetaSkin.skin()
 		val styleName = if (isResizable) MetaSkin.WINDOW_RESIZABLE else MetaSkin.WINDOW
 		if (skin.has(styleName, WindowStyle::class.java)) {
@@ -183,7 +216,21 @@ abstract class MetaWindow(
 		}
 		applyWindowMetrics()
 		resizeIndicator.isVisible = isResizable
-		if (!isResizable && resizeCursorActive) setResizeCursor(null)
+		if (!isResizable) {
+			resizeEdge = 0
+			if (resizeCursorActive) setResizeCursor(null)
+		}
+	}
+
+	override fun isResizable(): Boolean = metaResizable
+
+	override fun isDragging(): Boolean = resizeEdge != 0 || super.isDragging()
+
+	override fun hit(x: Float, y: Float, touchable: Boolean): Actor? {
+		// Resize chrome is conceptually above window content even though it is not a layout row. Returning the window
+		// here keeps scroll panes from receiving presses or cursor events in any resize activation zone.
+		if (isVisible && (!touchable || this.touchable == Touchable.enabled) && resizeEdgeAt(x, y) != 0) return this
+		return super.hit(x, y, touchable)
 	}
 
 	override fun layout() {
@@ -222,6 +269,7 @@ abstract class MetaWindow(
 	fun centerWindow() {
 		val stage = stage ?: return
 		setPosition((stage.width - width) * 0.5f, (stage.height - height) * 0.5f)
+		snapBoundsToPixelGrid()
 	}
 
 	/**
@@ -279,23 +327,92 @@ abstract class MetaWindow(
 		padBottom(BORDER_PAD)
 	}
 
+	/** Keeps the complete window transform on the physical pixel grid, including at non-integer HiDPI scales. */
+	private fun snapBoundsToPixelGrid() {
+		val currentStage = stage ?: return
+		val viewport = currentStage.viewport
+		val worldWidth = viewport.worldWidth
+		if (worldWidth <= 0f || viewport.screenWidth <= 0) return
+		val pixelsPerUnit = viewport.screenWidth / worldWidth
+		val snappedX = snapToPixel(x, pixelsPerUnit)
+		val snappedY = snapToPixel(y, pixelsPerUnit)
+		val snappedWidth = snapToPixel(width, pixelsPerUnit)
+		val snappedHeight = snapToPixel(height, pixelsPerUnit)
+		if (snappedX != x || snappedY != y || snappedWidth != width || snappedHeight != height) {
+			setBounds(snappedX, snappedY, snappedWidth, snappedHeight)
+		}
+	}
+
+	private fun snapToPixel(value: Float, pixelsPerUnit: Float): Float = round(value * pixelsPerUnit) / pixelsPerUnit
+
 	private fun updateResizeCursor(localX: Float, localY: Float) {
-		if (!isResizable) {
+		if (!metaResizable) {
 			if (resizeCursorActive) setResizeCursor(null)
 			return
 		}
-		val halfBorder = RESIZE_BORDER * 0.5f
-		val left = localX <= padLeft + halfBorder
-		val right = localX >= width - padRight - halfBorder
-		val bottom = localY <= padBottom + halfBorder
+		val edge = if (resizeEdge != 0) resizeEdge else resizeEdgeAt(localX, localY)
 		val cursor = when {
-			bottom && right -> Cursor.SystemCursor.NWSEResize
-			bottom && left -> Cursor.SystemCursor.NESWResize
-			bottom -> Cursor.SystemCursor.VerticalResize
-			left || right -> Cursor.SystemCursor.HorizontalResize
+			edge and Align.bottom != 0 && edge and Align.right != 0 -> Cursor.SystemCursor.NWSEResize
+			edge and Align.bottom != 0 && edge and Align.left != 0 -> Cursor.SystemCursor.NESWResize
+			edge and Align.bottom != 0 -> Cursor.SystemCursor.VerticalResize
+			edge and (Align.left or Align.right) != 0 -> Cursor.SystemCursor.HorizontalResize
 			else -> null
 		}
 		if (cursor != null || resizeCursorActive) setResizeCursor(cursor)
+	}
+
+	private fun resizeEdgeAt(localX: Float, localY: Float): Int {
+		if (!metaResizable || localX < 0f || localY < 0f || localX > width || localY > height) return 0
+		if (localX >= width - CORNER_RESIZE_SIZE && localY <= CORNER_RESIZE_SIZE) {
+			return Align.right or Align.bottom
+		}
+		var edge = 0
+		if (localX <= EDGE_RESIZE_SIZE) edge = edge or Align.left
+		if (localX >= width - EDGE_RESIZE_SIZE) edge = edge or Align.right
+		if (localY <= EDGE_RESIZE_SIZE) edge = edge or Align.bottom
+		return edge
+	}
+
+	private fun resizeFrom(stageX: Float, stageY: Float) {
+		val deltaX = stageX - resizeStartStageX
+		val deltaY = stageY - resizeStartStageY
+		var newX = resizeStartX
+		var newY = resizeStartY
+		var newWidth = resizeStartWidth
+		var newHeight = resizeStartHeight
+		val minWidth = minWidth
+		val minHeight = minHeight
+		val maxWidth = maxWidth
+		val maxHeight = maxHeight
+
+		if (resizeEdge and Align.left != 0) {
+			newWidth = (resizeStartWidth - deltaX).coerceAtLeast(minWidth)
+			if (maxWidth > 0f) newWidth = newWidth.coerceAtMost(maxWidth)
+			newX = resizeStartX + resizeStartWidth - newWidth
+		}
+		if (resizeEdge and Align.right != 0) {
+			newWidth = (resizeStartWidth + deltaX).coerceAtLeast(minWidth)
+			if (maxWidth > 0f) newWidth = newWidth.coerceAtMost(maxWidth)
+		}
+		if (resizeEdge and Align.bottom != 0) {
+			newHeight = (resizeStartHeight - deltaY).coerceAtLeast(minHeight)
+			if (maxHeight > 0f) newHeight = newHeight.coerceAtMost(maxHeight)
+			newY = resizeStartY + resizeStartHeight - newHeight
+		}
+
+		val currentStage = stage
+		if (currentStage != null && parent === currentStage.root) {
+			if (newX < 0f) {
+				newWidth += newX
+				newX = 0f
+			}
+			if (newY < 0f) {
+				newHeight += newY
+				newY = 0f
+			}
+			newWidth = newWidth.coerceAtMost(currentStage.width - newX)
+		}
+		setBounds(round(newX), round(newY), round(newWidth), round(newHeight))
 	}
 
 	private fun setResizeCursor(cursor: Cursor.SystemCursor?) {
@@ -309,7 +426,7 @@ abstract class MetaWindow(
 			headerSeparator.setBounds(1f, height - HEADER_HEIGHT, width - 2f, HEADER_SEPARATOR_HEIGHT)
 			headerSeparator.toFront()
 		}
-		resizeIndicator.isVisible = isResizable
+		resizeIndicator.isVisible = metaResizable
 		if (!resizeIndicator.isVisible) return
 		resizeIndicator.setBounds(
 			width - RESIZE_INDICATOR_SIZE - RESIZE_GRIP_RIGHT_PAD,
@@ -326,7 +443,8 @@ abstract class MetaWindow(
 		const val HEADER_SEPARATOR_HEIGHT = 1f
 		const val BORDER_PAD = 1f
 		const val CLOSE_BUTTON_SIZE = 24f
-		const val RESIZE_BORDER = 36
+		const val EDGE_RESIZE_SIZE = 4f
+		const val CORNER_RESIZE_SIZE = 24f
 		const val RESIZE_INDICATOR_SIZE = 16f
 		const val RESIZE_GRIP_RIGHT_PAD = 2f
 		const val RESIZE_GRIP_BOTTOM_PAD = 2f

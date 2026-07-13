@@ -55,7 +55,6 @@ subprojects {
 				includeGroupByRegex "com\\.badlogicgames\\..*"
 				includeGroupByRegex "org\\.jetbrains\\..*"
 				includeGroup "org.jetbrains"
-				includeGroup "com.kotcrab.vis"
 				includeGroup "org.slf4j"
 				includeGroup "org.apache.commons"
 				includeGroup "commons-io"

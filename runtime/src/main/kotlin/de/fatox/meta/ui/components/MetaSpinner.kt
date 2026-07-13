@@ -1,198 +1,144 @@
 package de.fatox.meta.ui.components
 
-import com.kotcrab.vis.ui.VisUI
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Event
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.kotcrab.vis.ui.widget.VisTextField.VisTextFieldStyle
-import com.kotcrab.vis.ui.widget.VisValidatableTextField
-import com.kotcrab.vis.ui.widget.spinner.IntSpinnerModel
-import com.kotcrab.vis.ui.widget.spinner.Spinner
-import com.kotcrab.vis.ui.widget.spinner.SpinnerModel
-import com.kotcrab.vis.ui.widget.spinner.SimpleFloatSpinnerModel
-import de.fatox.meta.api.graphics.FontProvider
-import de.fatox.meta.api.graphics.FontType
-import de.fatox.meta.injection.MetaInject.Companion.inject
-import de.fatox.meta.ui.FontGenerationTracker
-import de.fatox.meta.ui.FontRefreshable
-import de.fatox.meta.ui.MetaSkin
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import de.fatox.meta.reactive.ReactiveScope
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 interface MetaSpinnerModel {
-	fun getSpinnerModel(): SpinnerModel
 	var value: Number
 	var min: Number
 	var max: Number
+	val valueValue: Signal<Number>
+	fun increment()
+	fun decrement()
+	fun parse(text: String): Number?
+	fun format(value: Number): String
 }
 
-/**
- * Integer-typed spinner model with VisUI-backed behavior, surfaced through Meta's typed API for oxrox-level usage.
- */
 class MetaIntSpinnerModel(
 	initial: Int,
 	min: Int,
 	max: Int,
-	step: Int = 1,
+	private val step: Int = 1,
 ) : MetaSpinnerModel {
-	private val delegate = IntSpinnerModel(initial, min, max, step)
+	private var minimum = min
+	private var maximum = max
+	override val valueValue: Signal<Number> = signal(initial.coerceIn(minimum, maximum))
 
-	override fun getSpinnerModel(): SpinnerModel = delegate
 	override var value: Number
-		get() = delegate.value
-		set(value) {
-			delegate.value = value.toInt()
-		}
-
+		get() = valueValue.peek()
+		set(value) { valueValue.value = value.toInt().coerceIn(minimum, maximum) }
 	override var min: Number
-		get() = delegate.min
-		set(value) {
-			delegate.min = value.toInt()
-		}
-
+		get() = minimum
+		set(value) { minimum = value.toInt(); this.value = this.value }
 	override var max: Number
-		get() = delegate.max
-		set(value) {
-			delegate.max = value.toInt()
-		}
+		get() = maximum
+		set(value) { maximum = value.toInt(); this.value = this.value }
+	override fun increment() { value = value.toInt() + step }
+	override fun decrement() { value = value.toInt() - step }
+	override fun parse(text: String): Number? = text.trim().toIntOrNull()
+	override fun format(value: Number): String = value.toInt().toString()
 }
 
-/**
- * Float-typed spinner model with VisUI-backed behavior, surfaced through Meta's typed API for oxrox-level usage.
- */
 class MetaFloatSpinnerModel(
 	initial: Float,
 	min: Float,
 	max: Float,
-	step: Float,
+	private val step: Float,
 	precision: Int = 2,
 ) : MetaSpinnerModel {
-	private val delegate = SimpleFloatSpinnerModel(initial, min, max, step, precision)
+	private var minimum = min
+	private var maximum = max
+	override val valueValue: Signal<Number> = signal(initial.coerceIn(minimum, maximum)) { a, b -> a.toFloat() == b.toFloat() }
+	var precision: Int = precision.coerceAtLeast(0)
 
-	override fun getSpinnerModel(): SpinnerModel = delegate
 	override var value: Number
-		get() = delegate.value
-		set(value) {
-			delegate.value = value.toFloat()
-		}
-
+		get() = valueValue.peek()
+		set(value) { valueValue.value = value.toFloat().coerceIn(minimum, maximum) }
 	override var min: Number
-		get() = delegate.min
-		set(value) {
-			delegate.min = value.toFloat()
-		}
-
+		get() = minimum
+		set(value) { minimum = value.toFloat(); this.value = this.value }
 	override var max: Number
-		get() = delegate.max
-		set(value) {
-			delegate.max = value.toFloat()
-		}
-
-	var precision: Int
-		get() = delegate.precision
-		set(value) = run { delegate.precision = value }
+		get() = maximum
+		set(value) { maximum = value.toFloat(); this.value = this.value }
+	override fun increment() { value = value.toFloat() + step }
+	override fun decrement() { value = value.toFloat() - step }
+	override fun parse(text: String): Number? = text.trim().toFloatOrNull()
+	override fun format(value: Number): String = BigDecimal.valueOf(value.toDouble())
+		.setScale(precision, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
 }
 
-private class MetaSpinnerModelAdapter(
-	private val spinnerModel: SpinnerModel,
-) : MetaSpinnerModel {
-	private fun unsupported(): Nothing {
-		error("Unsupported SpinnerModel type: ${spinnerModel.javaClass.name}")
-	}
-
-	override fun getSpinnerModel(): SpinnerModel = spinnerModel
-	override var value: Number
-		get() = when (spinnerModel) {
-			is IntSpinnerModel -> spinnerModel.value
-			is SimpleFloatSpinnerModel -> spinnerModel.value
-			else -> unsupported()
-		}
-		set(value) {
-			when (spinnerModel) {
-				is IntSpinnerModel -> spinnerModel.value = value.toInt()
-				is SimpleFloatSpinnerModel -> spinnerModel.value = value.toFloat()
-				else -> unsupported()
-			}
-		}
-
-	override var min: Number
-		get() = when (spinnerModel) {
-			is IntSpinnerModel -> spinnerModel.min
-			is SimpleFloatSpinnerModel -> spinnerModel.min
-			else -> unsupported()
-		}
-		set(value) {
-			when (spinnerModel) {
-				is IntSpinnerModel -> spinnerModel.min = value.toInt()
-				is SimpleFloatSpinnerModel -> spinnerModel.min = value.toFloat()
-				else -> unsupported()
-			}
-		}
-
-	override var max: Number
-		get() = when (spinnerModel) {
-			is IntSpinnerModel -> spinnerModel.max
-			is SimpleFloatSpinnerModel -> spinnerModel.max
-			else -> unsupported()
-		}
-		set(value) {
-			when (spinnerModel) {
-				is IntSpinnerModel -> spinnerModel.max = value.toInt()
-				is SimpleFloatSpinnerModel -> spinnerModel.max = value.toFloat()
-				else -> unsupported()
-			}
-		}
-}
-
-/**
- * Created by Frotty on 04.06.2016.
- */
+/** Scene2d-native numeric field with compact step controls and reactive model ownership. */
 open class MetaSpinner @JvmOverloads constructor(
-	spinnerModel: MetaSpinnerModel,
-	private val fontSize: Int = MetaType.BODY,
-) : Spinner("", spinnerModel.getSpinnerModel()), FontRefreshable {
-	val metaModel: MetaSpinnerModel = spinnerModel
-
-	@Deprecated(
-		message = "Pass a MetaSpinnerModel (e.g. MetaIntSpinnerModel/MetaFloatSpinnerModel) instead.",
-		level = DeprecationLevel.WARNING,
-	)
-	constructor(spinnerModel: SpinnerModel, fontSize: Int = MetaType.BODY) : this(
-		MetaSpinnerModelAdapter(spinnerModel),
-		fontSize
-	)
-
-	private val fontProvider: FontProvider = inject()
-	private val fontTracker = FontGenerationTracker()
+	val metaModel: MetaSpinnerModel,
+	fontSize: Int = MetaType.BODY,
+) : MetaTable() {
+	val textField = MetaTextField(metaModel.format(metaModel.value), fontSize)
+	private val decrementButton = MetaImageButton("ri-subtract-line", 14)
+	private val incrementButton = MetaImageButton("ri-add-line", 14)
+	private var scope = ReactiveScope()
+	private var syncing = false
 
 	init {
-		applyFieldFont()
+		defaults().space(0f)
+		add(decrementButton).size(STEP_BUTTON_SIZE)
+		add(textField).growX().minWidth(MIN_FIELD_WIDTH).height(FIELD_HEIGHT)
+		add(incrementButton).size(STEP_BUTTON_SIZE)
+		decrementButton.addListener(stepListener { metaModel.decrement() })
+		incrementButton.addListener(stepListener { metaModel.increment() })
+		textField.addListener(object : ChangeListener() {
+			override fun changed(event: ChangeEvent, actor: Actor) {
+				event.stop()
+				if (syncing) return
+				metaModel.parse(textField.text)?.let { metaModel.value = it }
+			}
+		})
+		installBinding()
 	}
 
-	/** Re-fetches the text field font after a UI-scale change. Rare event, so re-cloning the style is fine. */
-	override fun refreshFont() {
-		fontTracker.markFresh()
-		applyFieldFont()
-		invalidateHierarchy()
-	}
-
-	/** Self-heal on (re)attach: a spinner that was detached during a UI-scale change holds a disposed font. */
 	override fun setStage(stage: Stage?) {
+		val wasOnStage = this.stage != null
 		super.setStage(stage)
-		if (stage != null) fontTracker.refreshIfStale(this)
+		if (stage != null && scope.isDisposed) {
+			scope = ReactiveScope()
+			installBinding()
+		} else if (wasOnStage && stage == null) scope.dispose()
 	}
 
-	private fun applyFieldFont() {
-		cells.find { it.actor is VisValidatableTextField }?.let {
-			val field = it.actor as VisValidatableTextField
-			val skin = VisUI.getSkin()
-			// Clone before mutating - never write into the shared skin style (see MetaTextField for the pattern).
-			val baseStyle = if (skin.has(MetaSkin.TEXT_FIELD, VisTextFieldStyle::class.java)) {
-				skin.get(MetaSkin.TEXT_FIELD, VisTextFieldStyle::class.java)
-			} else {
-				field.style as VisTextFieldStyle
-			}
-			field.style = VisTextFieldStyle(baseStyle).apply {
-				font = fontProvider.getFont(fontSize, FontType.REGULAR)
-			}
+	private fun installBinding() {
+		syncFromModel()
+		scope.subscribe(metaModel.valueValue) {
+			syncFromModel()
+			fire(ChangeListener.ChangeEvent())
 		}
+	}
+
+	private fun syncFromModel() {
+		val formatted = metaModel.format(metaModel.value)
+		if (textField.text == formatted) return
+		syncing = true
+		textField.setText(formatted)
+		syncing = false
+	}
+
+	private fun stepListener(step: () -> Unit) = object : ChangeListener() {
+		override fun changed(event: ChangeEvent, actor: Actor) {
+			event.stop()
+			step()
+		}
+	}
+
+	private companion object {
+		const val STEP_BUTTON_SIZE = 28f
+		const val FIELD_HEIGHT = 34f
+		const val MIN_FIELD_WIDTH = 56f
 	}
 }

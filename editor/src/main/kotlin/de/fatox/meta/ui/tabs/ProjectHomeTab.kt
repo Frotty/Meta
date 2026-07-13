@@ -20,13 +20,8 @@ class ProjectHomeTab(private val projectData: MetaProjectData) : MetaTab(true, f
 
 	private val editorUI: MetaEditorUI by lazyInject()
 
-	override fun getTabTitle(): String {
-		return "home@" + projectData.name
-	}
-
-	override fun getContentTable(): Table {
-		return visTable
-	}
+	override val tabTitle: String get() = "home@" + projectData.name
+	override val contentTable: Table get() = visTable
 
 	override fun onShow() {
 		super.onShow()

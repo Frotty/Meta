@@ -25,13 +25,8 @@ class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
 	private val camControl = ArcCamControl()
 	val sceneHandle: MetaSceneHandle
 	private val table: Table
-	override fun getTabTitle(): String {
-		return sceneHandle.sceneFile.name()
-	}
-
-	override fun getContentTable(): Table {
-		return table
-	}
+	override val tabTitle: String get() = sceneHandle.sceneFile.name()
+	override val contentTable: Table get() = table
 
 	override fun onShow() {
 		metaInput.addScreenInputProcessor(camControl)

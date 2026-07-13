@@ -19,7 +19,7 @@ import de.fatox.meta.ui.components.MetaTextField
 import de.fatox.meta.ui.components.SliderWithButtons
 
 /**
- * Reactive bindings for Meta's scene2d/VisUI widgets: bind a widget to a [ReactiveValue] (or any tracking lambda)
+ * Reactive bindings for Meta's scene2d widgets: bind a widget to a [ReactiveValue] (or any tracking lambda)
  * once and it keeps itself in sync - no manual re-setting, no "re-query and rebuild" glue. This is the fine-grained
  * complement to the coarse `someSignal.subscribe { rebuildEverything() }` pattern: use a binding when exactly one
  * property of one widget tracks one piece of state.

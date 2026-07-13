@@ -1,163 +1,273 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.Cell
+import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.scenes.scene2d.ui.Image
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
-import com.kotcrab.vis.ui.widget.Menu
-import com.kotcrab.vis.ui.widget.MenuBar
-import com.kotcrab.vis.ui.widget.MenuItem
-import com.kotcrab.vis.ui.widget.VisTextButton
-import de.fatox.meta.api.graphics.FontProvider
-import de.fatox.meta.api.graphics.FontType
-import de.fatox.meta.injection.MetaInject.Companion.inject
+import com.badlogic.gdx.utils.Align
+import com.badlogic.gdx.utils.Array
+import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
-import de.fatox.meta.reactive.subscribe
-import de.fatox.meta.ui.FontGenerationTracker
-import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 
-/** Meta chrome around VisUI's menu coordination logic. All visible text uses the runtime TTF provider. */
-class MetaMenuBar : MenuBar() {
-	init {
-		table.background = MetaSkin.skin().getDrawable("meta.menu.bar")
-		table.pad(MetaSpacing.XS, MetaSpacing.SM, MetaSpacing.XS, MetaSpacing.SM)
-		table.defaults().padRight(MetaSpacing.XS)
+/** Scene2d-native menu coordinator. Exactly one menu owns the active state. */
+class MetaMenuBar {
+	val table: Table = MetaTable().apply {
+		background = MetaSkin.skin().getDrawable("meta.menu.bar")
+		pad(MetaSpacing.XS, MetaSpacing.SM, MetaSpacing.XS, MetaSpacing.SM)
+		defaults().padRight(MetaSpacing.XS)
+		left()
+	}
+	val activeMenuValue: Signal<MetaMenu?> = signal(null)
+	private val menus = Array<MetaMenu>()
+
+	fun addMenu(menu: MetaMenu) {
+		if (menus.contains(menu, true)) return
+		menus.add(menu)
+		menu.attach(this)
+		table.add(menu.openButton)
+	}
+
+	fun removeMenu(menu: MetaMenu): Boolean {
+		if (!menus.removeValue(menu, true)) return false
+		if (activeMenuValue.peek() === menu) closeMenu()
+		table.removeActor(menu.openButton)
+		menu.attach(null)
+		return true
+	}
+
+	fun closeMenu() {
+		setActiveMenu(null)
+	}
+
+	internal fun toggle(menu: MetaMenu) {
+		setActiveMenu(if (activeMenuValue.peek() === menu) null else menu)
+	}
+
+	internal fun switchOnHover(menu: MetaMenu) {
+		if (activeMenuValue.peek() != null && activeMenuValue.peek() !== menu) setActiveMenu(menu)
+	}
+
+	private fun setActiveMenu(menu: MetaMenu?) {
+		val previous = activeMenuValue.peek()
+		if (previous === menu) return
+		previous?.hidePopup()
+		activeMenuValue.value = menu
+		menu?.showBelowButton()
 	}
 }
 
-class MetaMenu private constructor(
-	title: String,
-	private val fontSize: Int,
-	private val metaStyle: MenuStyle,
-) : Menu(title, metaStyle), FontRefreshable {
-	private val fontProvider: FontProvider = inject()
-	private val fontTracker = FontGenerationTracker()
-	private var lastItemCell: Cell<MenuItem>? = null
+/** Popup menu usable both from a [MetaMenuBar] and as a context menu through [showMenu]. */
+class MetaMenu @JvmOverloads constructor(
+	val title: String,
+	fontSize: Int = MetaType.BODY,
+) : MetaTable() {
+	internal val openButton = MenuHeaderButton(title, fontSize).apply {
+		addListener(object : InputListener() {
+			override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+				if (pointer != 0 || button != 0) return false
+				menuBar?.toggle(this@MetaMenu)
+				event.stop()
+				return true
+			}
 
-	@JvmOverloads
-	constructor(title: String, fontSize: Int = MetaType.BODY) : this(title, fontSize, createMenuStyle(fontSize))
+			override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+				if (pointer == -1) menuBar?.switchOnHover(this@MetaMenu)
+			}
+		})
+	}
+	val openValue: Signal<Boolean> = signal(false)
+	private var menuBar: MetaMenuBar? = null
+	private var shownStage: Stage? = null
+	private val anchorPosition = Vector2()
+	private val outsideListener = object : InputListener() {
+		override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+			if (!event.target.isDescendantOf(this@MetaMenu) && !event.target.isDescendantOf(openButton)) {
+				menuBar?.closeMenu() ?: hidePopup()
+			}
+			return false
+		}
+	}
 
-	override fun addItem(item: MenuItem) {
-		lastItemCell?.padBottom(0f)
-		super.addItem(item)
-		// PopupMenu draws rounded corners but does not clip its rectangular final row. Keep normal rows full-width and
-		// lift only the current last row out of the bottom-corner curve. Adding another item removes this old inset.
-		lastItemCell = getCell(item)?.padBottom(POPUP_BOTTOM_INSET)
+	init {
+		background = MetaSkin.skin().getDrawable(MetaSkin.DROPDOWN)
+		pad(MetaSpacing.XS, 0f, MetaSpacing.XS, 0f)
+		defaults().growX()
+		touchable = Touchable.enabled
+	}
+
+	fun addItem(item: MetaMenuItem) {
+		add(item).growX().row()
+		item.owner = this
 		pack()
 	}
 
-	override fun addSeparator() {
-		lastItemCell?.padBottom(0f)
-		lastItemCell = null
-		add(MetaSeparator()).height(1f).fillX().expandX()
-			.padLeft(SEPARATOR_HORIZONTAL_INSET).padRight(SEPARATOR_HORIZONTAL_INSET)
+	fun addSeparator() {
+		add(MetaSeparator()).height(1f).fillX()
+			.padLeft(SEPARATOR_INSET).padRight(SEPARATOR_INSET)
 			.padTop(MetaSpacing.XXS).padBottom(MetaSpacing.XXS).row()
 		pack()
 	}
 
-	override fun refreshFont() {
-		fontTracker.markFresh()
-		metaStyle.openButtonStyle = VisTextButton.VisTextButtonStyle(metaStyle.openButtonStyle).apply {
-			font = fontProvider.getFont(fontSize, FontType.REGULAR)
-		}
-		openButton.style = metaStyle.openButtonStyle
-		invalidateHierarchy()
+	fun showMenu(stage: Stage, x: Float, y: Float) {
+		showPopup(stage, x, y)
 	}
 
-	override fun setStage(stage: Stage?) {
-		super.setStage(stage)
-		if (stage != null) fontTracker.refreshIfStale(this)
+	internal fun attach(bar: MetaMenuBar?) {
+		menuBar = bar
+		if (bar == null) hidePopup()
+	}
+
+	internal fun showBelowButton() {
+		val stage = openButton.stage ?: return
+		openButton.localToStageCoordinates(anchorPosition.set(0f, 0f))
+		showPopup(stage, anchorPosition.x, anchorPosition.y)
+	}
+
+	private fun showPopup(stage: Stage, anchorX: Float, anchorY: Float) {
+		// Repositioning this menu must not clear the bar's active-menu ownership. Losing that ownership here meant
+		// every subsequent header click opened another popup without closing the previous one.
+		clearPopupPresentation()
+		super.remove()
+		pack()
+		val popupX = anchorX.coerceIn(0f, (stage.width - width).coerceAtLeast(0f))
+		val popupY = (anchorY - height).coerceIn(0f, (stage.height - height).coerceAtLeast(0f))
+		setPosition(popupX, popupY)
+		shownStage = stage
+		stage.addActor(this)
+		stage.root.addCaptureListener(outsideListener)
+		openValue.value = true
+		openButton.active = true
+		toFront()
+	}
+
+	internal fun hidePopup() {
+		clearPopupState()
+		super.remove()
+	}
+
+	override fun remove(): Boolean {
+		clearPopupState()
+		return super.remove()
+	}
+
+	private fun clearPopupState() {
+		clearPopupPresentation()
+		val bar = menuBar
+		if (bar?.activeMenuValue?.peek() === this) bar.activeMenuValue.value = null
+	}
+
+	private fun clearPopupPresentation() {
+		shownStage?.root?.removeCaptureListener(outsideListener)
+		shownStage = null
+		openValue.value = false
+		openButton.active = false
+	}
+
+	internal fun closeFromItem() {
+		menuBar?.closeMenu() ?: hidePopup()
+	}
+
+	private fun Actor?.isDescendantOf(ancestor: Actor): Boolean {
+		var current = this
+		while (current != null) {
+			if (current === ancestor) return true
+			current = current.parent
+		}
+		return false
 	}
 
 	private companion object {
-		const val POPUP_BOTTOM_INSET = 4f
-		const val SEPARATOR_HORIZONTAL_INSET = 3f
+		const val SEPARATOR_INSET = 3f
 	}
 }
 
+/** TTF menu entry with optional Remix icon and reactive disabled state. */
 class MetaMenuItem private constructor(
 	text: String,
 	icon: Drawable?,
-	private val fontSize: Int,
-	private var metaStyle: MenuItemStyle,
-) : MenuItem(text, icon, metaStyle), FontRefreshable {
-	private val fontProvider: FontProvider = inject()
-	private val fontTracker = FontGenerationTracker()
-	val disabledValue: Signal<Boolean> = signal(isDisabled)
-	private val disabledBinding = disabledValue.subscribe { applyDisabledValue() }
+	fontSize: Int,
+) : Button(menuItemStyle()) {
+	val disabledValue: Signal<Boolean> = signal(false)
+	internal var owner: MetaMenu? = null
+	private val label = MetaLabel(text, fontSize, MetaColor.TEXT).apply { setAlignment(Align.left) }
 
 	@JvmOverloads
-	constructor(text: String, fontSize: Int = MetaType.BODY) : this(text, null, fontSize, createMenuItemStyle(fontSize))
+	constructor(text: String, fontSize: Int = MetaType.BODY) : this(text, null, fontSize)
 
 	@JvmOverloads
-	constructor(text: String, icon: String, size: Int = 18, fontSize: Int = MetaType.BODY) : this(
-		text,
-		MetaIconDrawable(icon, size),
-		fontSize,
-		createMenuItemStyle(fontSize),
-	)
+	constructor(text: String, icon: String, size: Int = 18, fontSize: Int = MetaType.BODY) :
+		this(text, MetaIconDrawable(icon, size), fontSize)
 
-	override fun setDisabled(isDisabled: Boolean) {
-		super.setDisabled(isDisabled)
-		disabledValue.value = isDisabled
+	init {
+		left()
+		if (icon != null) add(Image(icon)).size(icon.minWidth, icon.minHeight).padLeft(MetaSpacing.SM).padRight(MetaSpacing.XS)
+		else add().width(MetaSpacing.SM)
+		add(label).left().growX().padRight(MetaSpacing.SM)
+		cursorPointer()
+		addListener(object : ClickListener() {
+			override fun clicked(event: InputEvent, x: Float, y: Float) {
+				if (!isDisabled) owner?.closeFromItem()
+			}
+		})
 	}
 
-	private fun applyDisabledValue() {
-		val next = disabledValue.peek()
-		if (isDisabled != next) super.setDisabled(next)
+	override fun setDisabled(disabled: Boolean) {
+		super.setDisabled(disabled)
+		touchable = if (disabled) Touchable.disabled else Touchable.enabled
+		disabledValue.value = disabled
+		label.color.set(if (disabled) MetaColor.TEXT_DISABLED else MetaColor.TEXT)
 	}
 
-	override fun refreshFont() {
-		fontTracker.markFresh()
-		metaStyle = MenuItemStyle(metaStyle).apply {
-			font = fontProvider.getFont(fontSize, FontType.REGULAR)
-		}
-		setStyle(metaStyle)
-		invalidateHierarchy()
-	}
-
-	override fun setStage(stage: Stage?) {
-		super.setStage(stage)
-		if (stage != null) fontTracker.refreshIfStale(this)
-	}
-}
-
-private fun createMenuStyle(fontSize: Int): Menu.MenuStyle {
-	val skin = MetaSkin.skin()
-	val base = skin.get(Menu.MenuStyle::class.java)
-	return Menu.MenuStyle(base).apply {
-		background = skin.getDrawable(MetaSkin.DROPDOWN)
-		border = null
-		openButtonStyle = VisTextButton.VisTextButtonStyle(base.openButtonStyle).apply {
-			font = inject<FontProvider>().getFont(fontSize, FontType.REGULAR)
-			fontColor = MetaColor.TEXT.cpy()
-			overFontColor = MetaColor.TEXT.cpy()
-			downFontColor = MetaColor.TEXT.cpy()
-			up = skin.getDrawable("meta.menu.bar.open")
-			over = skin.getDrawable("meta.menu.bar.over")
-			down = skin.getDrawable("meta.menu.bar.selected")
-			checked = skin.getDrawable("meta.menu.bar.selected")
+	private companion object {
+		fun menuItemStyle(): ButtonStyle {
+			val skin = MetaSkin.skin()
+			return ButtonStyle().apply {
+				up = skin.getDrawable("meta.menu.item")
+				over = skin.getDrawable("meta.menu.item.over")
+				down = skin.getDrawable("meta.menu.item.selected")
+				disabled = skin.getDrawable("meta.menu.item")
+			}
 		}
 	}
 }
 
-private fun createMenuItemStyle(fontSize: Int): MenuItem.MenuItemStyle {
-	val skin = MetaSkin.skin()
-	val base = skin.get(MenuItem.MenuItemStyle::class.java)
-	return MenuItem.MenuItemStyle(base).apply {
-		font = inject<FontProvider>().getFont(fontSize, FontType.REGULAR)
-		fontColor = MetaColor.TEXT.cpy()
-		overFontColor = MetaColor.TEXT.cpy()
-		downFontColor = MetaColor.TEXT.cpy()
-		disabledFontColor = MetaColor.TEXT_DISABLED.cpy()
-		up = skin.getDrawable("meta.menu.item")
-		over = skin.getDrawable("meta.menu.item.over")
-		down = skin.getDrawable("meta.menu.item.selected")
-		checked = skin.getDrawable("meta.menu.item.selected")
-		disabled = skin.getDrawable("meta.menu.item")
+internal class MenuHeaderButton(text: String, fontSize: Int) : MetaTextButton(text, fontSize) {
+	private val normalStyle = headerStyle(false)
+	private val activeStyle = headerStyle(true)
+
+	var active: Boolean = false
+		set(value) {
+			if (field == value) return
+			field = value
+			installMetaStyle(if (value) activeStyle else normalStyle)
+		}
+
+	init {
+		pad(0f, MetaSpacing.SM, 0f, MetaSpacing.SM)
+		installMetaStyle(normalStyle)
+	}
+
+	private companion object {
+		fun headerStyle(active: Boolean): Button.ButtonStyle {
+			val skin = MetaSkin.skin()
+			return Button.ButtonStyle().apply {
+				up = skin.getDrawable(if (active) "meta.menu.bar.selected" else "meta.menu.bar.open")
+				over = skin.getDrawable(if (active) "meta.menu.bar.selected" else "meta.menu.bar.over")
+				down = skin.getDrawable("meta.menu.bar.selected")
+			}
+		}
 	}
 }

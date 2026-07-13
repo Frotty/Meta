@@ -20,10 +20,11 @@ Changes here affect multiple projects, so compatibility and runtime behavior sta
   `ui/layout/MetaLayout.kt` (layout checks)
 
 ## UI toolkit — batteries included, TTF everywhere
-Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow these so screens share one look:
-- **Use the TTF Meta widgets, not VisUI's baked-glyph ones.** All text must render through the Meta font provider:
+Meta is a batteries-included UI layer built directly on libGDX scene2d. VisUI is EOL and must not be reintroduced.
+Follow these so screens share one look:
+- **Use the TTF Meta widgets, not raw scene2d text widgets.** All text must render through the Meta font provider:
   `MetaLabel`, `MetaTextButton`, `MetaIconTextButton`, `MetaSelectBox`, `MetaTextField`, `MetaCheckBox`. Do NOT use
-  raw `VisLabel`/`VisTextButton`/`VisTextField` for visible text. If a needed widget still uses skin glyphs, add a
+  raw `Label`/`TextButton`/`TextField` for visible text. If a needed widget still uses a baked font, add a
   `Meta*` wrapper that swaps in `fontProvider.getFont(size, type)` (see `MetaTextField` for the pattern: clone the
   style once, never mutate the shared skin style).
 - **Use icon-style controls intentionally.** `MetaIconButton` is the full action icon button (same visual family as
@@ -58,7 +59,7 @@ Meta aims to be a batteries-included UI layer on top of VisUI/scene2d. Follow th
   normal horizontal icon + label action by default; use `vertical = true` only for deliberate tile/grid controls.
   `SliderWithButtons` already supplies consistently sized step actions. Extend these reusable defaults when a common
   composition is missing instead of rebuilding it in each screen.
-- **Use `MetaScrollPane`, not raw `ScrollPane`/`VisScrollPane`.** It owns Meta's thin generated scrollbar style,
+- **Use `MetaScrollPane`, not raw `ScrollPane`.** It owns Meta's thin generated scrollbar style,
   mouse-wheel step, right-side content gutter, and automatic hover-based scroll focus. Nested panes claim focus on
   mouse enter and restore the containing pane on exit, so consumers must not add their own scroll-focus listeners. If
   you need a scrollable list, wrap it in `MetaScrollPane` and let the component enforce the behavior and padding.
@@ -172,10 +173,10 @@ here is **allocation rate** — minimize GC churn; most other micro-optimization
 
 ## What belongs here vs. in a consuming game
 Goal: consumer repos (e.g. OxRox) hold *game* code; anything generic and reusable across games lives in Meta.
-- **Belongs in Meta:** generic VisUI/scene2d widgets, input/key utilities, deterministic RNG, generic
+- **Belongs in Meta:** generic scene2d widgets, input/key utilities, deterministic RNG, generic
   data structures, serialization/encoding helpers, reusable dialogs, reactive bindings — anything with no
   game-specific logic. A strong tell: it already sits in a `de.fatox.meta.*` package, or depends only on
-  Meta + libGDX/VisUI.
+  Meta + libGDX scene2d.
 - **Stays in the game:** levels, entities, gameplay rules, game-specific screens/content, Steam/online
   integration, art/asset conventions.
 - When promoting code from a consumer into Meta: parameterize game-specific bits (e.g. asset paths via
@@ -194,7 +195,6 @@ Goal: consumer repos (e.g. OxRox) hold *game* code; anything generic and reusabl
 - Toolchain auto-download is enabled; daemon JVM criteria file is tracked in `gradle/gradle-daemon-jvm.properties`.
 - Current baseline in this repo:
   - libGDX `1.14.2`
-  - VisUI `1.5.9`
   - Kotlin `2.4.0`
   - Gradle `9.1.0`
 

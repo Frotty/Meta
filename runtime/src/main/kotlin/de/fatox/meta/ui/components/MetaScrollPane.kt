@@ -10,7 +10,7 @@ import de.fatox.meta.ui.MetaSpacing
 
 /**
  * A [ScrollPane] with a faster mouse-wheel step, Meta's thin generated scrollbar style and a small content gutter
- * before the scrollbar. Use this instead of raw `ScrollPane`/`VisScrollPane` so scrollable content never sits flush
+ * before the scrollbar. Use this instead of raw `ScrollPane` so scrollable content never sits flush
  * against the thumb.
  * Uses the borderless `meta.scrollPane.flat` style by default; use `MetaSkin.SCROLL_PANE` explicitly when you need
  * a bordered container look.

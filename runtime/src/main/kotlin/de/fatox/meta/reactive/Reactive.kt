@@ -30,7 +30,7 @@ package de.fatox.meta.reactive
  *
  * **Threading:** NOT thread-safe - drive it from one thread (in this app, the libGDX GL/render thread). Setting a
  * signal runs its dependent effects synchronously on the calling thread, so as long as writes happen on the GL
- * thread (e.g. `RestHandler` already dispatches its callbacks there) effects may safely mutate scene2d/VisUI.
+ * thread (e.g. `RestHandler` already dispatches its callbacks there) effects may safely mutate scene2d UI.
  */
 
 /** Read-only reactive value. Reading [value] (or invoking it) inside a [computed]/[effect] subscribes to it. */

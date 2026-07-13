@@ -2,7 +2,6 @@ package de.fatox.meta.ui
 
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.kotcrab.vis.ui.VisUI
 import de.fatox.meta.test.GdxTestEnvironment
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -13,13 +12,13 @@ internal class MetaUiDefaultsTest {
 	@BeforeEach
 	fun setUp() {
 		GdxTestEnvironment.ensure()
-		if (VisUI.isLoaded()) VisUI.dispose()
-		VisUI.load(Skin())
+		MetaSkin.dispose()
+		MetaSkin.initialize(Skin(), installDefaults = false)
 	}
 
 	@AfterEach
 	fun tearDown() {
-		if (VisUI.isLoaded()) VisUI.dispose()
+		MetaSkin.dispose()
 	}
 
 	@Test

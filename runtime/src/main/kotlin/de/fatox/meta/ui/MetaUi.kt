@@ -14,7 +14,7 @@ import de.fatox.meta.ui.components.MetaTextButton
  *
  * All values are constants or load-time singletons, so referencing them never allocates (no per-frame GC churn).
  * [MetaColor] values are shared, mutable libGDX [Color] objects - treat them as READ-ONLY; call `.cpy()` if you need
- * a variant. Use [metaLabel]/[metaButton] (TTF, via the Meta font provider) instead of VisUI's baked-glyph widgets.
+ * a variant. Use [metaLabel]/[metaButton] so all text comes from the Meta font provider.
  */
 
 /** Typographic scale in pixels (the font provider rasterizes TTF at these sizes). Semantic, not t-shirt, names. */

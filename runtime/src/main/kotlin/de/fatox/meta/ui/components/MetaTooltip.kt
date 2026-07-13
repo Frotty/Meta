@@ -314,7 +314,7 @@ object MetaTooltip {
 		target.removeListener(attached.listener)
 	}
 
-	// Keep parity with VisUI API shape.
+	// Kept as a convenience alias for existing Meta consumers.
 	fun removeTooltip(target: Actor) = remove(target)
 
 	private fun Actor.isDescendantOf(target: Actor): Boolean {

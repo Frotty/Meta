@@ -6,7 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.utils.Layout
 
 /**
- * Static layout-sanity helpers so agents (and tests) can verify a scene2d/VisUI layout actually fits, instead of
+ * Static layout-sanity helpers so agents (and tests) can verify a scene2d layout actually fits, instead of
  * eyeballing the running game. It is pure geometry over the scene graph - no GL/Gdx needed - so it runs in plain
  * headless unit tests: build your `Table`, give it a size (or `pack()` it), then assert.
  *

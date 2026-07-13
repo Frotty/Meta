@@ -12,11 +12,11 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.viewport.Viewport
-import com.kotcrab.vis.ui.VisUI
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject.Companion.global
 import de.fatox.meta.test.GdxTestEnvironment
+import de.fatox.meta.ui.MetaSkin
 import java.lang.ref.WeakReference
 import java.lang.reflect.Proxy
 import kotlin.test.AfterTest
@@ -33,11 +33,11 @@ internal class MetaTooltipTest {
 	@BeforeTest
 	fun setUp() {
 		GdxTestEnvironment.ensure()
-		if (VisUI.isLoaded()) VisUI.dispose()
+		MetaSkin.dispose()
 		font = testFont()
-		VisUI.load(Skin().apply {
+		MetaSkin.initialize(Skin().apply {
 			add("meta.tooltip", BaseDrawable(), Drawable::class.java)
-		})
+		}, installDefaults = false)
 		global(clear = true) {
 			singleton<FontProvider> {
 				object : FontProvider {
@@ -50,7 +50,7 @@ internal class MetaTooltipTest {
 
 	@AfterTest
 	fun tearDown() {
-		if (VisUI.isLoaded()) VisUI.dispose()
+		MetaSkin.dispose()
 		global(clear = true) {}
 	}
 

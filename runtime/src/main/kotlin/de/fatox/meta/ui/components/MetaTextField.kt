@@ -17,7 +17,7 @@ import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
 
 /**
- * Text input using Meta's generated field drawables and TTF font. Prefer this over raw Scene2D/VisUI fields.
+ * Text input using Meta's generated field drawables and TTF font. Prefer this over raw scene2d fields.
  */
 open class MetaTextField @JvmOverloads constructor(
 	text: String = "",

@@ -25,8 +25,6 @@ class MetaEditorModule {
 
 			singleton("open") { MetaFileChooser(MetaFileChooser.OPEN) }
 			singleton("save") { MetaFileChooser(MetaFileChooser.SAVE) }
-
-			singleton("visui\\uiskin.json", "visuiSkin")
 		}
 	}
 }

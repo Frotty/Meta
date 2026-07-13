@@ -7,8 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
-import com.kotcrab.vis.ui.util.InputValidator
 import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.reactive.ReactiveValue
@@ -88,17 +88,15 @@ class MetaInputLayout<T : Actor> @JvmOverloads constructor(
 	}
 
 	fun addValidator(validator: MetaInputValidator) {
-		addValidator(InputValidator { inputText ->
-			val errorText = validator.validationErrorText(inputText)
-			errorTextValue.value = errorText
-			errorText.isEmpty()
-		})
-	}
-
-	fun addValidator(validator: InputValidator) {
+		val wrapped = object : MetaInputValidator() {
+			override fun validateInput(input: String, errors: MetaErrorHandler) {
+				validator.validateInput(input, errors)
+				errorTextValue.value = errors.labelText
+			}
+		}
 		when (input) {
-			is MetaInputField -> input.addValidator(validator)
-			is MetaTextArea -> input.addValidator(validator)
+			is MetaInputField -> input.addValidator(wrapped)
+			is MetaTextArea -> input.addValidator(wrapped)
 			else -> throw IllegalStateException("MetaInputLayout validators require MetaInputField or MetaTextArea")
 		}
 	}

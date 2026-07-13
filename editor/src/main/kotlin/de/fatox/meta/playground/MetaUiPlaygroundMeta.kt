@@ -13,6 +13,7 @@ import de.fatox.meta.api.SoundHandler
 import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.register
+import de.fatox.meta.api.ui.registerSingleton
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.modules.MetaEditorModule
@@ -43,6 +44,10 @@ class MetaUiPlaygroundMeta(
 
 	override fun WindowConfig.windows() {
 		register { PlaygroundSampleWindow() }
+		registerSingleton { TypographyPlaygroundWindow() }
+		registerSingleton { ControlsPlaygroundWindow() }
+		registerSingleton { SelectionPlaygroundWindow() }
+		registerSingleton { CollectionsPlaygroundWindow() }
 	}
 
 	@Suppress("UNUSED_EXPRESSION")

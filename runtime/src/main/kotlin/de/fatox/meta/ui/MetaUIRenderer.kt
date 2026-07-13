@@ -1,7 +1,6 @@
 package de.fatox.meta.ui
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
@@ -11,10 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
-import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.viewport.ScreenViewport
-import com.kotcrab.vis.ui.VisUI
-import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.api.extensions.MetaLoggerFactory
@@ -49,8 +45,6 @@ fun suggestedUiScale(): Float = 1f
 class MetaUIRenderer : UIRenderer {
 	private var focusedActor: Actor? = null
 	private val metaInput: MetaInputProcessor by lazyInject()
-	private val assetProvider: AssetProvider by lazyInject()
-	private val visuiSkin: String by lazyInject("visuiSkin")
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val focusRenderer: FocusRenderer by lazyInject()
 	private val fontProvider: FontProvider by lazyInject()
@@ -78,7 +72,7 @@ class MetaUIRenderer : UIRenderer {
 		val runWithUI = MetaAudioVideoState.state.value.runWithUI
 		log.trace { "load with UI enabled = $runWithUI" }
 		if (runWithUI) {
-			loadVisUI()
+			loadMetaUI()
 		}
 
 		stage.root.addCaptureListener(object : InputListener() {
@@ -121,16 +115,10 @@ class MetaUIRenderer : UIRenderer {
 
 	override fun cancelTouchFocus() = stage.cancelTouchFocus()
 
-	private fun loadVisUI() {
-		if (visuiSkin != "") {
-			VisUI.load(assetProvider.getResource(visuiSkin, FileHandle::class.java))
-		} else {
-			VisUI.load()
-		}
-		MetaSkin.install(VisUI.getSkin())
+	private fun loadMetaUI() {
+		MetaSkin.initialize()
 		MetaFileChooser.setDefaultPrefsName("de.fatox.meta")
-		VisUI.setDefaultTitleAlign(Align.center)
-		log.debug { "Loaded VisUi." }
+		log.debug { "Loaded Meta UI." }
 	}
 
 	override fun addActor(actor: Actor) {
@@ -188,5 +176,6 @@ class MetaUIRenderer : UIRenderer {
 		focusRenderer.dispose()
 		stage.dispose()
 		fontProvider.dispose()
+		MetaSkin.dispose()
 	}
 }

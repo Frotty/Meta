@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.NinePatch
+import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.List
@@ -16,8 +17,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
-import com.kotcrab.vis.ui.VisUI
-import com.kotcrab.vis.ui.widget.VisTextField
 
 /**
  * Runtime-generated Meta skin resources. These are deliberately created from code instead of bundled UI textures so
@@ -50,8 +49,20 @@ object MetaSkin {
 	private const val ICON_SIZE = 24
 	private const val ICON_PIXMAP_SCALE = 3
 	private const val ICON_PIXMAP_SIZE = ICON_SIZE * ICON_PIXMAP_SCALE
+	private var activeSkin: Skin? = null
 
-	fun skin(): Skin = VisUI.getSkin()
+	fun skin(): Skin = activeSkin ?: error("MetaSkin has not been initialized")
+
+	fun initialize(skin: Skin = Skin(), installDefaults: Boolean = true): Skin {
+		activeSkin = skin
+		if (installDefaults) install(skin)
+		return skin
+	}
+
+	fun dispose() {
+		activeSkin?.dispose()
+		activeSkin = null
+	}
 
 	fun install(skin: Skin) {
 		if (skin.has(INSTALLED_COLOR, Color::class.java)) return
@@ -144,6 +155,11 @@ object MetaSkin {
 	}
 
 	private fun addStyles(skin: Skin) {
+		val defaultFont = if (skin.has("default-font", BitmapFont::class.java)) {
+			skin.get("default-font", BitmapFont::class.java)
+		} else {
+			BitmapFont().also { skin.add("default-font", it, BitmapFont::class.java) }
+		}
 		skin.add(BUTTON, Button.ButtonStyle().apply {
 			up = skin.getDrawable("meta.button.up")
 			over = skin.getDrawable("meta.button.over")
@@ -177,19 +193,29 @@ object MetaSkin {
 			disabled = skin.getDrawable("meta.checkbox.disabled")
 		})
 
-		if (skin.has("default", com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle::class.java)) {
-			val base = skin.get("default", com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle::class.java)
-			skin.add(WINDOW, com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle(base).apply {
-				background = skin.getDrawable("meta.panel.raised")
-			})
-			skin.add(WINDOW_RESIZABLE, com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle(base).apply {
-				background = skin.getDrawable("meta.panel.raised")
-			})
+		val baseWindow = if (skin.has("default", com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle::class.java)) {
+			skin.get("default", com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle::class.java)
+		} else {
+			com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle(defaultFont, MetaColor.TEXT.cpy(), null).also {
+				skin.add("default", it, com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle::class.java)
+			}
 		}
+		skin.add(WINDOW, com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle(baseWindow).apply {
+			background = skin.getDrawable("meta.panel.raised")
+		})
+		skin.add(WINDOW_RESIZABLE, com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle(baseWindow).apply {
+			background = skin.getDrawable("meta.panel.raised")
+		})
 
-		if (skin.has("default", TextField.TextFieldStyle::class.java)) {
-			val base = skin.get("default", TextField.TextFieldStyle::class.java)
-			skin.add(TEXT_FIELD, TextField.TextFieldStyle(base).apply {
+		val baseTextField = if (skin.has("default", TextField.TextFieldStyle::class.java)) {
+			skin.get("default", TextField.TextFieldStyle::class.java)
+		} else {
+			TextField.TextFieldStyle(defaultFont, MetaColor.TEXT.cpy(), skin.getDrawable("meta.cursor"),
+				skin.getDrawable("meta.selection"), skin.getDrawable("meta.field.up")).also {
+				skin.add("default", it, TextField.TextFieldStyle::class.java)
+			}
+		}
+		skin.add(TEXT_FIELD, TextField.TextFieldStyle(baseTextField).apply {
 				background = skin.getDrawable("meta.field.up")
 				focusedBackground = skin.getDrawable("meta.field.focus")
 				disabledBackground = skin.getDrawable("meta.field.disabled")
@@ -200,7 +226,7 @@ object MetaSkin {
 				disabledFontColor = MetaColor.TEXT_DISABLED.cpy()
 				messageFontColor = MetaColor.TEXT_MUTED.cpy()
 			})
-			skin.add(TEXT_FIELD_ERROR, TextField.TextFieldStyle(base).apply {
+		skin.add(TEXT_FIELD_ERROR, TextField.TextFieldStyle(baseTextField).apply {
 				background = skin.getDrawable("meta.field.error")
 				focusedBackground = skin.getDrawable("meta.field.error")
 				disabledBackground = skin.getDrawable("meta.field.disabled")
@@ -211,35 +237,35 @@ object MetaSkin {
 				disabledFontColor = MetaColor.TEXT_DISABLED.cpy()
 				messageFontColor = MetaColor.TEXT_MUTED.cpy()
 			})
-		}
+		skin.add(TEXT_AREA, TextField.TextFieldStyle(skin.get(TEXT_FIELD, TextField.TextFieldStyle::class.java)))
 
-		if (skin.has("default", VisTextField.VisTextFieldStyle::class.java)) {
-			val base = skin.get("default", VisTextField.VisTextFieldStyle::class.java)
-			skin.add(TEXT_FIELD, visTextFieldStyle(base), VisTextField.VisTextFieldStyle::class.java)
-			skin.add(TEXT_FIELD_ERROR, visTextFieldStyle(base, invalid = true), VisTextField.VisTextFieldStyle::class.java)
-			skin.add(TEXT_AREA, visTextFieldStyle(base), VisTextField.VisTextFieldStyle::class.java)
-		}
-
-		if (skin.has("default", ScrollPane.ScrollPaneStyle::class.java)) {
-			val defaultStyle = ScrollPane.ScrollPaneStyle(skin.get(ScrollPane.ScrollPaneStyle::class.java))
-			skin.add(SCROLL_PANE, ScrollPane.ScrollPaneStyle(defaultStyle).apply {
+		val defaultScroll = if (skin.has("default", ScrollPane.ScrollPaneStyle::class.java)) {
+			ScrollPane.ScrollPaneStyle(skin.get(ScrollPane.ScrollPaneStyle::class.java))
+		} else ScrollPane.ScrollPaneStyle().also { skin.add("default", it, ScrollPane.ScrollPaneStyle::class.java) }
+			skin.add(SCROLL_PANE, ScrollPane.ScrollPaneStyle(defaultScroll).apply {
 				background = skin.getDrawable("meta.panel")
 				vScroll = skin.getDrawable("meta.scroll.track")
 				hScroll = skin.getDrawable("meta.scroll.track")
 				vScrollKnob = skin.getDrawable("meta.scroll.knob")
 				hScrollKnob = skin.getDrawable("meta.scroll.knob")
 			})
-			skin.add(SCROLL_PANE_FLAT, ScrollPane.ScrollPaneStyle(defaultStyle).apply {
+			skin.add(SCROLL_PANE_FLAT, ScrollPane.ScrollPaneStyle(defaultScroll).apply {
 				background = null
 				vScroll = skin.getDrawable("meta.scroll.track")
 				hScroll = skin.getDrawable("meta.scroll.track")
 				vScrollKnob = skin.getDrawable("meta.scroll.knob")
 				hScrollKnob = skin.getDrawable("meta.scroll.knob")
 			})
-		}
 
-		if (skin.has("default", SelectBox.SelectBoxStyle::class.java)) {
-			val base = skin.get(SelectBox.SelectBoxStyle::class.java)
+		val baseList = if (skin.has("default", List.ListStyle::class.java)) skin.get(List.ListStyle::class.java) else
+			List.ListStyle(defaultFont, MetaColor.TEXT.cpy(), MetaColor.TEXT.cpy(), skin.getDrawable("meta.dropdown.selection")).also {
+				skin.add("default", it, List.ListStyle::class.java)
+			}
+		val baseSelect = if (skin.has("default", SelectBox.SelectBoxStyle::class.java)) skin.get(SelectBox.SelectBoxStyle::class.java) else
+			SelectBox.SelectBoxStyle(defaultFont, MetaColor.TEXT.cpy(), skin.getDrawable("meta.field.up"), defaultScroll, baseList).also {
+				skin.add("default", it, SelectBox.SelectBoxStyle::class.java)
+			}
+			val base = baseSelect
 			skin.add(SELECT_BOX, SelectBox.SelectBoxStyle(base).apply {
 				background = skin.getDrawable("meta.field.up")
 				backgroundOver = skin.getDrawable("meta.field.over")
@@ -264,24 +290,27 @@ object MetaSkin {
 					base.scrollStyle
 				}
 			})
-		}
 
-		if (skin.has("default-horizontal", Slider.SliderStyle::class.java)) {
-			skin.add(SLIDER_HORIZONTAL, Slider.SliderStyle(skin.get("default-horizontal", Slider.SliderStyle::class.java)).apply {
+		val baseSlider = if (skin.has("default-horizontal", Slider.SliderStyle::class.java)) skin.get("default-horizontal", Slider.SliderStyle::class.java)
+		else Slider.SliderStyle(skin.getDrawable("meta.slider.track"), skin.getDrawable("meta.slider.knob")).also {
+			skin.add("default-horizontal", it, Slider.SliderStyle::class.java)
+		}
+			skin.add(SLIDER_HORIZONTAL, Slider.SliderStyle(baseSlider).apply {
 				background = skin.getDrawable("meta.slider.track")
 				knobBefore = skin.getDrawable("meta.slider.fill")
 				knob = skin.getDrawable("meta.slider.knob")
 				knobOver = skin.getDrawable("meta.slider.knob")
 				knobDown = skin.getDrawable("meta.slider.knob")
 			})
+		val baseProgress = if (skin.has("default-horizontal", ProgressBar.ProgressBarStyle::class.java)) skin.get("default-horizontal", ProgressBar.ProgressBarStyle::class.java)
+		else ProgressBar.ProgressBarStyle(skin.getDrawable("meta.slider.track"), skin.getDrawable("meta.slider.fill")).also {
+			skin.add("default-horizontal", it, ProgressBar.ProgressBarStyle::class.java)
 		}
-		if (skin.has("default-horizontal", ProgressBar.ProgressBarStyle::class.java)) {
-			skin.add(PROGRESS_HORIZONTAL, ProgressBar.ProgressBarStyle(skin.get("default-horizontal", ProgressBar.ProgressBarStyle::class.java)).apply {
+			skin.add(PROGRESS_HORIZONTAL, ProgressBar.ProgressBarStyle(baseProgress).apply {
 				background = skin.getDrawable("meta.slider.track")
 				knob = skin.getDrawable("meta.slider.fill")
 				knobBefore = skin.getDrawable("meta.slider.fill")
 			})
-		}
 	}
 
 	private fun rounded(
@@ -449,27 +478,6 @@ object MetaSkin {
 		return TextField.TextFieldStyle(base).apply {
 			background = skin.getDrawable("meta.field.focus")
 			focusedBackground = skin.getDrawable("meta.field.focus")
-		}
-	}
-
-	private fun visTextFieldStyle(
-		base: VisTextField.VisTextFieldStyle,
-		invalid: Boolean = false,
-	): VisTextField.VisTextFieldStyle {
-		val skin = skin()
-		return VisTextField.VisTextFieldStyle(base).apply {
-			background = skin.getDrawable(if (invalid) "meta.field.error" else "meta.field.up")
-			focusedBackground = skin.getDrawable(if (invalid) "meta.field.error" else "meta.field.up")
-			disabledBackground = skin.getDrawable("meta.field.disabled")
-			backgroundOver = skin.getDrawable(if (invalid) "meta.field.error" else "meta.field.over")
-			focusBorder = skin.getDrawable(if (invalid) "meta.field.errorBorder" else "meta.field.focusBorder")
-			errorBorder = skin.getDrawable("meta.field.errorBorder")
-			cursor = skin.getDrawable("meta.cursor")
-			selection = skin.getDrawable("meta.selection")
-			fontColor = MetaColor.TEXT.cpy()
-			focusedFontColor = MetaColor.TEXT.cpy()
-			disabledFontColor = MetaColor.TEXT_DISABLED.cpy()
-			messageFontColor = MetaColor.TEXT_MUTED.cpy()
 		}
 	}
 
