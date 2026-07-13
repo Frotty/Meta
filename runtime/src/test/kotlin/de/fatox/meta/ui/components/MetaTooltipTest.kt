@@ -101,6 +101,44 @@ internal class MetaTooltipTest {
 	}
 
 	@Test
+	fun `visible tooltip is removed when a reflow detaches its target`() {
+		val actor = Actor().apply { setBounds(0f, 0f, 40f, 20f) }
+		val stage = testStage()
+		MetaTooltip.attach(actor, "Moving tile", hideDelaySeconds = 0f)
+		stage.addActor(actor)
+		actor.fire(hover(InputEvent.Type.enter))
+		assertTrue(MetaTooltip.isVisible(actor))
+
+		actor.remove()
+		MetaTooltip.bringVisibleToFront()
+
+		assertFalse(MetaTooltip.isVisible(actor))
+		assertTrue(MetaTooltip.isAttached(actor))
+		MetaTooltip.remove(actor)
+		stage.dispose()
+	}
+
+	@Test
+	fun `only the latest hovered target may own a visible tooltip`() {
+		val first = Actor().apply { setBounds(0f, 0f, 40f, 20f) }
+		val second = Actor().apply { setBounds(50f, 0f, 40f, 20f) }
+		val stage = testStage()
+		MetaTooltip.attach(first, "First", hideDelaySeconds = 0f)
+		MetaTooltip.attach(second, "Second", hideDelaySeconds = 0f)
+		stage.addActor(first)
+		stage.addActor(second)
+
+		first.fire(hover(InputEvent.Type.enter))
+		second.fire(hover(InputEvent.Type.enter))
+
+		assertFalse(MetaTooltip.isVisible(first))
+		assertTrue(MetaTooltip.isVisible(second))
+		MetaTooltip.remove(first)
+		MetaTooltip.remove(second)
+		stage.dispose()
+	}
+
+	@Test
 	fun `repeated attach updates registration without adding another listener`() {
 		val actor = Actor()
 		val listenersBefore = actor.listeners.size

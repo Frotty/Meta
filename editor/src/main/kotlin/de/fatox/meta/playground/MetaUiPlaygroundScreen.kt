@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.extensions.onClick
+import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.extensions.tooltip
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
@@ -31,6 +32,10 @@ import de.fatox.meta.ui.components.MetaInputField
 import de.fatox.meta.ui.components.MetaIntSpinnerModel
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaListView
+import de.fatox.meta.ui.components.MetaLoadingSpinner
+import de.fatox.meta.ui.components.MetaMenu
+import de.fatox.meta.ui.components.MetaMenuBar
+import de.fatox.meta.ui.components.MetaMenuItem
 import de.fatox.meta.ui.components.MetaScrollPane
 import de.fatox.meta.ui.components.MetaSelectBox
 import de.fatox.meta.ui.components.MetaSeparator
@@ -48,6 +53,7 @@ class MetaUiPlaygroundScreen(
 	private val uiManager: UIManager by lazyInject()
 	private val scope = ReactiveScope()
 	private var isBuilt = false
+	private var loadingSpinner: MetaLoadingSpinner? = null
 
 	override fun show() {
 		if (isBuilt) return
@@ -69,11 +75,15 @@ class MetaUiPlaygroundScreen(
 	}
 
 	override fun hide() {
+		uiManager.setMainMenuBar(null)
 		scope.dispose()
+		loadingSpinner?.dispose()
 	}
 
 	override fun dispose() {
+		uiManager.setMainMenuBar(null)
 		scope.dispose()
+		loadingSpinner?.dispose()
 	}
 
 	private fun clearFrame() {
@@ -85,12 +95,13 @@ class MetaUiPlaygroundScreen(
 	}
 
 	private fun build() {
+		uiManager.setMainMenuBar(playgroundToolbar())
 		val page = MetaTable().apply {
 			top().left()
 			pad(MetaSpacing.LG)
 			defaults().growX().padBottom(MetaSpacing.LG)
 		}
-		page.add(header()).growX().row()
+		page.add(header()).growX().padTop(MetaSpacing.LG).row()
 		page.add(typographySection()).growX().row()
 		page.add(buttonSection()).growX().row()
 		page.add(inputSection()).growX().row()
@@ -99,12 +110,58 @@ class MetaUiPlaygroundScreen(
 		page.add(windowSection()).growX().row()
 
 		val root = MetaTable().apply {
-			setFillParent(true)
 			add(MetaScrollPane(page)).grow()
 		}
-		uiRenderer.addActor(root)
+		// Keep screen content in MetaUiManager's layout so it occupies the row below the main menu. A separate
+		// fill-parent actor would overlap the menu, intercept its clicks, and let scrolling content show beneath it.
+		uiManager.addTable(root, growX = true, growY = true)
 		uiRenderer.addActor(MetaBottomBar(MetaLabel("Meta UI Component Playground", MetaType.CAPTION, MetaColor.TEXT))
 			.bottomOverlay(MetaSpacing.SM))
+	}
+
+	private fun playgroundToolbar(): MetaMenuBar = MetaMenuBar().apply {
+		val file = MetaMenu("File")
+		file.addItem(MetaMenuItem("New project", "ri-file-add-line").apply {
+			onChange { uiManager.showToast("New project") }
+		})
+		file.addItem(MetaMenuItem("Open…", "ri-folder-open-line").apply {
+			onChange { uiManager.showToast("Open") }
+		})
+		file.addItem(MetaMenuItem("Save", "ri-save-line").apply {
+			onChange { uiManager.showToast("Save") }
+		})
+		file.addSeparator()
+		file.addItem(MetaMenuItem("Recent files", "ri-history-line").apply {
+			disabledValue.value = true
+		})
+		addMenu(file)
+
+		val edit = MetaMenu("Edit")
+		edit.addItem(MetaMenuItem("Undo", "ri-arrow-go-back-line").apply {
+			onChange { uiManager.showToast("Undo") }
+		})
+		edit.addItem(MetaMenuItem("Redo", "ri-arrow-go-forward-line").apply {
+			disabledValue.value = true
+		})
+		edit.addSeparator()
+		edit.addItem(MetaMenuItem("Preferences", "ri-settings-3-line").apply {
+			onChange { uiManager.showToast("Preferences") }
+		})
+		addMenu(edit)
+
+		val view = MetaMenu("View")
+		view.addItem(MetaMenuItem("Show sample window", "ri-window-line").apply {
+			onChange { uiManager.showWindow<PlaygroundSampleWindow>() }
+		})
+		view.addItem(MetaMenuItem("Show toast", "ri-notification-3-line").apply {
+			onChange { uiManager.showToast("Hello from the Meta menu") }
+		})
+		view.addSeparator()
+		view.addItem(MetaMenuItem("Reset layout", "ri-layout-line").apply {
+			onChange { uiManager.showToast("Layout reset") }
+		})
+		addMenu(view)
+		table.add().growX()
 	}
 
 	private fun header(): Table = MetaTable().apply {
@@ -112,18 +169,24 @@ class MetaUiPlaygroundScreen(
 		add(MetaLabel("Meta UI Component Playground", MetaType.HEADING, MetaColor.TEXT)).left().growX().row()
 		add(MetaLabel("Interactive runtime widgets using Meta TTF text, Remix icons, generated skin drawables, and reactive bindings.",
 			MetaType.BODY, MetaColor.TEXT_MUTED)).left().growX()
+		row()
+		add(MetaLabel("Open File, Edit, or View in the top menu bar to test Meta dropdown menus.",
+			MetaType.CAPTION, MetaColor.ACCENT)).left().growX().padTop(MetaSpacing.XS)
 	}
 
 	private fun typographySection(): Table = section("Typography & Icons").apply {
-		val row = MetaTable()
-		row.defaults().padRight(MetaSpacing.LG).left()
-		row.add(MetaLabel("Caption", MetaType.CAPTION, MetaColor.TEXT_MUTED))
-		row.add(MetaLabel("Body", MetaType.BODY, MetaColor.TEXT))
-		row.add(MetaLabel("Label", MetaType.LABEL, MetaColor.TEXT))
-		row.add(MetaLabel("Title", MetaType.TITLE, MetaColor.TEXT))
-		row.add(MetaIcon("ri-information-line", 28, MetaColor.ACCENT.cpy()))
-		row.add(MetaIcon("ri-magic-line", 28, MetaColor.WARNING.cpy()))
-		add(row).growX().row()
+		val scale = MetaTable()
+		scale.defaults().padRight(MetaSpacing.LG).padBottom(MetaSpacing.SM).left()
+		scale.add(MetaLabel("Caption 12", MetaType.CAPTION, MetaColor.TEXT_MUTED))
+		scale.add(MetaLabel("Body 16", MetaType.BODY, MetaColor.TEXT))
+		scale.add(MetaLabel("Label 18", MetaType.LABEL, MetaColor.TEXT))
+		scale.add(MetaLabel("Subtitle 21", MetaType.SUBTITLE, MetaColor.TEXT)).row()
+		scale.add(MetaLabel("Title 24", MetaType.TITLE, MetaColor.TEXT))
+		scale.add(MetaLabel("Heading 32", MetaType.HEADING, MetaColor.TEXT))
+		scale.add(MetaLabel("Display 48", MetaType.DISPLAY, MetaColor.TEXT))
+		scale.add(MetaIcon("ri-information-line", 28, MetaColor.ACCENT.cpy()))
+		scale.add(MetaIcon("ri-magic-line", 28, MetaColor.WARNING.cpy()))
+		add(scale).growX().row()
 	}
 
 	private fun buttonSection(): Table = section("Buttons, Icon Buttons & Tooltips").apply {
@@ -161,7 +224,7 @@ class MetaUiPlaygroundScreen(
 	}
 
 	private fun inputSection(): Table = section("Inputs & Validation").apply {
-		val textField = MetaTextField("MetaTextField", MetaType.BODY)
+		val textField = MetaTextField("", MetaType.BODY, placeholder = "Standard MetaTextField with placeholder")
 		val inputField = MetaInputField("", MetaType.BODY, placeholder = "MetaInputField with placeholder")
 		val area = MetaTextArea("Multiline MetaTextArea\nEdit me.", MetaType.BODY, prefRows = 3f)
 		val check = MetaCheckBox(initialChecked = true)
@@ -169,9 +232,9 @@ class MetaUiPlaygroundScreen(
 
 		val grid = MetaTable()
 		grid.defaults().pad(MetaSpacing.SM).left()
-		grid.add(MetaLabel("Text field", MetaType.CAPTION, MetaColor.TEXT_MUTED)).width(120f)
+		grid.add(MetaLabel("Standard field", MetaType.CAPTION, MetaColor.TEXT_MUTED)).width(120f)
 		grid.add(textField).growX().height(34f).row()
-		grid.add(MetaLabel("Input field", MetaType.CAPTION, MetaColor.TEXT_MUTED)).width(120f)
+		grid.add(MetaLabel("Validated field", MetaType.CAPTION, MetaColor.TEXT_MUTED)).width(120f)
 		grid.add(inputField).growX().height(34f).row()
 		grid.add(MetaLabel("Text area", MetaType.CAPTION, MetaColor.TEXT_MUTED)).width(120f).top()
 		grid.add(area).growX().height(90f).row()
@@ -180,7 +243,12 @@ class MetaUiPlaygroundScreen(
 		checkRow.add(check).size(28f).padRight(MetaSpacing.SM)
 		checkRow.add(checkLabel).left()
 		grid.add(checkRow).left().growX()
-		add(grid).growX()
+		add(grid).growX().row()
+		add(MetaLabel(
+			"Use MetaTextField for normal editing. MetaInputField adds validators and reactive valid/invalid state for MetaInputLayout forms.",
+			MetaType.CAPTION,
+			MetaColor.TEXT_MUTED,
+		)).left().growX()
 		scope.bindText(checkLabel) { if (check.checkedValue()) "Checked with Remix checkmark" else "Unchecked" }
 	}
 
@@ -190,6 +258,7 @@ class MetaUiPlaygroundScreen(
 			selected = "Medium"
 		}
 		val spinner = MetaSpinner(MetaIntSpinnerModel(4, 0, 12, 1), MetaType.BODY)
+		val loading = MetaLoadingSpinner(32f, 3.5f).also { loadingSpinner = it }
 		val slider = SliderWithButtons(0f, 100f, 5f, false)
 		val sliderLabel = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 
@@ -199,6 +268,8 @@ class MetaUiPlaygroundScreen(
 		grid.add(select).growX().height(34f).row()
 		grid.add(MetaLabel("Spinner", MetaType.CAPTION, MetaColor.TEXT_MUTED)).width(120f)
 		grid.add(spinner).width(170f).left().row()
+		grid.add(MetaLabel("Loading", MetaType.CAPTION, MetaColor.TEXT_MUTED)).width(120f)
+		grid.add(loading).size(32f).left().row()
 		grid.add(MetaLabel("Slider", MetaType.CAPTION, MetaColor.TEXT_MUTED)).width(120f)
 		grid.add(slider).growX().height(42f).row()
 		grid.add()

@@ -10,23 +10,32 @@ import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import de.fatox.meta.ui.MetaColor
 
-/** Three-dot corner marker for resizable Meta windows. */
+/** Six-dot corner marker whose bounds match MetaWindow's bottom-right resize target. */
 class MetaResizeGrip : WidgetGroup() {
 	private val bottomLeft = dot()
+	private val bottomCenter = dot()
 	private val bottomRight = dot()
+	private val middleCenter = dot()
+	private val middleRight = dot()
 	private val topRight = dot()
 
 	init {
 		touchable = Touchable.disabled
 		addActor(bottomLeft)
+		addActor(bottomCenter)
 		addActor(bottomRight)
+		addActor(middleCenter)
+		addActor(middleRight)
 		addActor(topRight)
 	}
 
 	override fun layout() {
 		bottomLeft.setBounds(DOT_MARGIN, DOT_MARGIN, DOT_SIZE, DOT_SIZE)
-		bottomRight.setBounds(DOT_MARGIN + DOT_STEP, DOT_MARGIN, DOT_SIZE, DOT_SIZE)
-		topRight.setBounds(DOT_MARGIN + DOT_STEP, DOT_MARGIN + DOT_STEP, DOT_SIZE, DOT_SIZE)
+		bottomCenter.setBounds(DOT_MARGIN + DOT_STEP, DOT_MARGIN, DOT_SIZE, DOT_SIZE)
+		bottomRight.setBounds(DOT_MARGIN + DOT_STEP * 2f, DOT_MARGIN, DOT_SIZE, DOT_SIZE)
+		middleCenter.setBounds(DOT_MARGIN + DOT_STEP, DOT_MARGIN + DOT_STEP, DOT_SIZE, DOT_SIZE)
+		middleRight.setBounds(DOT_MARGIN + DOT_STEP * 2f, DOT_MARGIN + DOT_STEP, DOT_SIZE, DOT_SIZE)
+		topRight.setBounds(DOT_MARGIN + DOT_STEP * 2f, DOT_MARGIN + DOT_STEP * 2f, DOT_SIZE, DOT_SIZE)
 	}
 
 	override fun getPrefWidth(): Float = GRIP_SIZE
@@ -34,7 +43,7 @@ class MetaResizeGrip : WidgetGroup() {
 	override fun getPrefHeight(): Float = GRIP_SIZE
 
 	private companion object {
-		const val GRIP_SIZE = 12f
+		const val GRIP_SIZE = 16f
 		const val DOT_SIZE = 2f
 		const val DOT_MARGIN = 2f
 		const val DOT_STEP = 4f

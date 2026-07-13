@@ -8,6 +8,7 @@ import com.kotcrab.vis.ui.util.InputValidator
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.extensions.cursorText
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
@@ -51,6 +52,7 @@ open class MetaTextArea @JvmOverloads constructor(
 		style = validStyle
 		setPrefRows(prefRows)
 		if (placeholder.isNotEmpty()) setMessageText(placeholder)
+		cursorText()
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				syncTextValue()

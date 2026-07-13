@@ -481,7 +481,7 @@ class MetaUiManager : UIManager {
 	}
 
 	private companion object {
-		const val MENU_BAR_HEIGHT = 26f
+		const val MENU_BAR_HEIGHT = 34f
 		const val SAVE_THROTTLE_MILLIS = 200L
 	}
 

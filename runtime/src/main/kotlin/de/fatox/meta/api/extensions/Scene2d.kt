@@ -56,6 +56,48 @@ fun <T : Actor> T.cursorPointer(): T {
 	return this
 }
 
+/** Applies the platform I-beam cursor to editable text actors. Safe to call repeatedly. */
+fun <T : Actor> T.cursorText(): T {
+	for (i in 0 until listeners.size) if (listeners[i] is TextCursorListener) return this
+	addListener(TextCursorListener(this))
+	return this
+}
+
+private class TextCursorListener(private val owner: Actor) : InputListener() {
+	override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+		if (pointer == MOUSE_POINTER) updateCursor()
+	}
+
+	override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
+		updateCursor()
+		return false
+	}
+
+	override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+		if (pointer == MOUSE_POINTER && (toActor == null || !toActor.isDescendantOf(owner))) {
+			Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow)
+		}
+	}
+
+	private fun updateCursor() {
+		val disabled = owner is Disableable && owner.isDisabled
+		Gdx.graphics.setSystemCursor(if (disabled) Cursor.SystemCursor.Arrow else Cursor.SystemCursor.Ibeam)
+	}
+
+	private fun Actor.isDescendantOf(ancestor: Actor): Boolean {
+		var actor: Actor? = this
+		while (actor != null) {
+			if (actor === ancestor) return true
+			actor = actor.parent
+		}
+		return false
+	}
+
+	private companion object {
+		const val MOUSE_POINTER = -1
+	}
+}
+
 private class PointerCursorListener(private val owner: Actor) : InputListener() {
 	override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
 		if (pointer == MOUSE_POINTER && event.target.nearestEnabledPointerOwner() === owner) setPointerCursor(true)

@@ -1,5 +1,6 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
@@ -28,7 +29,7 @@ object MetaTooltip {
 	internal data class TextWidth(val width: Float, val wrap: Boolean)
 
 	private val attachments = WeakHashMap<Actor, AttachedTooltip>()
-	private val visibleTooltips = Array<MetaTable>(4)
+	private val visibleTooltips = Array<Attachment>(4)
 	private val layers = ObjectMap<Stage, Group>(2)
 
 	private const val DEFAULT_SHOW_DELAY_SECONDS = 0f
@@ -37,7 +38,7 @@ object MetaTooltip {
 
 	private class Attachment(
 		target: Actor,
-		private val tooltip: MetaTable,
+		val tooltip: MetaTable,
 		private val label: MetaLabel,
 		private val labelCell: Cell<MetaLabel>,
 		align: Int,
@@ -48,6 +49,7 @@ object MetaTooltip {
 		private val target = WeakReference(target)
 		private val targetMin = Vector2()
 		private val targetMax = Vector2()
+		private val pointerPosition = Vector2()
 
 		var align: Int = align
 			private set
@@ -58,6 +60,17 @@ object MetaTooltip {
 
 		private var showTask: Task? = null
 		private var hideTask: Task? = null
+		private var pointerInside = false
+
+		fun pointerEntered() {
+			pointerInside = true
+			requestShow()
+		}
+
+		fun pointerExited() {
+			pointerInside = false
+			requestHide()
+		}
 
 		fun configure(
 			text: String,
@@ -126,6 +139,14 @@ object MetaTooltip {
 		private fun showNow() {
 			val target = target.get() ?: return
 			val stage = target.stage ?: return
+			// A resize/reflow can synthesize enter events for several actors before scene2d catches up with exits.
+			// A pointer can only own one tooltip, so close every previous one before presenting this attachment.
+			var i = visibleTooltips.size - 1
+			while (i >= 0) {
+				val visible = visibleTooltips[i]
+				if (visible !== this) visible.hideNow()
+				i--
+			}
 			val layer = layerFor(stage)
 			if (tooltip.parent !== layer) {
 				tooltip.remove()
@@ -133,7 +154,7 @@ object MetaTooltip {
 			}
 			positionTooltip(stage)
 			tooltip.isVisible = true
-			markVisible(tooltip)
+			markVisible(this)
 			bringLayerToFront(stage)
 			tooltip.toFront()
 		}
@@ -142,14 +163,34 @@ object MetaTooltip {
 			val stage = tooltip.stage
 			tooltip.remove()
 			tooltip.isVisible = false
-			markHidden(tooltip)
+			markHidden(this)
 			if (stage != null) removeLayerIfEmpty(stage)
 		}
 
 		private fun canShow(): Boolean {
 			val target = target.get() ?: return false
 			if (target is Disableable && target.isDisabled) return false
-			return target.stage != null
+			return pointerInside && target.stage != null
+		}
+
+		/** Keeps a shown tooltip honest when its target is moved, detached, or replaced without an exit event. */
+		fun maintainVisibility(): Boolean {
+			val target = target.get()
+			val stage = target?.stage
+			if (!canShow() || stage == null || tooltip.stage !== stage || !isPointerOverTarget(target, stage)) {
+				hideNow()
+				return false
+			}
+			positionTooltip(stage)
+			return true
+		}
+
+		private fun isPointerOverTarget(target: Actor, stage: Stage): Boolean {
+			pointerPosition.set(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
+			stage.screenToStageCoordinates(pointerPosition)
+			target.stageToLocalCoordinates(pointerPosition)
+			return pointerPosition.x >= 0f && pointerPosition.x <= target.width &&
+				pointerPosition.y >= 0f && pointerPosition.y <= target.height
 		}
 
 		private fun positionTooltip(stage: com.badlogic.gdx.scenes.scene2d.Stage) {
@@ -252,14 +293,14 @@ object MetaTooltip {
 		val listener = object : InputListener() {
 			override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
 				if (pointer != -1) return
-				attachment.requestShow()
+				attachment.pointerEntered()
 			}
 
 			override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
 				if (pointer != -1) return
 				val currentTarget = event.listenerActor
 				if (toActor != null && (toActor === currentTarget || toActor.isDescendantOf(currentTarget))) return
-				attachment.requestHide()
+				attachment.pointerExited()
 			}
 		}
 		target.addListener(listener)
@@ -288,12 +329,12 @@ object MetaTooltip {
 	internal fun bringVisibleToFront() {
 		var i = 0
 		while (i < visibleTooltips.size) {
-			val tooltip = visibleTooltips[i]
-			val stage = tooltip.stage
-			if (!tooltip.isVisible || stage == null) {
-				visibleTooltips.removeIndex(i)
+			val attachment = visibleTooltips[i]
+			if (!attachment.maintainVisibility()) {
 				continue
 			}
+			val tooltip = attachment.tooltip
+			val stage = tooltip.stage ?: continue
 			if (tooltip.parent?.children?.peek() !== tooltip) tooltip.toFront()
 			bringLayerToFront(stage)
 			i++
@@ -330,12 +371,12 @@ object MetaTooltip {
 		layers.remove(stage)
 	}
 
-	private fun markVisible(tooltip: MetaTable) {
-		if (!visibleTooltips.contains(tooltip, true)) visibleTooltips.add(tooltip)
+	private fun markVisible(attachment: Attachment) {
+		if (!visibleTooltips.contains(attachment, true)) visibleTooltips.add(attachment)
 	}
 
-	private fun markHidden(tooltip: MetaTable) {
-		visibleTooltips.removeValue(tooltip, true)
+	private fun markHidden(attachment: Attachment) {
+		visibleTooltips.removeValue(attachment, true)
 	}
 
 	internal fun resolveTextWidth(contentWidth: Float, maxWidth: Float): TextWidth {

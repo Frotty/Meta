@@ -1,5 +1,7 @@
 package de.fatox.meta.ui.windows
 
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.Action
 import com.badlogic.gdx.scenes.scene2d.InputEvent
@@ -69,18 +71,34 @@ abstract class MetaWindow(
 		touchable = Touchable.disabled
 		isVisible = resizable
 	}
+	private var resizeCursorActive = false
+	private val resizeCursorListener = object : InputListener() {
+		override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
+			updateResizeCursor(x, y)
+			return false
+		}
+
+		override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: com.badlogic.gdx.scenes.scene2d.Actor?) {
+			if (pointer == -1 && resizeCursorActive && !isDragging) setResizeCursor(null)
+		}
+
+		override fun touchUp(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int) {
+			if (pointer == 0) updateResizeCursor(x, y)
+		}
+	}
 
 	init {
 		titleLabel.setAlignment(Align.left)
 		applyTitleStyle()
 		fontGeneration = fontProvider.fontGeneration
-		applyWindowMetrics(resizable)
+		applyWindowMetrics()
 
 		titleTable.apply {
 			clearChildren()
 			isVisible = headerEnabled
 			left().top()
-			add(titleLabel).growX().height(HEADER_CONTENT_HEIGHT).padLeft(MetaSpacing.SM)
+			add(titleLabel).growX().height(HEADER_CONTENT_HEIGHT)
+				.padLeft(MetaSpacing.MD).padTop(MetaSpacing.XS).padBottom(MetaSpacing.XS)
 			if (closeButton) {
 				val exitButton = MetaIconButton("ri-close-line").apply {
 					setColor(1f, 1f, 1f, 0.72f)
@@ -107,9 +125,12 @@ abstract class MetaWindow(
 		if (resizable) {
 			super.setResizable(true)
 		}
-		applyWindowMetrics(resizable)
+		setResizeBorder(RESIZE_BORDER)
+		addCaptureListener(resizeCursorListener)
+		applyWindowMetrics()
 		contentTable.top().left()
-		add(contentTable).top().grow().pad(MetaSpacing.XS)
+		add(contentTable).top().grow()
+			.padTop(MetaSpacing.XS).padLeft(MetaSpacing.XS).padRight(MetaSpacing.XS).padBottom(0f)
 		row()
 		addActor(headerSeparator)
 		addActor(resizeIndicator)
@@ -160,8 +181,9 @@ abstract class MetaWindow(
 			style = skin.get(styleName, WindowStyle::class.java)
 			applyTitleStyle()
 		}
-		applyWindowMetrics(isResizable)
+		applyWindowMetrics()
 		resizeIndicator.isVisible = isResizable
+		if (!isResizable && resizeCursorActive) setResizeCursor(null)
 	}
 
 	override fun layout() {
@@ -188,7 +210,7 @@ abstract class MetaWindow(
 	}
 
 	override fun getMinHeight(): Float {
-		val contentMin = contentTable.minHeight + padTop + padBottom + MetaSpacing.SM
+		val contentMin = contentTable.minHeight + padTop + padBottom
 		return max(max(super.getMinHeight(), contentMin), MIN_WINDOW_HEIGHT)
 	}
 
@@ -248,11 +270,37 @@ abstract class MetaWindow(
 		titleLabel.style = Label.LabelStyle(fontProvider.getFont(14, FontType.REGULAR), titleLabel.color)
 	}
 
-	private fun applyWindowMetrics(resizable: Boolean) {
+	private fun applyWindowMetrics() {
 		padTop(if (headerEnabled) HEADER_HEIGHT else BORDER_PAD)
 		padLeft(BORDER_PAD)
 		padRight(BORDER_PAD)
-		padBottom(if (resizable) RESIZE_BOTTOM_PAD else BORDER_PAD)
+		// Window's built-in resize listener treats these pads as edge origins. Keep structural padding on the actual
+		// border so the absolutely positioned grip and hit testing cannot drift apart.
+		padBottom(BORDER_PAD)
+	}
+
+	private fun updateResizeCursor(localX: Float, localY: Float) {
+		if (!isResizable) {
+			if (resizeCursorActive) setResizeCursor(null)
+			return
+		}
+		val halfBorder = RESIZE_BORDER * 0.5f
+		val left = localX <= padLeft + halfBorder
+		val right = localX >= width - padRight - halfBorder
+		val bottom = localY <= padBottom + halfBorder
+		val cursor = when {
+			bottom && right -> Cursor.SystemCursor.NWSEResize
+			bottom && left -> Cursor.SystemCursor.NESWResize
+			bottom -> Cursor.SystemCursor.VerticalResize
+			left || right -> Cursor.SystemCursor.HorizontalResize
+			else -> null
+		}
+		if (cursor != null || resizeCursorActive) setResizeCursor(cursor)
+	}
+
+	private fun setResizeCursor(cursor: Cursor.SystemCursor?) {
+		resizeCursorActive = cursor != null
+		Gdx.graphics.setSystemCursor(cursor ?: Cursor.SystemCursor.Arrow)
 	}
 
 	private fun positionChrome() {
@@ -273,15 +321,15 @@ abstract class MetaWindow(
 	}
 
 	private companion object {
-		const val HEADER_HEIGHT = 32f
-		const val HEADER_CONTENT_HEIGHT = 30f
+		const val HEADER_HEIGHT = 40f
+		const val HEADER_CONTENT_HEIGHT = 32f
 		const val HEADER_SEPARATOR_HEIGHT = 1f
 		const val BORDER_PAD = 1f
 		const val CLOSE_BUTTON_SIZE = 24f
-		const val RESIZE_BOTTOM_PAD = 11f
-		const val RESIZE_INDICATOR_SIZE = 12f
-		const val RESIZE_GRIP_RIGHT_PAD = 8f
-		const val RESIZE_GRIP_BOTTOM_PAD = 8f
+		const val RESIZE_BORDER = 36
+		const val RESIZE_INDICATOR_SIZE = 16f
+		const val RESIZE_GRIP_RIGHT_PAD = 2f
+		const val RESIZE_GRIP_BOTTOM_PAD = 2f
 		const val MIN_WINDOW_WIDTH = 96f
 		const val MIN_WINDOW_HEIGHT = 64f
 	}

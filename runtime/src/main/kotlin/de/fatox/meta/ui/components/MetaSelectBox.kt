@@ -2,12 +2,16 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox.SelectBoxStyle
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
@@ -15,6 +19,7 @@ import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.UiControlHelper
 
@@ -29,6 +34,9 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 	private val fontTracker = FontGenerationTracker()
 	private val focusStyle: MetaSelectBoxFocusStyle<T>
 	val selectedValue: Signal<T?> = signal(selected)
+	val dropdownOpenValue: Signal<Boolean> = signal(false)
+	private val chevronDown = MetaIconDrawable("ri-arrow-down-s-line", CHEVRON_SIZE, MetaColor.TEXT_MUTED.cpy())
+	private val chevronUp = MetaIconDrawable("ri-arrow-up-s-line", CHEVRON_SIZE, MetaColor.TEXT_MUTED.cpy())
 
 	init {
 		val skin = MetaSkin.skin()
@@ -53,6 +61,23 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 				selectedValue.value = selected
 			}
 		})
+		cursorPointer()
+	}
+
+	override fun drawItem(batch: Batch, font: BitmapFont, item: T?, x: Float, y: Float, width: Float): GlyphLayout {
+		return super.drawItem(batch, font, item, x, y, (width - CHEVRON_RESERVED_WIDTH).coerceAtLeast(0f))
+	}
+
+	override fun draw(batch: Batch, parentAlpha: Float) {
+		super.draw(batch, parentAlpha)
+		val drawable = if (dropdownOpenValue.peek()) chevronUp else chevronDown
+		drawable.draw(
+			batch,
+			x + width - CHEVRON_RIGHT_PAD - CHEVRON_SIZE,
+			y + (height - CHEVRON_SIZE) * 0.5f,
+			CHEVRON_SIZE.toFloat(),
+			CHEVRON_SIZE.toFloat(),
+		)
 	}
 
 	override fun setMetaFocused(focused: Boolean) {
@@ -74,6 +99,7 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 
 	override fun showScrollPane() {
 		super.showScrollPane()
+		dropdownOpenValue.value = true
 
 		if (uiControlHelper.activated) {
 			wasHelperActive = true
@@ -83,6 +109,7 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 
 	override fun onHide(scrollPane: Actor?) {
 		super.onHide(scrollPane)
+		dropdownOpenValue.value = false
 
 		if (wasHelperActive) {
 			uiControlHelper.activated = true
@@ -98,5 +125,11 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 	override fun setSelectedIndex(index: Int) {
 		super.setSelectedIndex(index)
 		selectedValue.value = selected
+	}
+
+	private companion object {
+		const val CHEVRON_SIZE = 18
+		const val CHEVRON_RIGHT_PAD = 8f
+		const val CHEVRON_RESERVED_WIDTH = 30f
 	}
 }

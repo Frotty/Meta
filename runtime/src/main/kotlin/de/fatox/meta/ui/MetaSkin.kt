@@ -33,6 +33,7 @@ object MetaSkin {
 	const val TEXT_FIELD_ERROR = "meta.textField.error"
 	const val TEXT_AREA = "meta.textArea"
 	const val SELECT_BOX = "meta.selectBox"
+	const val DROPDOWN = "meta.dropdown"
 	const val SCROLL_PANE = "meta.scrollPane"
 	const val SCROLL_PANE_FLAT = "meta.scrollPane.flat"
 	const val SLIDER_HORIZONTAL = "meta.slider.horizontal"
@@ -75,10 +76,12 @@ object MetaSkin {
 	}
 
 	private fun addPanelDrawables(skin: Skin) {
+		solid(skin, "meta.menu.bar", MetaColor.SURFACE, minWidth = 1f, minHeight = 1f)
 		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
 		rounded(skin, "meta.panel.raised", MetaColor.SURFACE_RAISED, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
 		rounded(skin, TOAST, Color.valueOf("15181EF5"), Color.valueOf("A7B5C8FF"), radius = 8, border = 2, padding = 10f)
 		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f)
+		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), Color.valueOf("596170FF"), radius = 7, border = 1, padding = 7f)
 		topRounded(skin, BOTTOM_BAR, Color.valueOf("080A0ECC"), Color.valueOf("2F333BAA"), radius = 12, border = 1, padding = 14f)
 	}
 
@@ -106,6 +109,20 @@ object MetaSkin {
 		rounded(skin, "meta.field.focusBorder", TRANSPARENT, MetaColor.ACCENT, radius = 5, border = 2, padding = 0f)
 		rounded(skin, "meta.field.errorBorder", TRANSPARENT, MetaColor.NEGATIVE, radius = 5, border = 2, padding = 0f)
 		rounded(skin, "meta.selection", Color.valueOf("2F5D86FF"), null, radius = 3, border = 0, padding = 4f)
+		rounded(skin, "meta.dropdown.over", Color.valueOf("343842FF"), null, radius = 5, border = 0, padding = 6f)
+		rounded(skin, "meta.dropdown.selection", Color.valueOf("294963FF"), Color.valueOf("4F9DDEFF"), radius = 5, border = 1, padding = 6f)
+		rounded(skin, "meta.menu.bar.open", TRANSPARENT, null, radius = 5, border = 0, padding = 0f)
+		rounded(skin, "meta.menu.bar.over", Color.valueOf("343842FF"), null, radius = 5, border = 0, padding = 0f)
+		rounded(skin, "meta.menu.bar.selected", Color.valueOf("294963FF"), MetaColor.ACCENT, radius = 5, border = 1, padding = 0f)
+		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.open"))
+		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.over"))
+		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.selected"))
+		rounded(skin, "meta.menu.item", TRANSPARENT, null, radius = 4, border = 0, padding = 0f)
+		rounded(skin, "meta.menu.item.over", Color.valueOf("343842FF"), null, radius = 4, border = 0, padding = 0f)
+		rounded(skin, "meta.menu.item.selected", Color.valueOf("294963FF"), null, radius = 4, border = 0, padding = 0f)
+		configureMenuItemDrawable(skin.getDrawable("meta.menu.item"))
+		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.over"))
+		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.selected"))
 		solid(skin, "meta.cursor", MetaColor.TEXT, minWidth = 2f, minHeight = 20f)
 
 		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 4, border = 0, padding = 0f, minWidth = 8f, minHeight = 8f)
@@ -226,12 +243,23 @@ object MetaSkin {
 			skin.add(SELECT_BOX, SelectBox.SelectBoxStyle(base).apply {
 				background = skin.getDrawable("meta.field.up")
 				backgroundOver = skin.getDrawable("meta.field.over")
+				backgroundOpen = skin.getDrawable("meta.field.focus")
+				backgroundDisabled = skin.getDrawable("meta.field.disabled")
+				fontColor = MetaColor.TEXT.cpy()
+				overFontColor = MetaColor.TEXT.cpy()
+				disabledFontColor = MetaColor.TEXT_DISABLED.cpy()
 				listStyle = List.ListStyle(base.listStyle).apply {
-					background = skin.getDrawable("meta.panel.raised")
-					selection = skin.getDrawable("meta.selection")
+					background = null
+					selection = skin.getDrawable("meta.dropdown.selection")
+					over = skin.getDrawable("meta.dropdown.over")
+					down = skin.getDrawable("meta.dropdown.selection")
+					fontColorSelected = MetaColor.TEXT.cpy()
+					fontColorUnselected = MetaColor.TEXT.cpy()
 				}
-				scrollStyle = if (skin.has(SCROLL_PANE, ScrollPane.ScrollPaneStyle::class.java)) {
-					skin.get(SCROLL_PANE, ScrollPane.ScrollPaneStyle::class.java)
+				scrollStyle = if (skin.has(SCROLL_PANE_FLAT, ScrollPane.ScrollPaneStyle::class.java)) {
+					ScrollPane.ScrollPaneStyle(skin.get(SCROLL_PANE_FLAT, ScrollPane.ScrollPaneStyle::class.java)).apply {
+						background = skin.getDrawable(DROPDOWN)
+					}
 				} else {
 					base.scrollStyle
 				}
@@ -305,6 +333,24 @@ object MetaSkin {
 			this.minHeight = minHeight
 		}
 		skin.add(name, drawable, Drawable::class.java)
+	}
+
+	private fun configureToolbarDrawable(drawable: Drawable) {
+		drawable.leftWidth = 8f
+		drawable.rightWidth = 8f
+		drawable.topHeight = 2f
+		drawable.bottomHeight = 2f
+		drawable.minWidth = 24f
+		drawable.minHeight = 24f
+	}
+
+	private fun configureMenuItemDrawable(drawable: Drawable) {
+		drawable.leftWidth = 8f
+		drawable.rightWidth = 8f
+		drawable.topHeight = 4f
+		drawable.bottomHeight = 4f
+		drawable.minWidth = 28f
+		drawable.minHeight = 28f
 	}
 
 	private fun solid(skin: Skin, name: String, color: Color, minWidth: Float, minHeight: Float) {

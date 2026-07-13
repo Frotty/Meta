@@ -292,14 +292,14 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
-	fun `MetaCheckBox check glyph receives its optical vertical centering offset`() {
+	fun `MetaCheckBox check glyph is centered without a font-specific bottom gap`() {
 		installCheckboxSkin()
 		val checkBox = MetaCheckBox(stubAssetProvider(), initialChecked = true)
 		checkBox.setSize(30f, 30f)
 		checkBox.validate()
 
 		val checkIcon = checkBox.children.first()
-		assertEquals((30f - checkIcon.height) * 0.5f - 3f, checkIcon.y, 0.001f)
+		assertEquals((30f - checkIcon.height) * 0.5f, checkIcon.y, 0.001f)
 	}
 
 	private fun installCheckboxSkin() {

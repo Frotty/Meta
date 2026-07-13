@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.extensions.cursorText
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
@@ -22,6 +23,7 @@ open class MetaTextField @JvmOverloads constructor(
 	text: String = "",
 	size: Int = MetaType.BODY,
 	fontProvider: FontProvider = inject(),
+	placeholder: String = "",
 ) : TextField(text, textFieldStyle(size, fontProvider)), MetaFocusable, FontRefreshable {
 	private val focusStyle = MetaTextFieldFocusStyle(this, style, MetaSkin::focusedTextFieldStyle)
 	private var metaInitialized = false
@@ -40,6 +42,8 @@ open class MetaTextField @JvmOverloads constructor(
 
 	init {
 		metaInitialized = true
+		if (placeholder.isNotEmpty()) setMessageText(placeholder)
+		cursorText()
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				syncTextValue()
