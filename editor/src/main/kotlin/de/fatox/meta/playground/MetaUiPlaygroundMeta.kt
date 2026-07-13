@@ -19,6 +19,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.modules.MetaEditorModule
 import de.fatox.meta.modules.MetaUIModule
 import de.fatox.meta.register
+import de.fatox.meta.ui.components.MetaColorPicker
 
 class MetaUiPlaygroundMeta(
 	windowHandler: WindowHandler,
@@ -48,6 +49,7 @@ class MetaUiPlaygroundMeta(
 		registerSingleton { ControlsPlaygroundWindow() }
 		registerSingleton { SelectionPlaygroundWindow() }
 		registerSingleton { CollectionsPlaygroundWindow() }
+		registerSingleton { MetaColorPicker(isAllowAlphaEdit = true) }
 	}
 
 	@Suppress("UNUSED_EXPRESSION")

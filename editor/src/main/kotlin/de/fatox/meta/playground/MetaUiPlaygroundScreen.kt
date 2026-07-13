@@ -137,7 +137,7 @@ class MetaUiPlaygroundScreen(
 		val leftWidth = (availableWidth * 0.42f).coerceAtLeast(360f)
 		val rightWidth = availableWidth - leftWidth
 		// Keep the lower list window deliberately short so its default presentation exercises real scrolling.
-		val topHeight = availableHeight * 0.60f
+		val topHeight = availableHeight * 0.55f
 		val bottomHeight = availableHeight - topHeight
 		val bottomY = bottomInset + margin
 		val topY = bottomY + bottomHeight + gap

@@ -40,8 +40,10 @@ object MetaSkin {
 	const val SEPARATOR = "meta.separator"
 	const val TOAST = "meta.toast"
 	const val BOTTOM_BAR = "meta.bottomBar"
+	const val COLOR_FILL = "meta.color.fill"
 	const val WINDOW = "meta.window"
 	const val WINDOW_RESIZABLE = "meta.window.resizable"
+	private const val WINDOW_BACKGROUND = "meta.window.background"
 
 	private const val INSTALLED_COLOR = "meta.skin.installed"
 	private const val PATCH_SIZE = 32
@@ -87,9 +89,14 @@ object MetaSkin {
 	}
 
 	private fun addPanelDrawables(skin: Skin) {
+		solid(skin, COLOR_FILL, Color.WHITE, minWidth = 1f, minHeight = 1f)
 		solid(skin, "meta.menu.bar", MetaColor.SURFACE, minWidth = 1f, minHeight = 1f)
 		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
 		rounded(skin, "meta.panel.raised", MetaColor.SURFACE_RAISED, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
+		// Windows need a stronger silhouette than nested panels. The cool-gray two-pixel edge remains neutral while
+		// making overlapping windows and adjacent chrome unambiguous against the dark workspace.
+		rounded(skin, WINDOW_BACKGROUND, MetaColor.SURFACE_RAISED, Color.valueOf("687586FF"),
+			radius = 7, border = 2, padding = 8f)
 		rounded(skin, TOAST, Color.valueOf("15181EF5"), Color.valueOf("A7B5C8FF"), radius = 8, border = 2, padding = 10f)
 		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f)
 		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), Color.valueOf("596170FF"), radius = 7, border = 1, padding = 7f)
@@ -201,10 +208,10 @@ object MetaSkin {
 			}
 		}
 		skin.add(WINDOW, com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle(baseWindow).apply {
-			background = skin.getDrawable("meta.panel.raised")
+			background = skin.getDrawable(WINDOW_BACKGROUND)
 		})
 		skin.add(WINDOW_RESIZABLE, com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle(baseWindow).apply {
-			background = skin.getDrawable("meta.panel.raised")
+			background = skin.getDrawable(WINDOW_BACKGROUND)
 		})
 
 		val baseTextField = if (skin.has("default", TextField.TextFieldStyle::class.java)) {

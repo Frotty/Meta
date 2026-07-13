@@ -1,20 +1,28 @@
 package de.fatox.meta.playground
 
 import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.extensions.tooltip
+import de.fatox.meta.api.ui.showWindow
+import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
+import de.fatox.meta.ui.bindColor
 import de.fatox.meta.ui.bindText
 import de.fatox.meta.ui.components.MetaArrayAdapter
 import de.fatox.meta.ui.components.MetaButtonContainer
 import de.fatox.meta.ui.components.MetaCheckBox
+import de.fatox.meta.ui.components.MetaColorPicker
+import de.fatox.meta.ui.components.MetaColorPickerListener
 import de.fatox.meta.ui.components.MetaIcon
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaIconButtonGroup
@@ -127,14 +135,26 @@ class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true,
 }
 
 class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable = true, closeButton = true), Disposable {
+	private val playgroundUiRenderer: UIRenderer by lazyInject()
 	private val select = MetaSelectBox<String>().apply {
 		setItems("Compact", "Comfortable", "Spacious", "Presentation")
 		selected = "Comfortable"
 	}
 	private val spinnerModel = MetaIntSpinnerModel(4, 0, 12, 1)
 	private val slider = SliderWithButtons(0f, 100f, 5f, false).apply { value = 35f }
+	private val uiScaleSlider = SliderWithButtons(0.5f, 2f, 0.25f, false)
+	private val uiScaleLabel = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 	private val loading = MetaLoadingSpinner(32f, 3.5f)
 	private val summary = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
+	private val pickedColor = signal(Color.valueOf("4F9DDEFF"))
+	private val colorSwatch = MetaTable().apply {
+		background = de.fatox.meta.ui.MetaSkin.skin().getDrawable(de.fatox.meta.ui.MetaSkin.COLOR_FILL)
+	}
+	private val colorLabel = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
+	private val pickerListener = object : MetaColorPickerListener {
+		override fun changed(newColor: Color) { pickedColor.value = newColor.cpy() }
+		override fun canceled(oldColor: Color) { pickedColor.value = oldColor.cpy() }
+	}
 
 	init {
 		setDefaultSize(430f, 310f)
@@ -146,8 +166,19 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 			add(MetaSpinner(spinnerModel)).width(180f).left().row()
 			add(fieldLabel("Loading")).width(105f)
 			add(loading).left().row()
+			add(fieldLabel("Color")).width(105f)
+			add(MetaButtonContainer().apply {
+				add(colorSwatch).size(42f, 22f).padRight(MetaSpacing.SM)
+				add(colorLabel).left().growX()
+				onClick { openColorPicker() }
+			}).growX().height(34f).row()
 			add(fieldLabel("Slider")).width(105f)
 			add(slider).growX().height(38f).row()
+			add(fieldLabel("UI scale")).width(105f)
+			add(MetaTable().apply {
+				add(uiScaleSlider).growX().height(38f)
+				add(uiScaleLabel).width(48f).right().padLeft(MetaSpacing.SM)
+			}).growX().row()
 			add()
 			add(summary).growX()
 		}
@@ -155,8 +186,28 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 	}
 
 	override fun onShown() {
+		uiScaleSlider.value = playgroundUiRenderer.uiScale.peek().coerceIn(0.5f, 2f)
+		reactiveScope.subscribe(uiScaleSlider.valueValue) {
+			playgroundUiRenderer.uiScale.value = uiScaleSlider.valueValue.peek()
+			uiManager.resize(Gdx.graphics.width, Gdx.graphics.height)
+		}
+		reactiveScope.effect("playgroundUiScaleSlider") {
+			uiScaleSlider.value = playgroundUiRenderer.uiScale().coerceIn(0.5f, 2f)
+		}
+		reactiveScope.bindText(uiScaleLabel) { "${uiScaleSlider.valueValue()}×" }
+		reactiveScope.bindColor(colorSwatch) { pickedColor() }
+		reactiveScope.bindText(colorLabel) { "#${pickedColor()}" }
 		reactiveScope.bindText(summary) {
 			"${select.selectedValue() ?: "—"} · count ${spinnerModel.valueValue().toInt()} · value ${slider.valueValue().toInt()}"
+		}
+	}
+
+	private fun openColorPicker() {
+		uiManager.showWindow<MetaColorPicker>().apply {
+			selectedColor = pickedColor.peek()
+			setListener(pickerListener)
+			centerWindow()
+			fadeIn()
 		}
 	}
 
