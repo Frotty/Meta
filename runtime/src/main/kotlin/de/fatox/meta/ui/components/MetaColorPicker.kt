@@ -12,7 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Disposable
 import de.fatox.meta.api.extensions.cursorPointer
-import de.fatox.meta.api.extensions.onClick
+import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
@@ -38,6 +38,7 @@ open class MetaColorPicker @JvmOverloads constructor(
 		placeholder = if (isAllowAlphaEdit) "#RRGGBBAA or 255, 128, 0, 255" else "#RRGGBB or 255, 128, 0",
 	)
 	private var syncing = false
+	private var dismissing = false
 
 	var metaListener: MetaColorPickerListener? = listener
 	var selectedColor: Color
@@ -70,15 +71,35 @@ open class MetaColorPicker @JvmOverloads constructor(
 			}
 		})
 		contentTable.add(MetaTable().apply {
-			add(MetaTextButton("Cancel").onClick { cancelPicker() }).padRight(MetaSpacing.SM)
-			add(MetaTextButton("Reset").onClick {
+			add(MetaTextButton("Cancel").apply {
+				// Dismiss on the press itself. This deliberately bypasses Button's checked/change machinery so Cancel
+				// remains an unconditional escape hatch even when focus or another listener consumes touch-up.
+				addListener(object : InputListener() {
+					override fun touchDown(
+						event: InputEvent,
+						x: Float,
+						y: Float,
+						pointer: Int,
+						button: Int,
+					): Boolean {
+						if (pointer != 0 || button != 0) return false
+						event.stop()
+						this@MetaColorPicker.cancelPicker()
+						return true
+					}
+				})
+			}).padRight(MetaSpacing.SM)
+			add(MetaTextButton("Reset").onChange {
 				working.set(original)
 				syncModels()
 				metaListener?.reset(selectedColor, original.cpy())
 			}).padRight(MetaSpacing.SM)
-			add(MetaTextButton("OK").onClick {
-				metaListener?.finished(selectedColor)
-				dismiss()
+			add(MetaTextButton("OK").onChange {
+				try {
+					metaListener?.finished(selectedColor)
+				} finally {
+					dismiss()
+				}
 			})
 		}).right().padTop(MetaSpacing.SM)
 		syncModels()
@@ -128,15 +149,26 @@ open class MetaColorPicker @JvmOverloads constructor(
 
 	private fun cancelPicker() {
 		working.set(original)
-		metaListener?.canceled(original.cpy())
-		dismiss()
+		try {
+			metaListener?.canceled(original.cpy())
+		} finally {
+			dismiss()
+		}
 	}
 
 	private fun dismiss() {
+		if (dismissing) return
+		dismissing = true
 		clearActions()
 		color.a = 1f
-		remove()
-		uiManager.closeWindow(this)
+		isVisible = false
+		try {
+			uiManager.closeWindow(this)
+		} finally {
+			// Also covers direct-stage use where the picker was not opened through UIManager.
+			remove()
+			dismissing = false
+		}
 	}
 
 	override fun dispose() {

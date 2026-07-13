@@ -151,7 +151,16 @@ open class MetaLabel @JvmOverloads constructor(
 		}
 		if (!bitmapFontCache.font.isFlipped) y += textHeight
 		layout.setText(font, text, 0, text.length, Color.WHITE, textWidth, lineAlign, wrap, ellipsis)
-		bitmapFontCache.setText(layout, x.roundToInt().toFloat(), y.roundToInt().toFloat())
+		// The font atlas is rasterized at [physicalScale] and its data scaled back into UI units. Rounding the
+		// baseline to a whole UI unit is only pixel-aligned at 100%; at 125%, for example, it lands on quarter pixels
+		// and linearly samples the otherwise native-resolution atlas. Snap the local cache offset to the same physical
+		// grid as the actor origin so their sum remains pixel-aligned at every UI/content scale.
+		val physicalScale = (1f / font.scaleX).coerceAtLeast(0.01f)
+		bitmapFontCache.setText(
+			layout,
+			snapToPhysicalPixel(x, physicalScale),
+			snapToPhysicalPixel(y, physicalScale),
+		)
 		if (fontScaleX != oldScaleX || fontScaleY != oldScaleY) font.data.setScale(oldScaleX, oldScaleY)
 	}
 
@@ -196,8 +205,8 @@ open class MetaLabel @JvmOverloads constructor(
 		localToStageCoordinates(drawPosition.set(0f, 0f))
 		val pixelsPerUnit = pixelsPerStageUnit()
 		drawPosition.set(
-			x + snapToPixel(drawPosition.x, pixelsPerUnit) - drawPosition.x,
-			y + snapToPixel(drawPosition.y, pixelsPerUnit) - drawPosition.y,
+			x + snapToPhysicalPixel(drawPosition.x, pixelsPerUnit) - drawPosition.x,
+			y + snapToPhysicalPixel(drawPosition.y, pixelsPerUnit) - drawPosition.y,
 		)
 	}
 
@@ -205,10 +214,6 @@ open class MetaLabel @JvmOverloads constructor(
 		val stage = stage ?: return 1f
 		if (stage.width <= 0f) return 1f
 		return max(1f, Gdx.graphics.backBufferWidth / stage.width)
-	}
-
-	private fun snapToPixel(value: Float, pixelsPerUnit: Float): Float {
-		return (value * pixelsPerUnit).roundToInt() / pixelsPerUnit
 	}
 
 	override fun getPrefWidth(): Float {
@@ -392,6 +397,10 @@ open class MetaLabel @JvmOverloads constructor(
 		bitmapFontCache = font.newFontCache()
 		layout()
 	}
+}
+
+internal fun snapToPhysicalPixel(value: Float, pixelsPerUnit: Float): Float {
+	return (value * pixelsPerUnit).roundToInt() / pixelsPerUnit
 }
 
 @Suppress("FunctionName")

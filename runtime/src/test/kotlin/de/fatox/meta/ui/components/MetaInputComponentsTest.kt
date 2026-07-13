@@ -301,6 +301,29 @@ internal class MetaInputComponentsTest {
 		assertEquals((30f - checkIcon.height) * 0.5f, checkIcon.y, 0.001f)
 	}
 
+	@Test
+	fun `MetaLabel adopts rebuilt font scale and snaps local baseline to physical pixels`() {
+		val rebuiltFont = testFont().apply { data.setScale(0.8f) }
+		var currentFont = font
+		val switchingProvider = object : FontProvider {
+			override fun getFont(size: Int, type: FontType): BitmapFont = currentFont
+			override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) = Unit
+		}
+		global(clear = true) { singleton<FontProvider> { switchingProvider } }
+		val label = object : MetaLabel("Scale test") {
+			fun cachedFont(): BitmapFont = activeFont
+		}
+		assertSame(font, label.cachedFont())
+
+		currentFont = rebuiltFont
+		label.refreshFont()
+
+		assertSame(rebuiltFont, label.cachedFont())
+		assertEquals(0.8f, label.getFontScaleX())
+		val snapped = snapToPhysicalPixel(17f, 1.25f)
+		assertEquals(21f, snapped * 1.25f, 0.0001f)
+	}
+
 	private fun installCheckboxSkin() {
 		val skin = MetaSkin.skin()
 		skin.add("meta.checkbox.focus", BaseDrawable(), Drawable::class.java)
