@@ -86,6 +86,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 		// Pan is based purely on the definition's audible range (world units) —
 		// never on Gdx.graphics pixels, which would make audio falloff DPI/window-size dependent.
 		val xPan = soundPos.x - listenerPos.x
+		if (definition.audibleRange <= 0f) return 0f
 		return MathUtils.clamp(xPan / definition.audibleRange, -0.9f, 0.9f)
 	}
 
@@ -99,7 +100,13 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 		val distSquared = listenerPos.dst2(soundPos)
 		val audioVideoData = MetaAudioVideoState.state.value
 		val globalVolume = audioVideoData.masterVolume * audioVideoData.soundVolume
-		val volume = definition.volume * MathUtils.clamp(1 - distSquared / audibleRange2, 0f, 1f) * globalVolume
+		val normalizedDistance = if (audibleRange2 <= 0f) {
+			if (distSquared <= 0f) 0f else 1f
+		} else {
+			MathUtils.clamp(kotlin.math.sqrt(distSquared / audibleRange2), 0f, 1f)
+		}
+		val gain = MetaSoundFalloff.gain(normalizedDistance, definition.attenuation, definition.distantVolume)
+		val volume = definition.volume * gain * globalVolume
 
 		return volume
 	}
@@ -151,7 +158,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 	/**
 	 * Sets the LibGDX sound handle ID.
 	 */
-	fun setHandleId(handleId: Long) {
+	fun setHandleId(handleId: Long, initialVolume: Float, initialPan: Float) {
 		if (isDone) {
 			// Handle was stopped before its deferred start delivered an id; kill the instance
 			// immediately instead of adopting it, so no untracked playback survives a stop.
@@ -164,8 +171,9 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 			log.debug("HandleId is -1 – sound failed to play or invalid handle!")
 		}
 		this.handleId = handleId
-		// When first set, we assume the initial volume is the full volume, so let's do a quick calc:
-		val audioVideoData = MetaAudioVideoState.state.value
-		currentVolume = definition.volume * audioVideoData.masterVolume * audioVideoData.soundVolume
+		// Preserve the volume used to start playback. Resetting to base volume here made distant sounds surge toward
+		// full loudness on their first dynamic update.
+		currentVolume = initialVolume
+		currentPan = initialPan
 	}
 }

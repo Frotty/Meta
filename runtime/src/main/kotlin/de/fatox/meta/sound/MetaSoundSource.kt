@@ -84,6 +84,8 @@ class MetaPositionalSoundDefinition(
 	var volume = 1f
 	var randomPitchRange = 0.06f
 	var attenuation = MetaSoundAttenuation.SMOOTH
+	/** Fraction of base volume retained at [audibleRange]; use a small tail only for globally relevant events. */
+	var distantVolume = 0f
 
 	val sound: Sound by lazy {
 		runCatching {
@@ -98,6 +100,27 @@ enum class MetaSoundAttenuation {
 	LINEAR,
 	SMOOTH,
 	INVERSE,
+}
+
+/** Shared allocation-free distance curve for positional one-shots and clustered loop sources. */
+internal object MetaSoundFalloff {
+	fun gain(normalizedDistance: Float, attenuation: MetaSoundAttenuation, distantVolume: Float): Float {
+		val t = MathUtils.clamp(normalizedDistance, 0f, 1f)
+		val nearGain = when (attenuation) {
+			MetaSoundAttenuation.LINEAR -> 1f - t
+			MetaSoundAttenuation.SMOOTH -> {
+				val smooth = 1f - t * t * (3f - 2f * t)
+				// A second smooth pass removes the overly-present middle/far field without crushing nearby detail.
+				smooth * smooth
+			}
+			MetaSoundAttenuation.INVERSE -> {
+				val rolloff = 3f
+				(1f / (1f + rolloff * t * t) - 1f / (1f + rolloff)) / (1f - 1f / (1f + rolloff))
+			}
+		}
+		val tail = MathUtils.clamp(distantVolume, 0f, 1f)
+		return tail + nearGain * (1f - tail)
+	}
 }
 
 class MetaSoundSource(
@@ -124,13 +147,14 @@ class MetaSoundCluster(
 			stop()
 			return
 		}
-		if (!starting && !started) start()
+		if (!starting && !started && calcVolume(listenerPos) > 0f) start()
 		if (started) calcVolAndPan(listenerPos, delta)
 	}
 
 	private fun calcPan(listenerPos: Vector2): Float {
 		// Use the smoothed centroid so pan doesn't jump when re-clustering moves the raw centroid.
 		val xPan = centroidLerp.x - listenerPos.x
+		if (definition.audibleRange <= 0f) return 0f
 		return MathUtils.clamp(xPan / definition.audibleRange, -1f, 1f) * 0.90f
 	}
 
@@ -143,24 +167,23 @@ class MetaSoundCluster(
 	private fun calcVolume(listenerPos: Vector2): Float {
 		// Use the smoothed centroid so volume doesn't jump when re-clustering moves the raw centroid.
 		val distance = sqrt(listenerPos.dst2(centroidLerp))
-		val t = MathUtils.clamp(distance / definition.audibleRange, 0f, 1f)
-		val attenuated = when (definition.attenuation) {
-			MetaSoundAttenuation.LINEAR -> 1f - t
-			MetaSoundAttenuation.SMOOTH -> {
-				val smooth = t * t * (3f - 2f * t)
-				1f - smooth
-			}
-			MetaSoundAttenuation.INVERSE -> {
-				val rolloff = 3f
-				(1f / (1f + rolloff * t * t) - 1f / (1f + rolloff)) / (1f - 1f / (1f + rolloff))
-			}
+		val t = if (definition.audibleRange <= 0f) {
+			if (distance <= 0f) 0f else 1f
+		} else {
+			MathUtils.clamp(distance / definition.audibleRange, 0f, 1f)
 		}
+		val attenuated = MetaSoundFalloff.gain(t, definition.attenuation, definition.distantVolume)
 		return attenuated * effectiveBaseVolume()
 	}
 
 	private fun calcVolAndPan(listenerPos: Vector2, delta: Float) {
 		currentPan = currentPan.dlerp(calcPan(listenerPos), 0.25f, delta)
-		currentVolume = currentVolume.dlerp(calcVolume(listenerPos), 0.25f, delta)
+		val targetVolume = calcVolume(listenerPos)
+		currentVolume = currentVolume.dlerp(targetVolume, 0.25f, delta)
+		if (targetVolume <= 0f && currentVolume <= FADE_STOP_VOLUME) {
+			stop()
+			return
+		}
 		definition.sound.setPan(handleId, MathUtils.clamp(currentPan, -1f, 1f), MathUtils.clamp(currentVolume, 0f, 1f))
 	}
 
@@ -205,10 +228,16 @@ class MetaSoundCluster(
 		definition.sound.stop(handleId)
 		started = false
 		handleId = -1L
+		currentVolume = 0f
 	}
 
 	fun stopNow() {
 		stop()
+	}
+
+	private companion object {
+		// Only used to finish a loop that is already fading toward exact silence; positive target volumes are never cut.
+		const val FADE_STOP_VOLUME = 0.0025f
 	}
 }
 

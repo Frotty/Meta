@@ -4,17 +4,16 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.api.extensions.getOrPut
-import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import kotlin.math.max
+import kotlin.math.sqrt
 
 /**
  * Improved MetaSoundPlayer with fade-out support on sound stops.
@@ -27,7 +26,6 @@ class MetaSoundPlayer {
 	private val metaAssetProvider: AssetProvider by lazyInject()
 	private val shapeRenderer: ShapeRenderer by lazyInject()
 	private val spriteBatch: SpriteBatch by lazyInject()
-	private val uiRenderer: UIRenderer by lazyInject()
 
 	var soundsSilenced = false
 
@@ -38,7 +36,7 @@ class MetaSoundPlayer {
 	fun playSound(
 		soundDefinition: MetaSoundDefinition?,
 		listenerPos: Vector2? = null,
-		minimumPause: Float = 200f,
+		minimumPause: Float = soundDefinition?.minimumPauseMs ?: 0f,
 		soundPos: Vector2 = Vector2.Zero
 	): MetaSoundHandle? {
 		if (soundDefinition == null || soundsSilenced) return null
@@ -47,9 +45,26 @@ class MetaSoundPlayer {
 		val volume = audioVideoData.masterVolume * audioVideoData.soundVolume
 		if (volume <= 0f) return null
 
-		// If out of audible range, skip.
-		if (listenerPos != null && !isInAudibleRange(soundDefinition, listenerPos, soundPos)) {
-			return null
+		val normalizedDistance = if (listenerPos != null) {
+			val distance2 = listenerPos.dst2(soundPos)
+			if (soundDefinition.audibleRange2 <= 0f) {
+				if (distance2 > 0f) return null
+				0f
+			} else {
+				if (distance2 > soundDefinition.audibleRange2) return null
+				sqrt(distance2 / soundDefinition.audibleRange2).coerceIn(0f, 1f)
+			}
+		} else {
+			0f
+		}
+
+		if (listenerPos != null) {
+			val initialVolume = soundDefinition.volume * volume * MetaSoundFalloff.gain(
+				normalizedDistance,
+				soundDefinition.attenuation,
+				soundDefinition.distantVolume,
+			)
+			if (initialVolume <= 0f) return null
 		}
 
 		val handleList = playingHandles.getOrPut(soundDefinition) { Array(soundDefinition.maxInstances) }
@@ -61,7 +76,12 @@ class MetaSoundPlayer {
 			// Handles are appended in play order, so the last entry is the most recent play.
 			// (first() would be the OLDEST live handle, disabling the check while older instances exist.)
 			val lastPlayTime = handleList.peek().startTime
-			if (TimeUtils.timeSinceMillis(lastPlayTime) < minimumPause) {
+			val cooldown = MetaSoundPlaybackPolicy.cooldownMs(
+				minimumPause,
+				normalizedDistance,
+				soundDefinition.distantCooldownMultiplier,
+			)
+			if (cooldown > 0f && TimeUtils.timeSinceMillis(lastPlayTime) < cooldown) {
 				return null
 			}
 		}
@@ -108,20 +128,26 @@ class MetaSoundPlayer {
 			if (soundHandle.isDone) return@postRunnable
 			// If positional, compute initial volume/pan. Otherwise play at global volume.
 			if (listenerPos != null) {
-				val mappedVolume = max(0.001f, soundHandle.calcVolume(listenerPos))
+				val mappedVolume = soundHandle.calcVolume(listenerPos)
+				if (mappedVolume <= 0f) {
+					soundHandle.setDone()
+					return@postRunnable
+				}
 				val mappedPan = soundHandle.calcPan(listenerPos)
+				val pitchRange = soundDefinition.randomPitchRange.coerceAtLeast(0f)
+				val pitch = 1f + MathUtils.random(-pitchRange, pitchRange)
 				val id = if (soundDefinition.isLooping)
-					soundDefinition.sound.loop(mappedVolume, 1f, mappedPan)
+					soundDefinition.sound.loop(mappedVolume, pitch, mappedPan)
 				else
-					soundDefinition.sound.play(mappedVolume, 1f, mappedPan)
-				soundHandle.setHandleId(id)
+					soundDefinition.sound.play(mappedVolume, pitch, mappedPan)
+				soundHandle.setHandleId(id, mappedVolume, mappedPan)
 				dynamicHandles.add(soundHandle)
 			} else {
 				val id = if (soundDefinition.isLooping)
 					soundDefinition.sound.loop(volume, 1f, 0f)
 				else
 					soundDefinition.sound.play(volume, 1f, 0f)
-				soundHandle.setHandleId(id)
+				soundHandle.setHandleId(id, volume, 0f)
 			}
 		}
 		handleList.add(soundHandle)
@@ -144,22 +170,6 @@ class MetaSoundPlayer {
 				handleList.removeIndex(i)
 			}
 		}
-	}
-
-	private fun isInAudibleRange(
-		sound: MetaSoundDefinition,
-		listenerPosition: Vector2,
-		soundPosition: Vector2
-	): Boolean {
-		return listenerPosition.dst2(soundPosition) <= sound.audibleRange2
-			|| soundInScreen(soundPosition)
-	}
-
-	private fun soundInScreen(soundPosition: Vector2): Boolean {
-		helper.set(soundPosition.x, soundPosition.y, 0f)
-		val project = uiRenderer.getCamera().project(helper)
-		return project.x > 0 && project.x < Gdx.graphics.width
-			&& project.y > 0 && project.y < Gdx.graphics.height
 	}
 
 	/**
@@ -244,7 +254,15 @@ class MetaSoundPlayer {
 		dynamicHandles.clear()
 	}
 
-	companion object {
-		private val helper = Vector3()
+}
+
+/** Allocation-free policy kept separate so playback admission can be tested without an audio backend. */
+internal object MetaSoundPlaybackPolicy {
+	fun cooldownMs(baseMs: Float, normalizedDistance: Float, distantMultiplier: Float): Float {
+		val base = baseMs.coerceAtLeast(0f)
+		if (base == 0f) return 0f
+		val distance = normalizedDistance.coerceIn(0f, 1f)
+		val farMultiplier = distantMultiplier.coerceAtLeast(1f)
+		return base * (1f + (farMultiplier - 1f) * distance * distance)
 	}
 }
