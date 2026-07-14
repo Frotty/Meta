@@ -31,8 +31,11 @@ open class MetaInject {
 	@PublishedApi
 	internal val singletonCache: MutableMap<InjectionKey, Any> = mutableMapOf()
 
+	@PublishedApi
+	internal fun canonicalName(name: String?): String? = if (name == "default") null else name
+
 	inline fun <reified T : Any> inject(name: String? = null): T {
-		val key = InjectionKey(T::class, name)
+		val key = InjectionKey(T::class, canonicalName(name))
 		return singletonCache[key] as T?
 			?: singletons[key]?.invoke()?.also { singletonCache[key] = it } as T?
 			?: providers[key]?.invoke() as T?
@@ -42,29 +45,21 @@ open class MetaInject {
 	inline fun <reified T : Any> lazyInject(name: String? = null): Lazy<T> = lazy(lazyType) { inject(name) }
 
 	inline fun <reified T : Any> provider(name: String? = null, noinline provider: () -> T) {
-		if (name == "default") providers[InjectionKey(T::class, null)] = provider
-		providers[InjectionKey(T::class, name)] = provider
+		providers[InjectionKey(T::class, canonicalName(name))] = provider
 	}
 
 	inline fun <reified T : Any> singleton(name: String? = null, noinline singleton: () -> T) {
+		val key = InjectionKey(T::class, canonicalName(name))
 		// Can't add a singleton that is already cached
-		check(singletonCache[InjectionKey(T::class, name)] == null)
-		{ "Can not add singleton for ${T::class.qualifiedName} with name $name" }
-
-		if (name == "default" && singletons[InjectionKey(T::class, null)] == null)
-			singletons[InjectionKey(T::class, null)] = singleton
-		singletons[InjectionKey(T::class, name)] = singleton
+		check(singletonCache[key] == null) { "Can not add singleton for ${T::class.qualifiedName} with name $name" }
+		singletons[key] = singleton
 	}
 
 	inline fun <reified T : Any> singleton(singleton: T, name: String? = null) {
+		val key = InjectionKey(T::class, canonicalName(name))
 		// Can't add a singleton that is already cached
-		check(singletonCache[InjectionKey(T::class, name)] == null)
-		{ "Can not add singleton for ${T::class.qualifiedName} with name $name" }
-
-		if (name == "default") // Don't save default values in the cache directly
-			singleton(name) { singleton }
-		else
-			singletonCache[InjectionKey(T::class, name)] = singleton
+		check(singletonCache[key] == null) { "Can not add singleton for ${T::class.qualifiedName} with name $name" }
+		singletonCache[key] = singleton
 	}
 
 	companion object : MetaInject() {
@@ -82,7 +77,7 @@ open class MetaInject {
 			return this.apply(context)
 		}
 
-		inline fun scope(clear: Boolean = false, name: String, context: MetaInject.() -> Unit = {}): MetaInject {
+		inline fun scope(name: String, clear: Boolean = false, context: MetaInject.() -> Unit = {}): MetaInject {
 			return scopes.getOrPut(name) { MetaInject() }.apply {
 				if (clear) {
 					providers.clear()

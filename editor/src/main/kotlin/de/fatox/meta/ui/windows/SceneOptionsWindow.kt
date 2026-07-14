@@ -31,17 +31,20 @@ class SceneOptionsWindow : MetaWindow("Scene Options", true, true) {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				val sceneTab = editorUI.currentTab as SceneTab
 				sceneTab.sceneHandle.shaderComposition = compositionSelectBox.selected
-				sceneManager.saveScene(sceneTab.sceneHandle.data)
+				sceneManager.saveScene(sceneTab.sceneHandle)
 			}
 		})
 	}
 
 	private fun loadInitial() {
 		compositionSelectBox.items = shaderComposer.compositions as Array<ShaderComposition?>
+	}
+
+	override fun onShown() {
+		super.onShown()
 		val currentTab = editorUI.currentTab
-		if (currentTab != null && currentTab is SceneTab) {
-			val sceneHandle = currentTab.sceneHandle
-			compositionSelectBox.selected = sceneHandle.shaderComposition
+		if (currentTab is SceneTab) {
+			compositionSelectBox.selected = currentTab.sceneHandle.shaderComposition
 		}
 	}
 

@@ -10,6 +10,9 @@ fun main() {
 		setTitle("Meta")
 		setWindowIcon("meta-icon.png")
 		setWindowListener(posModifier)
+		// Avoid a visible flash of LWJGL3's tiny 640x480 default before the splash screen finishes loading and
+		// applies the persisted window bounds (see MetaAudioVideoData.apply()).
+		setWindowedMode(1280, 900)
 	}
 
 	MetaDesktopLauncher.init(config, EditorMeta(posModifier, DesktopMonitorHandler(), DesktopSoundHandler(), DesktopGraphicsHandler()))

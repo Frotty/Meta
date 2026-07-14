@@ -28,7 +28,11 @@ private inline fun Inflater.with(data: CompressedByteArray) {
 fun CompressedByteArray.decompress(): ByteArray = ByteArrayOutputStream(this.byteArray.size).use {
 	inflater.with(this)
 	val buffer = ByteArray(BUFFER_LENGTH)
-	while (!inflater.finished()) it.write(buffer, 0, inflater.inflate(buffer))
+	while (!inflater.finished()) {
+		val n = inflater.inflate(buffer)
+		if (n == 0 && inflater.needsInput()) error("Truncated or invalid compressed data")
+		it.write(buffer, 0, n)
+	}
 	it.toByteArray()
 }
 

@@ -15,10 +15,9 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.windows.ShaderComposerWindow
-import java.io.File
 
 const val META_COMP_SUFFIX = ".mco"
-const val META_COMP_PATH = "meta\\compositions\\"
+const val META_COMP_PATH = "meta/compositions/"
 
 /**
  * Created by Frotty on 10.04.2017.
@@ -53,6 +52,7 @@ class MetaShaderComposer {
 
 	fun loadProjectCompositions() {
 		if (projectManager.currentProject != null) {
+			compositions.forEach { it.dispose() }
 			compositions.clear()
 			val compositionFolder = projectManager.currentProjectRoot.child("meta/compositions/")
 			if (compositionFolder.exists()) {
@@ -80,12 +80,13 @@ class MetaShaderComposer {
 	}
 
 	fun getComposition(compositionPath: String): ShaderComposition? {
-		var path = compositionPath
-		if (!path.contains(File.separator)) {
+		// Normalize to '/' so a path serialized on one OS (backslash on Windows) still resolves on another.
+		var path = compositionPath.replace('\\', '/')
+		if (!path.contains('/')) {
 			path = META_COMP_PATH + path + META_COMP_SUFFIX
 		}
 		for (comp in compositions) {
-			val relativizedPath = projectManager.relativize(comp.compositionHandle)
+			val relativizedPath = projectManager.relativize(comp.compositionHandle).replace('\\', '/')
 			if (relativizedPath.equals(path, ignoreCase = true)) {
 				return comp
 			}

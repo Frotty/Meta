@@ -83,4 +83,9 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
 		handle.metaShader.dispose()
 		handle.metaShader = assignShader(handle.data)
 	}
+
+	/** Releases the GL resources (framebuffers, color textures, shader programs) every buffer handle owns. */
+	fun dispose() {
+		bufferHandles.forEach { it.dispose() }
+	}
 }

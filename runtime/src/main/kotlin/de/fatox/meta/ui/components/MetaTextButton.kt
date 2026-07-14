@@ -2,6 +2,7 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -69,6 +70,7 @@ open class MetaTextButton @JvmOverloads constructor(
 
 	override fun setDisabled(isDisabled: Boolean) {
 		super.setDisabled(isDisabled)
+		touchable = if (isDisabled) Touchable.disabled else Touchable.enabled
 		batch {
 			disabledValue.value = isDisabled
 			disabledTint.apply(isDisabled)

@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import de.fatox.meta.api.graphics.Renderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.reactive.Disposable
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.shader.EditorSceneRenderer
 import de.fatox.meta.shader.MetaSceneHandle
@@ -12,13 +13,14 @@ import de.fatox.meta.shader.MetaShaderComposer
 /**
  * Created by Frotty on 16.06.2016.
  */
-class SceneWidget(sceneHandle: MetaSceneHandle) : Widget() {
+class SceneWidget(val sceneHandle: MetaSceneHandle) : Widget() {
 	private val renderer: Renderer by lazyInject()
 	private val composer: MetaShaderComposer by lazyInject()
+	private val changesSubscription: Disposable
 
 	init {
 		(renderer as EditorSceneRenderer).sceneHandle = sceneHandle
-		composer.changes.subscribe { layout() }
+		changesSubscription = composer.changes.subscribe { layout() }
 	}
 
 	override fun layout() {
@@ -31,4 +33,8 @@ class SceneWidget(sceneHandle: MetaSceneHandle) : Widget() {
 		batch.begin()
 	}
 
+	/** Releases the subscription to the composer's global change signal; called when the owning tab closes. */
+	fun dispose() {
+		changesSubscription.dispose()
+	}
 }

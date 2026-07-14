@@ -38,9 +38,9 @@ class DesktopGraphicsHandler : GraphicsHandler {
 			Gdx.gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, 0)
 			return texture
 		} catch (e: Exception) {
-			e.printStackTrace()
+			log.error("Failed to create multisample texture for attachment {}", attachmentSpec, e)
+			throw e
 		}
-		return -1
 	}
 
 	override fun build(fbo: MultisampleFBO) {
@@ -103,6 +103,7 @@ class DesktopGraphicsHandler : GraphicsHandler {
 			@Suppress("GDXKotlinUnsafeIterator")
 			for (attachmentSpec in fbo.bufferBuilder.textureAttachmentSpecs) {
 				val texture = fbo.createTexture(attachmentSpec)
+				fbo.textureHandles.add(texture)
 				fbo.textureAttachments++
 				if (attachmentSpec.isColorTexture) {
 					gl.glFramebufferTexture2D(
@@ -140,6 +141,7 @@ class DesktopGraphicsHandler : GraphicsHandler {
 			}
 		} else {
 			val texture = fbo.createTexture(fbo.bufferBuilder.textureAttachmentSpecs.first())
+			fbo.textureHandles.add(texture)
 			fbo.textureAttachments = 1
 			imBuilder.addColorTextureAttachment(GL30.GL_RGBA8, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE)
 			gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, texture)
@@ -215,7 +217,7 @@ class DesktopGraphicsHandler : GraphicsHandler {
 		val gl = Gdx.gl
 		val result = gl.glCheckFramebufferStatus(GL20.GL_FRAMEBUFFER)
 		if (result != GL20.GL_FRAMEBUFFER_COMPLETE) {
-			if (hasDepthStencilPackedBuffer) {
+			if (bufferBuilder.hasPackedStencilDepthRenderBuffer) {
 				gl.glDeleteBuffer(depthStencilPackedBufferHandle)
 			} else {
 				if (bufferBuilder.hasDepthRenderBuffer) gl.glDeleteRenderbuffer(depthbufferHandle)

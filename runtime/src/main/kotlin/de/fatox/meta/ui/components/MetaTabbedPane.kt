@@ -39,6 +39,7 @@ class MetaTabbedPane {
 		tabs.removeIndex(index)
 		buttons.removeIndex(index)
 		tab.tabPane = null
+		tab.dispose()
 		rebuild()
 		if (wasActive) applySwitch(if (tabs.size == 0) null else tabs[(index.coerceAtMost(tabs.size - 1))])
 		return true

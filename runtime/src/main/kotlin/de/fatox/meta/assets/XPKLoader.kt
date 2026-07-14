@@ -43,9 +43,9 @@ object XPKLoader {
 				if (itr.name == entry.name) {
 					val size = entry.size.toInt()
 					val content = ByteArray(size)
-					var offset = s7f.read(content)
-					while (offset != -1) {
-						val result = s7f.read(content, offset, size)
+					var offset = 0
+					while (offset < size) {
+						val result = s7f.read(content, offset, size - offset)
 						if (result == -1) {
 							break
 						}

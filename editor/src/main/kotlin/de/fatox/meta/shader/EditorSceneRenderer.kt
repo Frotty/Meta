@@ -108,25 +108,28 @@ class EditorSceneRenderer : Renderer {
 
 	private fun debugAll(x: Float, y: Float, bufferHandles: Array<RenderBufferHandle>) {
 		batch.disableBlending()
-		batch.use {
-			var debugScreens = 1f
-			bufferHandles.forEach {
-				debugScreens += if (it.colorTextures.size == 0) 1 else it.colorTextures.size
-			}
+		try {
+			batch.use {
+				var debugScreens = 1f
+				bufferHandles.forEach {
+					debugScreens += if (it.colorTextures.size == 0) 1 else it.colorTextures.size
+				}
 
-		var count = 0
+				var count = 0
 
-		for (bufferHandle in bufferHandles) {
-			val height = bufferHandle.height
-			val width = bufferHandle.width
-			val colorTextures = bufferHandle.colorTextures
-			for (texture in colorTextures) {
-				val fl = 0.75f
-				batch.draw(texture, x + width / debugScreens * count.toFloat() * fl, y, width / debugScreens * fl, height / debugScreens * fl, 0f, 0f, 1f, 1f)
-				count++
+				for (bufferHandle in bufferHandles) {
+					val height = bufferHandle.height
+					val width = bufferHandle.width
+					val colorTextures = bufferHandle.colorTextures
+					for (texture in colorTextures) {
+						val fl = 0.75f
+						batch.draw(texture, x + width / debugScreens * count.toFloat() * fl, y, width / debugScreens * fl, height / debugScreens * fl, 0f, 0f, 1f, 1f)
+						count++
+					}
+				}
 			}
-
-			}
+		} finally {
+			batch.enableBlending()
 		}
 	}
 

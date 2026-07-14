@@ -1,7 +1,9 @@
 package de.fatox.meta.ui.components
 
+import de.fatox.meta.ui.MetaType
+
 class MetaValidTextField(description: String, private val errorLabel: MetaLabel) {
-	val description: MetaLabel = MetaLabel(description, 14)
+	val description: MetaLabel = MetaLabel(description, MetaType.CAPTION)
 
 	val textField: MetaValidatableTextField = MetaValidatableTextField()
 

@@ -10,8 +10,9 @@ class ColorDrawable(private val drawable: Drawable, private val color: Color) : 
     override fun draw(batch: Batch, x: Float, y: Float, width: Float, height: Float) {
         // Save the batch colour as we are about to change it
         savedBatchColor.set(batch.color)
-		batch.color = color
-        // Draw a white texture with the current batch colour
+        // Multiply (not overwrite) so an actor's own color/parentAlpha (e.g. a fade action) is preserved
+        val c = batch.color
+        batch.setColor(c.r * color.r, c.g * color.g, c.b * color.b, c.a * color.a)
         drawable.draw(batch, x, y, width, height)
         batch.color = savedBatchColor
     }

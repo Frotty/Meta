@@ -13,5 +13,8 @@ abstract class MetaTab(
 	open fun onShow() = Unit
 	open fun onHide() = Unit
 
+	/** Called once when this tab is removed from its [MetaTabbedPane], so it can release owned resources/subscriptions. */
+	open fun dispose() = Unit
+
 	fun removeFromTabPane(): Boolean = tabPane?.remove(this) ?: false
 }

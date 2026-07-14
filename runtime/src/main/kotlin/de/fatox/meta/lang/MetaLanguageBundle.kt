@@ -24,6 +24,7 @@ class MetaLanguageBundle(private val bundleFileHandle: FileHandle) : LanguageBun
 			log.debug { "Current Locale: ${currentBundle.locale}" }
 		} catch (e: Exception) {
 			log.error(e) { e.localizedMessage }
+			throw e
 		}
 	}
 

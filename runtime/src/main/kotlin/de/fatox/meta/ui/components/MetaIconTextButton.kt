@@ -56,7 +56,7 @@ class MetaIconTextButton private constructor(
 		text: String,
 		icon: String,
 		size: Int = MetaType.BODY,
-		iconSize: Int = 24,
+		iconSize: Int = MetaIconButton.DEFAULT_ICON_SIZE.toInt(),
 		maxWidth: Int? = null,
 		iconColor: Color? = Color.WHITE,
 		vertical: Boolean = false,
@@ -87,6 +87,7 @@ class MetaIconTextButton private constructor(
 
 	override fun setDisabled(isDisabled: Boolean) {
 		super.setDisabled(isDisabled)
+		touchable = if (isDisabled) Touchable.disabled else Touchable.enabled
 		batch {
 			disabledValue.value = isDisabled
 			disabledTint.apply(isDisabled)

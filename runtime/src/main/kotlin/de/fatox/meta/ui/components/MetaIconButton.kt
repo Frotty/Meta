@@ -90,6 +90,7 @@ open class MetaIconButton private constructor(
 
 	override fun setDisabled(isDisabled: Boolean) {
 		super.setDisabled(isDisabled)
+		touchable = if (isDisabled) Touchable.disabled else Touchable.enabled
 		batch {
 			disabledValue.value = isDisabled
 			disabledTint.apply(isDisabled)

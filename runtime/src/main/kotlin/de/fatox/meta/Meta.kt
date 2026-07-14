@@ -69,8 +69,11 @@ abstract class Meta(
 		Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler)
 		// GLSL 120, not 130: macOS only supports GLSL 120 (OpenGL 2.1) or 150+ (3.2 core) — never 130/140 — so a
 		// "#version 130" prepend makes EVERY shader fail to compile on macOS. These shaders are legacy style
-		// (attribute/varying/gl_FragColor/texture2D), valid in 120, and the desktop launcher requests a GL20/2.1
-		// context to match. (If this base class is ever used with GL ES, make the prepend platform-conditional.)
+		// (attribute/varying/gl_FragColor/texture2D), valid in 120. NOTE: MetaDesktopLauncher actually requests
+		// GLEmulation.GL30 with context version 3.2 (not GL20/2.1 as previously stated here) - on Windows/Linux
+		// LWJGL3 does not force a core profile for that request, so legacy GLSL 120 keeps working there, but on
+		// macOS GLFW always forces a strict 3.2 CORE profile, which this legacy syntax is NOT valid under. Mac
+		// support requires either requesting a real 2.1 context or porting these shaders to core-profile GLSL 150.
 		prependVertexCode = "#version 120\n"
 		prependFragmentCode = "#version 120\n"
 	}

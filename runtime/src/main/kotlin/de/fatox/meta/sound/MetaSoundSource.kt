@@ -139,15 +139,25 @@ class MetaSoundCluster(
 	private var currentVolume = 0f
 	private var starting = false
 	private var started = false
+	private var pendingStart: Timer.Task? = null
 	val centroidLerp = centroid.cpy()
 
 	fun update(listenerPos: Vector2, delta: Float) {
-		centroidLerp.dlerp(centroid, 0.25f, delta)
+		// Only smooth the centroid once actually audible - a cluster that hasn't started playing yet has
+		// nothing to glitch, so snap straight to the true centroid instead of sliding in from wherever
+		// re-clustering (or this cluster's random initial placement) last left it.
+		if (started) centroidLerp.dlerp(centroid, 0.25f, delta) else centroidLerp.set(centroid)
 		if (effectiveBaseVolume() <= 0f) {
-			stop()
-			return
+			// Nothing audible yet (or only a pending start) - safe to hard-stop. An already-started loop
+			// instead falls through to calcVolAndPan below, which fades it toward silence like any other
+			// volume-zero target, so muting/losing focus never truncates playback with an audible click.
+			if (!started) {
+				stop()
+				return
+			}
+		} else if (!starting && !started && calcVolume(listenerPos) > 0f) {
+			start()
 		}
-		if (!starting && !started && calcVolume(listenerPos) > 0f) start()
 		if (started) calcVolAndPan(listenerPos, delta)
 	}
 
@@ -200,11 +210,18 @@ class MetaSoundCluster(
 
 	private fun start() {
 		starting = true
-		Timer.schedule(object : Timer.Task() {
+		// Cancel any earlier still-pending start: without this, a stop()+start() cycle within the random
+		// 0.01-0.5s delay window below left the OLD Timer.Task alive too, and it only checked the shared
+		// `starting` flag (which the newer start() had already set back to true) - so the stale task would
+		// still fire, overwrite `handleId` with a second loop instance, and orphan the first one, which kept
+		// looping forever at whatever volume it last reached with no way to ever stop or fade it again.
+		pendingStart?.cancel()
+		lateinit var task: Timer.Task
+		task = object : Timer.Task() {
 			override fun run() {
-				if (!starting) return
+				if (pendingStart !== task || !starting) return
 				Gdx.app.postRunnable {
-					if (!starting || effectiveBaseVolume() <= 0f) {
+					if (pendingStart !== task || !starting || effectiveBaseVolume() <= 0f) {
 						starting = false
 						return@postRunnable
 					}
@@ -212,6 +229,7 @@ class MetaSoundCluster(
 					handleId = definition.sound.loop(0f, pitch, 0f)
 					starting = false
 					started = true
+					pendingStart = null
 				}
 			}
 
@@ -219,10 +237,14 @@ class MetaSoundCluster(
 				super.cancel()
 				starting = false
 			}
-		}, MathUtils.random(0.01f, 0.5f))
+		}
+		pendingStart = task
+		Timer.schedule(task, MathUtils.random(0.01f, 0.5f))
 	}
 
 	fun stop() {
+		pendingStart?.cancel()
+		pendingStart = null
 		starting = false
 		if (!started) return
 		definition.sound.stop(handleId)

@@ -4,9 +4,11 @@ import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import de.fatox.meta.api.MetaInputProcessor
 
+import de.fatox.meta.api.graphics.Renderer
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.camera.ArcCamControl
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.shader.EditorSceneRenderer
 import de.fatox.meta.shader.MetaSceneHandle
 import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.components.MetaTable
@@ -21,14 +23,19 @@ class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val metaInput: MetaInputProcessor by lazyInject()
 	private val editorUI: MetaEditorUI by lazyInject()
+	private val renderer: Renderer by lazyInject()
 
 	private val camControl = ArcCamControl()
 	val sceneHandle: MetaSceneHandle
+	private val sceneWidget: SceneWidget
 	private val table: Table
 	override val tabTitle: String get() = sceneHandle.sceneFile.name()
 	override val contentTable: Table get() = table
 
 	override fun onShow() {
+		// EditorSceneRenderer is a single app-wide singleton: re-assign its scene on every (re)show, not just at
+		// construction, so it renders THIS tab's scene even if another SceneTab was created/shown in between.
+		(renderer as EditorSceneRenderer).sceneHandle = sceneHandle
 		metaInput.addScreenInputProcessor(camControl)
 		editorUI.metaToolbar.clear()
 		editorUI.metaToolbar.addAvailableWindow(AssetDiscovererWindow::class)
@@ -42,11 +49,15 @@ class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
 		metaInput.removeScreenInputProcessor(camControl)
 	}
 
-	init {
+	override fun dispose() {
+		sceneWidget.dispose()
+	}
 
+	init {
 		this.sceneHandle = sceneHandle
+		sceneWidget = SceneWidget(sceneHandle)
 		table = MetaTable()
-		table.add(SceneWidget(this.sceneHandle)).grow()
+		table.add(sceneWidget).grow()
 		table.invalidate()
 		//        table.debugAll();
 	}

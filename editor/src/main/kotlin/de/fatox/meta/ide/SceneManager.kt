@@ -1,7 +1,6 @@
 package de.fatox.meta.ide
 
 import com.badlogic.gdx.files.FileHandle
-import de.fatox.meta.api.model.MetaSceneData
 import de.fatox.meta.shader.MetaSceneHandle
 
 /**
@@ -10,5 +9,5 @@ import de.fatox.meta.shader.MetaSceneHandle
 interface SceneManager {
 	fun createNew(name: String): MetaSceneHandle
 	fun loadScene(projectFile: FileHandle)
-	fun saveScene(sceneData: MetaSceneData)
+	fun saveScene(sceneHandle: MetaSceneHandle)
 }

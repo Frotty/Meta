@@ -115,6 +115,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 			counter += 78f
 			if (counter > width - 128) {
 				visTable2.row().height(78f)
+				counter = 0f
 			}
 		}
 		if (filePane == null) {

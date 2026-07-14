@@ -168,7 +168,12 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 			return
 		}
 		if (handleId == -1L) {
+			// Playback failed (e.g. no free audio sources): there is nothing to track or stop later, so mark
+			// done immediately instead of leaking a permanently-inert handle (dynamicHandles would otherwise
+			// never remove it, and a looping definition would keep this maxInstances slot occupied forever).
 			log.debug("HandleId is -1 – sound failed to play or invalid handle!")
+			setDone()
+			return
 		}
 		this.handleId = handleId
 		// Preserve the volume used to start playback. Resetting to base volume here made distant sounds surge toward

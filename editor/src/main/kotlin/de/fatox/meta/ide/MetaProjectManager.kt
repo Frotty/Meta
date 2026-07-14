@@ -4,6 +4,7 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.scenes.scene2d.EventListener
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Json
+import de.fatox.meta.api.extensions.writeBytesAtomic
 import de.fatox.meta.api.model.MetaProjectData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
@@ -32,12 +33,17 @@ class MetaProjectManager : ProjectManager {
 		private set
 	private val onLoadListeners = Array<EventListener>()
 
-	override fun loadProject(projectFile: FileHandle): MetaProjectData {
+	override fun loadProject(projectFile: FileHandle): MetaProjectData? {
 		val realFile = if (!projectFile.name().endsWith("metaproject.json")) {
 			projectFile.child("metaproject.json")
 		} else projectFile
 
-		val metaProjectData = json.fromJson(MetaProjectData::class.java, realFile.readString())
+		val metaProjectData = try {
+			json.fromJson(MetaProjectData::class.java, realFile.readString())
+		} catch (e: Exception) {
+			uiManager.showToast("Failed to load project: ${e.message}")
+			return null
+		}
 		currentProjectRoot = realFile.parent()
 		createFolders(metaProjectData)
 		currentProject = metaProjectData
@@ -57,12 +63,13 @@ class MetaProjectManager : ProjectManager {
 		if (!root.exists()) {
 			root.mkdirs()
 		}
-		var child = root.child(projectData.name)
-		child.mkdirs()
+		// root is already the project's own folder once loadProject() has run; only nest a new child
+		// folder the first time (from newProject()), or a re-save after loading would create a duplicate.
+		var child = if (root.name() == projectData.name) root else root.child(projectData.name).also { it.mkdirs() }
 		currentProjectRoot = child
 		createFolders(projectData)
 		child = child.child(MetaProjectData.PROJECT_FILE_NAME)
-		child.writeBytes(json.toJson(projectData).toByteArray(), false)
+		child.writeBytesAtomic(json.toJson(projectData).toByteArray())
 		uiManager.showToast("Project created")
 	}
 

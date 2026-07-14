@@ -15,7 +15,7 @@ import kotlin.math.roundToInt
 
 class MetaIconDrawable(
 	icon: String,
-	private val size: Int = 24,
+	private val size: Int = MetaIconButton.DEFAULT_ICON_SIZE.toInt(),
 	private val tint: Color = Color.WHITE,
 ) : BaseDrawable() {
 	private val fontProvider: FontProvider by lazyInject()

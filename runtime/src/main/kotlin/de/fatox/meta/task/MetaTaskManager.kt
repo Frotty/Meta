@@ -7,10 +7,10 @@ class MetaTaskManager {
 	private var currentIndex = -1
 
 	fun runTask(metaTask: MetaTask) {
+		metaTask.run()
 		if (currentIndex < taskHistoryStack.size - 1) {
 			taskHistoryStack.setSize(currentIndex + 1)
 		}
-		metaTask.run()
 		taskHistoryStack.add(metaTask)
 		currentIndex = taskHistoryStack.size - 1
 	}

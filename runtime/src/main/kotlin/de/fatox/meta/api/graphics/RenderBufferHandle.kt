@@ -61,4 +61,9 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
 	}
 
 	fun getFBO(): Int = metaFrameBuffer.getFBO()
+
+	fun dispose() {
+		metaFrameBuffer.dispose()
+		metaShader.dispose()
+	}
 }

@@ -143,11 +143,15 @@ class MetaSoundPlayer {
 				soundHandle.setHandleId(id, mappedVolume, mappedPan)
 				dynamicHandles.add(soundHandle)
 			} else {
+				// Non-positional playback must scale by the definition's own volume too, same as the positional
+				// path's calcVolume() does - otherwise a sound authored quiet (e.g. volume = 0.1) plays at full
+				// master*sound volume whenever it's triggered without a listener position.
+				val globalVolume = soundDefinition.volume * volume
 				val id = if (soundDefinition.isLooping)
-					soundDefinition.sound.loop(volume, 1f, 0f)
+					soundDefinition.sound.loop(globalVolume, 1f, 0f)
 				else
-					soundDefinition.sound.play(volume, 1f, 0f)
-				soundHandle.setHandleId(id, volume, 0f)
+					soundDefinition.sound.play(globalVolume, 1f, 0f)
+				soundHandle.setHandleId(id, globalVolume, 0f)
 			}
 		}
 		handleList.add(soundHandle)

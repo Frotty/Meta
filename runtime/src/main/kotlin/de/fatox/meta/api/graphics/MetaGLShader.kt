@@ -3,6 +3,7 @@ package de.fatox.meta.api.graphics
 import com.badlogic.gdx.graphics.g3d.Renderable
 import com.badlogic.gdx.graphics.g3d.Shader
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.utils.GdxRuntimeException
 
 /**
  * Created by Frotty on 29.06.2016.
@@ -14,12 +15,9 @@ abstract class MetaGLShader(val shaderHandle: GLShaderHandle) : Shader {
 
 	init {
 		if (!shaderProgram.isCompiled) {
-			//            metaErrorHandler.add(object : MetaError("Shader compilation failed", "") {
-			//                override fun gotoError() {
-			//
-			//                }
-			//            })
-			throw RuntimeException()
+			val log = shaderProgram.log
+			shaderProgram.dispose()
+			throw GdxRuntimeException("Shader compile failed for ${shaderHandle.data.name}: $log")
 		}
 	}
 

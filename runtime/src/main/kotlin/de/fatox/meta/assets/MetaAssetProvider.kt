@@ -194,7 +194,8 @@ class MetaAssetProvider : AssetProvider {
 		val key = 31 * baseName.hashCode() + frames
 		if (!animCache.containsKey(key)) {
 			// Since we use asSequence() map is lazily evaluated, thus only calling it when necessary.
-			val regions: Array<AtlasRegion> = atlasCache.asSequence().map { it.findRegions(baseName) }.first()
+			val regions: Array<AtlasRegion> = atlasCache.asSequence().map { it.findRegions(baseName) }
+				.firstOrNull { it.size > 0 } ?: Array()
 
 			if (regions.size > 0) {
 				if (frames > -1) regions.setSize(frames) // limit to the request number of frames

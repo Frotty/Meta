@@ -8,7 +8,7 @@ import kotlin.contracts.contract
 
 class MetaIcon @JvmOverloads constructor(
 	icon: String,
-	size: Int = 24,
+	size: Int = MetaIconButton.DEFAULT_ICON_SIZE.toInt(),
 	color: Color? = Color.WHITE,
 ) : MetaLabel(MetaIcons.glyph(icon), size, color, FontType.ICON) {
 	var iconName: String = MetaIcons.normalize(icon)
@@ -25,7 +25,7 @@ class MetaIcon @JvmOverloads constructor(
 @OptIn(ExperimentalContracts::class)
 inline fun MetaIcon(
 	icon: String,
-	size: Int = 24,
+	size: Int = MetaIconButton.DEFAULT_ICON_SIZE.toInt(),
 	color: Color? = Color.WHITE,
 	init: MetaIcon.() -> Unit
 ): MetaIcon {

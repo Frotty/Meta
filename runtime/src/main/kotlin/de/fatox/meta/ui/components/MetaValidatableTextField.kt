@@ -36,6 +36,12 @@ class MetaValidatableTextField @JvmOverloads constructor(
 		})
 	}
 
+	/** Also re-validate on a programmatic write, since [ChangeListener] above only fires for user-typed changes. */
+	override fun setText(str: String) {
+		super.setText(str)
+		validateInput()
+	}
+
 	/** Also refresh the validation style clones, which get re-installed into the focus style on [validateInput]. */
 	override fun refreshFont() {
 		val font = fontProvider.getFont(fontSize, FontType.REGULAR)

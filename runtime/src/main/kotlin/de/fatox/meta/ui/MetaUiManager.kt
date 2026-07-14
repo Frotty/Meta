@@ -279,7 +279,9 @@ class MetaUiManager : UIManager {
 	}
 
 	private fun <T : Window> T.display(): T {
-		isVisible = true
+		// Only (re)trigger MetaWindow's fade-in when actually becoming visible, so re-showing an
+		// already-displayed window (e.g. clicking its menu entry twice) doesn't replay the fade and flicker.
+		if (!isVisible) isVisible = true
 		if (displayedWindows.contains(this, true)) return this
 
 		uiRenderer.addActor(this)

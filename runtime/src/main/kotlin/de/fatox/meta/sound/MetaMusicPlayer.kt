@@ -220,9 +220,14 @@ class MetaMusicPlayer : Disposable {
 	val isMusicPlaying: Boolean get() = currentMusic !== UninitializedMusic && currentMusic.isPlaying
 
 	override fun dispose() {
+		task.cancel()
+		// allPool only ever holds Music instances already present in musicCache, so disposing
+		// via musicCache covers both pooled and directly-played (playMusic/getMusic-only) tracks.
+		musicCache.values().forEach { it.dispose() }
 		musicCache.clear()
 		activePool.clear()
-		allPool.forEach { it.dispose() }
 		allPool.clear()
+		currentMusic = UninitializedMusic
+		nextMusic = UninitializedMusic
 	}
 }

@@ -14,8 +14,10 @@ private val log: Logger = MetaLoggerFactory.logger {}
 class DesktopWindowHandler : WindowHandler, Lwjgl3WindowListener {
 	private lateinit var currentWindow: Lwjgl3Window
 
-	override val x: Int get() = currentWindow.positionX
-	override val y: Int get() = currentWindow.positionY
+	// WindowHandler documents x/y as "defaults to zero if unknown" - guard the same way focus() already does,
+	// so a read before created() fires (e.g. no window listener registered) degrades instead of crashing.
+	override val x: Int get() = if (::currentWindow.isInitialized) currentWindow.positionX else 0
+	override val y: Int get() = if (::currentWindow.isInitialized) currentWindow.positionY else 0
 
 	override fun modify(x: Int, y: Int) {
 		log.debug { "Modify $currentWindow from ${this.x},${this.y} to $x,$y!" }

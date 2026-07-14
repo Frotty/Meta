@@ -4,7 +4,9 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.Json
 
+import de.fatox.meta.api.extensions.writeBytesAtomic
 import de.fatox.meta.api.model.MetaSceneData
+import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaSceneHandle
 import de.fatox.meta.shader.MetaShaderComposer
@@ -24,13 +26,14 @@ class MetaSceneManager : SceneManager {
 	private val assetDiscoverer: AssetDiscoverer by lazyInject()
 	private val shaderComposer: MetaShaderComposer by lazyInject()
 	private val json: Json by lazyInject()
+	private val uiManager: UIManager by lazyInject()
 
 	override fun createNew(name: String): MetaSceneHandle {
 		val currentComposition = shaderComposer.currentComposition
 		val path = if (currentComposition != null) projectManager.relativize(currentComposition.compositionHandle) else ""
 		val metaSceneData = MetaSceneData(name, path, Vector3.Y, true)
 		val sceneFile = projectManager.currentProjectRoot.child("$FOLDER$name.$EXTENSION")
-		sceneFile.writeBytes(json.toJson(metaSceneData).toByteArray(), false)
+		sceneFile.writeBytesAtomic(json.toJson(metaSceneData).toByteArray())
 		val metaSceneHandle = MetaSceneHandle(metaSceneData, shaderComposer.currentComposition, sceneFile)
 		metaEditorUI.addTab(SceneTab(metaSceneHandle))
 		return metaSceneHandle
@@ -38,12 +41,19 @@ class MetaSceneManager : SceneManager {
 
 	override fun loadScene(projectFile: FileHandle) {
 		if (metaEditorUI.tryFocusTab(projectFile.name())) return
-		val metaSceneData = json.fromJson(MetaSceneData::class.java, projectFile.readString())
+		val metaSceneData = try {
+			json.fromJson(MetaSceneData::class.java, projectFile.readString())
+		} catch (e: Exception) {
+			uiManager.showToast("Failed to load scene: ${e.message}")
+			return
+		}
 		val composition = shaderComposer.getComposition(metaSceneData.compositionPath)
 		metaEditorUI.addTab(SceneTab(MetaSceneHandle(metaSceneData, composition, projectFile)))
 	}
 
-	override fun saveScene(sceneData: MetaSceneData) {}
+	override fun saveScene(sceneHandle: MetaSceneHandle) {
+		sceneHandle.sceneFile.writeBytesAtomic(json.toJson(sceneHandle.data).toByteArray())
+	}
 
 	init {
 		assetDiscoverer.addOpenListener(EXTENSION, ::loadScene)

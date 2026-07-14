@@ -6,7 +6,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.cursorPointer
-import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
@@ -23,7 +22,7 @@ import kotlin.contracts.contract
  */
 class MetaCheckBox @JvmOverloads constructor(
 	@Suppress("UNUSED_PARAMETER")
-	assetProvider: AssetProvider = inject(),
+	assetProvider: AssetProvider? = null,
 	initialChecked: Boolean = false,
 ) : Button(Button.ButtonStyle(MetaSkin.skin().get(MetaSkin.CHECKBOX, Button.ButtonStyle::class.java))), MetaFocusable {
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedCheckboxStyle)
@@ -63,6 +62,7 @@ class MetaCheckBox @JvmOverloads constructor(
 
 	override fun setDisabled(isDisabled: Boolean) {
 		super.setDisabled(isDisabled)
+		touchable = if (isDisabled) Touchable.disabled else Touchable.enabled
 		disabledValue.value = isDisabled
 	}
 
@@ -100,7 +100,7 @@ class MetaCheckBox @JvmOverloads constructor(
 @OptIn(ExperimentalContracts::class)
 inline fun MetaCheckBox(
 	initialChecked: Boolean = false,
-	assetProvider: AssetProvider = inject(),
+	assetProvider: AssetProvider? = null,
 	init: MetaCheckBox.() -> Unit,
 ): MetaCheckBox {
 	contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }

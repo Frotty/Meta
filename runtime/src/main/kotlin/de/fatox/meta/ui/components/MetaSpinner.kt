@@ -98,7 +98,8 @@ open class MetaSpinner @JvmOverloads constructor(
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				event.stop()
 				if (syncing) return
-				metaModel.parse(textField.text)?.let { metaModel.value = it }
+				val parsed = metaModel.parse(textField.text)
+				if (parsed != null) metaModel.value = parsed else syncFromModel()
 			}
 		})
 		installBinding()

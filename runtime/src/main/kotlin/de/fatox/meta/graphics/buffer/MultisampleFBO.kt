@@ -25,6 +25,7 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
+import com.badlogic.gdx.utils.IntArray
 import de.fatox.meta.Meta
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.error
@@ -81,6 +82,11 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	 */
 	var isMRT: Boolean = false
 	var nonMultisampledFbo: FrameBuffer? = null
+
+	/**
+	 * GL texture handles created via [createTexture] for this FBO's attachments; freed in [dispose].
+	 */
+	val textureHandles: IntArray = IntArray()
 	val colorBufferTexture: Texture?
 		get() {
 			val nonMultisampledFbo = nonMultisampledFbo
@@ -171,9 +177,11 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	 * Releases all resources associated with the FrameBuffer.
 	 */
 	override fun dispose() {
-
-		//        Gdx.gl.glDeleteTexture (textureHandle);
-		if (hasDepthStencilPackedBuffer) {
+		for (i in 0 until textureHandles.size) {
+			Gdx.gl.glDeleteTexture(textureHandles[i])
+		}
+		textureHandles.clear()
+		if (bufferBuilder.hasPackedStencilDepthRenderBuffer) {
 			Gdx.gl20.glDeleteRenderbuffer(depthStencilPackedBufferHandle)
 		} else {
 			if (bufferBuilder.hasDepthRenderBuffer) Gdx.gl20.glDeleteRenderbuffer(depthbufferHandle)

@@ -40,7 +40,7 @@ class ArcCamControl : InputProcessor {
 	private var moveModeOn = false
 
 	/** The target of the arcball  */
-	private val target = Vector3.Zero
+	private val target = Vector3()
 
 	/** The planar (X/Y) rotation of the camera  */
 	private var rotationAngle = 0f
@@ -66,9 +66,7 @@ class ArcCamControl : InputProcessor {
 		camera.position.x = ppX(target.x, distance, rotationAngle, angleOfAttack)
 		camera.position.y = ppY(0f, distance, angleOfAttack)
 		camera.position.z = ppZ(target.z, distance, rotationAngle, angleOfAttack)
-		camera.direction.x = target.x - camera.position.x
-		camera.direction.y = target.y - camera.position.y
-		camera.direction.z = target.z - camera.position.z
+		camera.direction.set(target.x - camera.position.x, target.y - camera.position.y, target.z - camera.position.z).nor()
 		camera.up.x = -sin(rotationAngle) * cos(angleOfAttack)
 		camera.up.y = sin(angleOfAttack)
 		camera.up.z = -cos(rotationAngle) * cos(angleOfAttack)
