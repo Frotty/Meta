@@ -93,3 +93,4 @@ MetaInject.global {
     singleton<Renderer> { GameSceneRenderer() }
 }
 ```
+
