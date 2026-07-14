@@ -45,17 +45,27 @@ open class MetaInject {
 	inline fun <reified T : Any> lazyInject(name: String? = null): Lazy<T> = lazy(lazyType) { inject(name) }
 
 	inline fun <reified T : Any> provider(name: String? = null, noinline provider: () -> T) {
-		providers[InjectionKey(T::class, canonicalName(name))] = provider
+		val key = InjectionKey(T::class, canonicalName(name))
+		if (name == "default") providers.putIfAbsent(key, provider)
+		else providers[key] = provider
 	}
 
 	inline fun <reified T : Any> singleton(name: String? = null, noinline singleton: () -> T) {
 		val key = InjectionKey(T::class, canonicalName(name))
+		if (name == "default") {
+			singletons.putIfAbsent(key, singleton)
+			return
+		}
 		// Can't add a singleton that is already cached
 		check(singletonCache[key] == null) { "Can not add singleton for ${T::class.qualifiedName} with name $name" }
 		singletons[key] = singleton
 	}
 
 	inline fun <reified T : Any> singleton(singleton: T, name: String? = null) {
+		if (name == "default") {
+			singleton(name) { singleton }
+			return
+		}
 		val key = InjectionKey(T::class, canonicalName(name))
 		// Can't add a singleton that is already cached
 		check(singletonCache[key] == null) { "Can not add singleton for ${T::class.qualifiedName} with name $name" }
