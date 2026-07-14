@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox.SelectBoxScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox.SelectBoxStyle
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.graphics.FontProvider
@@ -75,6 +76,31 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 			snapToPhysicalPixel(y, pixelsPerUnit),
 			(width - CHEVRON_RESERVED_WIDTH).coerceAtLeast(0f),
 		)
+	}
+
+	/**
+	 * The dropdown's own [List] draws its rows via vanilla `List.drawItem`, with the same unsnapped-position gap
+	 * [drawItem] above fixes for the closed box - apply the identical snap via the two hooks gdx ships for exactly
+	 * this (customizing the popup's scroll pane / list) instead of reimplementing the popup.
+	 */
+	override fun newScrollPane(): SelectBoxScrollPane<T> {
+		return object : SelectBoxScrollPane<T>(this@MetaSelectBox) {
+			override fun newList(): List<T> {
+				return object : List<T>(this@MetaSelectBox.style.listStyle) {
+					override fun toString(obj: T): String = this@MetaSelectBox.toString(obj)
+
+					override fun drawItem(batch: Batch, font: BitmapFont, index: Int, item: T, x: Float, y: Float, width: Float): GlyphLayout {
+						val pixelsPerUnit = font.physicalPixelsPerUnit()
+						return super.drawItem(
+							batch, font, index, item,
+							snapToPhysicalPixel(x, pixelsPerUnit),
+							snapToPhysicalPixel(y, pixelsPerUnit),
+							width,
+						)
+					}
+				}
+			}
+		}
 	}
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
