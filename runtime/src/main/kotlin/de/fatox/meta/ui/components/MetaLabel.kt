@@ -1,6 +1,5 @@
 package de.fatox.meta.ui.components
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
@@ -15,6 +14,9 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.CharArray
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.physicalPixelsPerStageUnit
+import de.fatox.meta.api.graphics.physicalPixelsPerUnit
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
@@ -22,7 +24,6 @@ import de.fatox.meta.ui.MetaType
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
@@ -155,7 +156,7 @@ open class MetaLabel @JvmOverloads constructor(
 		// baseline to a whole UI unit is only pixel-aligned at 100%; at 125%, for example, it lands on quarter pixels
 		// and linearly samples the otherwise native-resolution atlas. Snap the local cache offset to the same physical
 		// grid as the actor origin so their sum remains pixel-aligned at every UI/content scale.
-		val physicalScale = (1f / font.scaleX).coerceAtLeast(0.01f)
+		val physicalScale = font.physicalPixelsPerUnit()
 		bitmapFontCache.setText(
 			layout,
 			snapToPhysicalPixel(x, physicalScale),
@@ -203,17 +204,11 @@ open class MetaLabel @JvmOverloads constructor(
 			return
 		}
 		localToStageCoordinates(drawPosition.set(0f, 0f))
-		val pixelsPerUnit = pixelsPerStageUnit()
+		val pixelsPerUnit = physicalPixelsPerStageUnit(stage.width)
 		drawPosition.set(
 			x + snapToPhysicalPixel(drawPosition.x, pixelsPerUnit) - drawPosition.x,
 			y + snapToPhysicalPixel(drawPosition.y, pixelsPerUnit) - drawPosition.y,
 		)
-	}
-
-	private fun pixelsPerStageUnit(): Float {
-		val stage = stage ?: return 1f
-		if (stage.width <= 0f) return 1f
-		return max(1f, Gdx.graphics.backBufferWidth / stage.width)
 	}
 
 	override fun getPrefWidth(): Float {
@@ -397,10 +392,6 @@ open class MetaLabel @JvmOverloads constructor(
 		bitmapFontCache = font.newFontCache()
 		layout()
 	}
-}
-
-internal fun snapToPhysicalPixel(value: Float, pixelsPerUnit: Float): Float {
-	return (value * pixelsPerUnit).roundToInt() / pixelsPerUnit
 }
 
 @Suppress("FunctionName")

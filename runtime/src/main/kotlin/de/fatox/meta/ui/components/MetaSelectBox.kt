@@ -11,6 +11,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.SelectBox.SelectBoxStyle
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.physicalPixelsPerUnit
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
@@ -65,7 +67,14 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 	}
 
 	override fun drawItem(batch: Batch, font: BitmapFont, item: T?, x: Float, y: Float, width: Float): GlyphLayout {
-		return super.drawItem(batch, font, item, x, y, (width - CHEVRON_RESERVED_WIDTH).coerceAtLeast(0f))
+		// Vanilla SelectBox positions the selected-item text straight from x/y with no pixel-grid awareness.
+		val pixelsPerUnit = font.physicalPixelsPerUnit()
+		return super.drawItem(
+			batch, font, item,
+			snapToPhysicalPixel(x, pixelsPerUnit),
+			snapToPhysicalPixel(y, pixelsPerUnit),
+			(width - CHEVRON_RESERVED_WIDTH).coerceAtLeast(0f),
+		)
 	}
 
 	override fun draw(batch: Batch, parentAlpha: Float) {

@@ -10,6 +10,8 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.physicalPixelsPerUnit
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
@@ -96,7 +98,13 @@ class FPSGraph(
 			fontTracker.markFresh()
 		}
 		font.color = Color.WHITE
-		font.draw(batch, statsText, x, y + height + font.lineHeight)
+		val pixelsPerUnit = font.physicalPixelsPerUnit()
+		font.draw(
+			batch,
+			statsText,
+			snapToPhysicalPixel(x, pixelsPerUnit),
+			snapToPhysicalPixel(y + height + font.lineHeight, pixelsPerUnit),
+		)
 	}
 
 	override fun refreshFont() {

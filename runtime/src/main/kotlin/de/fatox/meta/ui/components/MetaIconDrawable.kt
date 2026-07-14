@@ -1,6 +1,5 @@
 package de.fatox.meta.ui.components
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
@@ -8,10 +7,9 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
-import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.api.graphics.physicalPixelsPerUnit
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
-import kotlin.math.max
-import kotlin.math.roundToInt
 
 class MetaIconDrawable(
 	icon: String,
@@ -19,7 +17,6 @@ class MetaIconDrawable(
 	private val tint: Color = Color.WHITE,
 ) : BaseDrawable() {
 	private val fontProvider: FontProvider by lazyInject()
-	private val uiRenderer: UIRenderer by lazyInject()
 	private val layout = GlyphLayout()
 	private val glyph = MetaIcons.glyph(icon)
 	private val oldColor = Color()
@@ -43,23 +40,13 @@ class MetaIconDrawable(
 		oldColor.set(font.color)
 		font.color.set(tint)
 		// Snap the centered position to the physical pixel grid (like MetaLabel) so the glyph stays crisp on HiDPI.
-		val pixelsPerUnit = pixelsPerUnit()
+		val pixelsPerUnit = font.physicalPixelsPerUnit()
 		font.draw(
 			batch,
 			glyph,
-			snapToPixel(x + (width - layout.width) * 0.5f, pixelsPerUnit),
-			snapToPixel(y + (height + layout.height) * 0.5f, pixelsPerUnit),
+			snapToPhysicalPixel(x + (width - layout.width) * 0.5f, pixelsPerUnit),
+			snapToPhysicalPixel(y + (height + layout.height) * 0.5f, pixelsPerUnit),
 		)
 		font.color.set(oldColor)
-	}
-
-	private fun pixelsPerUnit(): Float {
-		val uiWidth = uiRenderer.uiWidth
-		if (uiWidth <= 0f) return 1f
-		return max(1f, Gdx.graphics.backBufferWidth / uiWidth)
-	}
-
-	private fun snapToPixel(value: Float, pixelsPerUnit: Float): Float {
-		return (value * pixelsPerUnit).roundToInt() / pixelsPerUnit
 	}
 }

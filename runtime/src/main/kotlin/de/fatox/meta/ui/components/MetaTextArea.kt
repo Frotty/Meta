@@ -1,5 +1,6 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.TextArea
@@ -9,6 +10,8 @@ import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.extensions.cursorText
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.drawPixelSnapped
+import de.fatox.meta.api.graphics.physicalPixelsPerUnit
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
@@ -109,6 +112,12 @@ open class MetaTextArea @JvmOverloads constructor(
 
 	private fun syncTextValue() {
 		if (textValue.peek() != text) textValue.value = text
+	}
+
+	// Vanilla TextArea (via TextField) positions its internal BitmapFontCache straight from this actor's own x/y
+	// with no pixel-grid awareness, unlike MetaLabel - snap it so multi-line input stays crisp at every UI scale.
+	override fun draw(batch: Batch, parentAlpha: Float) {
+		drawPixelSnapped(batch, parentAlpha, style.font.physicalPixelsPerUnit()) { b, a -> super.draw(b, a) }
 	}
 
 	private companion object {

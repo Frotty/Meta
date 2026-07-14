@@ -1,11 +1,14 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.drawPixelSnapped
+import de.fatox.meta.api.graphics.physicalPixelsPerUnit
 import de.fatox.meta.api.extensions.cursorText
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
@@ -80,6 +83,13 @@ open class MetaTextField @JvmOverloads constructor(
 	override fun setDisabled(disabled: Boolean) {
 		super.setDisabled(disabled)
 		disabledValue.value = disabled
+	}
+
+	// Vanilla TextField positions its internal BitmapFontCache (background, text, cursor, selection) straight from
+	// this actor's own x/y with no pixel-grid awareness, unlike MetaLabel - snap the whole thing together so it's
+	// crisp regardless of what fractional position layout/HiDPI scaling produced.
+	override fun draw(batch: Batch, parentAlpha: Float) {
+		drawPixelSnapped(batch, parentAlpha, style.font.physicalPixelsPerUnit()) { b, a -> super.draw(b, a) }
 	}
 
 	private fun syncTextValue() {

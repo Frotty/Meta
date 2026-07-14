@@ -15,6 +15,8 @@ import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.get
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.physicalPixelsPerUnit
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.roundToInt
@@ -118,7 +120,11 @@ class MetaFontProvider : FontProvider {
 		spriteBatch.color = Color.WHITE
 		spriteBatch.enableBlending()
 		spriteBatch.shader = null
-		spriteBatch.use { getFont(size, type).draw(spriteBatch, text, x, y) }
+		val font = getFont(size, type)
+		val pixelsPerUnit = font.physicalPixelsPerUnit()
+		spriteBatch.use {
+			font.draw(spriteBatch, text, snapToPhysicalPixel(x, pixelsPerUnit), snapToPhysicalPixel(y, pixelsPerUnit))
+		}
 	}
 
 	private fun generateFont(size: Int, type: FontType): BitmapFont {

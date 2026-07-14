@@ -5,6 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.physicalPixelsPerUnit
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 /**
@@ -15,6 +17,16 @@ class TextWidget(private val text: String) : Widget() {
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		super.draw(batch, parentAlpha)
-		fontProvider.getFont(80, FontType.REGULAR).draw(batch, text, x, y + height / 2, width, Align.center, false)
+		val font = fontProvider.getFont(80, FontType.REGULAR)
+		val pixelsPerUnit = font.physicalPixelsPerUnit()
+		font.draw(
+			batch,
+			text,
+			snapToPhysicalPixel(x, pixelsPerUnit),
+			snapToPhysicalPixel(y + height / 2, pixelsPerUnit),
+			width,
+			Align.center,
+			false,
+		)
 	}
 }

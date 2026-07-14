@@ -21,6 +21,7 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.api.lang.AvailableLanguages
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.error.MetaError
