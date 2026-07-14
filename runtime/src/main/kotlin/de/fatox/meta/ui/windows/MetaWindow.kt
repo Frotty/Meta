@@ -47,6 +47,7 @@ abstract class MetaWindow(
 	protected val assetProvider: AssetProvider by lazyInject()
 	protected val metaData: MetaData by lazyInject()
 	private val fontProvider: FontProvider by lazyInject()
+	private val windowShadow = MetaSkin.skin().getDrawable(MetaSkin.WINDOW_SHADOW)
 
 	var contentTable: Table = MetaTable()
 
@@ -182,6 +183,16 @@ abstract class MetaWindow(
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		snapBoundsToPixelGrid()
+		val oldBatchColor = batch.packedColor
+		batch.setColor(color.r, color.g, color.b, color.a * parentAlpha)
+		windowShadow.draw(
+			batch,
+			x + WINDOW_SHADOW_X,
+			y + WINDOW_SHADOW_Y,
+			width,
+			height,
+		)
+		batch.packedColor = oldBatchColor
 		super.draw(batch, parentAlpha)
 		if (isDragging) {
 			startDrag = true
@@ -450,5 +461,7 @@ abstract class MetaWindow(
 		const val RESIZE_GRIP_BOTTOM_PAD = 2f
 		const val MIN_WINDOW_WIDTH = 96f
 		const val MIN_WINDOW_HEIGHT = 64f
+		const val WINDOW_SHADOW_X = 5f
+		const val WINDOW_SHADOW_Y = -5f
 	}
 }

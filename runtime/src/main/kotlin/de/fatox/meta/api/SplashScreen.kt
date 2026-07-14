@@ -6,10 +6,12 @@ import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import de.fatox.meta.Meta
 import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.ui.MetaColor
 
 class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
 	private val spriteBatch: SpriteBatch by lazyInject()
@@ -30,8 +32,9 @@ class SplashScreen(private val cb: () -> Unit) : ScreenAdapter() {
 
 	override fun render(delta: Float) {
 		Gdx.gl.apply {
-			glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
-			glClearColor(0f, 0f, 0f, 0f)
+			// Window dimensions are logical points on Retina/HiDPI displays; HdpiUtils maps them to framebuffer pixels.
+			HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+			glClearColor(MetaColor.BACKGROUND.r, MetaColor.BACKGROUND.g, MetaColor.BACKGROUND.b, 1f)
 			glClear(GL20.GL_COLOR_BUFFER_BIT)
 		}
 

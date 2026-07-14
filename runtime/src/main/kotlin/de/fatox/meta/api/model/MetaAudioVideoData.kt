@@ -22,7 +22,7 @@ object MetaAudioVideoState {
 		val initial = value.copy()
 		// Legacy saves predate the explicit flag. A save already in decorated windowed mode necessarily has usable
 		// windowed history; fullscreen/borderless legacy saves use the new centered first-use fallback.
-		if (!initial.windowedBoundsInitialized && !initial.fullscreen && !initial.borderless) {
+		if (!initial.windowedBoundsInitialized && !initial.usesBorderlessPresentation()) {
 			initial.windowedBoundsInitialized = true
 		}
 		stateSignal.value = initial
@@ -157,19 +157,6 @@ private fun getCurrentMonitor(): Graphics.Monitor {
 	return bestMonitor
 }
 
-private fun displayModeFor(monitor: Graphics.Monitor, requested: MetaDisplayMode): Graphics.DisplayMode {
-	val graphics = Gdx.graphics
-	val modes = graphics.getDisplayModes(monitor)
-	var resolutionMatch: Graphics.DisplayMode? = null
-	for (i in modes.indices) {
-		val mode = modes[i]
-		if (mode.width != requested.width || mode.height != requested.height) continue
-		if (mode.refreshRate == requested.refreshRate && mode.bitsPerPixel == requested.bitsPerPixel) return mode
-		if (resolutionMatch == null || mode.refreshRate > resolutionMatch.refreshRate) resolutionMatch = mode
-	}
-	return resolutionMatch ?: graphics.getDisplayMode(monitor)
-}
-
 private fun requestedMonitor(requested: MetaDisplayMode): Graphics.Monitor {
 	val monitors = Gdx.graphics.monitors
 	return if (requested.width > 0 && requested.monitorIndex in monitors.indices) {
@@ -203,14 +190,18 @@ data class MetaAudioVideoData(
 	var runWithUI: Boolean = true,
 	var windowedBoundsInitialized: Boolean = false,
 ) {
+	/** Both persisted flags deliberately map to the same compositor-friendly borderless-windowed presentation. */
+	internal fun usesBorderlessPresentation(): Boolean = fullscreen || borderless
+
 	fun captureWindowedBounds() {
-		if (Gdx.graphics.isFullscreen) return
+		// Meta presents fullscreen as an undecorated monitor-sized window. Never overwrite the remembered decorated
+		// bounds with that temporary presentation, even though libGDX correctly reports it as "windowed".
+		if (usesBorderlessPresentation() || Gdx.graphics.isFullscreen) return
 		x = Meta.instance.windowHandler.x
 		y = Meta.instance.windowHandler.y
 		width = Gdx.graphics.width
 		height = Gdx.graphics.height
-		// Remember which monitor owns these bounds. The next fullscreen/borderless transition must not infer it from
-		// the launcher's temporary bootstrap window, which may live on another screen.
+		// Remember which monitor owns these bounds for the next fullscreen/borderless transition.
 		metaDisplayMode = Gdx.graphics.getDisplayMode(getCurrentMonitor()).toMetaDisplayMode()
 		windowedBoundsInitialized = true
 	}
@@ -225,13 +216,7 @@ data class MetaAudioVideoData(
 		)
 
 		var expectedBounds: IntArray? = null
-		if (fullscreen && Gdx.graphics.supportsDisplayModeChange()) {
-			val monitor = requestedMonitor(metaDisplayMode)
-			val dm = displayModeFor(monitor, metaDisplayMode)
-			metaDisplayMode = dm.toMetaDisplayMode()
-			Gdx.graphics.setFullscreenMode(dm)
-		} else {
-			if (borderless) {
+		if (usesBorderlessPresentation()) {
 				// Borderless is a monitor-sized window, not the previously saved decorated-window rectangle. Keep x/y/
 				// width/height untouched as windowed-mode history, and place this presentation on the selected monitor.
 				val monitor = requestedMonitor(metaDisplayMode)
@@ -241,7 +226,7 @@ data class MetaAudioVideoData(
 				Gdx.graphics.setWindowedMode(mode.width, mode.height)
 				Meta.instance.windowHandler.modify(monitor.virtualX, monitor.virtualY)
 				expectedBounds = intArrayOf(monitor.virtualX, monitor.virtualY, mode.width, mode.height)
-			} else {
+		} else {
 				val restored = safeWindowedBounds()
 				x = restored[0]
 				y = restored[1]
@@ -251,7 +236,6 @@ data class MetaAudioVideoData(
 				Gdx.graphics.setWindowedMode(width, height)
 				Meta.instance.windowHandler.modify(x, y)
 				expectedBounds = intArrayOf(x, y, width, height)
-			}
 		}
 		Gdx.graphics.setVSync(vsyncEnabled)
 		// LWJGL3 treats 0 as "never sleep" (uncapped); map any non-positive value to that.

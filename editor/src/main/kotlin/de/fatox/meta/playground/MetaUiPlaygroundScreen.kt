@@ -3,6 +3,7 @@ package de.fatox.meta.playground
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.ui.UIManager
@@ -56,7 +57,7 @@ class MetaUiPlaygroundScreen(
 	}
 
 	private fun clearFrame() {
-		Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+		HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
 		Gdx.gl.glClearColor(0.105f, 0.109f, 0.125f, 1f)
 		Gdx.gl.glClearDepthf(1f)
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT or

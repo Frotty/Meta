@@ -86,6 +86,9 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
 	 */
 	open fun focusDialog() {
 		val stage = stage ?: return
+		// Dialogs always need a usable pointer. Reassert this when an underlying dialog regains focus after a
+		// stacked dialog closes; the closing dialog may have restored a captured pre-dialog cursor state.
+		Gdx.input.isCursorCatched = false
 		toFront()
 		val keyboardTarget = firstTextField()
 		stage.keyboardFocus = keyboardTarget ?: this
@@ -140,5 +143,12 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
 		add(statusLabel).growX()
 		row()
 		add(buttonTable).bottom().growX().pad(MetaSpacing.SM)
+	}
+
+	override fun act(delta: Float) {
+		// Cursor capture can be changed after show() by game/controller input in the same frame. Keep the contract
+		// true for the complete lifetime of every visible dialog instead of relying on a one-shot state change.
+		if (isVisible && Gdx.input.isCursorCatched) Gdx.input.isCursorCatched = false
+		super.act(delta)
 	}
 }

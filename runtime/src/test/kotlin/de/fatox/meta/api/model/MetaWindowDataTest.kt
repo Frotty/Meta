@@ -41,4 +41,11 @@ internal class MetaWindowDataTest {
 		assertEquals(16f, data.resolveHorizontal(viewportWidth = 200f, windowWidth = 160f))
 		assertEquals(0f, data.resolveVertical(viewportHeight = 150f, windowHeight = 120f))
 	}
+
+	@Test
+	fun `restored resizable window dimensions respect min and max size`() {
+		assertEquals(180f, clampWindowDimension(value = 80f, min = 180f, max = 360f))
+		assertEquals(280f, clampWindowDimension(value = 500f, min = 120f, max = 280f))
+		assertEquals(500f, clampWindowDimension(value = 500f, min = 120f, max = 0f))
+	}
 }

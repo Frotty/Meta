@@ -43,6 +43,7 @@ object MetaSkin {
 	const val COLOR_FILL = "meta.color.fill"
 	const val WINDOW = "meta.window"
 	const val WINDOW_RESIZABLE = "meta.window.resizable"
+	const val WINDOW_SHADOW = "meta.window.shadow"
 	private const val WINDOW_BACKGROUND = "meta.window.background"
 
 	private const val INSTALLED_COLOR = "meta.skin.installed"
@@ -97,6 +98,8 @@ object MetaSkin {
 		// making overlapping windows and adjacent chrome unambiguous against the dark workspace.
 		rounded(skin, WINDOW_BACKGROUND, MetaColor.SURFACE_RAISED, Color.valueOf("687586FF"),
 			radius = 7, border = 2, padding = 8f)
+		// Offset below every solid window so a fully covered sibling still leaves a visible depth cue at its edges.
+		rounded(skin, WINDOW_SHADOW, Color.valueOf("05060988"), null, radius = 9, border = 0, padding = 0f)
 		rounded(skin, TOAST, Color.valueOf("15181EF5"), Color.valueOf("A7B5C8FF"), radius = 8, border = 2, padding = 10f)
 		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f)
 		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), Color.valueOf("596170FF"), radius = 7, border = 1, padding = 7f)

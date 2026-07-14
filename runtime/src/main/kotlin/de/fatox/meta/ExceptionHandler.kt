@@ -11,6 +11,8 @@ import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.awt.Frame
 import java.awt.GraphicsEnvironment
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -18,6 +20,7 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.prefs.Preferences
 import javax.swing.*
+import kotlin.system.exitProcess
 
 private val log = MetaLoggerFactory.logger {}
 
@@ -87,6 +90,10 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 						SwingUtilities.invokeLater {
 							statusLabel.text = message
 							isEnabled = !ok
+							if (ok) Timer(500) { frame.dispose() }.apply {
+								isRepeats = false
+								start()
+							}
 						}
 					}
 				}
@@ -133,6 +140,14 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 			}
 			frame = JFrame("Uncaught Exception").apply {
 				defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
+				addWindowListener(object : WindowAdapter() {
+					override fun windowClosed(event: WindowEvent) {
+						// The application has already terminated with an uncaught exception. Returning through the
+						// jpackage launcher makes it display a second, misleading "Failed to launch JVM" dialog.
+						// Exit the crashed process directly after the report window is dismissed instead.
+						exitProcess(1)
+					}
+				})
 				icon?.image?.let { iconImage = it }
 				contentPane = content
 				pack()

@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.FPSLogger
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.api.graphics.FontProvider
@@ -45,7 +46,7 @@ class MetaEditorScreen : ScreenAdapter() {
 	}
 
 	private fun clearFrame() {
-		Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+		HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
 		Gdx.gl.glClearColor(0.16862746f, 0.16862746f, 0.16862746f, 1f)
 		Gdx.gl.glClearDepthf(1.0f)
 		Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT or GL30.GL_DEPTH_BUFFER_BIT or
@@ -59,7 +60,10 @@ class MetaEditorScreen : ScreenAdapter() {
 	override fun resize(width: Int, height: Int) {
 		if (isInited && width > 120 && height > 0) {
 			uiManager.resize(width, height)
-			if (!Gdx.graphics.isFullscreen && !java.lang.Boolean.getBoolean("meta.displayTransition.inProgress")) {
+			val display = MetaAudioVideoState.current()
+			if (!Gdx.graphics.isFullscreen && !display.fullscreen && !display.borderless &&
+				!java.lang.Boolean.getBoolean("meta.displayTransition.inProgress")
+			) {
 				MetaAudioVideoState.update {
 					this.width = width
 					this.height = height

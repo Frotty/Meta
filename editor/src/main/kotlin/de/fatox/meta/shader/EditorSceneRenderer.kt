@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch
 import com.badlogic.gdx.graphics.g3d.ModelCache
 import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
+import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Array
@@ -98,7 +99,7 @@ class EditorSceneRenderer : Renderer {
 				renderContext.end()
 				UniformAssignments.customAssignments.clear()
 
-				Gdx.gl20.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+				HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
 				debugAll(x, y, bufferHandles)
 			}
 		}

@@ -50,7 +50,9 @@ data class MetaWindowData(
 		viewportHeight: Float = metaWindow.stage?.height ?: this.viewportHeight,
 	) {
 		if (metaWindow.isResizable) {
-			metaWindow.setSize(width, height)
+			val restoredWidth = clampWindowDimension(width, metaWindow.minWidth, metaWindow.maxWidth)
+			val restoredHeight = clampWindowDimension(height, metaWindow.minHeight, metaWindow.maxHeight)
+			metaWindow.setSize(restoredWidth, restoredHeight)
 		}
 		if (metaWindow.isMovable) {
 			metaWindow.setPosition(
@@ -125,4 +127,9 @@ data class MetaWindowData(
 		private const val ANCHOR_BOTTOM = "bottom"
 		private const val ANCHOR_TOP = "top"
 	}
+}
+
+internal fun clampWindowDimension(value: Float, min: Float, max: Float): Float {
+	val atLeastMin = value.coerceAtLeast(min)
+	return if (max > 0f) atLeastMin.coerceAtMost(max) else atLeastMin
 }
