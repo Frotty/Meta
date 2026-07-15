@@ -34,7 +34,10 @@ open class MetaTextButton @JvmOverloads constructor(
 	Button(MetaSkin.buttonStyle(tier)), MetaFocusable {
 
 	private var labelCell: Cell<MetaLabel>
-	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE, type) { setAlignment(Align.center) }
+	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE, type) {
+		setAlignment(Align.center)
+		setEllipsis(true)
+	}
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
 	private val disabledTint = MetaDisabledTint(this)
 

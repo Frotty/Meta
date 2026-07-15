@@ -201,6 +201,28 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
+	fun `button labels truncate instead of drawing outside constrained buttons`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+
+		val textButton = MetaTextButton("A button label that cannot fit").apply {
+			setSize(100f, 32f)
+			validate()
+		}
+		val iconButton = MetaIconTextButton("A button label that cannot fit", BaseDrawable()).apply {
+			setSize(120f, 32f)
+			validate()
+		}
+		val textLabel = textButton.children.first() as MetaLabel
+		val iconLabel = iconButton.children[1] as MetaLabel
+
+		assertTrue(textLabel.glyphLayout.width <= textLabel.width)
+		assertTrue(iconLabel.glyphLayout.width <= iconLabel.width)
+	}
+
+	@Test
 	fun `refreshFontsRecursively re-fetches fonts into nested Meta widgets after a rebuild`() {
 		val secondFont = testFont()
 		var currentFont = font

@@ -131,6 +131,19 @@ interface UIManager : Disposable {
 	fun <T : Window> getWindow(windowClass: KClass<out T>): T
 	fun closeWindow(window: Window)
 	fun updateWindow(window: Window)
+	fun updateWindow(window: Window, interaction: MetaWindowInteraction) = updateWindow(window)
+	/** Applies an interaction live; [finished] commits its final persisted state. */
+	fun updateWindow(window: Window, interaction: MetaWindowInteraction, finished: Boolean) {
+		if (finished) updateWindow(window, interaction)
+	}
+	/** Updates or clears the edge-dock preview for an actively moved window. */
+	fun previewWindowDock(window: Window?) = Unit
+	/** Enables/disables edge docking for the current screen and immediately re-lays out persisted docks. */
+	fun configureWindowDocking(config: MetaDockConfig?) = Unit
+	/** Places [window] in a persisted left/right sidebar slot. A fill slot receives remaining vertical space. */
+	fun dockWindow(window: Window, side: MetaDockSide, order: Int, height: Float = window.height, fill: Boolean = false) = Unit
+	/** Removes [window] from its sidebar and restores its last persisted floating bounds. */
+	fun undockWindow(window: Window) = Unit
 	fun bringWindowsToFront()
 	fun metaHas(name: String): Boolean
 	fun <T : Any> metaGet(name: String, c: KClass<out T>): T?

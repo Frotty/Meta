@@ -1,5 +1,6 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
@@ -204,10 +205,15 @@ open class MetaLabel @JvmOverloads constructor(
 			return
 		}
 		localToStageCoordinates(drawPosition.set(0f, 0f))
-		val pixelsPerUnit = physicalPixelsPerStageUnit(stage.width)
+		val horizontalPixelsPerUnit = physicalPixelsPerStageUnit(stage.width)
+		val verticalPixelsPerUnit = if (stage.height > 0f) {
+			(Gdx.graphics.backBufferHeight / stage.height).coerceAtLeast(0.01f)
+		} else {
+			horizontalPixelsPerUnit
+		}
 		drawPosition.set(
-			x + snapToPhysicalPixel(drawPosition.x, pixelsPerUnit) - drawPosition.x,
-			y + snapToPhysicalPixel(drawPosition.y, pixelsPerUnit) - drawPosition.y,
+			x + snapToPhysicalPixel(drawPosition.x, horizontalPixelsPerUnit) - drawPosition.x,
+			y + snapToPhysicalPixel(drawPosition.y, verticalPixelsPerUnit) - drawPosition.y,
 		)
 	}
 

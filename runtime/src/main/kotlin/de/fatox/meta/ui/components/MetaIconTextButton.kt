@@ -30,6 +30,7 @@ class MetaIconTextButton private constructor(
 ) : Button(MetaSkin.buttonStyle(tier)), MetaFocusable {
 	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE).apply {
 		setAlignment(Align.center)
+		setEllipsis(true)
 		if (maxWidth != null) setMaxWidth(maxWidth)
 	}
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)

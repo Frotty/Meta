@@ -45,6 +45,10 @@ class MetaUiPlaygroundMeta(
 
 	override fun WindowConfig.windows() {
 		register { PlaygroundSampleWindow() }
+		registerSingleton { DockToolsPlaygroundWindow() }
+		registerSingleton { DockLayersPlaygroundWindow() }
+		registerSingleton { DockInspectorPlaygroundWindow() }
+		registerSingleton { DockActivityPlaygroundWindow() }
 		registerSingleton { TypographyPlaygroundWindow() }
 		registerSingleton { ControlsPlaygroundWindow() }
 		registerSingleton { SelectionPlaygroundWindow() }

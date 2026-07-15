@@ -31,16 +31,38 @@ import kotlin.math.abs
 private val log = MetaLoggerFactory.logger {}
 
 /**
- * Suggested default UI scale. On desktop (the only target for this library today) libGDX's HdpiMode.Logical
- * already divides out real OS-level HiDPI scaling (Retina, Windows 125/150%, ...) into the back-buffer/logical-
- * width ratio, so no further per-monitor guess is needed here. We deliberately do NOT factor in
- * `Gdx.graphics.density`: on desktop it's derived from the monitor's EDID-reported physical size in millimeters
- * (`glfwGetMonitorPhysicalSize`), which is notoriously unreliable — many monitors, laptop panels, and virtually
- * all VMs/remote-desktop sessions misreport it, which previously inflated the "auto" scale above 100% even on
- * small/low-DPI screens. Use this as the default when the user hasn't picked a UI scale; they can still scale up
- * or down manually via the settings slider.
+ * Suggested default UI scale. OS scaling is already represented by the back-buffer/logical-size ratio, so Meta
+ * never applies a second scale in that case. For an unscaled 4K/5K desktop it accepts a larger default only when
+ * resolution and a sane EDID density agree. Ambiguous displays remain at 100%; users can always override this.
  */
-fun suggestedUiScale(): Float = 1f
+fun suggestedUiScale(): Float = suggestedUiScale(
+	logicalWidth = Gdx.graphics.width,
+	logicalHeight = Gdx.graphics.height,
+	backBufferWidth = Gdx.graphics.backBufferWidth,
+	backBufferHeight = Gdx.graphics.backBufferHeight,
+	density = Gdx.graphics.density,
+)
+
+internal fun suggestedUiScale(
+	logicalWidth: Int,
+	logicalHeight: Int,
+	backBufferWidth: Int,
+	backBufferHeight: Int,
+	density: Float,
+): Float {
+	if (logicalWidth <= 0 || logicalHeight <= 0 || backBufferWidth <= 0 || backBufferHeight <= 0) return 1f
+	val contentScaleX = backBufferWidth.toFloat() / logicalWidth
+	val contentScaleY = backBufferHeight.toFloat() / logicalHeight
+	// OS scaling already makes logical pixels larger. Applying Meta scaling too would double-scale the UI.
+	if (contentScaleX > 1.1f || contentScaleY > 1.1f) return 1f
+	// Resolution or EDID density alone is ambiguous; require both, and reject implausible EDID values.
+	if (density !in 1.4f..4f) return 1f
+	return when {
+		backBufferWidth >= 5120 && backBufferHeight >= 2880 && density >= 2f -> 1.5f
+		backBufferWidth >= 3840 && backBufferHeight >= 2160 -> 1.25f
+		else -> 1f
+	}
+}
 
 class MetaUIRenderer : UIRenderer {
 	private var focusedActor: Actor? = null

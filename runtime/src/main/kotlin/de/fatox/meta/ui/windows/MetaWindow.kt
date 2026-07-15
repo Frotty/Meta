@@ -18,7 +18,12 @@ import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.api.ui.UIManager
+import de.fatox.meta.api.ui.MetaDockSide
+import de.fatox.meta.api.ui.MetaWindowInteraction
+import de.fatox.meta.api.ui.windowGestureChanged
+import de.fatox.meta.api.ui.dockedPanelCanResizeHeight
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveScope
@@ -61,9 +66,28 @@ abstract class MetaWindow(
 		private set
 
 	private var startDrag = false
+	private var activeInteraction = MetaWindowInteraction.PROGRAMMATIC
+	private var gestureStartX = 0f
+	private var gestureStartY = 0f
+	private var gestureStartWidth = 0f
+	private var gestureStartHeight = 0f
+	private var settledX = 0f
+	private var settledY = 0f
+	private var settledWidth = 0f
+	private var settledHeight = 0f
+	private var previewX = Float.NaN
+	private var previewY = Float.NaN
+	private var previewWidth = Float.NaN
+	private var liveResizeWidth = Float.NaN
+	private var liveResizeHeight = Float.NaN
 	private var fadeInAction: Action? = null
 	private val headerEnabled = hasHeader
 	private var metaResizable = resizable
+	internal var dockSide: MetaDockSide? = null
+		private set
+	internal var dockFill: Boolean = false
+		private set
+	private var dockMinimumWidth = MIN_WINDOW_WIDTH
 	private var resizeEdge = 0
 	private var resizeStartStageX = 0f
 	private var resizeStartStageY = 0f
@@ -88,6 +112,11 @@ abstract class MetaWindow(
 			if (pointer != 0 || button != 0) return false
 			resizeEdge = resizeEdgeAt(x, y)
 			if (resizeEdge == 0) return false
+			activeInteraction = if (resizeEdge and (Align.left or Align.right) != 0 && dockSide != null) {
+				MetaWindowInteraction.DOCK_WIDTH_RESIZE
+			} else {
+				MetaWindowInteraction.RESIZE
+			}
 			resizeStartStageX = event.stageX
 			resizeStartStageY = event.stageY
 			resizeStartX = this@MetaWindow.x
@@ -183,6 +212,8 @@ abstract class MetaWindow(
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		snapBoundsToPixelGrid()
+		validate()
+		snapTitleToPixelGrid()
 		val oldBatchColor = batch.packedColor
 		batch.setColor(color.r, color.g, color.b, color.a * parentAlpha)
 		windowShadow.draw(
@@ -195,10 +226,54 @@ abstract class MetaWindow(
 		batch.packedColor = oldBatchColor
 		super.draw(batch, parentAlpha)
 		if (isDragging) {
-			startDrag = true
+			if (!startDrag) {
+				startDrag = true
+				gestureStartX = settledX
+				gestureStartY = settledY
+				gestureStartWidth = settledWidth
+				gestureStartHeight = settledHeight
+				if (activeInteraction == MetaWindowInteraction.PROGRAMMATIC) activeInteraction = MetaWindowInteraction.MOVE
+			}
+			if (resizeEdge == 0) {
+				if (x != previewX || y != previewY || width != previewWidth) {
+					previewX = x
+					previewY = y
+					previewWidth = width
+					uiManager.previewWindowDock(this)
+					uiManager.updateWindow(this, MetaWindowInteraction.MOVE, finished = false)
+				}
+			} else {
+				clearDockPreview()
+				if (width != liveResizeWidth || height != liveResizeHeight) {
+					liveResizeWidth = width
+					liveResizeHeight = height
+					uiManager.updateWindow(this, activeInteraction, finished = false)
+				}
+			}
 		} else if (startDrag) {
 			startDrag = false
-			uiManager.updateWindow(this)
+			clearDockPreview()
+			val changed = windowGestureChanged(
+				activeInteraction,
+				gestureStartX,
+				gestureStartY,
+				gestureStartWidth,
+				gestureStartHeight,
+				x,
+				y,
+				width,
+				height,
+			)
+			if (changed) uiManager.updateWindow(this, activeInteraction, finished = true)
+			activeInteraction = MetaWindowInteraction.PROGRAMMATIC
+			liveResizeWidth = Float.NaN
+			liveResizeHeight = Float.NaN
+		}
+		if (!isDragging) {
+			settledX = x
+			settledY = y
+			settledWidth = width
+			settledHeight = height
 		}
 	}
 
@@ -233,6 +308,22 @@ abstract class MetaWindow(
 		}
 	}
 
+	internal fun applyDockState(side: MetaDockSide?, fill: Boolean = false, minimumWidth: Float = MIN_WINDOW_WIDTH) {
+		dockSide = side
+		dockFill = side != null && fill
+		dockMinimumWidth = minimumWidth
+		if (side != null && resizeCursorActive) setResizeCursor(null)
+		invalidate()
+	}
+
+	private fun clearDockPreview() {
+		if (previewX.isNaN() && previewY.isNaN() && previewWidth.isNaN()) return
+		previewX = Float.NaN
+		previewY = Float.NaN
+		previewWidth = Float.NaN
+		uiManager.previewWindowDock(null)
+	}
+
 	override fun isResizable(): Boolean = metaResizable
 
 	override fun isDragging(): Boolean = resizeEdge != 0 || super.isDragging()
@@ -251,7 +342,8 @@ abstract class MetaWindow(
 		super.layout()
 		val minW = minWidth
 		val minH = minHeight
-		val newW = max(width, minW)
+		// Sidebar width belongs to the shared dock, so a wide panel's preferred minimum must not override the user.
+		val newW = if (dockSide == null) max(width, minW) else width
 		val newH = max(height, minH)
 		if (newW != width || newH != height) {
 			val oldH = height
@@ -290,6 +382,11 @@ abstract class MetaWindow(
 	 */
 	override fun setStage(stage: Stage?) {
 		val wasOnStage = this.stage != null
+		if (wasOnStage && stage == null && startDrag) {
+			clearDockPreview()
+			startDrag = false
+			activeInteraction = MetaWindowInteraction.PROGRAMMATIC
+		}
 		super.setStage(stage)
 		if (stage != null && !wasOnStage) {
 			refreshFontsIfStale()
@@ -343,18 +440,35 @@ abstract class MetaWindow(
 		val currentStage = stage ?: return
 		val viewport = currentStage.viewport
 		val worldWidth = viewport.worldWidth
-		if (worldWidth <= 0f || viewport.screenWidth <= 0) return
-		val pixelsPerUnit = viewport.screenWidth / worldWidth
-		val snappedX = snapToPixel(x, pixelsPerUnit)
-		val snappedY = snapToPixel(y, pixelsPerUnit)
-		val snappedWidth = snapToPixel(width, pixelsPerUnit)
-		val snappedHeight = snapToPixel(height, pixelsPerUnit)
+		val worldHeight = viewport.worldHeight
+		if (worldWidth <= 0f || worldHeight <= 0f || Gdx.graphics.backBufferWidth <= 0 || Gdx.graphics.backBufferHeight <= 0) return
+		val horizontalPixelsPerUnit = Gdx.graphics.backBufferWidth / worldWidth
+		val verticalPixelsPerUnit = Gdx.graphics.backBufferHeight / worldHeight
+		val snappedX = snapToPhysicalPixel(x, horizontalPixelsPerUnit)
+		val snappedY = snapToPhysicalPixel(y, verticalPixelsPerUnit)
+		val snappedWidth = snapToPhysicalPixel(width, horizontalPixelsPerUnit)
+		val snappedHeight = snapToPhysicalPixel(height, verticalPixelsPerUnit)
 		if (snappedX != x || snappedY != y || snappedWidth != width || snappedHeight != height) {
 			setBounds(snappedX, snappedY, snappedWidth, snappedHeight)
 		}
 	}
 
-	private fun snapToPixel(value: Float, pixelsPerUnit: Float): Float = round(value * pixelsPerUnit) / pixelsPerUnit
+	/** libGDX's Window title is its only remaining raw Label, so snap its final stage-space origin explicitly. */
+	private fun snapTitleToPixelGrid() {
+		if (!headerEnabled) return
+		val currentStage = stage ?: return
+		val viewport = currentStage.viewport
+		if (viewport.worldWidth <= 0f || viewport.worldHeight <= 0f ||
+			Gdx.graphics.backBufferWidth <= 0 || Gdx.graphics.backBufferHeight <= 0
+		) return
+		val horizontalPixelsPerUnit = Gdx.graphics.backBufferWidth / viewport.worldWidth
+		val verticalPixelsPerUnit = Gdx.graphics.backBufferHeight / viewport.worldHeight
+		val title = titleLabel
+		title.setPosition(
+			snapToPhysicalPixel(x + title.x, horizontalPixelsPerUnit) - x,
+			snapToPhysicalPixel(y + title.y, verticalPixelsPerUnit) - y,
+		)
+	}
 
 	private fun updateResizeCursor(localX: Float, localY: Float) {
 		if (!metaResizable) {
@@ -374,6 +488,20 @@ abstract class MetaWindow(
 
 	private fun resizeEdgeAt(localX: Float, localY: Float): Int {
 		if (!metaResizable || localX < 0f || localY < 0f || localX > width || localY > height) return 0
+		// The inner edge changes the shared sidebar width. A fixed panel's lower divider also changes its slot height.
+		val side = dockSide
+		if (side != null) {
+			// Deliberately avoid an enum `when`: Kotlin emits a separate MetaWindow$WhenMappings class for it. A stale
+			// incremental desktop artifact once packaged MetaWindow.class without that new synthetic companion and
+			// crashed on the first mouse move. Direct comparison keeps this input hot path self-contained.
+			var edge = if (side === MetaDockSide.LEFT) {
+				if (localX >= width - DOCK_RESIZE_SIZE) Align.right else 0
+			} else {
+				if (localX <= DOCK_RESIZE_SIZE) Align.left else 0
+			}
+			if (dockedPanelCanResizeHeight(dockFill, localY, DOCK_RESIZE_SIZE)) edge = edge or Align.bottom
+			return edge
+		}
 		if (localX >= width - CORNER_RESIZE_SIZE && localY <= CORNER_RESIZE_SIZE) {
 			return Align.right or Align.bottom
 		}
@@ -391,7 +519,7 @@ abstract class MetaWindow(
 		var newY = resizeStartY
 		var newWidth = resizeStartWidth
 		var newHeight = resizeStartHeight
-		val minWidth = minWidth
+		val minWidth = if (dockSide != null) dockMinimumWidth else minWidth
 		val minHeight = minHeight
 		val maxWidth = maxWidth
 		val maxHeight = maxHeight
@@ -437,7 +565,7 @@ abstract class MetaWindow(
 			headerSeparator.setBounds(1f, height - HEADER_HEIGHT, width - 2f, HEADER_SEPARATOR_HEIGHT)
 			headerSeparator.toFront()
 		}
-		resizeIndicator.isVisible = metaResizable
+		resizeIndicator.isVisible = metaResizable && dockSide == null
 		if (!resizeIndicator.isVisible) return
 		resizeIndicator.setBounds(
 			width - RESIZE_INDICATOR_SIZE - RESIZE_GRIP_RIGHT_PAD,
@@ -455,6 +583,7 @@ abstract class MetaWindow(
 		const val BORDER_PAD = 1f
 		const val CLOSE_BUTTON_SIZE = 24f
 		const val EDGE_RESIZE_SIZE = 4f
+		const val DOCK_RESIZE_SIZE = 8f
 		const val CORNER_RESIZE_SIZE = 24f
 		const val RESIZE_INDICATOR_SIZE = 16f
 		const val RESIZE_GRIP_RIGHT_PAD = 2f

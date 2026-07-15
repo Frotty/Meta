@@ -20,6 +20,10 @@ data class MetaWindowData(
 	var verticalAnchor: String = "",
 	var horizontalDistance: Float = 0f,
 	var verticalDistance: Float = 0f,
+	var dockSide: String = "",
+	var dockOrder: Int = 0,
+	var dockHeight: Float = 0f,
+	var dockFill: Boolean = false,
 ) {
 
 	constructor(metaWindow: Window) : this() {
@@ -48,8 +52,15 @@ data class MetaWindowData(
 		metaWindow: Window,
 		viewportWidth: Float = metaWindow.stage?.width ?: this.viewportWidth,
 		viewportHeight: Float = metaWindow.stage?.height ?: this.viewportHeight,
+	) = set(metaWindow, viewportWidth, viewportHeight, restoreSize = metaWindow.isResizable)
+
+	fun set(
+		metaWindow: Window,
+		viewportWidth: Float,
+		viewportHeight: Float,
+		restoreSize: Boolean,
 	) {
-		if (metaWindow.isResizable) {
+		if (restoreSize) {
 			val restoredWidth = clampWindowDimension(width, metaWindow.minWidth, metaWindow.maxWidth)
 			val restoredHeight = clampWindowDimension(height, metaWindow.minHeight, metaWindow.maxHeight)
 			metaWindow.setSize(restoredWidth, restoredHeight)
