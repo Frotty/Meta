@@ -99,20 +99,14 @@ internal fun calculateDockBounds(
 		for (index in sorted.indices) if (sorted[index].fill) heights[index] += fillExtra
 	}
 
-	val configuredWidth = when (side) {
-		MetaDockSide.LEFT -> config.leftWidth
-		MetaDockSide.RIGHT -> config.rightWidth
-	}
+	val configuredWidth = if (side === MetaDockSide.LEFT) config.leftWidth else config.rightWidth
 	val width = widthOverride ?: resolveDockWidth(
 		viewportWidth,
 		config.margin,
 		configuredWidth,
 		sorted.maxOf { it.minimumWidth.coerceAtLeast(0f) },
 	)
-	val x = when (side) {
-		MetaDockSide.LEFT -> config.margin
-		MetaDockSide.RIGHT -> viewportWidth - config.margin - width
-	}
+	val x = if (side === MetaDockSide.LEFT) config.margin else viewportWidth - config.margin - width
 	var top = viewportHeight - config.topInset
 	return buildMap {
 		for (index in sorted.indices) {
@@ -148,6 +142,16 @@ internal fun dockZoneBounds(
 }
 
 internal data class MetaDockWidths(val left: Float?, val right: Float?)
+
+/** The sidebar may be compact, but never narrower than the widest window's declared usable minimum. */
+internal fun resolveDockMinimum(configuredMinimum: Float, windowMinimums: Iterable<Float>): Float? {
+	var minimum: Float? = null
+	for (windowMinimum in windowMinimums) {
+		val usableMinimum = windowMinimum.coerceAtLeast(configuredMinimum)
+		minimum = minimum?.coerceAtLeast(usableMinimum) ?: usableMinimum
+	}
+	return minimum
+}
 
 /** Keeps both sidebars and a useful center canvas inside the viewport whenever their real minima permit it. */
 internal fun resolveDockWidths(
@@ -244,23 +248,26 @@ internal fun resolveDockUpdate(
 	currentSide: MetaDockSide?,
 	interaction: MetaWindowInteraction,
 	detectedSide: MetaDockSide?,
-): MetaDockUpdate = when (interaction) {
-	MetaWindowInteraction.PROGRAMMATIC -> MetaDockUpdate(
+): MetaDockUpdate = if (interaction === MetaWindowInteraction.PROGRAMMATIC) {
+	MetaDockUpdate(
 		currentSide,
 		updateFloatingBounds = currentSide == null,
 		updateDockHeight = false,
 	)
-	MetaWindowInteraction.RESIZE -> MetaDockUpdate(
+} else if (interaction === MetaWindowInteraction.RESIZE) {
+	MetaDockUpdate(
 		currentSide,
 		updateFloatingBounds = currentSide == null,
 		updateDockHeight = currentSide != null,
 	)
-	MetaWindowInteraction.DOCK_WIDTH_RESIZE -> MetaDockUpdate(
+} else if (interaction === MetaWindowInteraction.DOCK_WIDTH_RESIZE) {
+	MetaDockUpdate(
 		currentSide,
 		updateFloatingBounds = false,
 		updateDockHeight = false,
 	)
-	MetaWindowInteraction.MOVE -> MetaDockUpdate(
+} else {
+	MetaDockUpdate(
 		detectedSide,
 		updateFloatingBounds = detectedSide == null,
 		updateDockHeight = detectedSide != null,
@@ -278,12 +285,14 @@ internal fun windowGestureChanged(
 	endWidth: Float,
 	endHeight: Float,
 	epsilon: Float = 0.01f,
-): Boolean = when (interaction) {
-	MetaWindowInteraction.PROGRAMMATIC -> true
-	MetaWindowInteraction.MOVE -> kotlin.math.abs(endX - startX) >= epsilon || kotlin.math.abs(endY - startY) >= epsilon
-	MetaWindowInteraction.RESIZE ->
+): Boolean = if (interaction === MetaWindowInteraction.PROGRAMMATIC) {
+	true
+} else if (interaction === MetaWindowInteraction.MOVE) {
+	kotlin.math.abs(endX - startX) >= epsilon || kotlin.math.abs(endY - startY) >= epsilon
+} else if (interaction === MetaWindowInteraction.RESIZE) {
 		kotlin.math.abs(endWidth - startWidth) >= epsilon || kotlin.math.abs(endHeight - startHeight) >= epsilon
-	MetaWindowInteraction.DOCK_WIDTH_RESIZE -> kotlin.math.abs(endWidth - startWidth) >= epsilon
+} else {
+	kotlin.math.abs(endWidth - startWidth) >= epsilon
 }
 
 internal fun dockedPanelCanResizeHeight(fill: Boolean, localY: Float, edgeSize: Float): Boolean =

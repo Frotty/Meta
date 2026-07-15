@@ -37,6 +37,7 @@ import de.fatox.meta.api.ui.calculateDockOrder
 import de.fatox.meta.api.ui.detectDockSide
 import de.fatox.meta.api.ui.MetaDockOrderItem
 import de.fatox.meta.api.ui.resolveDockUpdate
+import de.fatox.meta.api.ui.resolveDockMinimum
 import de.fatox.meta.api.ui.resolveDockWidths
 import de.fatox.meta.api.ui.resolveDockWidthForSide
 import de.fatox.meta.api.ui.metaGet
@@ -447,24 +448,19 @@ class MetaUiManager : UIManager {
 			val dockConfig = windowDockConfig
 			val currentSide = MetaDockSide.fromPersisted(metaWindowData.dockSide)
 			if (!finished && currentSide != null && dockConfig != null) {
-				when (interaction) {
-					MetaWindowInteraction.MOVE -> {
-						val detected = detectDockSide(window.x, window.width, uiRenderer.uiWidth, dockConfig.snapDistance)
-						if (detected == currentSide) {
-							metaWindowData.dockOrder = nextDockOrder(currentSide, window, persistNormalized = false)
-							layoutDockedWindows(activeMovingWindow = window)
-						}
+				if (interaction === MetaWindowInteraction.MOVE) {
+					val detected = detectDockSide(window.x, window.width, uiRenderer.uiWidth, dockConfig.snapDistance)
+					if (detected == currentSide) {
+						metaWindowData.dockOrder = nextDockOrder(currentSide, window, persistNormalized = false)
+						layoutDockedWindows(activeMovingWindow = window)
 					}
-					MetaWindowInteraction.RESIZE -> {
-						metaWindowData.dockHeight = window.height
-						layoutDockedWindows()
-					}
-					MetaWindowInteraction.DOCK_WIDTH_RESIZE -> {
-						setDesiredDockWidth(currentSide, window.width)
-						if (!metaWindowData.dockFill) metaWindowData.dockHeight = window.height
-						layoutDockedWindows()
-					}
-					MetaWindowInteraction.PROGRAMMATIC -> Unit
+				} else if (interaction === MetaWindowInteraction.RESIZE) {
+					metaWindowData.dockHeight = window.height
+					layoutDockedWindows()
+				} else if (interaction === MetaWindowInteraction.DOCK_WIDTH_RESIZE) {
+					setDesiredDockWidth(currentSide, window.width)
+					if (!metaWindowData.dockFill) metaWindowData.dockHeight = window.height
+					layoutDockedWindows()
 				}
 				return
 			}
@@ -579,17 +575,21 @@ class MetaUiManager : UIManager {
 	}
 
 	private fun previewSideMinimum(side: MetaDockSide, targetSide: MetaDockSide, movingWindow: Window): Float? {
-		var found = side == targetSide
+		val config = windowDockConfig ?: return null
+		var minimum: Float? = if (side == targetSide) {
+			movingWindow.minWidth.coerceAtLeast(config.minimumSidebarWidth)
+		} else null
 		for (index in 0 until displayedWindows.size) {
 			val window = displayedWindows[index]
 			if (window === movingWindow || window is MetaDialog) continue
 			val name = windowConfig.nameOf(window::class)
 			val data = if (metaHas(name)) metaGet<MetaWindowData>(name) else null
 			if (data?.dockSide == side.persistedName) {
-				found = true
+				val windowMinimum = window.minWidth.coerceAtLeast(config.minimumSidebarWidth)
+				minimum = minimum?.coerceAtLeast(windowMinimum) ?: windowMinimum
 			}
 		}
-		return if (found) windowDockConfig?.minimumSidebarWidth else null
+		return minimum
 	}
 
 	private fun nextDockOrder(side: MetaDockSide, movingWindow: Window, persistNormalized: Boolean): Int {
@@ -647,13 +647,19 @@ class MetaUiManager : UIManager {
 	private fun layoutDockedWindows(activeMovingWindow: Window? = null) {
 		val config = windowDockConfig ?: return
 		val dockedBySide = MetaDockSide.entries.associateWith(::dockedWindows)
-		val hasLeft = dockedBySide[MetaDockSide.LEFT]?.isNotEmpty() == true
-		val hasRight = dockedBySide[MetaDockSide.RIGHT]?.isNotEmpty() == true
+		val leftMinimum = resolveDockMinimum(
+			config.minimumSidebarWidth,
+			dockedBySide.getValue(MetaDockSide.LEFT).map { it.first.minWidth },
+		)
+		val rightMinimum = resolveDockMinimum(
+			config.minimumSidebarWidth,
+			dockedBySide.getValue(MetaDockSide.RIGHT).map { it.first.minWidth },
+		)
 		val widths = resolveDockWidths(
 			uiRenderer.uiWidth,
 			config,
-			config.minimumSidebarWidth.takeIf { hasLeft },
-			config.minimumSidebarWidth.takeIf { hasRight },
+			leftMinimum,
+			rightMinimum,
 			leftDockWidth,
 			rightDockWidth,
 		)
@@ -662,6 +668,7 @@ class MetaUiManager : UIManager {
 		for (side in MetaDockSide.entries) {
 			val docked = dockedBySide.getValue(side)
 			val sideWidth = if (side == MetaDockSide.LEFT) widths.left else widths.right
+			val sideMinimum = if (side == MetaDockSide.LEFT) leftMinimum else rightMinimum
 			// Wrapped content derives its minimum height from the assigned width. Give every panel its final sidebar
 			// width and validate once before measuring heights, or a newly shown panel can report a character-wrapped
 			// minimum and make the entire dock absurdly tall on its first frame.
@@ -683,7 +690,7 @@ class MetaUiManager : UIManager {
 					MetaDockItem(
 						key = windowConfig.nameOf(window::class),
 						order = data.dockOrder,
-						minimumWidth = config.minimumSidebarWidth,
+						minimumWidth = window.minWidth,
 						minimumHeight = window.minHeight,
 						requestedHeight = data.dockHeight.takeIf { it > 0f } ?: window.height,
 						fill = data.dockFill,
@@ -692,7 +699,7 @@ class MetaUiManager : UIManager {
 			)
 			for ((window, data) in docked) {
 				val bounds = boundsByName[windowConfig.nameOf(window::class)] ?: continue
-				(window as? MetaWindow)?.applyDockState(side, data.dockFill, config.minimumSidebarWidth)
+				(window as? MetaWindow)?.applyDockState(side, data.dockFill, sideMinimum ?: config.minimumSidebarWidth)
 				if (window === activeMovingWindow) continue
 				window.setBounds(bounds.x, bounds.y, bounds.width, bounds.height)
 				window.invalidateHierarchy()

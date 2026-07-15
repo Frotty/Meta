@@ -1,6 +1,7 @@
 package de.fatox.meta.api.ui
 
 import com.badlogic.gdx.utils.Json
+import de.fatox.meta.ui.MetaUiManager
 import de.fatox.meta.ui.windows.MetaWindow
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,14 +13,53 @@ import kotlin.test.assertTrue
 
 internal class MetaWindowDockingTest {
 	@Test
-	fun `MetaWindow bytecode has no fragile enum mapping companion`() {
-		val resource = "/${MetaWindow::class.java.name.replace('.', '/')}.class"
-		val bytecode = checkNotNull(MetaWindow::class.java.getResourceAsStream(resource)) { resource }.use { it.readBytes() }
-		val bytecodeText = bytecode.toString(Charsets.ISO_8859_1)
+	fun `sidebar minimum respects both framework default and every docked window`() {
+		assertNull(resolveDockMinimum(180f, emptyList()))
+		assertEquals(180f, resolveDockMinimum(180f, listOf(120f, 160f)))
+		assertEquals(312f, resolveDockMinimum(180f, listOf(220f, 312f, 280f)))
+	}
 
+	@Test
+	fun `narrow resize stops at the widest docked window content minimum`() {
+		val config = MetaDockConfig(
+			leftWidth = 300f,
+			rightWidth = 400f,
+			minimumSidebarWidth = 240f,
+			minimumCenterWidth = 420f,
+		)
+		val leftMinimum = resolveDockMinimum(config.minimumSidebarWidth, listOf(110f, 180f))
+		val rightMinimum = resolveDockMinimum(config.minimumSidebarWidth, listOf(220f, 280f, 250f))
+		val widths = resolveDockWidths(
+			viewportWidth = 1600f,
+			config = config,
+			leftMinimumWidth = leftMinimum,
+			rightMinimumWidth = rightMinimum,
+			desiredLeftWidth = 260f,
+			desiredRightWidth = 120f,
+		)
+
+		assertEquals(260f, widths.left)
+		assertEquals(280f, widths.right)
+		assertEquals(
+			280f,
+			resolveDockWidthForSide(1600f, config, MetaDockSide.RIGHT, leftMinimum, rightMinimum, 260f, 120f),
+		)
+	}
+
+	@Test
+	fun `new docking hot paths have no fragile enum mapping companions`() {
+		assertNoEnumMappingDependency(MetaWindow::class.java)
+		assertNoEnumMappingDependency(MetaUiManager::class.java)
+		assertNoEnumMappingDependency(Class.forName("de.fatox.meta.api.ui.MetaWindowDockingKt"))
+	}
+
+	private fun assertNoEnumMappingDependency(type: Class<*>) {
+		val resource = "/${type.name.replace('.', '/')}.class"
+		val bytecode = checkNotNull(type.getResourceAsStream(resource)) { resource }.use { it.readBytes() }
+		val marker = type.name.replace('.', '/') + "\$WhenMappings"
 		assertFalse(
-			bytecodeText.contains("de/fatox/meta/ui/windows/MetaWindow\$WhenMappings"),
-			"MetaWindow must not depend on a separately generated enum mapping class",
+			bytecode.toString(Charsets.ISO_8859_1).contains(marker),
+			"${type.simpleName} must not depend on separately generated enum mapping bytecode",
 		)
 	}
 
