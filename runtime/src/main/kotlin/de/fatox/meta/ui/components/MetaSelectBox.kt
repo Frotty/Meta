@@ -87,6 +87,10 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 		return object : SelectBoxScrollPane<T>(this@MetaSelectBox) {
 			override fun newList(): List<T> {
 				return object : List<T>(this@MetaSelectBox.style.listStyle) {
+					init {
+						cursorPointer()
+					}
+
 					override fun toString(obj: T): String = this@MetaSelectBox.toString(obj)
 
 					override fun drawItem(batch: Batch, font: BitmapFont, index: Int, item: T, x: Float, y: Float, width: Float): GlyphLayout {

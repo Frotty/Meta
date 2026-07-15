@@ -45,6 +45,19 @@ internal class MetaLayoutTest {
 	}
 
 	@Test
+	fun `mixed icon and text action row preserves text preferred width`() {
+		val table = Table().apply {
+			defaults().height(38f)
+			add(FixedWidget(38f, 38f)).width(38f)
+			add(FixedWidget(38f, 38f)).width(38f)
+			add(FixedWidget(112f, 38f, shrinkable = true))
+			pack()
+		}
+
+		MetaLayout.assertValid(table)
+	}
+
+	@Test
 	fun `a child positioned outside its parent is reported as overflow`() {
 		val group = Group().apply { setSize(50f, 50f) }
 		group.addActor(Actor().apply { setBounds(40f, 40f, 30f, 30f) }) // extends to 70x70

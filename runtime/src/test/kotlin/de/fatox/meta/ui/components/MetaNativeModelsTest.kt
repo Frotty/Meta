@@ -76,6 +76,18 @@ internal class MetaNativeModelsTest {
 	}
 
 	@Test
+	fun `combined color input accepts common CSS RGB formats`() {
+		val color = Color()
+
+		assertTrue(MetaColorCodec.parse("rgb(79, 157, 222)", allowAlpha = false, color))
+		assertEquals("rgb(79, 157, 222)", MetaColorCodec.formatRgb(color, includeAlpha = false))
+
+		assertTrue(MetaColorCodec.parse("rgba(79 157 222 / 50%)", allowAlpha = true, color))
+		assertEquals(0.5f, color.a)
+		assertEquals("rgba(79, 157, 222, 0.5)", MetaColorCodec.formatRgb(color, includeAlpha = true))
+	}
+
+	@Test
 	fun `combined color input rejects out of range components`() {
 		assertFalse(MetaColorCodec.parse("256, 0, 0", allowAlpha = false, Color()))
 	}

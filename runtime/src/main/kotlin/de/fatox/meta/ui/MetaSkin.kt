@@ -23,13 +23,19 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
  * downstream games get a polished default look without shipping a full custom atlas for basic controls.
  */
 object MetaSkin {
-	const val BUTTON = "meta.button"
+	const val BUTTON_PRIMARY = "meta.button.primary"
+	const val BUTTON_SECONDARY = "meta.button"
+	const val BUTTON_TERTIARY = "meta.button.tertiary"
+	const val BUTTON = BUTTON_SECONDARY
 	const val BUTTON_TOGGLE = "meta.button.toggle"
 	const val ICON_BUTTON = "meta.iconButton"
 	const val IMAGE_BUTTON = "meta.imageButton"
 	const val CHECKBOX = "meta.checkbox"
 	const val TEXT_FIELD = "meta.textField"
 	const val TEXT_FIELD_ERROR = "meta.textField.error"
+	const val SPINNER_TEXT_FIELD = "meta.spinner.textField"
+	const val SPINNER_DECREMENT = "meta.spinner.decrement"
+	const val SPINNER_INCREMENT = "meta.spinner.increment"
 	const val TEXT_AREA = "meta.textArea"
 	const val SELECT_BOX = "meta.selectBox"
 	const val DROPDOWN = "meta.dropdown"
@@ -55,6 +61,15 @@ object MetaSkin {
 	private var activeSkin: Skin? = null
 
 	fun skin(): Skin = activeSkin ?: error("MetaSkin has not been initialized")
+
+	fun buttonStyle(tier: MetaButtonTier): Button.ButtonStyle = skin().get(
+		when (tier) {
+			MetaButtonTier.PRIMARY -> BUTTON_PRIMARY
+			MetaButtonTier.SECONDARY -> BUTTON_SECONDARY
+			MetaButtonTier.TERTIARY -> BUTTON_TERTIARY
+		},
+		Button.ButtonStyle::class.java,
+	)
 
 	fun initialize(skin: Skin = Skin(), installDefaults: Boolean = true): Skin {
 		activeSkin = skin
@@ -107,17 +122,23 @@ object MetaSkin {
 	}
 
 	private fun addControlDrawables(skin: Skin) {
-		rounded(skin, "meta.button.up", Color.valueOf("34363CFF"), Color.valueOf("4A4D56FF"), radius = 6, border = 1, padding = 9f)
-		rounded(skin, "meta.button.over", Color.valueOf("454A54FF"), Color.valueOf("718196FF"), radius = 6, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.up", MetaColor.PRIMARY, Color.valueOf("76B9EAFF"), radius = 6, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.over", MetaColor.PRIMARY_HOVER, Color.valueOf("9AD1F7FF"), radius = 6, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.focus", MetaColor.PRIMARY, Color.valueOf("C5E8FFFF"), radius = 6, border = 2, padding = 9f)
+		rounded(skin, "meta.button.primary.down", MetaColor.PRIMARY_PRESSED, Color.valueOf("9AD1F7FF"), radius = 6, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.disabled", Color.valueOf("293844FF"), Color.valueOf("46545FFF"), radius = 6, border = 1, padding = 9f)
+
+		rounded(skin, "meta.button.up", MetaColor.SECONDARY, Color.valueOf("606773FF"), radius = 6, border = 1, padding = 9f)
+		rounded(skin, "meta.button.over", MetaColor.SECONDARY_HOVER, Color.valueOf("7B8797FF"), radius = 6, border = 1, padding = 9f)
 		rounded(skin, "meta.button.focus", Color.valueOf("353A43FF"), Color.valueOf("75BDF5FF"), radius = 6, border = 2, padding = 9f)
-		rounded(skin, "meta.button.focusOver", Color.valueOf("424A56FF"), Color.valueOf("A3D9FFFF"), radius = 6, border = 2, padding = 9f)
+		rounded(skin, "meta.button.focusOver", MetaColor.SECONDARY_HOVER, Color.valueOf("A3D9FFFF"), radius = 6, border = 2, padding = 9f)
 		rounded(skin, "meta.button.down", Color.valueOf("25282EFF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 9f)
 		rounded(skin, "meta.button.checked", Color.valueOf("253849FF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 9f)
 		rounded(skin, "meta.button.checkedFocus", Color.valueOf("294963FF"), Color.valueOf("B8E3FFFF"), radius = 6, border = 2, padding = 9f)
 		rounded(skin, "meta.button.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = 6, border = 1, padding = 9f)
 
-		rounded(skin, "meta.imageButton.up", Color.valueOf("23262BFF"), Color.valueOf("3B3F46FF"), radius = 6, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.over", Color.valueOf("282B30FF"), Color.valueOf("5D646FFF"), radius = 6, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, Color.valueOf("4C525DFF"), radius = 6, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, Color.valueOf("707986FF"), radius = 6, border = 1, padding = 8f)
 		rounded(skin, "meta.imageButton.focus", Color.valueOf("26292DFF"), Color.valueOf("79C1FBFF"), radius = 6, border = 2, padding = 8f)
 		rounded(skin, "meta.imageButton.down", Color.valueOf("20252BFF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 8f)
 		rounded(skin, "meta.imageButton.disabled", Color.valueOf("1E2025FF"), Color.valueOf("2A2B31FF"), radius = 6, border = 1, padding = 8f)
@@ -152,6 +173,18 @@ object MetaSkin {
 		rounded(skin, "meta.slider.track", Color.valueOf("24262BFF"), Color.valueOf("4B515EFF"), radius = 4, border = 1, padding = 0f, minHeight = 8f)
 		rounded(skin, "meta.slider.fill", Color.valueOf("4F9DDEFF"), null, radius = 4, border = 0, padding = 0f, minHeight = 8f)
 		rounded(skin, "meta.slider.knob", MetaColor.ACCENT, Color.valueOf("D3ECFFFF"), radius = 8, border = 1, padding = 0f, minWidth = 18f, minHeight = 18f)
+		rounded(skin, "meta.slider.knob.over", Color.valueOf("8DCCF7FF"), Color.WHITE, radius = 10, border = 2, padding = 0f, minWidth = 20f, minHeight = 20f)
+		rounded(skin, "meta.slider.knob.down", MetaColor.PRIMARY, Color.valueOf("D3ECFFFF"), radius = 10, border = 2, padding = 0f, minWidth = 20f, minHeight = 20f)
+
+		segmentedRounded(skin, "meta.spinner.left.up", MetaColor.TERTIARY, Color.valueOf("4C525DFF"), roundLeft = true)
+		segmentedRounded(skin, "meta.spinner.left.over", MetaColor.TERTIARY_HOVER, Color.valueOf("707986FF"), roundLeft = true)
+		segmentedRounded(skin, "meta.spinner.left.down", Color.valueOf("20252BFF"), MetaColor.ACCENT, roundLeft = true)
+		segmentedRounded(skin, "meta.spinner.right.up", MetaColor.TERTIARY, Color.valueOf("4C525DFF"), roundRight = true)
+		segmentedRounded(skin, "meta.spinner.right.over", MetaColor.TERTIARY_HOVER, Color.valueOf("707986FF"), roundRight = true)
+		segmentedRounded(skin, "meta.spinner.right.down", Color.valueOf("20252BFF"), MetaColor.ACCENT, roundRight = true)
+		rounded(skin, "meta.spinner.field.up", Color.valueOf("202126FF"), Color.valueOf("42454DFF"), radius = 0, border = 1, padding = 7f)
+		rounded(skin, "meta.spinner.field.focus", Color.valueOf("202126FF"), MetaColor.ACCENT, radius = 0, border = 2, padding = 7f)
+		rounded(skin, "meta.spinner.field.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = 0, border = 1, padding = 7f)
 
 		checkbox(skin, "meta.checkbox.off", checked = false, over = false, down = false)
 		checkbox(skin, "meta.checkbox.over", checked = false, over = true, down = false)
@@ -170,11 +203,40 @@ object MetaSkin {
 		} else {
 			BitmapFont().also { skin.add("default-font", it, BitmapFont::class.java) }
 		}
-		skin.add(BUTTON, Button.ButtonStyle().apply {
+		skin.add(BUTTON_PRIMARY, Button.ButtonStyle().apply {
+			up = skin.getDrawable("meta.button.primary.up")
+			over = skin.getDrawable("meta.button.primary.over")
+			down = skin.getDrawable("meta.button.primary.down")
+			focused = skin.getDrawable("meta.button.primary.focus")
+			disabled = skin.getDrawable("meta.button.primary.disabled")
+		})
+		skin.add(BUTTON_SECONDARY, Button.ButtonStyle().apply {
 			up = skin.getDrawable("meta.button.up")
 			over = skin.getDrawable("meta.button.over")
 			down = skin.getDrawable("meta.button.down")
+			focused = skin.getDrawable("meta.button.focus")
 			disabled = skin.getDrawable("meta.button.disabled")
+		})
+		skin.add(BUTTON_TERTIARY, Button.ButtonStyle().apply {
+			up = skin.getDrawable("meta.imageButton.up")
+			over = skin.getDrawable("meta.imageButton.over")
+			down = skin.getDrawable("meta.imageButton.down")
+			focused = skin.getDrawable("meta.imageButton.focus")
+			disabled = skin.getDrawable("meta.imageButton.disabled")
+		})
+		skin.add(SPINNER_DECREMENT, Button.ButtonStyle().apply {
+			up = skin.getDrawable("meta.spinner.left.up")
+			over = skin.getDrawable("meta.spinner.left.over")
+			down = skin.getDrawable("meta.spinner.left.down")
+			focused = skin.getDrawable("meta.spinner.left.over")
+			disabled = skin.getDrawable("meta.imageButton.disabled")
+		})
+		skin.add(SPINNER_INCREMENT, Button.ButtonStyle().apply {
+			up = skin.getDrawable("meta.spinner.right.up")
+			over = skin.getDrawable("meta.spinner.right.over")
+			down = skin.getDrawable("meta.spinner.right.down")
+			focused = skin.getDrawable("meta.spinner.right.over")
+			disabled = skin.getDrawable("meta.imageButton.disabled")
 		})
 		skin.add(BUTTON_TOGGLE, Button.ButtonStyle(skin.get(BUTTON, Button.ButtonStyle::class.java)).apply {
 			up = skin.getDrawable("meta.button.up")
@@ -182,7 +244,7 @@ object MetaSkin {
 			checkedOver = skin.getDrawable("meta.button.checked")
 			checkedFocused = skin.getDrawable("meta.button.checkedFocus")
 		})
-		skin.add(ICON_BUTTON, Button.ButtonStyle(skin.get(BUTTON, Button.ButtonStyle::class.java)))
+		skin.add(ICON_BUTTON, Button.ButtonStyle(skin.get(BUTTON_SECONDARY, Button.ButtonStyle::class.java)))
 		skin.add(IMAGE_BUTTON, Button.ButtonStyle().apply {
 			up = skin.getDrawable("meta.imageButton.up")
 			over = skin.getDrawable("meta.imageButton.over")
@@ -248,6 +310,11 @@ object MetaSkin {
 				messageFontColor = MetaColor.TEXT_MUTED.cpy()
 			})
 		skin.add(TEXT_AREA, TextField.TextFieldStyle(skin.get(TEXT_FIELD, TextField.TextFieldStyle::class.java)))
+		skin.add(SPINNER_TEXT_FIELD, TextField.TextFieldStyle(skin.get(TEXT_FIELD, TextField.TextFieldStyle::class.java)).apply {
+			background = skin.getDrawable("meta.spinner.field.up")
+			focusedBackground = skin.getDrawable("meta.spinner.field.focus")
+			disabledBackground = skin.getDrawable("meta.spinner.field.disabled")
+		})
 
 		val defaultScroll = if (skin.has("default", ScrollPane.ScrollPaneStyle::class.java)) {
 			ScrollPane.ScrollPaneStyle(skin.get(ScrollPane.ScrollPaneStyle::class.java))
@@ -309,8 +376,8 @@ object MetaSkin {
 				background = skin.getDrawable("meta.slider.track")
 				knobBefore = skin.getDrawable("meta.slider.fill")
 				knob = skin.getDrawable("meta.slider.knob")
-				knobOver = skin.getDrawable("meta.slider.knob")
-				knobDown = skin.getDrawable("meta.slider.knob")
+				knobOver = skin.getDrawable("meta.slider.knob.over")
+				knobDown = skin.getDrawable("meta.slider.knob.down")
 			})
 		val baseProgress = if (skin.has("default-horizontal", ProgressBar.ProgressBarStyle::class.java)) skin.get("default-horizontal", ProgressBar.ProgressBarStyle::class.java)
 		else ProgressBar.ProgressBarStyle(skin.getDrawable("meta.slider.track"), skin.getDrawable("meta.slider.fill")).also {
@@ -374,6 +441,54 @@ object MetaSkin {
 		skin.add(name, drawable, Drawable::class.java)
 	}
 
+	private fun segmentedRounded(
+		skin: Skin,
+		name: String,
+		fill: Color,
+		stroke: Color,
+		roundLeft: Boolean = false,
+		roundRight: Boolean = false,
+	) {
+		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
+		pixmap.setBlending(Pixmap.Blending.None)
+		val radius = 6f
+		val border = 1f
+		for (y in 0 until PATCH_SIZE) {
+			for (x in 0 until PATCH_SIZE) {
+				val pixel = sampleShapePixel(
+					x,
+					y,
+					fill,
+					stroke,
+					outer = { sx, sy -> insideSegmentRect(sx, sy, PATCH_SIZE.toFloat(), PATCH_SIZE.toFloat(), radius, roundLeft, roundRight) },
+					inner = { sx, sy -> insideSegmentRect(
+						sx - border,
+						sy - border,
+						PATCH_SIZE - border * 2f,
+						PATCH_SIZE - border * 2f,
+						radius - border,
+						roundLeft,
+						roundRight,
+					) },
+				)
+				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
+			}
+		}
+		val texture = Texture(pixmap)
+		pixmap.dispose()
+		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+		skin.add("$name.texture", texture)
+		val split = radius.toInt() + 2
+		skin.add(name, NinePatchDrawable(NinePatch(texture, split, split, split, split)).apply {
+			leftWidth = 8f
+			rightWidth = 8f
+			topHeight = 8f
+			bottomHeight = 8f
+			minWidth = 24f
+			minHeight = 24f
+		}, Drawable::class.java)
+	}
+
 	private fun configureToolbarDrawable(drawable: Drawable) {
 		drawable.leftWidth = 8f
 		drawable.rightWidth = 8f
@@ -407,15 +522,15 @@ object MetaSkin {
 	}
 
 	internal fun focusedButtonStyle(base: Button.ButtonStyle): Button.ButtonStyle {
-		val skin = skin()
 		return Button.ButtonStyle(base).apply {
-			up = skin.getDrawable("meta.button.focus")
-			over = skin.getDrawable("meta.button.focusOver")
-			focused = skin.getDrawable("meta.button.focus")
+			val focus = base.focused ?: skin().getDrawable("meta.button.focus")
+			up = focus
+			over = focus
+			focused = focus
 			if (base.checked != null || base.checkedOver != null || base.checkedFocused != null) {
-				checked = skin.getDrawable("meta.button.checkedFocus")
-				checkedOver = skin.getDrawable("meta.button.checkedFocus")
-				checkedFocused = skin.getDrawable("meta.button.checkedFocus")
+				checked = skin().getDrawable("meta.button.checkedFocus")
+				checkedOver = skin().getDrawable("meta.button.checkedFocus")
+				checkedFocused = skin().getDrawable("meta.button.checkedFocus")
 			}
 		}
 	}
@@ -437,15 +552,15 @@ object MetaSkin {
 	}
 
 	internal fun selectedButtonStyle(base: Button.ButtonStyle): Button.ButtonStyle {
-		val skin = skin()
 		return Button.ButtonStyle(base).apply {
-			up = skin.getDrawable("meta.button.focus")
-			over = skin.getDrawable("meta.button.focusOver")
-			down = skin.getDrawable("meta.button.focus")
-			checked = skin.getDrawable("meta.button.focus")
-			checkedOver = skin.getDrawable("meta.button.focusOver")
-			checkedFocused = skin.getDrawable("meta.button.focus")
-			focused = skin.getDrawable("meta.button.focus")
+			val selected = base.focused ?: skin().getDrawable("meta.button.focus")
+			up = selected
+			over = selected
+			down = selected
+			checked = selected
+			checkedOver = selected
+			checkedFocused = selected
+			focused = selected
 		}
 	}
 
@@ -484,10 +599,10 @@ object MetaSkin {
 	}
 
 	internal fun focusedTextFieldStyle(base: TextField.TextFieldStyle): TextField.TextFieldStyle {
-		val skin = skin()
 		return TextField.TextFieldStyle(base).apply {
-			background = skin.getDrawable("meta.field.focus")
-			focusedBackground = skin.getDrawable("meta.field.focus")
+			val focus = base.focusedBackground ?: skin().getDrawable("meta.field.focus")
+			background = focus
+			focusedBackground = focus
 		}
 	}
 
@@ -608,6 +723,21 @@ object MetaSkin {
 		val dx = px - cx
 		val dy = py - cy
 		return dx * dx + dy * dy <= r * r
+	}
+
+	private fun insideSegmentRect(
+		px: Float,
+		py: Float,
+		width: Float,
+		height: Float,
+		radius: Float,
+		roundLeft: Boolean,
+		roundRight: Boolean,
+	): Boolean {
+		if (px < 0f || py < 0f || px > width || py > height) return false
+		if (!roundLeft && px <= radius) return true
+		if (!roundRight && px >= width - radius) return true
+		return insideRoundRect(px, py, width, height, radius)
 	}
 
 	private inline fun sampleShapePixel(

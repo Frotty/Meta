@@ -81,21 +81,21 @@ open class MetaSpinner @JvmOverloads constructor(
 	val metaModel: MetaSpinnerModel,
 	fontSize: Int = MetaType.BODY,
 ) : MetaTable() {
-	val textField = MetaTextField(metaModel.format(metaModel.value), fontSize)
-	private val decrementButton = MetaImageButton("ri-subtract-line", 14)
-	private val incrementButton = MetaImageButton("ri-add-line", 14)
+	val textField = MetaTextField(metaModel.format(metaModel.value), fontSize, styleName = de.fatox.meta.ui.MetaSkin.SPINNER_TEXT_FIELD)
+	private val decrementButton = MetaIconButton("ri-subtract-line", de.fatox.meta.ui.MetaSkin.SPINNER_DECREMENT, 14)
+	private val incrementButton = MetaIconButton("ri-add-line", de.fatox.meta.ui.MetaSkin.SPINNER_INCREMENT, 14)
 	private var scope = ReactiveScope()
 	private var syncing = false
 
 	init {
 		defaults().space(0f)
-		add(decrementButton).size(STEP_BUTTON_SIZE)
+		add(decrementButton).width(STEP_BUTTON_WIDTH).height(FIELD_HEIGHT)
 		// Vanilla TextField advertises a 150px preferred width. Letting that leak through made this compact spinner
 		// report a ~206px pref width even when callers assigned 100-112px, so Table laid its children outside the cell
 		// and overlapped neighbouring controls. Override both metrics at the cell boundary: prefer the designed field
 		// width, but allow it to shrink when the two fixed step buttons share a tighter form row.
 		add(textField).growX().minWidth(0f).prefWidth(PREF_FIELD_WIDTH).height(FIELD_HEIGHT)
-		add(incrementButton).size(STEP_BUTTON_SIZE)
+		add(incrementButton).width(STEP_BUTTON_WIDTH).height(FIELD_HEIGHT)
 		decrementButton.addListener(stepListener { metaModel.decrement() })
 		incrementButton.addListener(stepListener { metaModel.increment() })
 		textField.addListener(object : ChangeListener() {
@@ -142,7 +142,7 @@ open class MetaSpinner @JvmOverloads constructor(
 	}
 
 	private companion object {
-		const val STEP_BUTTON_SIZE = 28f
+		const val STEP_BUTTON_WIDTH = 30f
 		const val FIELD_HEIGHT = 34f
 		const val PREF_FIELD_WIDTH = 56f
 	}

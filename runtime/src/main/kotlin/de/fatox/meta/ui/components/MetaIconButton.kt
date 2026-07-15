@@ -14,6 +14,7 @@ import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
+import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 
@@ -36,12 +37,24 @@ open class MetaIconButton private constructor(
 		touchable = Touchable.disabled
 	}, DEFAULT_ICON_SIZE, style)
 
+	constructor(drawable: Drawable?, tier: MetaButtonTier) : this(
+		drawable,
+		styleFor(tier),
+	)
+
 	constructor(
 		icon: String,
 		style: String = MetaSkin.ICON_BUTTON,
 		size: Int = DEFAULT_ICON_SIZE.toInt(),
 		color: Color? = Color.WHITE,
 	) : this(MetaIcon(icon, size, color).apply { touchable = Touchable.disabled }, size.toFloat(), style)
+
+	constructor(
+		icon: String,
+		tier: MetaButtonTier,
+		size: Int = DEFAULT_ICON_SIZE.toInt(),
+		color: Color? = Color.WHITE,
+	) : this(icon, styleFor(tier), size, color)
 
 	private val iconContainer = Container<Actor>(iconActor).apply { touchable = Touchable.disabled }
 	private val iconCell = add(iconContainer).size(iconSize).pad(MetaSpacing.XS)
@@ -132,5 +145,11 @@ open class MetaIconButton private constructor(
 
 	companion object {
 		const val DEFAULT_ICON_SIZE = 24f
+
+		private fun styleFor(tier: MetaButtonTier): String = when (tier) {
+			MetaButtonTier.PRIMARY -> MetaSkin.BUTTON_PRIMARY
+			MetaButtonTier.SECONDARY -> MetaSkin.BUTTON_SECONDARY
+			MetaButtonTier.TERTIARY -> MetaSkin.BUTTON_TERTIARY
+		}
 	}
 }

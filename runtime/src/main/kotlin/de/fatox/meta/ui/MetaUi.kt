@@ -48,16 +48,32 @@ object MetaColor {
 	val BACKGROUND: Color = Color.valueOf("1F2025FF")
 	val SURFACE: Color = Color.valueOf("2B2B2EFF")
 	val SURFACE_RAISED: Color = Color.valueOf("35353AFF")
-	val BORDER: Color = Color.valueOf("3A3A40FF")
+	val BORDER: Color = Color.valueOf("525762FF")
 
 	val TEXT: Color = Color.valueOf("FFFFFFFF")
-	val TEXT_MUTED: Color = Color.valueOf("A0A0A8FF")
-	val TEXT_DISABLED: Color = Color.valueOf("6A6A72FF")
+	val TEXT_MUTED: Color = Color.valueOf("B8BBC5FF")
+	val TEXT_DISABLED: Color = Color.valueOf("858894FF")
 
-	val ACCENT: Color = Color.valueOf("4F9DDEFF")
+	/** Primary action fill. White text has a 5.39:1 contrast ratio against this color. */
+	val PRIMARY: Color = Color.valueOf("2F6F9FFF")
+	val PRIMARY_HOVER: Color = Color.valueOf("3879A6FF")
+	val PRIMARY_PRESSED: Color = Color.valueOf("285B82FF")
+	val SECONDARY: Color = Color.valueOf("3A3D45FF")
+	val SECONDARY_HOVER: Color = Color.valueOf("464B55FF")
+	val TERTIARY: Color = Color.valueOf("2E3137FF")
+	val TERTIARY_HOVER: Color = Color.valueOf("393D45FF")
+
+	val ACCENT: Color = Color.valueOf("65B5F1FF")
 	val POSITIVE: Color = Color.valueOf("6FCF63FF")
 	val NEGATIVE: Color = Color.valueOf("E5534BFF")
 	val WARNING: Color = Color.valueOf("E0A33AFF")
+}
+
+/** Semantic action emphasis shared by text, icon-text, icon, and custom-content buttons. */
+enum class MetaButtonTier {
+	PRIMARY,
+	SECONDARY,
+	TERTIARY,
 }
 
 /** Creates a TTF [MetaLabel] using the Meta palette/scale defaults. */
@@ -73,7 +89,8 @@ fun metaButton(
 	text: String,
 	size: Int = MetaType.LABEL,
 	type: FontType = FontType.REGULAR,
-): MetaTextButton = MetaTextButton(text, size, type)
+	tier: MetaButtonTier = MetaButtonTier.SECONDARY,
+): MetaTextButton = MetaTextButton(text, size, type, tier)
 
 /** Sets sensible Meta cell defaults on a table (uniform [MetaSpacing] padding). Returns the table for chaining. */
 fun <T : Table> T.metaDefaults(pad: Float = MetaSpacing.SM): T = apply { defaults().pad(pad) }

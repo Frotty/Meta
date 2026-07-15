@@ -14,6 +14,7 @@ import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaColor
+import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.bindColor
@@ -78,20 +79,35 @@ class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true,
 	private val checkState = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 
 	init {
-		setDefaultSize(560f, 330f)
+		setDefaultSize(650f, 430f)
 		contentTable.defaults().left().growX().padBottom(MetaSpacing.SM)
 
+		contentTable.add(MetaLabel("ACTION HIERARCHY", MetaType.CAPTION, MetaColor.ACCENT)).row()
 		val actions = MetaTable().apply {
 			defaults().height(38f).padRight(MetaSpacing.SM)
-			add(MetaTextButton("Text button").onClick { uiManager.showToast("Text button") })
-			add(MetaIconTextButton("Open", "ri-folder-open-line", iconSize = 20)
-				.onClick { uiManager.showToast("Open button") })
-			add(MetaButtonContainer().apply {
-				add(MetaIcon("ri-settings-3-line", 20, MetaColor.TEXT.cpy())).padRight(MetaSpacing.XS)
-				add(MetaLabel("Container", MetaType.CAPTION, MetaColor.TEXT))
-			})
+			add(MetaIconTextButton("Save changes", "ri-save-line", iconSize = 20, tier = MetaButtonTier.PRIMARY)
+				.onClick { uiManager.showToast("Primary action") })
+			add(MetaTextButton("Preview", tier = MetaButtonTier.SECONDARY)
+				.onClick { uiManager.showToast("Secondary action") })
+			add(MetaTextButton("Reset", tier = MetaButtonTier.TERTIARY)
+				.onClick { uiManager.showToast("Tertiary action") })
 		}
 		contentTable.add(actions).row()
+		contentTable.add(MetaLabel(
+			"One primary action per decision area; secondary for alternatives; tertiary for low-emphasis utilities.",
+			MetaType.CAPTION,
+			MetaColor.TEXT_MUTED,
+		)).row()
+
+		val iconActions = MetaTable().apply {
+			defaults().height(38f).padRight(MetaSpacing.XS)
+			add(MetaIconButton("ri-check-line", MetaButtonTier.PRIMARY).apply { tooltip("Primary icon action") }).width(38f)
+			add(MetaIconButton("ri-settings-3-line", MetaButtonTier.SECONDARY).apply { tooltip("Secondary icon action") }).width(38f)
+			add(MetaIconButton("ri-more-line", MetaButtonTier.TERTIARY).apply { tooltip("Tertiary icon action") }).width(38f)
+			add(MetaIconTextButton("Disabled", "ri-forbid-line", iconSize = 20).apply { isDisabled = true })
+		}
+		contentTable.add(iconActions).row()
+		contentTable.add(MetaSeparator()).height(1f).row()
 
 		val tools = MetaTable().apply {
 			defaults().size(38f).padRight(MetaSpacing.XS)
@@ -187,8 +203,8 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 
 	override fun onShown() {
 		uiScaleSlider.value = playgroundUiRenderer.uiScale.peek().coerceIn(0.5f, 2f)
-		reactiveScope.subscribe(uiScaleSlider.valueValue) {
-			playgroundUiRenderer.uiScale.value = uiScaleSlider.valueValue.peek()
+		reactiveScope.subscribe(uiScaleSlider.committedValue) {
+			playgroundUiRenderer.uiScale.value = uiScaleSlider.committedValue.peek()
 			uiManager.resize(Gdx.graphics.width, Gdx.graphics.height)
 		}
 		reactiveScope.effect("playgroundUiScaleSlider") {

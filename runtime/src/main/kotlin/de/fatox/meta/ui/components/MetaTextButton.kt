@@ -14,6 +14,7 @@ import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
+import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
@@ -27,9 +28,10 @@ import kotlin.contracts.contract
 open class MetaTextButton @JvmOverloads constructor(
 	text: String = "",
 	size: Int = MetaType.BODY,
-	type: FontType = FontType.REGULAR
+	type: FontType = FontType.REGULAR,
+	tier: MetaButtonTier = MetaButtonTier.SECONDARY,
 ) :
-	Button(MetaSkin.skin().get(MetaSkin.BUTTON, Button.ButtonStyle::class.java)), MetaFocusable {
+	Button(MetaSkin.buttonStyle(tier)), MetaFocusable {
 
 	private var labelCell: Cell<MetaLabel>
 	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE, type) { setAlignment(Align.center) }
@@ -105,8 +107,9 @@ inline fun MetaTextButton(
 	text: String = "",
 	size: Int = MetaType.BODY,
 	type: FontType = FontType.REGULAR,
+	tier: MetaButtonTier = MetaButtonTier.SECONDARY,
 	init: MetaTextButton.() -> Unit
 ): MetaTextButton {
 	contract { callsInPlace(init, InvocationKind.EXACTLY_ONCE) }
-	return MetaTextButton(text, size, type).apply(init)
+	return MetaTextButton(text, size, type, tier).apply(init)
 }

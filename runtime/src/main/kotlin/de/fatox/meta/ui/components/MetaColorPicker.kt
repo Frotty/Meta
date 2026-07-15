@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Disposable
 import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.api.extensions.onChange
+import de.fatox.meta.api.extensions.tooltip
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
@@ -34,8 +35,10 @@ open class MetaColorPicker @JvmOverloads constructor(
 	val colorValue: Signal<Color> = signal(working.cpy()) { a, b -> a == b }
 	private val colorField = MetaColorField { hue, saturation, value -> updateFromField(hue, saturation, value) }
 	private val preview = MetaTable().apply { background = MetaSkin.skin().getDrawable(MetaSkin.COLOR_FILL) }
+	private var inputMode = ColorInputMode.HEX
+	private val inputModeButton = MetaTextButton("HEX", MetaType.CAPTION, tier = de.fatox.meta.ui.MetaButtonTier.TERTIARY)
 	private val colorInput = MetaInputField(
-		placeholder = if (isAllowAlphaEdit) "#RRGGBBAA or 255, 128, 0, 255" else "#RRGGBB or 255, 128, 0",
+		placeholder = if (isAllowAlphaEdit) "#RRGGBBAA or rgba(255, 128, 0, 1)" else "#RRGGBB or rgb(255, 128, 0)",
 	)
 	private var syncing = false
 	private var dismissing = false
@@ -55,7 +58,10 @@ open class MetaColorPicker @JvmOverloads constructor(
 		contentTable.add(colorField).height(210f).row()
 		contentTable.add(preview).height(36f).padTop(MetaSpacing.XS).padBottom(MetaSpacing.SM).row()
 		contentTable.add(MetaTable().apply {
-			add(MetaLabel(if (isAllowAlphaEdit) "Hex / RGBA" else "Hex / RGB", MetaType.CAPTION)).width(76f)
+			add(inputModeButton.apply {
+				tooltip("Switch between HEX and ${if (isAllowAlphaEdit) "RGBA" else "RGB"} display")
+				onChange { toggleInputMode() }
+			}).width(76f).height(34f).padRight(MetaSpacing.XS)
 			add(colorInput).growX().height(34f)
 		}).row()
 		colorInput.addListener(object : ChangeListener() {
@@ -126,7 +132,7 @@ open class MetaColorPicker @JvmOverloads constructor(
 	private fun syncModels() {
 		syncing = true
 		colorField.setSelectedColor(working)
-		colorInput.setText(MetaColorCodec.format(working, isAllowAlphaEdit))
+		colorInput.setText(formatInput())
 		colorInput.setInputValid(true)
 		publish(notifyListener = false)
 		syncing = false
@@ -135,10 +141,24 @@ open class MetaColorPicker @JvmOverloads constructor(
 	private fun updateFromField(hue: Float, saturation: Float, value: Float) {
 		MetaHsv.toColor(hue, saturation, value, working.a, working)
 		syncing = true
-		colorInput.setText(MetaColorCodec.format(working, isAllowAlphaEdit))
+		colorInput.setText(formatInput())
 		colorInput.setInputValid(true)
 		syncing = false
 		publish(notifyListener = true)
+	}
+
+	private fun toggleInputMode() {
+		inputMode = if (inputMode == ColorInputMode.HEX) ColorInputMode.RGB else ColorInputMode.HEX
+		inputModeButton.setText(if (inputMode == ColorInputMode.HEX) "HEX" else if (isAllowAlphaEdit) "RGBA" else "RGB")
+		syncing = true
+		colorInput.setText(formatInput())
+		colorInput.setInputValid(true)
+		syncing = false
+	}
+
+	private fun formatInput(): String = when (inputMode) {
+		ColorInputMode.HEX -> MetaColorCodec.format(working, isAllowAlphaEdit)
+		ColorInputMode.RGB -> MetaColorCodec.formatRgb(working, isAllowAlphaEdit)
 	}
 
 	private fun publish(notifyListener: Boolean) {
@@ -176,6 +196,8 @@ open class MetaColorPicker @JvmOverloads constructor(
 	}
 
 }
+
+private enum class ColorInputMode { HEX, RGB }
 
 /** Saturation/value square with a vertical hue strip, drawn directly as interpolated shape geometry. */
 private class MetaColorField(
@@ -327,7 +349,8 @@ internal object MetaHsv {
 
 /** Parser/formatter for the picker's combined precision field. */
 internal object MetaColorCodec {
-	private val componentSeparator = Regex("[,;\\s]+")
+	private val componentSeparator = Regex("[,;/\\s]+")
+	private val cssFunction = Regex("(?i)rgba?\\s*\\((.*)\\)")
 	private const val HEX = "0123456789ABCDEF"
 
 	fun parse(text: String, allowAlpha: Boolean, out: Color): Boolean {
@@ -339,14 +362,14 @@ internal object MetaColorCodec {
 			return parseHex(hexadecimal, allowAlpha, out)
 		}
 
-		val components = input.split(componentSeparator)
+		val componentInput = cssFunction.matchEntire(input)?.groupValues?.get(1) ?: input
+		val components = componentInput.split(componentSeparator).filter { it.isNotEmpty() }
 		if (components.size != 3 && components.size != 4) return false
-		val red = components[0].toIntOrNull() ?: return false
-		val green = components[1].toIntOrNull() ?: return false
-		val blue = components[2].toIntOrNull() ?: return false
-		val alpha = if (components.size == 4) components[3].toIntOrNull() ?: return false else 255
-		if (red !in 0..255 || green !in 0..255 || blue !in 0..255 || alpha !in 0..255) return false
-		out.set(red / 255f, green / 255f, blue / 255f, if (allowAlpha) alpha / 255f else 1f)
+		val red = parseRgbChannel(components[0]) ?: return false
+		val green = parseRgbChannel(components[1]) ?: return false
+		val blue = parseRgbChannel(components[2]) ?: return false
+		val alpha = if (components.size == 4) parseAlpha(components[3]) ?: return false else 1f
+		out.set(red, green, blue, if (allowAlpha) alpha else 1f)
 		return true
 	}
 
@@ -357,6 +380,45 @@ internal object MetaColorCodec {
 		appendChannel(color.b)
 		if (includeAlpha) appendChannel(color.a)
 	}
+
+	fun formatRgb(color: Color, includeAlpha: Boolean): String = buildString(32) {
+		append(if (includeAlpha) "rgba(" else "rgb(")
+		append(byteChannel(color.r)).append(", ")
+		append(byteChannel(color.g)).append(", ")
+		append(byteChannel(color.b))
+		if (includeAlpha) {
+			val alpha = (color.a * 1000f + 0.5f).toInt().coerceIn(0, 1000)
+			append(", ").append(alpha / 1000f)
+		}
+		append(')')
+	}
+
+	private fun parseRgbChannel(component: String): Float? {
+		if (component.endsWith('%')) {
+			val percent = component.dropLast(1).toFloatOrNull() ?: return null
+			if (percent !in 0f..100f) return null
+			return percent / 100f
+		}
+		val value = component.toFloatOrNull() ?: return null
+		if (value !in 0f..255f) return null
+		return value / 255f
+	}
+
+	private fun parseAlpha(component: String): Float? {
+		if (component.endsWith('%')) {
+			val percent = component.dropLast(1).toFloatOrNull() ?: return null
+			if (percent !in 0f..100f) return null
+			return percent / 100f
+		}
+		val value = component.toFloatOrNull() ?: return null
+		return when {
+			value in 0f..1f -> value
+			value in 0f..255f -> value / 255f
+			else -> null
+		}
+	}
+
+	private fun byteChannel(value: Float): Int = (value * 255f + 0.5f).toInt().coerceIn(0, 255)
 
 	private fun parseHex(hex: String, allowAlpha: Boolean, out: Color): Boolean {
 		if (hex.length != 3 && hex.length != 4 && hex.length != 6 && hex.length != 8) return false

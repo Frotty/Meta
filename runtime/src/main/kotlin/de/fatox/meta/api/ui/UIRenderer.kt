@@ -20,8 +20,9 @@ interface UIRenderer : Disposable {
 
 	/**
 	 * Global UI scale factor (1.0 = one UI unit per physical pixel). Increase it on HiDPI / 4K / Retina displays so
-	 * controls aren't tiny. It's a reactive [Signal]: set `uiScale.value` (e.g. from a settings slider, persisted in
-	 * your config) and the whole scene2d UI re-scales live. Use `suggestedUiScale()` for a DPI-based default.
+	 * controls aren't tiny. It's a reactive [Signal]: set `uiScale.value` to re-layout the scene2d UI. A scale slider
+	 * should apply its committed/released value rather than changing geometry during its active pointer drag. Use
+	 * `suggestedUiScale()` for a DPI-based default.
 	 */
 	val uiScale: Signal<Float>
 

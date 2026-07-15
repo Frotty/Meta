@@ -9,11 +9,14 @@ import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
+import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaSkin
 
 /** Meta-styled button container for custom child layouts. */
-open class MetaButtonContainer :
-	Button(MetaSkin.skin().get(MetaSkin.BUTTON, ButtonStyle::class.java)),
+open class MetaButtonContainer(
+	tier: MetaButtonTier = MetaButtonTier.SECONDARY,
+) :
+	Button(MetaSkin.buttonStyle(tier)),
 	MetaFocusable {
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
 	private val disabledTint = MetaDisabledTint(this)

@@ -12,6 +12,7 @@ import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaFocusable
+import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
@@ -25,7 +26,8 @@ class MetaIconTextButton private constructor(
 	size: Int = MetaType.BODY,
 	maxWidth: Int? = null,
 	vertical: Boolean = false,
-) : Button(MetaSkin.skin().get(MetaSkin.BUTTON, Button.ButtonStyle::class.java)), MetaFocusable {
+	tier: MetaButtonTier = MetaButtonTier.SECONDARY,
+) : Button(MetaSkin.buttonStyle(tier)), MetaFocusable {
 	private val label: MetaLabel = MetaLabel(text, size, Color.WHITE).apply {
 		setAlignment(Align.center)
 		if (maxWidth != null) setMaxWidth(maxWidth)
@@ -48,9 +50,10 @@ class MetaIconTextButton private constructor(
 		size: Int = MetaType.BODY,
 		maxWidth: Int? = null,
 		vertical: Boolean = false,
+		tier: MetaButtonTier = MetaButtonTier.SECONDARY,
 	) : this(text, com.badlogic.gdx.scenes.scene2d.ui.Image(drawable).apply {
 		touchable = Touchable.disabled
-	}, size, maxWidth, vertical)
+	}, size, maxWidth, vertical, tier)
 
 	constructor(
 		text: String,
@@ -60,7 +63,8 @@ class MetaIconTextButton private constructor(
 		maxWidth: Int? = null,
 		iconColor: Color? = Color.WHITE,
 		vertical: Boolean = false,
-	) : this(text, MetaIcon(icon, iconSize, iconColor).apply { touchable = Touchable.disabled }, size, maxWidth, vertical)
+		tier: MetaButtonTier = MetaButtonTier.SECONDARY,
+	) : this(text, MetaIcon(icon, iconSize, iconColor).apply { touchable = Touchable.disabled }, size, maxWidth, vertical, tier)
 
 	init {
 		iconActor.touchable = Touchable.disabled

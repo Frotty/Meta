@@ -29,6 +29,10 @@ Follow these so screens share one look:
   style once, never mutate the shared skin style).
 - **Use icon-style controls intentionally.** `MetaIconButton` is the full action icon button (same visual family as
   normal buttons). For a plain icon that is clickable but should stay visually lighter/subtle, use `MetaImageButton`.
+- **Choose button emphasis semantically.** `MetaTextButton`, `MetaIconTextButton`, `MetaIconButton`, and
+  `MetaButtonContainer` accept `MetaButtonTier`: use `PRIMARY` for the single preferred action in a decision area,
+  `SECONDARY` (the default) for normal alternatives, and `TERTIARY` for low-emphasis utilities. `MetaImageButton`
+  remains the compact tertiary icon treatment. Do not create one-off button background colors in consumers.
 - **Use Remix font icons for UI glyphs.** Prefer `MetaIcon("ri-information-line")`,
   `MetaImageButton("ri-add-line")`, and `MetaIconTextButton("Open", "ri-folder-open-line")` over one-off PNG
   toolbar icons. The bundled catalog is `assets/ui/icons/remixicon.tsv` (also shipped in runtime resources as
@@ -157,9 +161,10 @@ here is **allocation rate** — minimize GC churn; most other micro-optimization
     hardcode pixel sizes; drive layout off `Graphics` viewport values (the `ScreenViewport` already does).
   - **HiDPI UI scaling is automatic.** `UIRenderer` seeds a global `uiScale` from the display (`suggestedUiScale()`)
     so controls aren't tiny on 4K/Retina — every consumer gets it for free. It's a reactive `Signal<Float>`: a game's
-    settings slider can bind to `uiRenderer.uiScale` (persist the user's choice and set it on boot) and the whole UI
-    re-scales live. Because of this, size widgets in UI units (not raw pixels) and never read `Gdx.graphics` pixels for
-    layout.
+    settings slider can bind to `uiRenderer.uiScale` (persist the user's choice and set it on boot). Because changing
+    scale re-lays out the active stage, subscribe a `SliderWithButtons` to `committedValue`, not its live `valueValue`,
+    so the dragged control does not move underneath its own pointer gesture. Size widgets in UI units (not raw pixels)
+    and never read `Gdx.graphics` pixels for layout.
   - **Startup:** a separate splash/loading window before the GL window can race the main window/context — gate UI work
     on the GL thread and on assets actually being loaded. Heavy work off the GL thread must hop back via
     `Gdx.app.postRunnable` before touching GL/scene2d.

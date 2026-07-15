@@ -27,7 +27,8 @@ open class MetaTextField @JvmOverloads constructor(
 	size: Int = MetaType.BODY,
 	fontProvider: FontProvider = inject(),
 	placeholder: String = "",
-) : TextField(text, textFieldStyle(size, fontProvider)), MetaFocusable, FontRefreshable {
+	styleName: String = MetaSkin.TEXT_FIELD,
+) : TextField(text, textFieldStyle(size, fontProvider, styleName)), MetaFocusable, FontRefreshable {
 	private val focusStyle = MetaTextFieldFocusStyle(this, style, MetaSkin::focusedTextFieldStyle)
 	private var metaInitialized = false
 	private val fontSize = size
