@@ -8,9 +8,8 @@ dependencies {
 	implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 
 	api "org.apache.commons:commons-compress:$commonsCompressVersion"
-	api "org.tukaani:xz:$xzVersion"
-	api "commons-io:commons-io:$commonsIOVersion"
-	implementation "ch.qos.logback:logback-classic:$logbackVersion"
+	// XZ backs Commons Compress' LZMA support but is not part of Meta's public API.
+	implementation "org.tukaani:xz:$xzVersion"
 	api "org.slf4j:slf4j-api:$slf4jVersion"
 
 	testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"

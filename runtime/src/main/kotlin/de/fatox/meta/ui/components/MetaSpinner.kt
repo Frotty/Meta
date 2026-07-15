@@ -90,7 +90,11 @@ open class MetaSpinner @JvmOverloads constructor(
 	init {
 		defaults().space(0f)
 		add(decrementButton).size(STEP_BUTTON_SIZE)
-		add(textField).growX().minWidth(MIN_FIELD_WIDTH).height(FIELD_HEIGHT)
+		// Vanilla TextField advertises a 150px preferred width. Letting that leak through made this compact spinner
+		// report a ~206px pref width even when callers assigned 100-112px, so Table laid its children outside the cell
+		// and overlapped neighbouring controls. Override both metrics at the cell boundary: prefer the designed field
+		// width, but allow it to shrink when the two fixed step buttons share a tighter form row.
+		add(textField).growX().minWidth(0f).prefWidth(PREF_FIELD_WIDTH).height(FIELD_HEIGHT)
 		add(incrementButton).size(STEP_BUTTON_SIZE)
 		decrementButton.addListener(stepListener { metaModel.decrement() })
 		incrementButton.addListener(stepListener { metaModel.increment() })
@@ -140,6 +144,6 @@ open class MetaSpinner @JvmOverloads constructor(
 	private companion object {
 		const val STEP_BUTTON_SIZE = 28f
 		const val FIELD_HEIGHT = 34f
-		const val MIN_FIELD_WIDTH = 56f
+		const val PREF_FIELD_WIDTH = 56f
 	}
 }
