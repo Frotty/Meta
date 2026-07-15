@@ -32,16 +32,17 @@ class EditorMeta(
 		array.add(Gdx.files.internal("data/"))
 		MetaInject.global {
 			singleton<Screen> {
-				SplashScreen {
+				SplashScreen(queueAssets = {
 					assetProvider.loadRawAssetsFromFolder(Gdx.files.internal("."))
-					array.forEach { assetProvider.loadPackedAssetsFromFolder(it) }
+					for (i in 0 until array.size) assetProvider.loadPackedAssetsFromFolder(array[i])
+				}, onLoaded = {
 					Gdx.app.postRunnable {
 						val audioVideoData = MetaAudioVideoState.current()
 						uiManager.moveWindow(audioVideoData.x, audioVideoData.y)
 						audioVideoData.apply()
 						changeScreen(MetaEditorScreen())
 					}
-				}
+				})
 			}
 		}
 	}

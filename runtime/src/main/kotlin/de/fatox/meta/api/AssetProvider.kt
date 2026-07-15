@@ -6,17 +6,26 @@ import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Array
 
 interface AssetProvider {
-	/** Loads all assets from XPK archives in the given folder. */
+	/** Indexes assets from XPK archives in the given folder so they can subsequently be queued or retrieved by name. */
 	fun loadPackedAssetsFromFolder(folder: FileHandle): Boolean
 
-	/** Loads all assets from the given folder. */
+	/** Indexes raw assets in the given folder so they can subsequently be queued or retrieved by name. */
 	fun loadRawAssetsFromFolder(folder: FileHandle): Boolean
 
-	/** Loads some asset. Loading happens async. Use #get after loading has finished. */
+	/** Queues an asset for asynchronous loading. Advance it with [update], then retrieve it with [getResource]. */
 	fun <T : Any> load(name: String, type: Class<T>)
 
-	/** Loads some asset. Loading happens async. Use #get after loading has finished. */
+	/** Queues an asset for asynchronous loading. Advance it with [update], then retrieve it with [getResource]. */
 	fun <T : Any> load(key: AssetKey<T>, type: Class<T>): Unit = load(key.name, type)
+
+	/**
+	 * Advances queued asynchronous loads for at most [millis] milliseconds. Call from the GL/render thread.
+	 * Returns true when the queue is empty. The default keeps custom providers source-compatible.
+	 */
+	fun update(millis: Int = 16): Boolean = true
+
+	/** Progress of the current loading queue in the range 0..1. */
+	val progress: Float get() = 1f
 
 	/** Returns an instance of the loaded asset. Index is the libgdx packed frame index.*/
 	fun <T : Any> getResource(fileName: String, type: Class<T>, index: Int = -1): T
@@ -30,6 +39,9 @@ interface AssetProvider {
 
 	/** Blocks the thread until all load tasks are finished. */
 	fun finish()
+
+	/** Releases loaded assets and loader worker threads. */
+	fun dispose(): Unit = Unit
 
 	/**
 	 * @param baseName name of the texture

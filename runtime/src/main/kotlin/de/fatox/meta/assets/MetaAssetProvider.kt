@@ -63,6 +63,9 @@ class MetaAssetProvider : AssetProvider {
 	private val atlasCache = Array<TextureAtlas>()
 	private val animCache = IntMap<Array<out TextureRegion>>()
 	private val fileCache = ObjectMap<String, FileHandle>()
+	private val pendingFinalization = Array<AssetDescriptor<*>>()
+
+	override val progress: Float get() = assetManager.progress
 
 	override fun loadPackedAssetsFromFolder(folder: FileHandle): Boolean {
 		if (folder.isDirectory) {
@@ -120,13 +123,14 @@ class MetaAssetProvider : AssetProvider {
 		log.debug { "loading <$name>" }
 		if (fileCache.containsKey(name)) {
 			log.debug { "pack cache contains filename" }
-			loadIntern(AssetDescriptor(fileCache[name], type))
+			queueIntern(AssetDescriptor(fileCache[name], type))
 		} else {
-			loadIntern(AssetDescriptor(name, type))
+			queueIntern(AssetDescriptor(name, type))
 		}
 	}
 
-	private fun <T: Any> loadIntern(descriptor: AssetDescriptor<T>) {
+	private fun <T: Any> queueIntern(descriptor: AssetDescriptor<T>) {
+		if (assetManager.contains(descriptor.fileName)) return
 		when {
 			descriptor.type == Model::class.java ->
 				assetManager.load(descriptor.fileName, Model::class.java, defaultModelParam)
@@ -139,7 +143,23 @@ class MetaAssetProvider : AssetProvider {
 				assetManager.load(descriptor)
 			}
 		}
-		assetManager.finishLoading()
+		pendingFinalization.add(descriptor)
+	}
+
+	private fun finalizeLoadedAssets() {
+		var index = 0
+		while (index < pendingFinalization.size) {
+			val descriptor = pendingFinalization[index]
+			if (!assetManager.isLoaded(descriptor.fileName)) {
+				index++
+				continue
+			}
+			finalizeLoadedAsset(descriptor)
+			pendingFinalization.removeIndex(index)
+		}
+	}
+
+	private fun finalizeLoadedAsset(descriptor: AssetDescriptor<*>) {
 		if (descriptor.type == Model::class.java) {
 			val model = assetManager.get(descriptor.fileName, Model::class.java)
 			val attribute = model.materials.first()[TextureAttribute.Diffuse] as TextureAttribute
@@ -154,6 +174,12 @@ class MetaAssetProvider : AssetProvider {
 		if (descriptor.type == TextureAtlas::class.java) {
 			atlasCache.add(assetManager.get(descriptor.fileName, TextureAtlas::class.java))
 		}
+	}
+
+	override fun update(millis: Int): Boolean {
+		val complete = assetManager.update(millis.coerceAtLeast(0))
+		finalizeLoadedAssets()
+		return complete
 	}
 
 	override fun <T: Any> getResource(fileName: String, type: Class<T>, index: Int): T {
@@ -172,11 +198,15 @@ class MetaAssetProvider : AssetProvider {
 				}.firstOrNull() as T? ?: TextureRegion(getResource(fileName, Texture::class.java)) as T?
 			}
 			fileCache.containsKey(fileName) -> {
-				loadIntern(AssetDescriptor(fileCache[fileName], type))
+				load(fileName, type)
+				assetManager.finishLoadingAsset<Any>(fileCache[fileName].path())
+				finalizeLoadedAssets()
 				getResource(fileName, type)
 			}
 			else -> {
 				load(fileName, type)
+				assetManager.finishLoadingAsset<Any>(fileName)
+				finalizeLoadedAssets()
 				getResource(fileName, type)
 			}
 		} ?: throw GdxRuntimeException("Resource not found: $fileName")
@@ -188,6 +218,15 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun finish() {
 		assetManager.finishLoading()
+		finalizeLoadedAssets()
+	}
+
+	override fun dispose() {
+		pendingFinalization.clear()
+		atlasCache.clear()
+		animCache.clear()
+		fileCache.clear()
+		assetManager.dispose()
 	}
 
 	override fun loadAnimationFrames(baseName: String, frames: Int): Array<out TextureRegion> {

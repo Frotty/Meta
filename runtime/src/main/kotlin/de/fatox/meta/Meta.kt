@@ -59,6 +59,7 @@ abstract class Meta(
 	private val screenConfig: ScreenConfig by lazyInject()
 	private val metaInput: MetaInputProcessor by lazyInject()
 	private val metaData: MetaData by lazyInject()
+	private val assetProvider: AssetProvider by lazyInject()
 
 	private var lastChange: Long = 0
 	private lateinit var lastScreen: Screen
@@ -117,6 +118,7 @@ abstract class Meta(
 
 	override fun dispose() {
 		uiManager.dispose()
+		assetProvider.dispose()
 	}
 
 	@Suppress("unused")

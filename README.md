@@ -66,6 +66,27 @@ images.
 ## Runtime
 The runtime contains all core components of the meta engine that will aid in the creation of any 2d or 3d game.
 
+### Asynchronous asset loading
+
+Queue startup assets through `AssetProvider.load` from the two-callback `SplashScreen` constructor. Meta advances the
+libGDX `AssetManager` in bounded slices each frame, keeps the splash responsive, and renders actual queue progress:
+
+```kotlin
+SplashScreen(
+    queueAssets = {
+        assetProvider.load<Texture>("textures/player.png")
+        assetProvider.load<Model>("models/world.g3db")
+    },
+    onLoaded = {
+        Meta.changeScreen(GameScreen())
+    },
+)
+```
+
+`queueAssets` and `onLoaded` run on the GL thread. Calling `getResource` for an asset that was not preloaded remains
+supported, but it necessarily blocks until that particular asset is available and should be kept out of startup and
+frame-time-sensitive paths.
+
 ### Dependency Injection
 Meta comes with a lightweight DI framework, focusing mainly on property injection.
 Dependencies are provided via modules like the renderer for the editor in this example:
@@ -93,4 +114,3 @@ MetaInject.global {
     singleton<Renderer> { GameSceneRenderer() }
 }
 ```
-
