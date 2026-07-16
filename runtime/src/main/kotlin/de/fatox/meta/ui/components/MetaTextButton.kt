@@ -13,6 +13,7 @@ import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaSkin
@@ -44,6 +45,12 @@ open class MetaTextButton @JvmOverloads constructor(
 	val textValue: Signal<String> = signal(text)
 	val checkedValue: Signal<Boolean> = signal(isChecked)
 	val disabledValue: Signal<Boolean> = signal(isDisabled)
+	@Suppress("unused")
+	private val textBinding = textValue.subscribe { setText(textValue.peek()) }
+	@Suppress("unused")
+	private val checkedBinding = checkedValue.subscribe { setChecked(checkedValue.peek()) }
+	@Suppress("unused")
+	private val disabledBinding = disabledValue.subscribe { setDisabled(disabledValue.peek()) }
 
 	fun setText(text: String = "") {
 		label.setText(text)

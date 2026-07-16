@@ -3,6 +3,8 @@ package de.fatox.meta.task
 import org.junit.jupiter.api.TestInstance
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 internal class MetaTaskManagerTest {
@@ -108,6 +110,39 @@ internal class MetaTaskManagerTest {
 		assertEquals(MutableList(9) { "value_0$it" }.also { it.add("value_0X") }, state)
 		taskManager.redoNextTask()
 		assertEquals(MutableList(9) { "value_0$it" }.also { it.add("value_0X") }, state)
+	}
+
+	@Test
+	fun `history availability follows run undo redo and reset`() {
+		assertFalse(taskManager.canUndo.value)
+		assertFalse(taskManager.canRedo.value)
+
+		taskManager.runTask(AddStringTask(state, "value_00"))
+		assertTrue(taskManager.canUndo.value)
+		assertFalse(taskManager.canRedo.value)
+
+		taskManager.undoLastTask()
+		assertFalse(taskManager.canUndo.value)
+		assertTrue(taskManager.canRedo.value)
+
+		taskManager.redoNextTask()
+		assertTrue(taskManager.canUndo.value)
+		assertFalse(taskManager.canRedo.value)
+
+		taskManager.reset()
+		assertFalse(taskManager.canUndo.value)
+		assertFalse(taskManager.canRedo.value)
+	}
+
+	@Test
+	fun `running after undo clears reactive redo availability`() {
+		taskManager.runTask(AddStringTask(state, "value_00"))
+		taskManager.undoLastTask()
+		assertTrue(taskManager.canRedo.value)
+
+		taskManager.runTask(AddStringTask(state, "value_01"))
+		assertTrue(taskManager.canUndo.value)
+		assertFalse(taskManager.canRedo.value)
 	}
 
 }

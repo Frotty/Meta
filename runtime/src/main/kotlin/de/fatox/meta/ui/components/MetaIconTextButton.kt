@@ -11,6 +11,7 @@ import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaSkin
@@ -38,6 +39,12 @@ class MetaIconTextButton private constructor(
 	val textValue: Signal<CharSequence> = signal(text)
 	val checkedValue: Signal<Boolean> = signal(isChecked)
 	val disabledValue: Signal<Boolean> = signal(isDisabled)
+	@Suppress("unused")
+	private val textBinding = textValue.subscribe { this@MetaIconTextButton.text = textValue.peek() }
+	@Suppress("unused")
+	private val checkedBinding = checkedValue.subscribe { setChecked(checkedValue.peek()) }
+	@Suppress("unused")
+	private val disabledBinding = disabledValue.subscribe { setDisabled(disabledValue.peek()) }
 	var text: CharSequence
 		get() = label.text
 		set(value) {

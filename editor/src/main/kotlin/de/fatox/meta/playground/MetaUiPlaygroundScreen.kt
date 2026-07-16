@@ -27,6 +27,9 @@ class MetaUiPlaygroundScreen(
 ) : ScreenAdapter() {
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val uiManager: UIManager by lazyInject()
+	private val backgroundTitle = MetaLabel("META UI WORKSPACE", MetaType.CAPTION, MetaColor.TEXT_MUTED)
+	private val backgroundDescription = MetaLabel("", MetaType.BODY, MetaColor.TEXT_MUTED)
+	private val bottomCaption = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT)
 	private var isBuilt = false
 
 	override fun show() {
@@ -73,29 +76,18 @@ class MetaUiPlaygroundScreen(
 		configureDocking()
 		uiManager.setMainMenuBar(playgroundMenuBar())
 		uiManager.addTable(workspaceBackground(), growX = true, growY = true)
-		uiManager.setBottomOverlay(
-			MetaBottomBar(MetaLabel(
-				"Drag a panel to an edge to dock · drag away to float · resize fixed panel dividers",
-				MetaType.CAPTION,
-				MetaColor.TEXT,
-			))
-				.bottomOverlay(MetaSpacing.SM),
-		)
+		uiManager.setBottomOverlay(MetaBottomBar(bottomCaption).bottomOverlay(MetaSpacing.SM))
 		val firstDockingLaunch = !uiManager.metaHas(DOCKING_INITIALIZED_KEY)
 		showDockWorkspace(resetLayout = firstDockingLaunch, seedFloatingBounds = firstDockingLaunch)
 		if (firstDockingLaunch) uiManager.metaSave(DOCKING_INITIALIZED_KEY, true)
 	}
 
 	private fun workspaceBackground() = MetaTable().apply {
-		top().left()
+		center()
 		pad(MetaSpacing.LG)
-		add(MetaLabel("META UI WORKSPACE", MetaType.CAPTION, MetaColor.TEXT_MUTED)).left().row()
-		add(MetaLabel(
-			"Test left/right docking, insertion order, fill reflow, drag-away restore, resize, persistence, and narrow windows.",
-			MetaType.BODY,
-			MetaColor.TEXT_MUTED,
-		))
-			.left().padTop(MetaSpacing.XS)
+		add(backgroundTitle).center().row()
+		add(backgroundDescription)
+			.center().padTop(MetaSpacing.XS)
 	}
 
 	private fun playgroundMenuBar(): MetaMenuBar = MetaMenuBar().apply {
@@ -117,12 +109,15 @@ class MetaUiPlaygroundScreen(
 		})
 
 		addMenu(MetaMenu("Window").apply {
+			addItem(action("Show dock workspace", "ri-layout-column-line") {
+				showDockWorkspace(resetLayout = false)
+			})
+			addItem(action("Show component showcase", "ri-layout-grid-line") { showComponentShowcase() })
+			addSeparator()
 			addItem(action("Tools", "ri-tools-line") { uiManager.showWindow<DockToolsPlaygroundWindow>() })
 			addItem(action("Layers", "ri-stack-line") { uiManager.showWindow<DockLayersPlaygroundWindow>() })
 			addItem(action("Inspector", "ri-settings-3-line") { uiManager.showWindow<DockInspectorPlaygroundWindow>() })
 			addItem(action("Activity", "ri-history-line") { uiManager.showWindow<DockActivityPlaygroundWindow>() })
-			addSeparator()
-			addItem(action("Show dock workspace", "ri-layout-column-line") { showDockWorkspace(resetLayout = false) })
 			addItem(action("Reset dock workspace", "ri-layout-left-line") {
 				showDockWorkspace(resetLayout = true, seedFloatingBounds = true)
 			})
@@ -132,8 +127,6 @@ class MetaUiPlaygroundScreen(
 			addItem(action("Buttons & input", "ri-input-method-line") { uiManager.showWindow<ControlsPlaygroundWindow>() })
 			addItem(action("Selection & progress", "ri-equalizer-line") { uiManager.showWindow<SelectionPlaygroundWindow>() })
 			addItem(action("Lists & scrolling", "ri-list-check-2") { uiManager.showWindow<CollectionsPlaygroundWindow>() })
-			addSeparator()
-			addItem(action("Show component gallery", "ri-layout-grid-line") { showComponentGallery(resetLayout = true) })
 		})
 
 		addMenu(MetaMenu("Help").apply {
@@ -156,7 +149,8 @@ class MetaUiPlaygroundScreen(
 
 	private fun showDockWorkspace(resetLayout: Boolean, seedFloatingBounds: Boolean = false) {
 		configureDocking()
-		if (resetLayout) closeComponentWindows()
+		closeComponentWindows()
+		showWorkspacePresentation()
 		val tools = uiManager.showWindow<DockToolsPlaygroundWindow>()
 		val layers = uiManager.showWindow<DockLayersPlaygroundWindow>()
 		val inspector = uiManager.showWindow<DockInspectorPlaygroundWindow>()
@@ -170,6 +164,29 @@ class MetaUiPlaygroundScreen(
 			uiManager.metaSave(DOCKING_INITIALIZED_KEY, true)
 		}
 		uiManager.bringWindowsToFront()
+	}
+
+	private fun showComponentShowcase() {
+		closeDockWindows()
+		closeComponentWindows()
+		backgroundTitle.setText("META UI COMPONENT SHOWCASE")
+		backgroundDescription.setText(
+			"Typography, icons, controls, reactive input, selection, progress, menus, lists, and scrolling.",
+		)
+		bottomCaption.setText("Meta UI · batteries-included libGDX components · TTF typography · Remix icons")
+		backgroundTitle.isVisible = false
+		backgroundDescription.isVisible = false
+		showComponentGallery(resetLayout = true)
+	}
+
+	private fun showWorkspacePresentation() {
+		backgroundTitle.isVisible = true
+		backgroundDescription.isVisible = true
+		backgroundTitle.setText("META UI WORKSPACE")
+		backgroundDescription.setText(
+			"Test left/right docking, insertion order, fill reflow, drag-away restore, resize, persistence, and narrow windows.",
+		)
+		bottomCaption.setText("Drag a panel to an edge to dock · drag away to float · resize fixed panel dividers")
 	}
 
 	private fun seedFloatingDockPanelBounds(
@@ -212,12 +229,30 @@ class MetaUiPlaygroundScreen(
 		}
 	}
 
+	private fun closeDockWindows() {
+		val active = uiManager.currentlyActiveWindows
+		for (index in active.size - 1 downTo 0) {
+			when (val window = active[index]) {
+				is DockToolsPlaygroundWindow,
+				is DockLayersPlaygroundWindow,
+				is DockInspectorPlaygroundWindow,
+				is DockActivityPlaygroundWindow -> uiManager.closeWindow(window)
+			}
+		}
+	}
+
 	private fun showComponentGallery(resetLayout: Boolean) {
 		val typography = uiManager.showWindow<TypographyPlaygroundWindow>()
 		val controls = uiManager.showWindow<ControlsPlaygroundWindow>()
 		val selection = uiManager.showWindow<SelectionPlaygroundWindow>()
 		val collections = uiManager.showWindow<CollectionsPlaygroundWindow>()
 		if (!resetLayout) return
+		// Screenshot mode is deliberately floating, regardless of dock state persisted by an earlier session.
+		uiManager.undockWindow(typography)
+		uiManager.undockWindow(controls)
+		uiManager.undockWindow(selection)
+		uiManager.undockWindow(collections)
+		uiManager.configureWindowDocking(null)
 
 		val margin = MetaSpacing.MD
 		val gap = MetaSpacing.MD
@@ -225,10 +260,9 @@ class MetaUiPlaygroundScreen(
 		val bottomInset = 34f
 		val availableWidth = (uiManager.uiWidth - margin * 2f - gap).coerceAtLeast(720f)
 		val availableHeight = (uiManager.uiHeight - topInset - bottomInset - margin * 2f - gap).coerceAtLeast(480f)
-		val leftWidth = (availableWidth * 0.42f).coerceAtLeast(360f)
+		val leftWidth = availableWidth * 0.5f
 		val rightWidth = availableWidth - leftWidth
-		// Keep the lower list window deliberately short so its default presentation exercises real scrolling.
-		val topHeight = availableHeight * 0.55f
+		val topHeight = availableHeight * 0.5f
 		val bottomHeight = availableHeight - topHeight
 		val bottomY = bottomInset + margin
 		val topY = bottomY + bottomHeight + gap

@@ -20,6 +20,10 @@ Runtime code can query the same data through `MetaIcons.exists`, `MetaIcons.info
 `MetaIcons.entries`, and `MetaIcons.search`. This keeps the icon catalog discoverable without generating a 3k-entry
 enum.
 
+The authoring copies live under `assets/`; runtime consumers load mirrored copies from
+`runtime/src/main/resources/`. When updating the font, catalog, or license, update both locations together and keep
+the corresponding files byte-for-byte identical.
+
 Use this path for ordinary UI glyphs instead of adding standalone PNG toolbar icons. Bitmap assets still make sense for
 game/editor art, logos, previews, screenshots, atlases, or other non-glyph visuals.
 

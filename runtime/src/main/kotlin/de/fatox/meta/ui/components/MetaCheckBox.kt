@@ -33,7 +33,7 @@ class MetaCheckBox @JvmOverloads constructor(
 	val checkedValue: Signal<Boolean> = signal(initialChecked)
 	val disabledValue: Signal<Boolean> = signal(isDisabled)
 	private val checkedBinding = checkedValue.subscribe { applySignalToButton() }
-	private val disabledBinding = disabledValue.subscribe { syncCheckIcon() }
+	private val disabledBinding = disabledValue.subscribe { applyDisabledSignalToButton() }
 
 	init {
 		// Signal writes sync back into the widget in [applySignalToButton]; disable programmatic ChangeEvents so
@@ -64,6 +64,7 @@ class MetaCheckBox @JvmOverloads constructor(
 		super.setDisabled(isDisabled)
 		touchable = if (isDisabled) Touchable.disabled else Touchable.enabled
 		disabledValue.value = isDisabled
+		syncCheckIcon()
 	}
 
 	private fun syncSignalsFromButton() {
@@ -79,6 +80,11 @@ class MetaCheckBox @JvmOverloads constructor(
 		val desired = checkedValue.peek()
 		if (isChecked != desired) isChecked = desired
 		syncCheckIcon()
+	}
+
+	private fun applyDisabledSignalToButton() {
+		val desired = disabledValue.peek()
+		if (isDisabled != desired) setDisabled(desired) else syncCheckIcon()
 	}
 
 	private fun syncCheckIcon() {

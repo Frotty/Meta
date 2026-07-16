@@ -22,10 +22,14 @@ import de.fatox.meta.api.ui.FocusRenderer
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.reactive.signal
-import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.components.MetaFileChooser
 import de.fatox.meta.ui.components.MetaTooltip
+import de.fatox.meta.ui.components.nearestScrollableMetaScrollPane
+import de.fatox.meta.ui.components.scrollDebugPath
+import de.fatox.meta.ui.components.scrollDebugState
+import de.fatox.meta.ui.components.updateMetaScrollFocus
 import kotlin.math.abs
 
 private val log = MetaLoggerFactory.logger {}
@@ -73,6 +77,12 @@ class MetaUIRenderer : UIRenderer {
 
 	private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
 	private val toastManager = MetaToastManager(stage)
+	private val reactiveScope = ReactiveScope()
+	private var loaded = false
+	private var disposed = false
+	private var lastScrollHoverTarget: Actor? = null
+	private var lastScrollHoverPane: Actor? = null
+	private var lastReportedScrollFocus: Actor? = null
 
 	override val uiScale: Signal<Float> = signal(1f) { a, b -> abs(a - b) < 0.001f }
 
@@ -91,6 +101,9 @@ class MetaUIRenderer : UIRenderer {
 	}
 
 	override fun load() {
+		check(!disposed) { "A disposed UI renderer cannot be loaded again" }
+		if (loaded) return
+		loaded = true
 		val runWithUI = MetaAudioVideoState.state.value.runWithUI
 		log.trace { "load with UI enabled = $runWithUI" }
 		if (runWithUI) {
@@ -98,6 +111,43 @@ class MetaUIRenderer : UIRenderer {
 		}
 
 		stage.root.addCaptureListener(object : InputListener() {
+			override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
+				val target = event.target
+				val pane = target.nearestScrollableMetaScrollPane()
+				val focusBefore = stage.scrollFocus
+				updateMetaScrollFocus(stage, event.target)
+				val focusAfter = stage.scrollFocus
+				if (target !== lastScrollHoverTarget || pane !== lastScrollHoverPane ||
+					focusAfter !== lastReportedScrollFocus
+				) {
+					log.debug {
+						"scroll-hover target=${target.scrollDebugPath()} pane=${pane?.scrollDebugState() ?: "-"} " +
+							"focus=${focusBefore.scrollDebugPath()}->${focusAfter.scrollDebugPath()}"
+					}
+					lastScrollHoverTarget = target
+					lastScrollHoverPane = pane
+					lastReportedScrollFocus = focusAfter
+				}
+				return false
+			}
+
+			override fun scrolled(
+				event: InputEvent,
+				x: Float,
+				y: Float,
+				amountX: Float,
+				amountY: Float,
+			): Boolean {
+				val hit = stage.hit(event.stageX, event.stageY, true)
+				val pane = hit.nearestScrollableMetaScrollPane()
+				log.debug {
+					"scroll-wheel hit=${hit.scrollDebugPath()} routed=${event.target.scrollDebugPath()} " +
+						"pane=${pane?.scrollDebugState() ?: "-"} focus=${stage.scrollFocus.scrollDebugPath()} " +
+						"dx=$amountX dy=$amountY"
+				}
+				return false
+			}
+
 			override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
 				if (!event.target.isInside<TextField>()) stage.keyboardFocus = null
 				if (!event.target.isInside<ScrollPane>()) stage.scrollFocus = null
@@ -109,7 +159,7 @@ class MetaUIRenderer : UIRenderer {
 		// HiDPI: every consumer gets DPI-correct UI by default (no per-game wiring). Re-apply live on any uiScale
 		// change (e.g. a settings slider), and seed the default from the display. Games may override uiScale.value
 		// afterwards with a user-chosen / persisted value.
-		uiScale.subscribe {
+		reactiveScope.subscribe(uiScale) {
 			applyViewport(Gdx.graphics.width, Gdx.graphics.height)
 			// Fonts are rasterized per scale: walk the stage so every widget that caches a font re-fetches it from
 			// the (now regenerated) provider, then release the orphaned old-scale fonts. Order matters: dispose only
@@ -193,8 +243,11 @@ class MetaUIRenderer : UIRenderer {
 	}
 
 	override fun dispose() {
+		if (disposed) return
+		disposed = true
 		setFocusedActor(null)
-		metaInput.removeGlobalInputProcessor(stage)
+		reactiveScope.dispose()
+		if (loaded) metaInput.removeGlobalInputProcessor(stage)
 		focusRenderer.dispose()
 		stage.dispose()
 		fontProvider.dispose()

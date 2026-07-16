@@ -1,11 +1,16 @@
 package de.fatox.meta.ui
 
 import com.badlogic.gdx.Screen
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
+import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.Touchable
@@ -27,19 +32,17 @@ import de.fatox.meta.api.model.MetaWindowData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.MetaDockConfig
 import de.fatox.meta.api.ui.MetaDockLayoutData
-import de.fatox.meta.api.ui.MetaDockItem
 import de.fatox.meta.api.ui.MetaDockSide
 import de.fatox.meta.api.ui.MetaWindowInteraction
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.WindowConfig
-import de.fatox.meta.api.ui.calculateDockBounds
-import de.fatox.meta.api.ui.calculateDockOrder
 import de.fatox.meta.api.ui.detectDockSide
-import de.fatox.meta.api.ui.MetaDockOrderItem
+import de.fatox.meta.api.ui.dockDividerBottom
 import de.fatox.meta.api.ui.resolveDockUpdate
-import de.fatox.meta.api.ui.resolveDockMinimum
 import de.fatox.meta.api.ui.resolveDockWidths
 import de.fatox.meta.api.ui.resolveDockWidthForSide
+import de.fatox.meta.api.ui.resizedLowerDockPanelHeight
+import de.fatox.meta.api.ui.resizedDockPanelHeight
 import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.MetaDataKey
@@ -85,6 +88,14 @@ class MetaUiManager : UIManager {
 	private var windowDockConfig: MetaDockConfig? = null
 	private var leftDockWidth = 0f
 	private var rightDockWidth = 0f
+	private val dockEntryCache = ObjectMap<Window, DockedWindow>()
+	private val dockDividerCache = ObjectMap<Window, DockDivider>()
+	private val dockDividers = Array<DockDivider>()
+	private var dockLayoutGeneration = 0
+	private val leftDockedWindows = Array<DockedWindow>()
+	private val rightDockedWindows = Array<DockedWindow>()
+	private var leftDockHeights = FloatArray(0)
+	private var rightDockHeights = FloatArray(0)
 	private val screenMetaDataKeys = mutableMapOf<String, MetaDataKey<*>>()
 	private val whitePixelTexture = Pixmap(1, 1, Pixmap.Format.RGBA8888).let { pixmap ->
 		pixmap.setColor(Color.WHITE)
@@ -97,6 +108,12 @@ class MetaUiManager : UIManager {
 		addListener { true }
 	}
 	private val dockPreview = Image(ColorDrawable(whitePixel, Color.valueOf("5D8DFF2E"))).apply {
+		touchable = Touchable.disabled
+	}
+	private val leftDockHint = Image(ColorDrawable(whitePixel, Color.valueOf("5D8DFF99"))).apply {
+		touchable = Touchable.disabled
+	}
+	private val rightDockHint = Image(ColorDrawable(whitePixel, Color.valueOf("5D8DFF99"))).apply {
 		touchable = Touchable.disabled
 	}
 
@@ -253,6 +270,7 @@ class MetaUiManager : UIManager {
 			} else {
 				window.remove()
 				displayedWindows.removeIndex(i)
+				dockEntryCache.remove(window)
 			}
 		}
 		contentTable.remove()
@@ -269,11 +287,13 @@ class MetaUiManager : UIManager {
 				val windowClass: KClass<out Window>? = windowConfig.nameToClass[fh.name()]
 				if (windowClass != null) {
 					val metaWindowData = metaGet(windowConfig.nameOf(windowClass), MetaWindowData::class)
-					for (displayedWindow in displayedWindows) {
+					for (displayedIndex in 0 until displayedWindows.size) {
+						val displayedWindow = displayedWindows[displayedIndex]
 						if (displayedWindow.javaClass == windowClass) {
 							if (!metaWindowData.displayed) {
 								displayedWindow.remove()
-								displayedWindows.removeValue(displayedWindow, true)
+								displayedWindows.removeIndex(displayedIndex)
+								dockEntryCache.remove(displayedWindow)
 							}
 							continue@outer
 						}
@@ -337,10 +357,11 @@ class MetaUiManager : UIManager {
 
 	override fun hideOtherWindowsAndPreventNew(window: Window) {
 		preventShowWindow = true
-		displayedWindows.filterNot { it === window }.forEach {
-			if (it.isVisible) {
-				it.isVisible = false
-				hiddenWindows.add(it)
+		for (index in 0 until displayedWindows.size) {
+			val displayedWindow = displayedWindows[index]
+			if (displayedWindow !== window && displayedWindow.isVisible) {
+				displayedWindow.isVisible = false
+				hiddenWindows.add(displayedWindow)
 			}
 		}
 		// Visibility changed outside show/remove: re-derive the backdrop, or it would stay up (swallowing input)
@@ -351,7 +372,7 @@ class MetaUiManager : UIManager {
 	override fun restoreOtherWindowsAndAllowNew() {
 		if (preventShowWindow) {
 			preventShowWindow = false
-			hiddenWindows.forEach { it.isVisible = true }
+			for (index in 0 until hiddenWindows.size) hiddenWindows[index].isVisible = true
 			hiddenWindows.clear()
 			// Visibility changed outside show/remove: re-derive the backdrop for any re-shown modal dialog.
 			modalRevision.update { it + 1 }
@@ -420,6 +441,8 @@ class MetaUiManager : UIManager {
 		(window as? MetaWindow)?.applyDockState(null)
 		displayedWindows.firstOrNull { it === window }?.let { displayedWindow ->
 			displayedWindows.removeValue(window, true)
+			dockEntryCache.remove(window)
+			removeDockDivider(window)
 			val name = windowConfig.nameOf(displayedWindow::class)
 			if (metaHas(name)) metaGet<MetaWindowData>(name)?.let {
 				it.displayed = false
@@ -455,13 +478,18 @@ class MetaUiManager : UIManager {
 						layoutDockedWindows(activeMovingWindow = window)
 					}
 				} else if (interaction === MetaWindowInteraction.RESIZE) {
-					metaWindowData.dockHeight = window.height
+					updateDockDivider(currentSide, window, metaWindowData, persist = false)
 					layoutDockedWindows()
 				} else if (interaction === MetaWindowInteraction.DOCK_WIDTH_RESIZE) {
 					setDesiredDockWidth(currentSide, window.width)
 					if (!metaWindowData.dockFill) metaWindowData.dockHeight = window.height
 					layoutDockedWindows()
 				}
+				return
+			}
+			if (interaction === MetaWindowInteraction.RESIZE && currentSide != null && dockConfig != null) {
+				updateDockDivider(currentSide, window, metaWindowData, persist = true)
+				layoutDockedWindows()
 				return
 			}
 			if (interaction == MetaWindowInteraction.DOCK_WIDTH_RESIZE && currentSide != null && dockConfig != null) {
@@ -507,6 +535,7 @@ class MetaUiManager : UIManager {
 		}
 		if (config == null) {
 			previewWindowDock(null)
+			removeAllDockDividers()
 			for (index in 0 until displayedWindows.size) {
 				(displayedWindows[index] as? MetaWindow)?.applyDockState(null)
 			}
@@ -545,21 +574,24 @@ class MetaUiManager : UIManager {
 	override fun previewWindowDock(window: Window?) {
 		val config = windowDockConfig
 		if (window == null || config == null || window is MetaDialog) {
-			dockPreview.remove()
+			clearDockIndicators()
 			return
 		}
 		val side = detectDockSide(window.x, window.width, uiRenderer.uiWidth, config.snapDistance)
 		if (side == null) {
 			dockPreview.remove()
+			showDockHints(config, window)
 			return
 		}
+		leftDockHint.remove()
+		rightDockHint.remove()
 		val leftMinimum = previewSideMinimum(MetaDockSide.LEFT, side, window)
 		val rightMinimum = previewSideMinimum(MetaDockSide.RIGHT, side, window)
 		val width = resolveDockWidthForSide(
 			uiRenderer.uiWidth, config, side, leftMinimum, rightMinimum, leftDockWidth, rightDockWidth,
 		)
 		if (width == null) {
-			dockPreview.remove()
+			clearDockIndicators()
 			return
 		}
 		val x = if (side == MetaDockSide.LEFT) config.margin else uiRenderer.uiWidth - config.margin - width
@@ -572,6 +604,30 @@ class MetaUiManager : UIManager {
 		if (dockPreview.stage == null) uiRenderer.addActor(dockPreview)
 		dockPreview.toFront()
 		window.toFront()
+	}
+
+	private fun showDockHints(config: MetaDockConfig, movingWindow: Window) {
+		val availableHeight = (uiRenderer.uiHeight - config.topInset - config.bottomInset).coerceAtLeast(0f)
+		val hintHeight = availableHeight.coerceAtMost(DOCK_HINT_HEIGHT)
+		val hintY = config.bottomInset + (availableHeight - hintHeight) * 0.5f
+		leftDockHint.setBounds(config.margin, hintY, DOCK_HINT_WIDTH, hintHeight)
+		rightDockHint.setBounds(
+			uiRenderer.uiWidth - config.margin - DOCK_HINT_WIDTH,
+			hintY,
+			DOCK_HINT_WIDTH,
+			hintHeight,
+		)
+		if (leftDockHint.stage == null) uiRenderer.addActor(leftDockHint)
+		if (rightDockHint.stage == null) uiRenderer.addActor(rightDockHint)
+		leftDockHint.toFront()
+		rightDockHint.toFront()
+		movingWindow.toFront()
+	}
+
+	private fun clearDockIndicators() {
+		dockPreview.remove()
+		leftDockHint.remove()
+		rightDockHint.remove()
 	}
 
 	private fun previewSideMinimum(side: MetaDockSide, targetSide: MetaDockSide, movingWindow: Window): Float? {
@@ -594,25 +650,30 @@ class MetaUiManager : UIManager {
 
 	private fun nextDockOrder(side: MetaDockSide, movingWindow: Window, persistNormalized: Boolean): Int {
 		val movingCenter = movingWindow.y + movingWindow.height / 2f
-		val ordered = dockedWindows(side)
-			.filter { it.first !== movingWindow }
-		val update = calculateDockOrder(
-			movingCenter,
-			ordered.map { (window, data) ->
-				MetaDockOrderItem(
-					key = windowConfig.nameOf(window::class),
-					order = data.dockOrder,
-					centerY = window.y + window.height / 2f,
-				)
-			},
-			DOCK_ORDER_STEP,
-		)
-		for ((window, data) in ordered) {
-			val normalized = update.normalizedOrders[windowConfig.nameOf(window::class)] ?: continue
-			data.dockOrder = normalized
-			if (persistNormalized) metaSave(windowConfig.nameOf(window::class), data)
+		val ordered = if (side == MetaDockSide.LEFT) leftDockedWindows else rightDockedWindows
+		collectDockedWindows(side, ordered, movingWindow)
+		ordered.sort(DOCKED_WINDOW_COMPARATOR)
+		var insertion = ordered.size
+		for (index in 0 until ordered.size) {
+			val window = ordered[index].window
+			if (movingCenter > window.y + window.height / 2f) {
+				insertion = index
+				break
+			}
 		}
-		return update.order
+		if (ordered.size == 0) return 0
+		if (insertion == 0) return ordered.first().data.dockOrder - DOCK_ORDER_STEP
+		if (insertion == ordered.size) return ordered.peek().data.dockOrder + DOCK_ORDER_STEP
+		val before = ordered[insertion - 1].data.dockOrder
+		val after = ordered[insertion].data.dockOrder
+		if (after - before > 1) return before + (after - before) / 2
+
+		for (index in 0 until ordered.size) {
+			val entry = ordered[index]
+			entry.data.dockOrder = (if (index < insertion) index else index + 1) * DOCK_ORDER_STEP
+			if (persistNormalized) metaSave(entry.name, entry.data)
+		}
+		return insertion * DOCK_ORDER_STEP
 	}
 
 	private fun persistDockSide(side: MetaDockSide) {
@@ -625,6 +686,44 @@ class MetaUiManager : UIManager {
 		}
 	}
 
+	private fun updateDockDivider(
+		side: MetaDockSide,
+		window: Window,
+		data: MetaWindowData,
+		persist: Boolean,
+	) {
+		if (!data.dockFill) {
+			data.dockHeight = window.height.coerceAtLeast(dockPanelMinimumHeight(window))
+			if (persist) metaSave(windowConfig.nameOf(window::class), data)
+			return
+		}
+
+		val docked = if (side == MetaDockSide.LEFT) leftDockedWindows else rightDockedWindows
+		collectDockedWindows(side, docked)
+		docked.sort(DOCKED_WINDOW_COMPARATOR)
+		var currentIndex = -1
+		for (index in 0 until docked.size) {
+			if (docked[index].window === window) {
+				currentIndex = index
+				break
+			}
+		}
+		if (currentIndex < 0 || currentIndex >= docked.size - 1) return
+		val lower = docked[currentIndex + 1]
+		val config = windowDockConfig ?: return
+		lower.data.dockHeight = resizedLowerDockPanelHeight(
+			upperBottom = window.y,
+			lowerTop = lower.window.y + lower.window.height,
+			lowerHeight = lower.window.height,
+			gap = config.gap,
+			minimumHeight = dockPanelMinimumHeight(lower.window),
+		)
+		// Once the user sizes the lower side of a fill/fill divider, the lower panel becomes the fixed side and the
+		// upper panel continues filling the remaining space.
+		lower.data.dockFill = false
+		if (persist) metaSave(lower.name, lower.data)
+	}
+
 	private fun setDesiredDockWidth(side: MetaDockSide, width: Float) {
 		if (!width.isFinite()) return
 		if (side == MetaDockSide.LEFT) leftDockWidth = width else rightDockWidth = width
@@ -634,27 +733,40 @@ class MetaUiManager : UIManager {
 		metaSave(DOCK_LAYOUT_DATA_KEY, MetaDockLayoutData(leftDockWidth, rightDockWidth))
 	}
 
-	private fun dockedWindows(side: MetaDockSide): List<Pair<Window, MetaWindowData>> = buildList {
+	private fun collectDockedWindows(
+		side: MetaDockSide,
+		out: Array<DockedWindow>,
+		excludedWindow: Window? = null,
+	) {
+		out.clear()
 		for (index in 0 until displayedWindows.size) {
 			val window = displayedWindows[index]
-			if (window is MetaDialog) continue
+			if (window === excludedWindow || window is MetaDialog) continue
 			val name = windowConfig.nameOf(window::class)
 			val data = if (metaHas(name)) metaGet<MetaWindowData>(name) else null
-			if (data != null && data.dockSide == side.persistedName) add(window to data)
+			if (data != null && data.dockSide == side.persistedName) {
+				var entry = dockEntryCache[window]
+				if (entry == null) {
+					entry = DockedWindow(window, name, data)
+					dockEntryCache.put(window, entry)
+				} else {
+					entry.data = data
+				}
+				out.add(entry)
+			}
 		}
 	}
 
 	private fun layoutDockedWindows(activeMovingWindow: Window? = null) {
-		val config = windowDockConfig ?: return
-		val dockedBySide = MetaDockSide.entries.associateWith(::dockedWindows)
-		val leftMinimum = resolveDockMinimum(
-			config.minimumSidebarWidth,
-			dockedBySide.getValue(MetaDockSide.LEFT).map { it.first.minWidth },
-		)
-		val rightMinimum = resolveDockMinimum(
-			config.minimumSidebarWidth,
-			dockedBySide.getValue(MetaDockSide.RIGHT).map { it.first.minWidth },
-		)
+		val config = windowDockConfig ?: run {
+			removeAllDockDividers()
+			return
+		}
+		dockLayoutGeneration++
+		collectDockedWindows(MetaDockSide.LEFT, leftDockedWindows)
+		collectDockedWindows(MetaDockSide.RIGHT, rightDockedWindows)
+		val leftMinimum = dockMinimum(config, leftDockedWindows)
+		val rightMinimum = dockMinimum(config, rightDockedWindows)
 		val widths = resolveDockWidths(
 			uiRenderer.uiWidth,
 			config,
@@ -665,52 +777,193 @@ class MetaUiManager : UIManager {
 		)
 		widths.left?.let { leftDockWidth = it }
 		widths.right?.let { rightDockWidth = it }
-		for (side in MetaDockSide.entries) {
-			val docked = dockedBySide.getValue(side)
-			val sideWidth = if (side == MetaDockSide.LEFT) widths.left else widths.right
-			val sideMinimum = if (side == MetaDockSide.LEFT) leftMinimum else rightMinimum
-			// Wrapped content derives its minimum height from the assigned width. Give every panel its final sidebar
-			// width and validate once before measuring heights, or a newly shown panel can report a character-wrapped
-			// minimum and make the entire dock absurdly tall on its first frame.
-			if (sideWidth != null) {
-				for ((window, _) in docked) {
-					if (window === activeMovingWindow) continue
-					window.setWidth(sideWidth)
-					window.invalidateHierarchy()
-					window.validate()
-				}
-			}
-			val boundsByName = calculateDockBounds(
-				viewportWidth = uiRenderer.uiWidth,
-				viewportHeight = uiRenderer.uiHeight,
-				config = config,
-				side = side,
-				widthOverride = sideWidth,
-				items = docked.map { (window, data) ->
-					MetaDockItem(
-						key = windowConfig.nameOf(window::class),
-						order = data.dockOrder,
-						minimumWidth = window.minWidth,
-						minimumHeight = window.minHeight,
-						requestedHeight = data.dockHeight.takeIf { it > 0f } ?: window.height,
-						fill = data.dockFill,
-					)
-				},
-			)
-			for ((window, data) in docked) {
-				val bounds = boundsByName[windowConfig.nameOf(window::class)] ?: continue
-				(window as? MetaWindow)?.applyDockState(side, data.dockFill, sideMinimum ?: config.minimumSidebarWidth)
-				if (window === activeMovingWindow) continue
-				window.setBounds(bounds.x, bounds.y, bounds.width, bounds.height)
-				window.invalidateHierarchy()
-			}
+		leftDockHeights = layoutDockSide(
+			MetaDockSide.LEFT, config, leftDockedWindows, widths.left, leftMinimum, leftDockHeights, activeMovingWindow,
+		)
+		rightDockHeights = layoutDockSide(
+			MetaDockSide.RIGHT, config, rightDockedWindows, widths.right, rightMinimum, rightDockHeights,
+			activeMovingWindow,
+		)
+		for (index in 0 until dockDividers.size) {
+			val divider = dockDividers[index]
+			if (divider.layoutGeneration != dockLayoutGeneration && !divider.dragging) divider.detach()
 		}
 	}
 
-	override fun bringWindowsToFront() {
-		for (window in displayedWindows) {
-			window.toFront()
+	private fun dockMinimum(config: MetaDockConfig, docked: Array<DockedWindow>): Float? {
+		if (docked.size == 0) return null
+		var minimum = config.minimumSidebarWidth
+		for (index in 0 until docked.size) minimum = minimum.coerceAtLeast(docked[index].window.minWidth)
+		return minimum
+	}
+
+	private fun layoutDockSide(
+		side: MetaDockSide,
+		config: MetaDockConfig,
+		docked: Array<DockedWindow>,
+		width: Float?,
+		minimumWidth: Float?,
+		heightBuffer: FloatArray,
+		activeMovingWindow: Window?,
+	): FloatArray {
+		if (docked.size == 0 || width == null) return heightBuffer
+		docked.sort(DOCKED_WINDOW_COMPARATOR)
+		for (index in 0 until docked.size) {
+			val window = docked[index].window
+			if (window === activeMovingWindow) continue
+			window.setWidth(width)
+			window.invalidateHierarchy()
+			window.validate()
 		}
+
+		val heights = if (heightBuffer.size >= docked.size) heightBuffer else FloatArray(docked.size)
+		val availableHeight = (uiRenderer.uiHeight - config.topInset - config.bottomInset -
+			config.gap * (docked.size - 1)).coerceAtLeast(0f)
+		var minimumTotal = 0f
+		for (index in 0 until docked.size) {
+			heights[index] = dockPanelMinimumHeight(docked[index].window)
+			minimumTotal += heights[index]
+		}
+		if (minimumTotal > availableHeight && minimumTotal > 0f) {
+			val scale = availableHeight / minimumTotal
+			for (index in 0 until docked.size) heights[index] *= scale
+			minimumTotal = availableHeight
+		}
+		var remaining = (availableHeight - minimumTotal).coerceAtLeast(0f)
+		for (index in 0 until docked.size) {
+			val entry = docked[index]
+			if (entry.data.dockFill || remaining <= 0f) continue
+			val requestedHeight = if (entry.data.dockHeight > 0f) entry.data.dockHeight else entry.window.height
+			val allocated = (requestedHeight - heights[index]).coerceAtLeast(0f).coerceAtMost(remaining)
+			heights[index] += allocated
+			remaining -= allocated
+		}
+		var fillCount = 0
+		for (index in 0 until docked.size) if (docked[index].data.dockFill) fillCount++
+		if (fillCount > 0 && remaining > 0f) {
+			val fillExtra = remaining / fillCount
+			for (index in 0 until docked.size) if (docked[index].data.dockFill) heights[index] += fillExtra
+		}
+
+		val x = if (side == MetaDockSide.LEFT) config.margin else uiRenderer.uiWidth - config.margin - width
+		var top = uiRenderer.uiHeight - config.topInset
+		for (index in 0 until docked.size) {
+			val entry = docked[index]
+			val height = heights[index]
+			val y = top - height
+			(entry.window as? MetaWindow)?.applyDockState(
+				side,
+				entry.data.dockFill,
+				minimumWidth ?: config.minimumSidebarWidth,
+			)
+			if (entry.window !== activeMovingWindow) {
+				entry.window.setBounds(x, y, width, height)
+				entry.window.invalidateHierarchy()
+			}
+			if (index < docked.size - 1 && config.gap > 0f) {
+				val divider = dockDividerFor(entry.window)
+				divider.configure(entry, docked[index + 1], dockLayoutGeneration)
+				divider.setBounds(x, dockDividerBottom(y, config.gap), width, config.gap)
+				if (divider.stage == null) uiRenderer.addActor(divider)
+				divider.toFront()
+			}
+			top = y - config.gap
+		}
+		return heights
+	}
+
+	private fun dockDividerFor(window: Window): DockDivider {
+		var divider = dockDividerCache[window]
+		if (divider == null) {
+			divider = DockDivider()
+			dockDividerCache.put(window, divider)
+			dockDividers.add(divider)
+		}
+		return divider
+	}
+
+	private fun removeDockDivider(window: Window) {
+		val divider = dockDividerCache.remove(window) ?: return
+		divider.detach()
+		dockDividers.removeValue(divider, true)
+	}
+
+	private fun removeAllDockDividers() {
+		for (index in 0 until dockDividers.size) dockDividers[index].detach()
+	}
+
+	private inner class DockDivider : Actor() {
+		var layoutGeneration = -1
+		var dragging = false
+		private lateinit var upper: DockedWindow
+		private lateinit var lower: DockedWindow
+		private lateinit var resized: DockedWindow
+		private var resizeLowerPanel = false
+		private var startStageY = 0f
+		private var startHeight = 0f
+		private var cursorActive = false
+
+		init {
+			addListener(object : InputListener() {
+				override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+					if (pointer == -1) setDividerCursor(true)
+				}
+
+				override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+					if (pointer == -1 && !dragging) setDividerCursor(false)
+				}
+
+				override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+					if (pointer != 0 || button != Input.Buttons.LEFT) return false
+					dragging = true
+					startStageY = event.stageY
+					resizeLowerPanel = upper.data.dockFill
+					resized = if (resizeLowerPanel) lower else upper
+					startHeight = resized.window.height
+					return true
+				}
+
+				override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
+					val deltaY = event.stageY - startStageY
+					resized.data.dockHeight = resizedDockPanelHeight(
+						startHeight, deltaY, resizeLowerPanel, dockPanelMinimumHeight(resized.window),
+					)
+					resized.data.dockFill = false
+					layoutDockedWindows()
+				}
+
+				override fun touchUp(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int) {
+					if (!dragging) return
+					dragging = false
+					metaSave(resized.name, resized.data)
+					setDividerCursor(hit(x, y, true) === this@DockDivider)
+				}
+			})
+		}
+
+		fun configure(upper: DockedWindow, lower: DockedWindow, generation: Int) {
+			this.upper = upper
+			this.lower = lower
+			layoutGeneration = generation
+		}
+
+		fun detach() {
+			if (!dragging) setDividerCursor(false)
+			remove()
+		}
+
+		private fun setDividerCursor(active: Boolean) {
+			if (cursorActive == active) return
+			cursorActive = active
+			Gdx.graphics.setSystemCursor(if (active) Cursor.SystemCursor.VerticalResize else Cursor.SystemCursor.Arrow)
+		}
+	}
+
+	private fun dockPanelMinimumHeight(window: Window): Float =
+		(window as? MetaWindow)?.minimumDockHeight ?: window.minHeight.coerceAtLeast(0f)
+
+	override fun bringWindowsToFront() {
+		for (index in 0 until displayedWindows.size) displayedWindows[index].toFront()
 		mainMenuBar?.table?.toFront()
 		modalRevision.update { it + 1 }
 		uiRenderer.getToastManager().toFront()
@@ -783,22 +1036,38 @@ class MetaUiManager : UIManager {
 		return screenMetaDataKeys.getOrPut(id) { MetaDataKey<Any>(id) } as MetaDataKey<T>
 	}
 
+	private class DockedWindow(
+		val window: Window,
+		val name: String,
+		var data: MetaWindowData,
+	)
+
 	private companion object {
+		val DOCKED_WINDOW_COMPARATOR = Comparator<DockedWindow> { first, second ->
+			val orderComparison = first.data.dockOrder.compareTo(second.data.dockOrder)
+			if (orderComparison != 0) orderComparison else first.name.compareTo(second.name)
+		}
 		const val DOCK_LAYOUT_DATA_KEY = "DockLayout"
 		const val DOCK_ORDER_STEP = 100
 		const val MENU_BAR_HEIGHT = 34f
 		const val SAVE_THROTTLE_MILLIS = 200L
+		const val DOCK_HINT_WIDTH = 5f
+		const val DOCK_HINT_HEIGHT = 112f
 	}
 
 	override fun dispose() {
 		backdropEffect.dispose()
 		flushPendingSavesTask.cancel()
 		flushPendingSaves() // don't lose a trailing save that was still in flight
-		for (window in displayedWindows) {
-			window.remove()
-		}
+		for (index in 0 until displayedWindows.size) displayedWindows[index].remove()
 		displayedWindows.clear()
-		dockPreview.remove()
+		dockEntryCache.clear()
+		removeAllDockDividers()
+		dockDividerCache.clear()
+		dockDividers.clear()
+		leftDockedWindows.clear()
+		rightDockedWindows.clear()
+		clearDockIndicators()
 		windowConfig.disposeCachedWindows()
 		hiddenWindows.clear()
 		modalDialogs.clear()

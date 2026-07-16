@@ -18,6 +18,7 @@ import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
@@ -38,6 +39,11 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 	private val focusStyle: MetaSelectBoxFocusStyle<T>
 	val selectedValue: Signal<T?> = signal(selected)
 	val dropdownOpenValue: Signal<Boolean> = signal(false)
+	@Suppress("unused")
+	private val selectedBinding = selectedValue.subscribe {
+		val desired = selectedValue.peek()
+		if (selected != desired) setSelected(desired)
+	}
 	private val chevronDown = MetaIconDrawable("ri-arrow-down-s-line", CHEVRON_SIZE, MetaColor.TEXT_MUTED.cpy())
 	private val chevronUp = MetaIconDrawable("ri-arrow-up-s-line", CHEVRON_SIZE, MetaColor.TEXT_MUTED.cpy())
 

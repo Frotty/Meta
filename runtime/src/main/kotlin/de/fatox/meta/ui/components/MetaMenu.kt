@@ -17,6 +17,7 @@ import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
@@ -201,6 +202,8 @@ class MetaMenuItem private constructor(
 	fontSize: Int,
 ) : Button(menuItemStyle()) {
 	val disabledValue: Signal<Boolean> = signal(false)
+	@Suppress("unused")
+	private val disabledBinding = disabledValue.subscribe { setDisabled(disabledValue.peek()) }
 	internal var owner: MetaMenu? = null
 	private val label = MetaLabel(text, fontSize, MetaColor.TEXT).apply { setAlignment(Align.left) }
 

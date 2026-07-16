@@ -4,8 +4,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.ProgressBar
 import com.badlogic.gdx.utils.Array
 
 /**
- * A MetaTask is any action that should be reversible and actions that are not instant
+ * Legacy unfinished task queue. It does not provide completion tracking and should not be used for new work.
  */
+@Deprecated("Use a runtime-owned queue whose progress is exposed as reactive signals")
 abstract class MetaTaskQueue(private val progressBar: ProgressBar, name: String, vararg tasks: MetaTask) :
 	MetaTask(name) {
 	private val tasks: Array<MetaTask> = Array(tasks)

@@ -45,6 +45,7 @@ import de.fatox.meta.ui.components.MetaTextButton
 import de.fatox.meta.ui.components.MetaTextField
 import de.fatox.meta.ui.components.SliderWithButtons
 import de.fatox.meta.ui.windows.MetaWindow
+import kotlin.math.roundToInt
 
 class TypographyPlaygroundWindow : MetaWindow("Typography & Icons", resizable = true, closeButton = true) {
 	init {
@@ -158,7 +159,7 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 	}
 	private val spinnerModel = MetaIntSpinnerModel(4, 0, 12, 1)
 	private val slider = SliderWithButtons(0f, 100f, 5f, false).apply { value = 35f }
-	private val uiScaleSlider = SliderWithButtons(0.5f, 2f, 0.25f, false)
+	private val uiScaleSlider = SliderWithButtons(0.5f, 2f, 0.05f, false)
 	private val uiScaleLabel = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 	private val loading = MetaLoadingSpinner(32f, 3.5f)
 	private val summary = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
@@ -210,7 +211,7 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 		reactiveScope.effect("playgroundUiScaleSlider") {
 			uiScaleSlider.value = playgroundUiRenderer.uiScale().coerceIn(0.5f, 2f)
 		}
-		reactiveScope.bindText(uiScaleLabel) { "${uiScaleSlider.valueValue()}×" }
+		reactiveScope.bindText(uiScaleLabel) { "${(uiScaleSlider.valueValue() * 100f).roundToInt()}%" }
 		reactiveScope.bindColor(colorSwatch) { pickedColor() }
 		reactiveScope.bindText(colorLabel) { "#${pickedColor()}" }
 		reactiveScope.bindText(summary) {

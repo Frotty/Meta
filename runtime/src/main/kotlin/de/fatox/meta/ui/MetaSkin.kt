@@ -47,6 +47,7 @@ object MetaSkin {
 	const val TOAST = "meta.toast"
 	const val BOTTOM_BAR = "meta.bottomBar"
 	const val COLOR_FILL = "meta.color.fill"
+	const val LOADING_RING = "meta.loading.ring"
 	const val WINDOW = "meta.window"
 	const val WINDOW_RESIZABLE = "meta.window.resizable"
 	const val WINDOW_SHADOW = "meta.window.shadow"
@@ -58,6 +59,7 @@ object MetaSkin {
 	private const val ICON_SIZE = 24
 	private const val ICON_PIXMAP_SCALE = 3
 	private const val ICON_PIXMAP_SIZE = ICON_SIZE * ICON_PIXMAP_SCALE
+	private const val LOADING_RING_PIXMAP_SIZE = 64
 	private var activeSkin: Skin? = null
 
 	fun skin(): Skin = activeSkin ?: error("MetaSkin has not been initialized")
@@ -106,6 +108,7 @@ object MetaSkin {
 
 	private fun addPanelDrawables(skin: Skin) {
 		solid(skin, COLOR_FILL, Color.WHITE, minWidth = 1f, minHeight = 1f)
+		loadingRing(skin)
 		solid(skin, "meta.menu.bar", MetaColor.SURFACE, minWidth = 1f, minHeight = 1f)
 		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
 		rounded(skin, "meta.panel.raised", MetaColor.SURFACE_RAISED, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
@@ -119,6 +122,25 @@ object MetaSkin {
 		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f)
 		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), Color.valueOf("596170FF"), radius = 7, border = 1, padding = 7f)
 		topRounded(skin, BOTTOM_BAR, Color.valueOf("080A0ECC"), Color.valueOf("2F333BAA"), radius = 12, border = 1, padding = 14f)
+	}
+
+	private fun loadingRing(skin: Skin) {
+		val pixmap = Pixmap(LOADING_RING_PIXMAP_SIZE, LOADING_RING_PIXMAP_SIZE, Pixmap.Format.RGBA8888)
+		pixmap.setBlending(Pixmap.Blending.None)
+		val center = LOADING_RING_PIXMAP_SIZE / 2
+		pixmap.setColor(Color.WHITE)
+		pixmap.fillCircle(center, center, 28)
+		pixmap.setColor(Color.CLEAR)
+		pixmap.fillCircle(center, center, 22)
+		pixmap.fillTriangle(center, center, center - 15, LOADING_RING_PIXMAP_SIZE, center + 15, LOADING_RING_PIXMAP_SIZE)
+		val texture = Texture(pixmap)
+		pixmap.dispose()
+		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+		skin.add("$LOADING_RING.texture", texture)
+		skin.add(LOADING_RING, TextureRegionDrawable(TextureRegion(texture)).apply {
+			minWidth = 1f
+			minHeight = 1f
+		}, Drawable::class.java)
 	}
 
 	private fun addControlDrawables(skin: Skin) {
@@ -167,8 +189,8 @@ object MetaSkin {
 		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.selected"))
 		solid(skin, "meta.cursor", MetaColor.TEXT, minWidth = 2f, minHeight = 20f)
 
-		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 4, border = 0, padding = 0f, minWidth = 8f, minHeight = 8f)
-		rounded(skin, "meta.scroll.knob", Color.valueOf("858F9EFF"), null, radius = 4, border = 0, padding = 0f, minWidth = 8f, minHeight = 8f)
+		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 3, border = 0, padding = 0f, minWidth = 6f, minHeight = 6f)
+		rounded(skin, "meta.scroll.knob", Color.valueOf("858F9EFF"), null, radius = 3, border = 0, padding = 0f, minWidth = 6f, minHeight = 6f)
 		solid(skin, SEPARATOR, Color.valueOf("59606BFF"), minWidth = 1f, minHeight = 1f)
 		rounded(skin, "meta.slider.track", Color.valueOf("24262BFF"), Color.valueOf("4B515EFF"), radius = 4, border = 1, padding = 0f, minHeight = 8f)
 		rounded(skin, "meta.slider.fill", Color.valueOf("4F9DDEFF"), null, radius = 4, border = 0, padding = 0f, minHeight = 8f)

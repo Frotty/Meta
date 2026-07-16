@@ -201,6 +201,20 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
+	fun `writable input signals update their widgets`() {
+		val field = MetaTextField("before", fontProvider = fontProvider)
+		val area = MetaTextArea("before", fontProvider = fontProvider)
+
+		field.textValue.value = "field after"
+		field.disabledValue.value = true
+		area.textValue.value = "area after"
+
+		assertEquals("field after", field.text)
+		assertTrue(field.isDisabled)
+		assertEquals("area after", area.text)
+	}
+
+	@Test
 	fun `button labels truncate instead of drawing outside constrained buttons`() {
 		val skin = MetaSkin.skin()
 		skin.add(MetaSkin.BUTTON, Button.ButtonStyle())
@@ -294,6 +308,17 @@ internal class MetaInputComponentsTest {
 
 		// Signal writes are programmatic state sync; they must not fire consumer ChangeEvents.
 		assertEquals(0, consumerChangeEvents)
+	}
+
+	@Test
+	fun `MetaCheckBox disabled signal updates interaction state`() {
+		installCheckboxSkin()
+		val checkBox = MetaCheckBox(stubAssetProvider())
+
+		checkBox.disabledValue.value = true
+
+		assertTrue(checkBox.isDisabled)
+		assertEquals(com.badlogic.gdx.scenes.scene2d.Touchable.disabled, checkBox.touchable)
 	}
 
 	@Test

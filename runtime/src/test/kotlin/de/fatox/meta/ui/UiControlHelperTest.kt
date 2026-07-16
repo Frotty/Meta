@@ -33,6 +33,8 @@ import de.fatox.meta.input.MetaUiAction
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.input.ScrollListener
 import de.fatox.meta.ui.components.MetaScrollPane
+import de.fatox.meta.ui.components.shiftedHorizontalScrollPosition
+import de.fatox.meta.ui.components.updateMetaScrollFocus
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.test.GdxTestEnvironment
@@ -41,6 +43,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 internal class UiControlHelperTest {
 	private lateinit var input: TestInput
@@ -92,9 +95,9 @@ internal class UiControlHelperTest {
 	}
 
 	@Test
-	fun `nested MetaScrollPanes claim and restore mouse wheel focus on hover`() {
-		val outerContent = Group().apply { setBounds(0f, 0f, 200f, 200f) }
-		val innerContent = Actor().apply { setBounds(0f, 0f, 100f, 100f) }
+	fun `stage scroll focus chooses deepest nested MetaScrollPane and restores its parent`() {
+		val outerContent = Group().apply { setBounds(0f, 0f, 200f, 400f) }
+		val innerContent = Actor().apply { setBounds(0f, 0f, 100f, 300f) }
 		val outer = MetaScrollPane(null, ScrollPane.ScrollPaneStyle())
 		val inner = MetaScrollPane(null, ScrollPane.ScrollPaneStyle()).apply { setBounds(50f, 50f, 100f, 100f) }
 		outer.setActor(outerContent)
@@ -106,19 +109,63 @@ internal class UiControlHelperTest {
 		inner.setBounds(50f, 50f, 100f, 100f)
 		inner.validate()
 
-		outerContent.fire(mouseHoverEvent(InputEvent.Type.enter, 10f, 10f))
+		updateMetaScrollFocus(stage, outerContent)
 		assertSame(outer, stage.scrollFocus)
 
-		// Nested scene2d hierarchies do not always emit a separate enter for the inner pane. A normal mouse move
-		// over its content must still transfer focus away from the root pane.
-		innerContent.fire(mouseHoverEvent(InputEvent.Type.mouseMoved, 75f, 75f))
+		updateMetaScrollFocus(stage, innerContent)
 		assertSame(inner, stage.scrollFocus)
 
-		innerContent.fire(mouseHoverEvent(InputEvent.Type.exit, 10f, 10f))
+		updateMetaScrollFocus(stage, outerContent)
 		assertSame(outer, stage.scrollFocus)
 
-		outerContent.fire(mouseHoverEvent(InputEvent.Type.exit, 250f, 250f))
+		updateMetaScrollFocus(stage, null)
 		assertNull(stage.scrollFocus)
+	}
+
+	@Test
+	fun `stage scroll focus treats a child button as part of its MetaScrollPane`() {
+		val content = Group().apply { setBounds(0f, 0f, 200f, 300f) }
+		val childButton = Button().apply { setBounds(20f, 120f, 120f, 32f) }
+		val pane = MetaScrollPane(null, ScrollPane.ScrollPaneStyle()).apply { setBounds(0f, 0f, 200f, 180f) }
+		content.addActor(childButton)
+		pane.setActor(content)
+		stage.addActor(pane)
+		pane.validate()
+
+		updateMetaScrollFocus(stage, content)
+		assertSame(pane, stage.scrollFocus)
+
+		updateMetaScrollFocus(stage, childButton)
+		assertSame(pane, stage.scrollFocus)
+	}
+
+	@Test
+	fun `stage scroll focus skips a nested pane with no range and chooses scrollable outer pane`() {
+		val outerContent = Group().apply { setBounds(0f, 0f, 200f, 300f) }
+		val innerContent = Group().apply { setBounds(0f, 0f, 160f, 120f) }
+		val childButton = Button().apply { setBounds(20f, 40f, 120f, 32f) }
+		val outer = MetaScrollPane(null, ScrollPane.ScrollPaneStyle()).apply { setBounds(0f, 0f, 200f, 180f) }
+		val inner = MetaScrollPane(null, ScrollPane.ScrollPaneStyle()).apply { setBounds(10f, 100f, 160f, 120f) }
+		innerContent.addActor(childButton)
+		inner.setActor(innerContent)
+		outerContent.addActor(inner)
+		outer.setActor(outerContent)
+		stage.addActor(outer)
+		outer.validate()
+		inner.validate()
+
+		assertEquals(0f, inner.maxY)
+		assertTrue(outer.maxY > 0f)
+		updateMetaScrollFocus(stage, childButton)
+		assertSame(outer, stage.scrollFocus)
+	}
+
+	@Test
+	fun `shift wheel horizontal scrolling follows browser direction and clamps`() {
+		assertEquals(100f, shiftedHorizontalScrollPosition(0f, 300f, amountY = 1f))
+		assertEquals(50f, shiftedHorizontalScrollPosition(150f, 300f, amountY = -1f))
+		assertEquals(300f, shiftedHorizontalScrollPosition(250f, 300f, amountY = 1f))
+		assertEquals(0f, shiftedHorizontalScrollPosition(50f, 300f, amountY = -1f))
 	}
 
 	@Test
@@ -260,13 +307,6 @@ internal class UiControlHelperTest {
 
 	private fun testRoot(): Group =
 		Group().apply { setBounds(0f, 0f, 800f, 600f) }
-
-	private fun mouseHoverEvent(type: InputEvent.Type, stageX: Float, stageY: Float): InputEvent = InputEvent().apply {
-		this.type = type
-		pointer = -1
-		this.stageX = stageX
-		this.stageY = stageY
-	}
 
 	private fun edges(actor: Actor): String {
 		val tmp = Vector2()

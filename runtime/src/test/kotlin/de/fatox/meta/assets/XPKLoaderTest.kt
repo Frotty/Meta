@@ -37,7 +37,9 @@ class XPKLoaderTest {
 			val entries = XPKLoader.getList(FileHandle(temporaryFile))
 			assertEquals(1, entries.size)
 			assertEquals("textures\\test.bin", entries[0].name())
+			assertEquals(expected.size.toLong(), entries[0].length())
 			assertContentEquals(expected, entries[0].readBytes())
+			assertEquals(listOf("textures\\test.bin"), XPKLoader.listEntryNames(FileHandle(temporaryFile)).toList())
 		} finally {
 			temporaryFile.delete()
 		}

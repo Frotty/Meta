@@ -1,14 +1,11 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.Pixmap
-import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import de.fatox.meta.ui.MetaColor
+import de.fatox.meta.ui.MetaSkin
 
 /** Six-dot corner marker whose bounds match MetaWindow's bottom-right resize target. */
 class MetaResizeGrip : WidgetGroup() {
@@ -49,21 +46,7 @@ class MetaResizeGrip : WidgetGroup() {
 		const val DOT_STEP = 4f
 		val dotTint: Color = MetaColor.TEXT.cpy().apply { a = 0.82f }
 
-		val dotTexture: Texture by lazy {
-			val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
-			pixmap.setBlending(Pixmap.Blending.None)
-			pixmap.setColor(Color.WHITE)
-			pixmap.fill()
-			Texture(pixmap).also {
-				it.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-				pixmap.dispose()
-			}
-		}
-		val dotDrawable: TextureRegionDrawable by lazy {
-			TextureRegionDrawable(TextureRegion(dotTexture))
-		}
-
-		fun dot(): Image = Image(dotDrawable).apply {
+		fun dot(): Image = Image(MetaSkin.skin().getDrawable(MetaSkin.COLOR_FILL)).apply {
 			touchable = Touchable.disabled
 			color.set(dotTint)
 		}

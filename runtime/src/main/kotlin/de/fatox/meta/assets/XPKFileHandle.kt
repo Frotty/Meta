@@ -3,26 +3,28 @@ package de.fatox.meta.assets
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.GdxRuntimeException
-import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import java.io.InputStream
 
-class XPKFileHandle(
+class XPKFileHandle internal constructor(
 	private val siblings: Array<XPKFileHandle>,
 	private var length: Int,
 	private val sevenZFile: XPKByteChannel,
-	private val entry: SevenZArchiveEntry,
+	private val entryName: String,
+	private val entrySize: Long,
 	val name: String,
 ) : FileHandle() {
 	private val path: String = name.substringBeforeLast('\\')
 	private val fileName: String = name.substringAfterLast('\\')
-	val array: ByteArray? by lazy(LazyThreadSafetyMode.NONE) { XPKLoader.loadEntry(sevenZFile, entry) }
+	val array: ByteArray? by lazy(LazyThreadSafetyMode.NONE) {
+		XPKLoader.loadEntry(sevenZFile, entryName, entrySize)
+	}
 
 	override fun exists(): Boolean = true
 
 	override fun parent(): FileHandle {
 		val name = if (path != this.name) path else ""
 
-		return XPKFileHandle(siblings, 0, sevenZFile, entry, name)
+		return XPKFileHandle(siblings, 0, sevenZFile, entryName, entrySize, name)
 	}
 
 	override fun sibling(name: String?): FileHandle? =
@@ -55,7 +57,7 @@ class XPKFileHandle(
 
 		return siblings.firstOrNull {
 			it.name.replace('/', '\\') == search
-		} ?: XPKFileHandle(siblings, 0, sevenZFile, entry, search)
+		} ?: XPKFileHandle(siblings, 0, sevenZFile, entryName, entrySize, search)
 	}
 
 	override fun toString(): String = name.replace('\\', '/')

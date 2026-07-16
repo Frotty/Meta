@@ -16,6 +16,7 @@ import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaFocusable
@@ -38,6 +39,8 @@ open class MetaTextArea @JvmOverloads constructor(
 
 	val textValue: Signal<String> = signal(text)
 	val inputValidValue: Signal<Boolean> = signal(true)
+	@Suppress("unused")
+	private val textBinding = textValue.subscribe { setText(textValue.peek()) }
 	val isInputValid: Boolean get() = inputValidValue.peek()
 
 	var isValidationEnabled: Boolean = true

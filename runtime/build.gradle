@@ -7,7 +7,7 @@ dependencies {
 	implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
 	implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
 
-	api "org.apache.commons:commons-compress:$commonsCompressVersion"
+	implementation "org.apache.commons:commons-compress:$commonsCompressVersion"
 	// XZ backs Commons Compress' LZMA support but is not part of Meta's public API.
 	implementation "org.tukaani:xz:$xzVersion"
 	api "org.slf4j:slf4j-api:$slf4jVersion"

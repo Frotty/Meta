@@ -117,12 +117,12 @@ internal class MetaWindowDockingTest {
 
 		assertEquals(8f, bounds.x)
 		assertEquals(244f, bounds.width)
-		assertEquals(40f, bounds.y)
-		assertEquals(100f, bounds.height)
+		assertEquals(48f, bounds.y)
+		assertEquals(92f, bounds.height)
 	}
 
 	@Test
-	fun `minimum heights never collapse or overlap in an impossibly short viewport`() {
+	fun `overfilled dock compresses all slots inside the available viewport`() {
 		val bounds = calculateDockBounds(
 			500f, 180f,
 			MetaDockConfig(leftWidth = 200f, margin = 8f, gap = 6f, topInset = 40f, bottomInset = 48f),
@@ -135,10 +135,32 @@ internal class MetaWindowDockingTest {
 
 		val top = bounds.getValue("top")
 		val bottom = bounds.getValue("bottom")
-		assertEquals(80f, top.height)
-		assertEquals(80f, bottom.height)
+		assertEquals(43f, top.height)
+		assertEquals(43f, bottom.height)
 		assertEquals(6f, top.y - (bottom.y + bottom.height))
-		assertTrue(bottom.y < 48f, "An impossible stack should overflow predictably instead of overlap")
+		assertEquals(48f, bottom.y)
+	}
+
+	@Test
+	fun `many oversized panels remain ordered and bounded inside one sidebar`() {
+		val config = MetaDockConfig(gap = 6f, topInset = 40f, bottomInset = 48f)
+		val bounds = calculateDockBounds(
+			1280f,
+			900f,
+			config,
+			MetaDockSide.RIGHT,
+			List(5) { index ->
+				MetaDockItem("panel-$index", index * 100, 180f, 240f, 300f, fill = index == 4)
+			},
+		)
+
+		val ordered = List(5) { bounds.getValue("panel-$it") }
+		assertEquals(900f - config.topInset, ordered.first().y + ordered.first().height, 0.001f)
+		assertEquals(config.bottomInset, ordered.last().y, 0.001f)
+		for (index in 0 until ordered.lastIndex) {
+			assertEquals(config.gap, ordered[index].y - (ordered[index + 1].y + ordered[index + 1].height), 0.001f)
+		}
+		assertTrue(ordered.all { it.height > 0f })
 	}
 
 	@Test
@@ -323,10 +345,62 @@ internal class MetaWindowDockingTest {
 	}
 
 	@Test
-	fun `docked resize affordance is only available on fixed panel divider`() {
-		assertTrue(dockedPanelCanResizeHeight(fill = false, localY = 4f, edgeSize = 8f))
-		assertEquals(false, dockedPanelCanResizeHeight(fill = false, localY = 12f, edgeSize = 8f))
-		assertEquals(false, dockedPanelCanResizeHeight(fill = true, localY = 4f, edgeSize = 8f))
+	fun `dock divider occupies only the gap below the upper window`() {
+		val upperBottom = 240f
+		val lowerTop = 234f
+		val gap = 6f
+		val dividerBottom = dockDividerBottom(upperBottom, gap)
+
+		assertEquals(lowerTop, dividerBottom)
+		assertEquals(upperBottom, dividerBottom + gap)
+	}
+
+	@Test
+	fun `divider movement resizes the correct adjacent panel and clamps its chrome minimum`() {
+		assertEquals(100f, resizedDockPanelHeight(120f, 20f, resizeLowerPanel = false, minimumHeight = 64f))
+		assertEquals(140f, resizedDockPanelHeight(120f, 20f, resizeLowerPanel = true, minimumHeight = 64f))
+		assertEquals(64f, resizedDockPanelHeight(80f, 40f, resizeLowerPanel = false, minimumHeight = 64f))
+	}
+
+	@Test
+	fun `moving divider below fill panel resizes its lower neighbour without crossing dock minimum`() {
+		assertEquals(
+			110f,
+			resizedLowerDockPanelHeight(
+				upperBottom = 136f,
+				lowerTop = 140f,
+				lowerHeight = 120f,
+				gap = 6f,
+				minimumHeight = 64f,
+			),
+		)
+		assertEquals(
+			64f,
+			resizedLowerDockPanelHeight(
+				upperBottom = 80f,
+				lowerTop = 140f,
+				lowerHeight = 120f,
+				gap = 6f,
+				minimumHeight = 64f,
+			),
+		)
+	}
+
+	@Test
+	fun `dock requested height below content minimum remains stable at dock chrome minimum`() {
+		val bounds = calculateDockBounds(
+			viewportWidth = 800f,
+			viewportHeight = 600f,
+			config = MetaDockConfig(topInset = 40f, bottomInset = 40f),
+			side = MetaDockSide.LEFT,
+			items = listOf(
+				// The content may prefer 240px, but the manager supplies the dock chrome minimum of 64px here.
+				MetaDockItem("compact", 0, 100f, 64f, 72f, fill = false),
+				MetaDockItem("fill", 100, 100f, 64f, 64f, fill = true),
+			),
+		)
+
+		assertEquals(72f, bounds.getValue("compact").height)
 	}
 
 	@Test

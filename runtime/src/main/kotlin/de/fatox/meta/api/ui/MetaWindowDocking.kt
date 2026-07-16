@@ -81,9 +81,15 @@ internal fun calculateDockBounds(
 	val sorted = items.sortedWith(compareBy(MetaDockItem::order, MetaDockItem::key))
 	val availableHeight = (viewportHeight - config.topInset - config.bottomInset -
 		config.gap * (sorted.size - 1)).coerceAtLeast(0f)
-	// Never assign less than a window's minimum: MetaWindow will enforce that minimum during layout anyway. If a
-	// viewport is impossibly short, allow the stack to extend below the bottom inset rather than silently overlap.
 	val heights = FloatArray(sorted.size) { sorted[it].minimumHeight.coerceAtLeast(0f) }
+	val minimumTotal = heights.sum()
+	if (minimumTotal > availableHeight && minimumTotal > 0f) {
+		// A dock is a bounded viewport, not an infinitely tall column. When consumers add more panels than their full
+		// content minima can accommodate, preserve every slot proportionally and let MetaWindow's content viewport
+		// scroll. This keeps all headers reachable and avoids overlap or panels escaping below the screen.
+		val scale = availableHeight / minimumTotal
+		for (index in heights.indices) heights[index] *= scale
+	}
 	var remaining = (availableHeight - heights.sum()).coerceAtLeast(0f)
 	for (index in sorted.indices) {
 		val item = sorted[index]
@@ -295,8 +301,31 @@ internal fun windowGestureChanged(
 	kotlin.math.abs(endWidth - startWidth) >= epsilon
 }
 
-internal fun dockedPanelCanResizeHeight(fill: Boolean, localY: Float, edgeSize: Float): Boolean =
-	!fill && localY <= edgeSize
+/** A dock divider occupies the configured inter-window gap, never either window's content bounds. */
+internal fun dockDividerBottom(upperWindowBottom: Float, gap: Float): Float = upperWindowBottom - gap
+
+/** Converts a divider drag into the fixed panel height on either side of the divider. */
+internal fun resizedDockPanelHeight(
+	startHeight: Float,
+	deltaY: Float,
+	resizeLowerPanel: Boolean,
+	minimumHeight: Float,
+): Float = (startHeight + if (resizeLowerPanel) deltaY else -deltaY).coerceAtLeast(minimumHeight)
+
+/**
+ * Converts movement of a fill panel's lower divider into the requested height of its lower neighbour. The fill panel
+ * continues to consume the remainder, while the explicitly sized lower panel stays fixed at the divider position.
+ */
+internal fun resizedLowerDockPanelHeight(
+	upperBottom: Float,
+	lowerTop: Float,
+	lowerHeight: Float,
+	gap: Float,
+	minimumHeight: Float,
+): Float {
+	val upperGrowth = lowerTop + gap - upperBottom
+	return (lowerHeight - upperGrowth).coerceAtLeast(minimumHeight)
+}
 
 internal data class MetaDockOrderItem(val key: String, val order: Int, val centerY: Float)
 internal data class MetaDockOrderUpdate(val order: Int, val normalizedOrders: Map<String, Int> = emptyMap())

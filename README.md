@@ -1,50 +1,71 @@
-[![CI](https://github.com/Frotty/Meta/actions/workflows/ci.yml/badge.svg)](https://github.com/Frotty/Meta/actions/workflows/ci.yml) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/5d29848d4aa84e46b4e4fb185222c668)](https://www.codacy.com/app/frotty/Meta?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Frotty/Meta&amp;utm_campaign=Badge_Grade)
+[![CI](https://github.com/Frotty/Meta/actions/workflows/ci.yml/badge.svg)](https://github.com/Frotty/Meta/actions/workflows/ci.yml)
 
 # Meta
-Kotlin/libGDX engine layer with a batteries-included runtime UI toolkit and a scene/shader editor.
 
-## Concept
-Meta is used alongside libGDX to provide a more complete out-of-the-box runtime layer for JVM games.
-Create a normal libGDX project, add Meta to the Gradle build, and keep your game logic in code while using Meta for
-shared runtime services, UI, assets, input, data, and editor workflows.
+Meta is a Kotlin/libGDX runtime layer for JVM games. It provides a consistent scene2d UI toolkit, reactive state,
+asset loading, input routing, dependency injection, persistence, audio/video state, and desktop platform bindings.
+OxRox is a downstream consumer.
 
-## Editor
-The editor generates project data in readable json format which will be loaded by the engine at runtime.
-It combines asset management and scene creation into a simple UI with the capabilities to import and export 2d (soon) and 3d scenes into various formats.
+The editor modules are optional tools built on the same runtime. Games can depend on the runtime without shipping the
+editor.
 
-While the editor is recommended for any beginner, advanced users can also decide to use the runtime without it.
-Your own source in the JVM language of your choice will always remain the core of your project.
+<img width="1276" height="896" alt="Meta UI component showcase" src="https://github.com/user-attachments/assets/11e32da3-6df5-4d59-8673-a83b65619148" />
 
-## Meta UI
-Meta's UI layer is built around TTF-backed scene2d widgets so games and editor screens share one rendering path:
-`MetaLabel`, `MetaTextButton`, `MetaIconTextButton`, `MetaSelectBox`, `MetaTextField`, `MetaCheckBox`, and friends.
+## Modules
 
-The default constructors use the `MetaType.BODY` type scale and generated Meta skin. Compose ordinary content with
-`metaRow` and `metaColumn`; they apply the standard spacing rhythm without forcing padding into low-level structural
-tables. Use `MetaInputLayout.field` / `area` for label + input + helper/error compositions and `MetaScrollPane` for
-scrollable content. Scroll panes automatically follow the mouse and restore an outer pane after leaving a nested one,
-so ordinary wheel scrolling needs no focus wiring.
+- `runtime`: platform-neutral engine services and UI components.
+- `runtime-desktop`: LWJGL3 desktop integrations.
+- `editor`: optional scene/shader/editor functionality.
+- `editor-desktop`: optional editor launcher.
+
+## Consumer setup
+
+Meta is consumed from JitPack using a pinned commit. A desktop game normally uses `runtime` in its core module and
+`runtime-desktop` in its launcher module:
+
+```groovy
+repositories {
+    maven { url = 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation "com.github.frotty.meta:runtime:<commit>"
+    implementation "com.github.frotty.meta:runtime-desktop:<commit>" // desktop launcher only
+}
+```
+
+Upgrade Meta first, verify it, then change the consumer's pinned commit. Do not use a floating branch or snapshot for
+released games.
+
+## Runtime UI
+
+Meta's scene2d UI uses generated skin drawables and TTF-backed widgets. Prefer the `Meta*` components over raw
+scene2d text controls:
+
+- `MetaLabel`, `MetaTextButton`, `MetaIconTextButton`, `MetaIconButton`
+- `MetaTextField`, `MetaTextArea`, `MetaSelectBox`, `MetaCheckBox`, `MetaSpinner`
+- `MetaInputLayout`, `MetaScrollPane`, `MetaBottomBar`, `MetaWindow`, `MetaDialog`
+
+Use `MetaType`, `MetaSpacing`, `MetaColor`, and `MetaButtonTier` instead of consumer-specific styles and magic
+numbers. `metaRow`, `metaColumn`, and `MetaTable(defaultSpacing = true)` provide the normal content spacing rhythm.
 
 ```kotlin
 val form = metaColumn {
     add(MetaInputLayout.field("Name", placeholder = "Player name")).row()
     add(metaRow {
-        add(MetaTextButton("Cancel"))
-        add(MetaIconTextButton("Create", "ri-add-line"))
+        add(MetaTextButton("Cancel", tier = MetaButtonTier.TERTIARY))
+        add(MetaIconTextButton("Create", "ri-add-line", tier = MetaButtonTier.PRIMARY))
     }).right().row()
 }
 ```
 
-`MetaIconTextButton` is a compact horizontal action by default. Set `vertical = true` only for explicit icon tiles.
-`MetaTable` deliberately remains neutral for structural scene2d layout; opt into `MetaTable(defaultSpacing = true)`
-or use the row/column helpers for content layouts.
+Meta buttons manage pointer cursors. `MetaScrollPane` manages nested scroll focus. Window chrome, title separators,
+dialog action spacing, dock reflow, and constrained content scrolling are runtime-owned behavior; consumers should not
+reimplement them.
 
-Meta buttons manage pointer cursors automatically, background clicks release stale text-input focus, and opening a
-dialog cancels presses or drags that began behind it. These scene2d input details should not need consumer wiring.
-Tooltips can likewise be attached before an actor is shown and survive cached-window detach/re-attach cycles; their
-registry owns actors weakly, with `removeTooltip()` available for explicit early cleanup.
+### Icons
 
-UI icons are font-backed through Remix Icon. Prefer:
+Ordinary UI glyphs use the bundled Remix Icon font:
 
 ```kotlin
 MetaIcon("ri-information-line")
@@ -52,26 +73,34 @@ MetaImageButton("ri-add-line")
 MetaIconTextButton("Open", "ri-folder-open-line")
 ```
 
-The bundled catalog lives at `assets/ui/icons/remixicon.tsv` and is also shipped in runtime resources as
-`ui/icons/remixicon.tsv`. Runtime code can query it through `MetaIcons.exists`, `MetaIcons.info`,
-`MetaIcons.names`, `MetaIcons.entries`, and `MetaIcons.search`. Do not add one-off PNG toolbar icons; use Remix font
-icons unless the asset is actual game/editor art rather than a UI glyph.
+Search [`assets/ui/icons/remixicon.tsv`](assets/ui/icons/remixicon.tsv) or use `MetaIcons.search`. Bitmap assets remain
+appropriate for game art, logos, previews, screenshots, and atlases—not routine toolbar glyphs.
 
-## Screenshots
-The historical screenshots were removed because they no longer represent the current Meta UI. New screenshots should be
-captured from the current editor flow and committed as repo-local documentation assets instead of linking old external
-images.
+## Reactive state and lifecycle
 
+`de.fatox.meta.reactive` is the runtime's state system:
 
-## Runtime
-The runtime contains all core components of the meta engine that will aid in the creation of any 2d or 3d game.
+```kotlin
+val count = signal(0)
+val summary = computed { "Count: ${count()}" }
 
-### Asynchronous asset loading
+reactiveScope.bindText(label) { summary() }
+```
 
-Queue startup assets through `AssetProvider.load` from `SplashScreen`. Meta advances the libGDX `AssetManager` using
-only the current frame's spare time, keeps the splash responsive, and renders actual queue progress. Put raw/XPK
-discovery in `prepareAssets`; it and `queueAssets` then run sequentially on a low-priority worker, while XPK I/O,
-hashing, indexing, and extraction yield in bounded chunks. Asset finalization and completion remain on the GL thread:
+Use `signal`, `computed`, `effect`, `batch`, and `subscribe` instead of custom observer lists. Widget model signals such
+as `textValue`, `checkedValue`, `disabledValue`, and `selectedValue` are writable and update their widgets in both
+directions.
+
+`MetaWindow` and `MetaDialog` provide a presentation-scoped `reactiveScope`; create bindings in `onShown()`. Screens
+can extend `ReactiveScreenAdapter` for the same show/hide lifecycle. Reactive state is GL-thread-only: dispatch worker
+results through `Gdx.app.postRunnable` before writing signals that drive UI.
+
+Undo/redo UI can bind directly to `MetaTaskManager.canUndo` and `canRedo`.
+
+## Asynchronous startup loading
+
+Queue startup assets through `AssetProvider.load` and let `SplashScreen` advance libGDX's `AssetManager` in
+frame-adaptive slices. The splash displays real progress and remains animated while work is chunked correctly.
 
 ```kotlin
 SplashScreen(
@@ -89,38 +118,48 @@ SplashScreen(
 )
 ```
 
-With the three-callback form, `prepareAssets` and `queueAssets` must only perform thread-safe CPU/file/queueing work;
-they must not touch OpenGL or scene2d. `onLoaded` runs on the GL thread. The two-callback form keeps `queueAssets` on
-the GL thread for compatibility and should only be used for small queues. Calling `getResource` for an asset that was
-not preloaded remains supported, but it necessarily blocks until that particular asset is available and should be
-kept out of frame-time-sensitive paths. Individual OpenGL uploads are atomic in libGDX; avoid exceptionally large
-standalone textures if a single upload still exceeds the frame budget. Keep `onLoaded` and the first screen's
-constructor lightweight as well; expensive screen setup after the queue completes cannot be animated by the splash.
+The three-callback form runs `prepareAssets` and `queueAssets` sequentially on a low-priority worker. They may perform
+CPU work, file discovery, XPK indexing, and thread-safe queue construction, but must not touch OpenGL or scene2d.
+`onLoaded` runs on the GL thread.
 
-### Dependency Injection
-Meta comes with a lightweight DI framework, focusing mainly on property injection.
-Dependencies are provided via modules like the renderer for the editor in this example:
+The two-callback compatibility form runs `queueAssets` on the GL thread and is only suitable for small queues.
+`getResource` blocks when an asset was not preloaded, so keep it out of frame-sensitive paths. Large individual GL
+uploads are atomic in libGDX and cannot be subdivided by the splash budget.
 
-```kotlin
-MetaInject.global {
-    singleton<Renderer> { EditorSceneRenderer() }
-}
-```
+XPK remains an implementation detail of the asset layer. Use `XPKLoader.listEntryNames` for inspection or
+`XPKLoader.getList` when lazy `FileHandle` reads are required; do not expose Apache Commons Compress types from public
+Meta APIs.
 
-You can now inject this Singleton into any class.
+## Dependency injection
 
-```kotlin
-class GameScreen : ScreenAdapter {
-    private val renderer: Renderer by lazyInject() // shortcut for lazy { inject() }
-    // OR
-    private val renderer: Renderer = inject()
-}
-```
-Dependency Injection allows for fast and managed object creation with easy customization and later plugin possibilities.
-Default injections are named so that when the user provides their own provider, he can override the existing behaviour of that class.
-Inside a game the renderer could be replaced:
+Register shared services with `MetaInject` and inject them eagerly or lazily:
+
 ```kotlin
 MetaInject.global {
     singleton<Renderer> { GameSceneRenderer() }
 }
+
+class GameScreen : ReactiveScreenAdapter() {
+    private val renderer: Renderer by lazyInject()
+}
 ```
+
+Named default providers can be replaced by a consumer during startup.
+
+## Development
+
+The Gradle wrapper is authoritative:
+
+```powershell
+.\gradlew.bat :runtime:compileKotlin
+.\gradlew.bat :runtime:test
+.\gradlew.bat :runtime-desktop:compileKotlin :editor:compileKotlin :editor-desktop:compileKotlin
+```
+
+Run the UI playground with:
+
+```powershell
+.\gradlew.bat :editor-desktop:runMetaUiPlayground
+```
+
+See [`AGENTS.md`](AGENTS.md) for architecture, performance, lifecycle, compatibility, and contribution contracts.

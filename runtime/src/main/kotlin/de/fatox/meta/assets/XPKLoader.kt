@@ -5,12 +5,20 @@ import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.crypto.HASH_LENGTH
 import de.fatox.meta.api.crypto.StreamingXXH64
 import de.fatox.meta.api.crypto.checkHash
-import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry
 import org.apache.commons.compress.archivers.sevenz.SevenZFile
 
 object XPKLoader {
 	const val EXTENSION: String = "xpk"
 
+	/** Lists archive paths without exposing Apache Commons Compress types to the caller. */
+	fun listEntryNames(fileHandle: FileHandle): Array<String> {
+		val handles = getList(fileHandle)
+		val names = Array<String>(handles.size)
+		for (index in 0 until handles.size) names.add(handles[index].path())
+		return names
+	}
+
+	/** Retained for consumers that need libGDX file handles for lazy entry reads. */
 	fun getList(fileHandle: FileHandle): Array<XPKFileHandle> {
 		val fileBytes = readAndVerify(fileHandle)
 
@@ -27,7 +35,14 @@ object XPKLoader {
 			var archive = it.nextEntry
 			var entriesSinceYield = 0
 			while (archive != null) {
-				val xpkFileHandle = XPKFileHandle(array, 0, byteChannel, archive, archive.name.replace("/", "\\"))
+				val xpkFileHandle = XPKFileHandle(
+					array,
+					archive.size.coerceIn(0, Int.MAX_VALUE.toLong()).toInt(),
+					byteChannel,
+					archive.name,
+					archive.size,
+					archive.name.replace("/", "\\"),
+				)
 				array.add(xpkFileHandle)
 				archive = it.nextEntry
 				if (++entriesSinceYield >= ENTRIES_PER_YIELD) {
@@ -66,18 +81,18 @@ object XPKLoader {
 		return bytes
 	}
 
-	fun loadEntry(file: XPKByteChannel, entry: SevenZArchiveEntry): ByteArray? = synchronized(file) {
+	internal fun loadEntry(file: XPKByteChannel, entryName: String, entrySize: Long): ByteArray? = synchronized(file) {
 		file.position(0)
 		val s7f = SevenZFile.Builder().setSeekableByteChannel(file).get()
 		s7f.let {
 			var itr = s7f.nextEntry
 			var entriesSinceYield = 0
 			while (itr != null) {
-				if (itr.name == entry.name) {
-					require(entry.size in 0..Int.MAX_VALUE.toLong()) {
-						"Invalid XPK entry size: ${entry.name} (${entry.size} bytes)"
+				if (itr.name == entryName) {
+					require(entrySize in 0..Int.MAX_VALUE.toLong()) {
+						"Invalid XPK entry size: $entryName ($entrySize bytes)"
 					}
-					val size = entry.size.toInt()
+					val size = entrySize.toInt()
 					val content = ByteArray(size)
 					var offset = 0
 					while (offset < size) {
@@ -88,7 +103,7 @@ object XPKLoader {
 						offset += result
 						Thread.yield()
 					}
-					check(offset == size) { "Unexpected end of XPK entry ${entry.name} at $offset/$size" }
+					check(offset == size) { "Unexpected end of XPK entry $entryName at $offset/$size" }
 					return content
 				}
 				itr = s7f.nextEntry

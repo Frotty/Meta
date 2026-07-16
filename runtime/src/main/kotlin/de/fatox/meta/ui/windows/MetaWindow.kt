@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Label
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.utils.Align
@@ -23,7 +24,6 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.MetaDockSide
 import de.fatox.meta.api.ui.MetaWindowInteraction
 import de.fatox.meta.api.ui.windowGestureChanged
-import de.fatox.meta.api.ui.dockedPanelCanResizeHeight
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveScope
@@ -33,6 +33,7 @@ import de.fatox.meta.ui.refreshFontsRecursively
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaResizeGrip
+import de.fatox.meta.ui.components.MetaScrollPane
 import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.components.MetaTable
 import kotlin.math.max
@@ -101,6 +102,9 @@ abstract class MetaWindow(
 	private val headerSeparator = MetaSeparator().apply {
 		touchable = Touchable.disabled
 		isVisible = headerEnabled
+	}
+	private val contentScrollPane = MetaScrollPane(contentTable).apply {
+		configureWindowContentScrolling(this)
 	}
 	private val resizeIndicator = MetaResizeGrip().apply {
 		touchable = Touchable.disabled
@@ -181,7 +185,8 @@ abstract class MetaWindow(
 				}
 				add(exitButton).size(CLOSE_BUTTON_SIZE).padTop(3f).padBottom(3f).padRight(MetaSpacing.XS)
 			}
-
+			row()
+			add(headerSeparator).colspan(if (closeButton) 2 else 1).growX().height(HEADER_SEPARATOR_HEIGHT)
 		}
 
 		// libGDX Window expands every detected resize edge by an additional 25 px. Keep its resize path disabled and
@@ -190,10 +195,9 @@ abstract class MetaWindow(
 		addCaptureListener(resizeCursorListener)
 		applyWindowMetrics()
 		contentTable.top().left()
-		add(contentTable).top().grow()
-			.padTop(MetaSpacing.XS).padLeft(MetaSpacing.XS).padRight(MetaSpacing.XS).padBottom(0f)
+		add(contentScrollPane).top().grow()
+			.padTop(MetaSpacing.XS).padLeft(MetaSpacing.XS).padRight(MetaSpacing.SM).padBottom(MetaSpacing.XS)
 		row()
-		addActor(headerSeparator)
 		addActor(resizeIndicator)
 	}
 
@@ -308,7 +312,11 @@ abstract class MetaWindow(
 		}
 	}
 
-	internal fun applyDockState(side: MetaDockSide?, fill: Boolean = false, minimumWidth: Float = MIN_WINDOW_WIDTH) {
+	internal fun applyDockState(
+		side: MetaDockSide?,
+		fill: Boolean = false,
+		minimumWidth: Float = MIN_WINDOW_WIDTH,
+	) {
 		dockSide = side
 		dockFill = side != null && fill
 		dockMinimumWidth = minimumWidth
@@ -344,7 +352,7 @@ abstract class MetaWindow(
 		val minH = minHeight
 		// Sidebar width belongs to the shared dock, so a wide panel's preferred minimum must not override the user.
 		val newW = if (dockSide == null) max(width, minW) else width
-		val newH = max(height, minH)
+		val newH = if (dockSide == null) max(height, minH) else height
 		if (newW != width || newH != height) {
 			val oldH = height
 			val top = y + height
@@ -360,8 +368,9 @@ abstract class MetaWindow(
 	}
 
 	override fun getMinHeight(): Float {
-		val contentMin = contentTable.minHeight + padTop + padBottom
-		return max(max(super.getMinHeight(), contentMin), MIN_WINDOW_HEIGHT)
+		// Content is owned by a two-axis MetaScrollPane. Keeping its preferred height as a hard window minimum makes
+		// constrained floating layouts overlap and then snap larger; chrome is the only true minimum.
+		return max(super.getMinHeight(), MIN_WINDOW_HEIGHT)
 	}
 
 	open fun close() {
@@ -488,19 +497,18 @@ abstract class MetaWindow(
 
 	private fun resizeEdgeAt(localX: Float, localY: Float): Int {
 		if (!metaResizable || localX < 0f || localY < 0f || localX > width || localY > height) return 0
-		// The inner edge changes the shared sidebar width. A fixed panel's lower divider also changes its slot height.
+		// The inner edge changes the shared sidebar width. Height dividers live exclusively in the gap between docked
+		// windows and are owned by MetaUiManager, so this window never steals input from its bottom content.
 		val side = dockSide
 		if (side != null) {
 			// Deliberately avoid an enum `when`: Kotlin emits a separate MetaWindow$WhenMappings class for it. A stale
 			// incremental desktop artifact once packaged MetaWindow.class without that new synthetic companion and
 			// crashed on the first mouse move. Direct comparison keeps this input hot path self-contained.
-			var edge = if (side === MetaDockSide.LEFT) {
+			return if (side === MetaDockSide.LEFT) {
 				if (localX >= width - DOCK_RESIZE_SIZE) Align.right else 0
 			} else {
 				if (localX <= DOCK_RESIZE_SIZE) Align.left else 0
 			}
-			if (dockedPanelCanResizeHeight(dockFill, localY, DOCK_RESIZE_SIZE)) edge = edge or Align.bottom
-			return edge
 		}
 		if (localX >= width - CORNER_RESIZE_SIZE && localY <= CORNER_RESIZE_SIZE) {
 			return Align.right or Align.bottom
@@ -520,7 +528,7 @@ abstract class MetaWindow(
 		var newWidth = resizeStartWidth
 		var newHeight = resizeStartHeight
 		val minWidth = if (dockSide != null) dockMinimumWidth else minWidth
-		val minHeight = minHeight
+		val minHeight = if (dockSide == null) minHeight else DOCK_MIN_WINDOW_HEIGHT
 		val maxWidth = maxWidth
 		val maxHeight = maxHeight
 
@@ -561,10 +569,6 @@ abstract class MetaWindow(
 
 	private fun positionChrome() {
 		headerSeparator.isVisible = headerEnabled
-		if (headerEnabled) {
-			headerSeparator.setBounds(1f, height - HEADER_HEIGHT, width - 2f, HEADER_SEPARATOR_HEIGHT)
-			headerSeparator.toFront()
-		}
 		resizeIndicator.isVisible = metaResizable && dockSide == null
 		if (!resizeIndicator.isVisible) return
 		resizeIndicator.setBounds(
@@ -578,7 +582,7 @@ abstract class MetaWindow(
 
 	private companion object {
 		const val HEADER_HEIGHT = 40f
-		const val HEADER_CONTENT_HEIGHT = 32f
+		const val HEADER_CONTENT_HEIGHT = 31f
 		const val HEADER_SEPARATOR_HEIGHT = 1f
 		const val BORDER_PAD = 1f
 		const val CLOSE_BUTTON_SIZE = 24f
@@ -590,7 +594,15 @@ abstract class MetaWindow(
 		const val RESIZE_GRIP_BOTTOM_PAD = 2f
 		const val MIN_WINDOW_WIDTH = 96f
 		const val MIN_WINDOW_HEIGHT = 64f
+		const val DOCK_MIN_WINDOW_HEIGHT = HEADER_HEIGHT + 24f
 		const val WINDOW_SHADOW_X = 5f
 		const val WINDOW_SHADOW_Y = -5f
 	}
+
+	internal val minimumDockHeight: Float get() = DOCK_MIN_WINDOW_HEIGHT
+}
+
+/** Docked content can be smaller in either dimension than its preferred size, so both axes must remain scrollable. */
+internal fun configureWindowContentScrolling(scrollPane: ScrollPane) {
+	scrollPane.setScrollingDisabled(false, false)
 }

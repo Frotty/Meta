@@ -1,12 +1,20 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.Window
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
+
+private val scrollLog = MetaLoggerFactory.logger {}
 
 /**
  * A [ScrollPane] with a faster mouse-wheel step, Meta's thin generated scrollbar style and a small content gutter
@@ -16,8 +24,6 @@ import de.fatox.meta.ui.MetaSpacing
  * a bordered container look.
  */
 class MetaScrollPane : ScrollPane {
-	private var previousScrollFocus: Actor? = null
-
 	constructor(widget: Actor?, style: ScrollPaneStyle) : super(wrapContent(widget), style) {
 		configure()
 	}
@@ -37,41 +43,43 @@ class MetaScrollPane : ScrollPane {
 		setFadeScrollBars(false)
 		setOverscroll(false, false)
 		setFlickScroll(false)
-		// Capture order is outer -> inner, so the deepest hovered pane gets the final focus claim.
 		addCaptureListener(object : InputListener() {
-			override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
-				if (pointer == MOUSE_POINTER) claimScrollFocus(event)
-			}
-
-			override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
-				// scene2d does not reliably synthesize a distinct enter callback when moving between nested groups.
-				// Mouse-move events do bubble, so use their deepest target to correct ownership without the outer pane
-				// reclaiming the same event.
-				claimScrollFocus(event)
-				return false
-			}
-
-			override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
-				if (pointer != MOUSE_POINTER || event.target.nearestMetaScrollPane() !== this@MetaScrollPane ||
-					event.stage.scrollFocus !== this@MetaScrollPane) return
-				val previous = previousScrollFocus
-				previousScrollFocus = null
-				event.stage.scrollFocus = if (previous?.stage === event.stage) previous else null
+			override fun scrolled(
+				event: InputEvent,
+				x: Float,
+				y: Float,
+				amountX: Float,
+				amountY: Float,
+			): Boolean {
+				scrollLog.debug {
+					"scroll-pane-wheel pane=${this@MetaScrollPane.scrollDebugState()} target=${event.target.scrollDebugPath()} " +
+						"dx=$amountX dy=$amountY shift=${shiftPressed()} action=${if (shiftPressed()) "horizontal" else "delegate"}"
+				}
+				if (amountY == 0f ||
+					!shiftPressed()
+				) return false
+				val hoveredPane = event.stage.hit(event.stageX, event.stageY, true)
+					.nearestHorizontallyScrollableMetaScrollPane()
+				if (hoveredPane !== this@MetaScrollPane) return false
+				setScrollX(shiftedHorizontalScrollPosition(scrollX, maxX, amountY, MOUSE_WHEEL_STEP))
+				// Capture listeners run from outer to inner. Stop here so neither an outer pane nor ScrollPane's normal
+				// vertical wheel listener also consumes this browser-style horizontal gesture.
+				event.stop()
+				return true
 			}
 		})
 	}
 
-	private fun claimScrollFocus(event: InputEvent) {
-		val hoveredPane = event.stage.hit(event.stageX, event.stageY, true).nearestMetaScrollPane()
-		if (hoveredPane !== this || event.stage.scrollFocus === this) return
-		previousScrollFocus = event.stage.scrollFocus
-		event.stage.scrollFocus = this
-	}
+	private fun shiftPressed(): Boolean =
+		Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT)
 
-	private fun Actor?.nearestMetaScrollPane(): MetaScrollPane? {
+	private fun Actor?.nearestHorizontallyScrollableMetaScrollPane(): MetaScrollPane? {
 		var current = this
 		while (current != null) {
-			if (current is MetaScrollPane) return current
+			if (current is MetaScrollPane) {
+				current.validate()
+				if (!current.isScrollingDisabledX && current.maxX > 0f) return current
+			}
 			current = current.parent
 		}
 		return null
@@ -79,7 +87,6 @@ class MetaScrollPane : ScrollPane {
 
 	private companion object {
 		const val MOUSE_WHEEL_STEP = 100f
-		const val MOUSE_POINTER = -1
 		const val SCROLLBAR_GUTTER = MetaSpacing.SM
 
 		fun defaultStyleName(): String =
@@ -99,3 +106,60 @@ class MetaScrollPane : ScrollPane {
 		}
 	}
 }
+
+internal fun Actor?.nearestMetaScrollPane(): MetaScrollPane? {
+	var current = this
+	while (current != null) {
+		if (current is MetaScrollPane) return current
+		current = current.parent
+	}
+	return null
+}
+
+internal fun Actor?.nearestScrollableMetaScrollPane(): MetaScrollPane? {
+	var current = this
+	while (current != null) {
+		if (current is MetaScrollPane) {
+			current.validate()
+			val canScrollX = !current.isScrollingDisabledX && current.maxX > 0f
+			val canScrollY = !current.isScrollingDisabledY && current.maxY > 0f
+			if (canScrollX || canScrollY) return current
+		}
+		current = current.parent
+	}
+	return null
+}
+
+internal fun Actor?.scrollDebugPath(): String {
+	if (this == null) return "-"
+	val result = StringBuilder(64)
+	result.append(javaClass.simpleName)
+	if (!name.isNullOrEmpty()) result.append('[').append(name).append(']')
+	result.append('#').append(Integer.toHexString(System.identityHashCode(this)))
+	var current = parent
+	while (current != null) {
+		if (current is Window) {
+			result.append(" in ").append(current.javaClass.simpleName)
+			break
+		}
+		current = current.parent
+	}
+	return result.toString()
+}
+
+internal fun MetaScrollPane.scrollDebugState(): String =
+	"${scrollDebugPath()} pos=${scrollX.toInt()},${scrollY.toInt()} max=${maxX.toInt()},${maxY.toInt()} " +
+		"disabled=$isScrollingDisabledX,$isScrollingDisabledY"
+
+/** Stage-level ownership avoids child controls and nested panes fighting over enter/exit event ordering. */
+internal fun updateMetaScrollFocus(stage: Stage, hitActor: Actor?) {
+	val hoveredPane = hitActor.nearestScrollableMetaScrollPane()
+	if (hoveredPane != null) {
+		if (stage.scrollFocus !== hoveredPane) stage.scrollFocus = hoveredPane
+	} else if (stage.scrollFocus is MetaScrollPane) {
+		stage.scrollFocus = null
+	}
+}
+
+internal fun shiftedHorizontalScrollPosition(currentX: Float, maxX: Float, amountY: Float, step: Float = 100f): Float =
+	(currentX + amountY * step).coerceIn(0f, maxX.coerceAtLeast(0f))
