@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
@@ -135,6 +136,30 @@ internal class MetaTooltipTest {
 		assertTrue(MetaTooltip.isVisible(second))
 		MetaTooltip.remove(first)
 		MetaTooltip.remove(second)
+		stage.dispose()
+	}
+
+	@Test
+	fun `nested tooltip wins over its attached parent and restores it on exit`() {
+		val parent = Group().apply { setBounds(0f, 0f, 100f, 40f) }
+		val child = Actor().apply { setBounds(60f, 0f, 40f, 40f) }
+		parent.addActor(child)
+		val stage = testStage()
+		stage.addActor(parent)
+		MetaTooltip.attach(parent, "Row", hideDelaySeconds = 0f)
+		MetaTooltip.attach(child, "Mode", hideDelaySeconds = 0f)
+
+		child.fire(hover(InputEvent.Type.enter))
+
+		assertFalse(MetaTooltip.isVisible(parent))
+		assertTrue(MetaTooltip.isVisible(child))
+
+		child.fire(hover(InputEvent.Type.exit).apply { relatedActor = parent })
+
+		assertFalse(MetaTooltip.isVisible(child))
+		assertTrue(MetaTooltip.isVisible(parent))
+		MetaTooltip.remove(child)
+		MetaTooltip.remove(parent)
 		stage.dispose()
 	}
 

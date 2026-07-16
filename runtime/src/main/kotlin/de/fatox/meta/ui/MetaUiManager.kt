@@ -38,6 +38,7 @@ import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.detectDockSide
 import de.fatox.meta.api.ui.dockDividerBottom
+import de.fatox.meta.api.ui.dockTitleY
 import de.fatox.meta.api.ui.resolveDockUpdate
 import de.fatox.meta.api.ui.resolveDockWidths
 import de.fatox.meta.api.ui.resolveDockWidthForSide
@@ -649,14 +650,14 @@ class MetaUiManager : UIManager {
 	}
 
 	private fun nextDockOrder(side: MetaDockSide, movingWindow: Window, persistNormalized: Boolean): Int {
-		val movingCenter = movingWindow.y + movingWindow.height / 2f
+		val movingTitleY = dockTitleY(movingWindow.y, movingWindow.height)
 		val ordered = if (side == MetaDockSide.LEFT) leftDockedWindows else rightDockedWindows
 		collectDockedWindows(side, ordered, movingWindow)
 		ordered.sort(DOCKED_WINDOW_COMPARATOR)
 		var insertion = ordered.size
 		for (index in 0 until ordered.size) {
 			val window = ordered[index].window
-			if (movingCenter > window.y + window.height / 2f) {
+			if (movingTitleY > dockTitleY(window.y, window.height)) {
 				insertion = index
 				break
 			}
@@ -866,6 +867,14 @@ class MetaUiManager : UIManager {
 				divider.setBounds(x, dockDividerBottom(y, config.gap), width, config.gap)
 				if (divider.stage == null) uiRenderer.addActor(divider)
 				divider.toFront()
+			} else if (index == docked.size - 1 && config.gap > 0f) {
+				// The final panel has no neighbour, but its lower edge is still a meaningful divider: dragging it turns a
+				// fill panel into a fixed-height panel and intentionally leaves the remaining dock area empty.
+				val divider = dockDividerFor(entry.window)
+				divider.configureLast(entry, dockLayoutGeneration)
+				divider.setBounds(x, dockDividerBottom(y, config.gap), width, config.gap)
+				if (divider.stage == null) uiRenderer.addActor(divider)
+				divider.toFront()
 			}
 			top = y - config.gap
 		}
@@ -896,7 +905,7 @@ class MetaUiManager : UIManager {
 		var layoutGeneration = -1
 		var dragging = false
 		private lateinit var upper: DockedWindow
-		private lateinit var lower: DockedWindow
+		private var lower: DockedWindow? = null
 		private lateinit var resized: DockedWindow
 		private var resizeLowerPanel = false
 		private var startStageY = 0f
@@ -917,8 +926,9 @@ class MetaUiManager : UIManager {
 					if (pointer != 0 || button != Input.Buttons.LEFT) return false
 					dragging = true
 					startStageY = event.stageY
-					resizeLowerPanel = upper.data.dockFill
-					resized = if (resizeLowerPanel) lower else upper
+					val lowerPanel = lower
+					resizeLowerPanel = lowerPanel != null && upper.data.dockFill
+					resized = if (resizeLowerPanel) lowerPanel!! else upper
 					startHeight = resized.window.height
 					return true
 				}
@@ -944,6 +954,12 @@ class MetaUiManager : UIManager {
 		fun configure(upper: DockedWindow, lower: DockedWindow, generation: Int) {
 			this.upper = upper
 			this.lower = lower
+			layoutGeneration = generation
+		}
+
+		fun configureLast(window: DockedWindow, generation: Int) {
+			upper = window
+			lower = null
 			layoutGeneration = generation
 		}
 

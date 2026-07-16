@@ -356,6 +356,12 @@ internal class MetaWindowDockingTest {
 	}
 
 	@Test
+	fun `last dock boundary drag converts fill height into a fixed request`() {
+		assertEquals(150f, resizedDockPanelHeight(180f, 30f, resizeLowerPanel = false, minimumHeight = 64f))
+		assertEquals(210f, resizedDockPanelHeight(180f, -30f, resizeLowerPanel = false, minimumHeight = 64f))
+	}
+
+	@Test
 	fun `divider movement resizes the correct adjacent panel and clamps its chrome minimum`() {
 		assertEquals(100f, resizedDockPanelHeight(120f, 20f, resizeLowerPanel = false, minimumHeight = 64f))
 		assertEquals(140f, resizedDockPanelHeight(120f, 20f, resizeLowerPanel = true, minimumHeight = 64f))
@@ -416,9 +422,26 @@ internal class MetaWindowDockingTest {
 	}
 
 	@Test
+	fun `dock ordering follows title position regardless of moving window height`() {
+		val compactTitle = dockTitleY(windowY = 600f, windowHeight = 100f)
+		val tallTitle = dockTitleY(windowY = 300f, windowHeight = 400f)
+		val existing = listOf(
+			MetaDockOrderItem("upper", 0, 760f),
+			MetaDockOrderItem("lower", 100, 620f),
+		)
+
+		assertEquals(compactTitle, tallTitle)
+		assertEquals(
+			calculateDockOrder(compactTitle, existing).order,
+			calculateDockOrder(tallTitle, existing).order,
+		)
+		assertEquals(50, calculateDockOrder(compactTitle, existing).order)
+	}
+
+	@Test
 	fun `exhausted order gaps are normalized without duplicate order values`() {
 		val update = calculateDockOrder(
-			movingCenterY = 600f,
+			movingTitleY = 600f,
 			existing = listOf(
 				MetaDockOrderItem("a", 10, 700f),
 				MetaDockOrderItem("b", 11, 500f),

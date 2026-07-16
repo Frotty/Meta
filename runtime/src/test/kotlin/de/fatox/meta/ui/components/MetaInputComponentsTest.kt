@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
@@ -134,6 +135,40 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
+	fun `compact action row keeps overflow chrome inset from row bounds`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON_TERTIARY, Button.ButtonStyle())
+		skin.add(MetaSkin.IMAGE_BUTTON, Button.ButtonStyle())
+		skin.add("meta.imageButton.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.imageButton.down", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.imageButton.disabled", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.tooltip", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val row = MetaActionRow("Level", actions = {})
+
+		row.setSize(240f, MetaActionRowDensity.COMPACT.height)
+		row.validate()
+
+		val actionButton = requireNotNull(row.actionsButton)
+		assertEquals(28f, actionButton.height)
+		assertTrue(actionButton.height < row.height)
+	}
+
+	@Test
+	fun `action row preserves hover input for an interactive trailing actor`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON_TERTIARY, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val trailing = MetaTable()
+
+		MetaActionRow("Level", trailing = trailing, interactiveTrailing = true)
+
+		assertTrue(trailing.touchable != Touchable.disabled)
+	}
+
+	@Test
 	fun `MetaInputField exposes reactive text and invalid style state`() {
 		val field = MetaInputField("start", fontProvider = fontProvider, placeholder = "Name")
 		val validStyle = field.style
@@ -228,6 +263,24 @@ internal class MetaInputComponentsTest {
 		assertEquals(0, action.rows)
 		assertEquals(2, action.cells.size)
 		assertEquals(1, tile.rows)
+	}
+
+	@Test
+	fun `wide icon text button centers icon and label as one action`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val icon = BaseDrawable().apply { minWidth = 20f; minHeight = 20f }
+		val button = MetaIconTextButton("Reset", icon).apply {
+			setSize(220f, 56f)
+			validate()
+		}
+
+		val first = button.children[0]
+		val last = button.children[1]
+		val contentCenter = (first.x + last.x + last.width) / 2f
+		assertEquals(button.width / 2f, contentCenter, 0.5f)
 	}
 
 	@Test

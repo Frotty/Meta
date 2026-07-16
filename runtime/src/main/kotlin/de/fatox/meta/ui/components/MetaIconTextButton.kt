@@ -83,7 +83,9 @@ class MetaIconTextButton private constructor(
 			row()
 			add(label).center().growX().padTop(MetaSpacing.XS)
 		} else {
-			add(label).center().growX().padLeft(MetaSpacing.SM)
+			// Keep the icon and label as one packed group. Growing only the label centers it in the space left after the
+			// icon, which visibly shifts every wide dialog action away from the button's true center.
+			add(label).center().padLeft(MetaSpacing.SM)
 		}
 		cursorPointer()
 		addListener(object : ChangeListener() {

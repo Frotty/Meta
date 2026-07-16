@@ -327,17 +327,17 @@ internal fun resizedLowerDockPanelHeight(
 	return (lowerHeight - upperGrowth).coerceAtLeast(minimumHeight)
 }
 
-internal data class MetaDockOrderItem(val key: String, val order: Int, val centerY: Float)
+internal data class MetaDockOrderItem(val key: String, val order: Int, val titleY: Float)
 internal data class MetaDockOrderUpdate(val order: Int, val normalizedOrders: Map<String, Int> = emptyMap())
 
 internal fun calculateDockOrder(
-	movingCenterY: Float,
+	movingTitleY: Float,
 	existing: List<MetaDockOrderItem>,
 	orderStep: Int = 100,
 ): MetaDockOrderUpdate {
 	require(orderStep > 1) { "Dock order step must leave insertion space" }
 	val ordered = existing.sortedWith(compareBy(MetaDockOrderItem::order, MetaDockOrderItem::key))
-	val insertion = ordered.indexOfFirst { movingCenterY > it.centerY }
+	val insertion = ordered.indexOfFirst { movingTitleY > it.titleY }
 	val index = if (insertion < 0) ordered.size else insertion
 	if (ordered.isEmpty()) return MetaDockOrderUpdate(0)
 	if (index == 0) return MetaDockOrderUpdate(ordered.first().order - orderStep)
@@ -353,6 +353,9 @@ internal fun calculateDockOrder(
 	}
 	return MetaDockOrderUpdate(index * orderStep, normalized)
 }
+
+/** Window titles share the same top inset, so their top edge is a size-independent ordering anchor. */
+internal fun dockTitleY(windowY: Float, windowHeight: Float): Float = windowY + windowHeight
 
 internal fun detectDockSide(
 	x: Float,

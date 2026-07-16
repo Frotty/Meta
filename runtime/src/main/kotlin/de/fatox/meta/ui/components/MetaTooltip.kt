@@ -293,6 +293,8 @@ object MetaTooltip {
 		val listener = object : InputListener() {
 			override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
 				if (pointer != -1) return
+				val currentTarget = event.listenerActor
+				if (hasAttachedDescendant(event.target, currentTarget)) return
 				attachment.pointerEntered()
 			}
 
@@ -301,6 +303,7 @@ object MetaTooltip {
 				val currentTarget = event.listenerActor
 				if (toActor != null && (toActor === currentTarget || toActor.isDescendantOf(currentTarget))) return
 				attachment.pointerExited()
+				requestNearestAttachedAncestor(toActor, currentTarget)
 			}
 		}
 		target.addListener(listener)
@@ -324,6 +327,31 @@ object MetaTooltip {
 			current = current.parent
 		}
 		return false
+	}
+
+	/** Scene2D bubbles enter events, so the deepest registered tooltip target must win over attached ancestors. */
+	private fun hasAttachedDescendant(eventTarget: Actor?, currentTarget: Actor): Boolean {
+		var current = eventTarget
+		while (current != null && current !== currentTarget) {
+			if (attachments.containsKey(current)) return true
+			current = current.parent
+		}
+		return false
+	}
+
+	/** When leaving a nested tooltip target, resume the closest attached ancestor without requiring pointer motion. */
+	private fun requestNearestAttachedAncestor(actor: Actor?, excluded: Actor) {
+		var current = actor
+		while (current != null) {
+			if (current !== excluded) {
+				val attached = attachments[current]
+				if (attached != null) {
+					attached.attachment.pointerEntered()
+					return
+				}
+			}
+			current = current.parent
+		}
 	}
 
 	internal fun bringVisibleToFront() {

@@ -36,6 +36,7 @@ class MetaActionRow @JvmOverloads constructor(
 	interactiveLeading: Boolean = false,
 	subtitle: String = "",
 	trailing: Actor? = null,
+	interactiveTrailing: Boolean = false,
 	density: MetaActionRowDensity = MetaActionRowDensity.COMPACT,
 	tier: MetaButtonTier = MetaButtonTier.TERTIARY,
 	private val actions: ((MetaMenu) -> Unit)? = null,
@@ -63,7 +64,7 @@ class MetaActionRow @JvmOverloads constructor(
 	private var scope = ReactiveScope()
 
 	val actionsButton: MetaIconButton? = actions?.let {
-		MetaIconButton("ri-menu-line", MetaButtonTier.TERTIARY, size = 18).apply {
+		MetaImageButton("ri-menu-line", size = 18).apply {
 			tooltip("More actions")
 			onClick { showActions() }
 		}
@@ -85,7 +86,7 @@ class MetaActionRow @JvmOverloads constructor(
 				subtitleCell = add(subtitleLabel).minWidth(0f).growX().left()
 			}).minWidth(0f).growX()
 			if (trailing != null) {
-				trailing.touchable = Touchable.disabled
+				if (!interactiveTrailing) trailing.touchable = Touchable.disabled
 				add(trailing).padLeft(MetaSpacing.SM)
 			}
 			onClick {
@@ -93,7 +94,12 @@ class MetaActionRow @JvmOverloads constructor(
 			}
 		}
 		add(primary).minWidth(0f).growX().height(density.height)
-		actionsButton?.let { add(it).size(density.height).padLeft(MetaSpacing.XS) }
+		actionsButton?.let {
+			val actionSize = density.height - density.verticalPad * 2f
+			add(it).size(actionSize)
+				.padTop(density.verticalPad).padBottom(density.verticalPad)
+				.padLeft(MetaSpacing.XS).padRight(density.verticalPad)
+		}
 		installBindings()
 	}
 

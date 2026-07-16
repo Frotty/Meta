@@ -20,6 +20,7 @@ import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.bindColor
 import de.fatox.meta.ui.bindText
 import de.fatox.meta.ui.components.MetaArrayAdapter
+import de.fatox.meta.ui.components.MetaActionRow
 import de.fatox.meta.ui.components.MetaButtonContainer
 import de.fatox.meta.ui.components.MetaCheckBox
 import de.fatox.meta.ui.components.MetaColorPicker
@@ -276,16 +277,34 @@ class CollectionsPlaygroundWindow : MetaWindow("Lists & Scrolling", resizable = 
 		override fun selectView(view: Actor) { (view as? MetaButtonContainer)?.isChecked = true }
 		override fun deselectView(view: Actor) { (view as? MetaButtonContainer)?.isChecked = false }
 	})
+	private val nestedTooltipRow = MetaActionRow(
+		title = "Nested tooltip regression",
+		leading = MetaIcon("ri-file-line", 16, MetaColor.TEXT_MUTED),
+		trailing = MetaTable().apply {
+			add(MetaIcon("ri-team-line", 12, MetaColor.ACCENT)).size(12f).pad(2f)
+			tooltip("Nested badge tooltip: Co-op")
+		},
+		interactiveTrailing = true,
+		actions = { menu ->
+			menu.addItem(MetaMenuItem("Regression action", "ri-check-line").apply {
+				onChange { uiManager.showToast("Compact action works") }
+			})
+		},
+	).apply {
+		tooltip("Parent row tooltip: nested action row")
+	}
 
 	init {
 		setDefaultSize(520f, 310f)
 
 		contentTable.defaults().growX().left()
 		contentTable.add(MetaLabel(
-			"Scrollable entries with standalone burger menus. Resize over the pane and window edges.",
+			"Hover the regression row, its Co-op badge, and its compact menu independently.",
 			MetaType.CAPTION,
 			MetaColor.TEXT_MUTED,
 		)).padBottom(MetaSpacing.SM).row()
+		contentTable.add(nestedTooltipRow).growX().padBottom(MetaSpacing.SM).row()
+		contentTable.add(MetaSeparator()).height(1f).padBottom(MetaSpacing.SM).row()
 		contentTable.add(list.scrollPane).grow().row()
 		contentTable.add(selected).padTop(MetaSpacing.SM)
 	}
