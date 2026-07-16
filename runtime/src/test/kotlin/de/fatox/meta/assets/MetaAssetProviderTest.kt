@@ -11,7 +11,10 @@ class MetaAssetProviderTest {
 	@Test
 	fun `queued assets complete through incremental updates`() {
 		val provider = MetaAssetProvider()
-		provider.load("meta-icon-error.png", Pixmap::class.java)
+		Thread { provider.load("meta-icon-error.png", Pixmap::class.java) }.apply {
+			start()
+			join()
+		}
 		assertEquals(0f, provider.progress, "load() must queue rather than finish the asset synchronously")
 
 		var complete = false
@@ -35,8 +38,8 @@ class MetaAssetProviderTest {
 	}
 
 	companion object {
-		private const val UPDATE_BUDGET_MS = 10
-		private const val MAX_UPDATE_ATTEMPTS = 100
+		private const val UPDATE_BUDGET_MS = 0
+		private const val MAX_UPDATE_ATTEMPTS = 10_000
 
 		@JvmStatic
 		@BeforeAll

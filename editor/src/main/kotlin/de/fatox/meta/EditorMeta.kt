@@ -32,9 +32,10 @@ class EditorMeta(
 		array.add(Gdx.files.internal("data/"))
 		MetaInject.global {
 			singleton<Screen> {
-				SplashScreen(queueAssets = {
+				SplashScreen(prepareAssets = {
 					assetProvider.loadRawAssetsFromFolder(Gdx.files.internal("."))
 					for (i in 0 until array.size) assetProvider.loadPackedAssetsFromFolder(array[i])
+				}, queueAssets = {
 				}, onLoaded = {
 					Gdx.app.postRunnable {
 						val audioVideoData = MetaAudioVideoState.current()

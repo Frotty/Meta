@@ -4,6 +4,7 @@ package de.fatox.meta.api.crypto
 
 import java.io.IOException
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.channels.ReadableByteChannel
 import java.nio.channels.SeekableByteChannel
 import java.security.MessageDigest
@@ -38,14 +39,21 @@ fun SeekableByteChannel.hash(): XX64Hash {
 @OptIn(ExperimentalStdlibApi::class)
 @Throws(IllegalStateException::class)
 fun checkHash(input: ByteArray) {
+	require(input.size >= HASH_LENGTH) { "Hashed data is shorter than its hash trailer." }
 	val inputBuffer = ByteBuffer.wrap(input)
 	val newHash = XXH64(inputBuffer, length = input.size - HASH_LENGTH, 0UL).value
-	val oldHash = inputBuffer.getLong().toULong()
-	check(newHash == oldHash) {
+	checkHash(input, XX64Hash(newHash))
+}
+
+@OptIn(ExperimentalStdlibApi::class)
+internal fun checkHash(input: ByteArray, newHash: XX64Hash) {
+	require(input.size >= HASH_LENGTH) { "Hashed data is shorter than its hash trailer." }
+	val oldHash = ByteBuffer.wrap(input).order(ByteOrder.LITTLE_ENDIAN).getLong(input.size - HASH_LENGTH).toULong()
+	check(newHash.value == oldHash) {
 		"""
 		Game files are invalid.
 		${oldHash.toHexString()} (expected)
-		${newHash.toHexString()} (actual)
+		${newHash.value.toHexString()} (actual)
 		""".trimIndent()
 	}
 }

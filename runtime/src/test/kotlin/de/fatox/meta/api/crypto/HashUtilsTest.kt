@@ -2,12 +2,14 @@ package de.fatox.meta.api.crypto
 
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.MethodSource
 import java.util.stream.Stream
+import java.nio.ByteBuffer
 import kotlin.streams.asStream
 import kotlin.test.assertEquals
 
@@ -23,6 +25,28 @@ private val testVectors = sequenceOf(
 )
 
 internal class HashUtilsTest {
+	@Test
+	fun `streaming hash matches one-shot hash across chunk boundaries`() {
+		val inputs = ArrayList<ByteArray>()
+		for (length in 0..257) {
+			inputs.add(ByteArray(length) { index -> (index * 131 + length * 17).toByte() })
+		}
+		val chunkSizes = intArrayOf(1, 3, 7, 31, 32, 33, 64, 127)
+		for (input in inputs) {
+			val expected = XXH64(ByteBuffer.wrap(input), input.size, 0UL)
+			for (chunkSize in chunkSizes) {
+				val streaming = StreamingXXH64()
+				var offset = 0
+				while (offset < input.size) {
+					val length = minOf(chunkSize, input.size - offset)
+					streaming.update(input, offset, length)
+					offset += length
+				}
+				assertEquals(expected, streaming.digest(), "length=${input.size}, chunkSize=$chunkSize")
+			}
+		}
+	}
+
 	@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 	@Nested
 	internal inner class SelfTest {

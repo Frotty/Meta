@@ -68,11 +68,17 @@ The runtime contains all core components of the meta engine that will aid in the
 
 ### Asynchronous asset loading
 
-Queue startup assets through `AssetProvider.load` from the two-callback `SplashScreen` constructor. Meta advances the
-libGDX `AssetManager` in bounded slices each frame, keeps the splash responsive, and renders actual queue progress:
+Queue startup assets through `AssetProvider.load` from `SplashScreen`. Meta advances the libGDX `AssetManager` using
+only the current frame's spare time, keeps the splash responsive, and renders actual queue progress. Put raw/XPK
+discovery in `prepareAssets`; it and `queueAssets` then run sequentially on a low-priority worker, while XPK I/O,
+hashing, indexing, and extraction yield in bounded chunks. Asset finalization and completion remain on the GL thread:
 
 ```kotlin
 SplashScreen(
+    prepareAssets = {
+        assetProvider.loadRawAssetsFromFolder(Gdx.files.internal("."))
+        assetProvider.loadPackedAssetsFromFolder(Gdx.files.internal("data"))
+    },
     queueAssets = {
         assetProvider.load<Texture>("textures/player.png")
         assetProvider.load<Model>("models/world.g3db")
@@ -83,9 +89,13 @@ SplashScreen(
 )
 ```
 
-`queueAssets` and `onLoaded` run on the GL thread. Calling `getResource` for an asset that was not preloaded remains
-supported, but it necessarily blocks until that particular asset is available and should be kept out of startup and
-frame-time-sensitive paths.
+With the three-callback form, `prepareAssets` and `queueAssets` must only perform thread-safe CPU/file/queueing work;
+they must not touch OpenGL or scene2d. `onLoaded` runs on the GL thread. The two-callback form keeps `queueAssets` on
+the GL thread for compatibility and should only be used for small queues. Calling `getResource` for an asset that was
+not preloaded remains supported, but it necessarily blocks until that particular asset is available and should be
+kept out of frame-time-sensitive paths. Individual OpenGL uploads are atomic in libGDX; avoid exceptionally large
+standalone textures if a single upload still exceeds the frame budget. Keep `onLoaded` and the first screen's
+constructor lightweight as well; expensive screen setup after the queue completes cannot be animated by the splash.
 
 ### Dependency Injection
 Meta comes with a lightweight DI framework, focusing mainly on property injection.

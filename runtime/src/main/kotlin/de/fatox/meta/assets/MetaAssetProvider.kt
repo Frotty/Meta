@@ -24,6 +24,7 @@ import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.assets.XPKLoader.getList
 
 private val log = MetaLoggerFactory.logger {}
@@ -64,6 +65,7 @@ class MetaAssetProvider : AssetProvider {
 	private val animCache = IntMap<Array<out TextureRegion>>()
 	private val fileCache = ObjectMap<String, FileHandle>()
 	private val pendingFinalization = Array<AssetDescriptor<*>>()
+	private var finalizationCursor = 0
 
 	override val progress: Float get() = assetManager.progress
 
@@ -72,11 +74,12 @@ class MetaAssetProvider : AssetProvider {
 			for (itrHandle in folder.list()) {
 				if (itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) {
 					val list = getList(itrHandle)
-					list.forEach {
-						fileCache.put(it.name(), it)
-						fileCache.put(it.name().replace("/", "\\"), it)
-						log.debug { "cache name: <${it.name()}>" }
+					for (index in 0 until list.size) {
+						val file = list[index]
+						fileCache.put(file.name(), file)
+						fileCache.put(file.name().replace("/", "\\"), file)
 					}
+					log.debug { "Indexed ${list.size} assets from <${itrHandle.name()}>" }
 				}
 			}
 			return true
@@ -85,6 +88,7 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun loadRawAssetsFromFolder(folder: FileHandle): Boolean {
+		var filesSinceYield = 0
 		// This helper function does all the recursion,
 		// always stripping out `rootFolderName` from the path.
 		fun loadFolderRecursively(currentFolder: FileHandle, rootFolderName: String) {
@@ -107,6 +111,10 @@ class MetaAssetProvider : AssetProvider {
 					// Put both forward-slash and backslash versions into the file cache
 					fileCache.put(relativePath, child)
 					fileCache.put(relativePath.replace("/", "\\"), child)
+					if (++filesSinceYield >= FILES_PER_YIELD) {
+						filesSinceYield = 0
+						Thread.yield()
+					}
 				}
 			}
 		}
@@ -120,9 +128,9 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun <T: Any> load(name: String, type: Class<T>) {
-		log.debug { "loading <$name>" }
+		log.trace { "queueing <$name>" }
 		if (fileCache.containsKey(name)) {
-			log.debug { "pack cache contains filename" }
+			log.trace { "pack cache contains filename" }
 			queueIntern(AssetDescriptor(fileCache[name], type))
 		} else {
 			queueIntern(AssetDescriptor(name, type))
@@ -135,27 +143,40 @@ class MetaAssetProvider : AssetProvider {
 			descriptor.type == Model::class.java ->
 				assetManager.load(descriptor.fileName, Model::class.java, defaultModelParam)
 			descriptor.type == Texture::class.java && !descriptor.fileName.contains("ui") -> {
-				log.debug { "non-ui texture load (mipmapped)" }
+				log.trace { "non-ui texture load (mipmapped)" }
 				assetManager.load(descriptor.fileName, Texture::class.java, defaultTexParam)
 			}
 			else -> {
-				log.debug { "normal load" }
+				log.trace { "normal load" }
 				assetManager.load(descriptor)
 			}
 		}
 		pendingFinalization.add(descriptor)
 	}
 
-	private fun finalizeLoadedAssets() {
-		var index = 0
-		while (index < pendingFinalization.size) {
-			val descriptor = pendingFinalization[index]
+	private fun finalizeLoadedAssets(maxChecks: Int) {
+		var checks = 0
+		while (pendingFinalization.size > 0 && checks < maxChecks) {
+			if (finalizationCursor >= pendingFinalization.size) finalizationCursor = 0
+			val descriptor = pendingFinalization[finalizationCursor]
+			checks++
 			if (!assetManager.isLoaded(descriptor.fileName)) {
-				index++
+				finalizationCursor++
 				continue
 			}
 			finalizeLoadedAsset(descriptor)
+			pendingFinalization.removeIndex(finalizationCursor)
+		}
+	}
+
+	private fun finalizeLoadedAsset(fileName: String) {
+		for (index in 0 until pendingFinalization.size) {
+			val descriptor = pendingFinalization[index]
+			if (descriptor.fileName != fileName) continue
+			finalizeLoadedAsset(descriptor)
 			pendingFinalization.removeIndex(index)
+			if (finalizationCursor > index) finalizationCursor--
+			return
 		}
 	}
 
@@ -178,8 +199,8 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun update(millis: Int): Boolean {
 		val complete = assetManager.update(millis.coerceAtLeast(0))
-		finalizeLoadedAssets()
-		return complete
+		finalizeLoadedAssets(MAX_FINALIZATIONS_PER_FRAME)
+		return complete && pendingFinalization.size == 0
 	}
 
 	override fun <T: Any> getResource(fileName: String, type: Class<T>, index: Int): T {
@@ -199,14 +220,15 @@ class MetaAssetProvider : AssetProvider {
 			}
 			fileCache.containsKey(fileName) -> {
 				load(fileName, type)
-				assetManager.finishLoadingAsset<Any>(fileCache[fileName].path())
-				finalizeLoadedAssets()
+				val resolvedName = fileCache[fileName].path()
+				assetManager.finishLoadingAsset<Any>(resolvedName)
+				finalizeLoadedAsset(resolvedName)
 				getResource(fileName, type)
 			}
 			else -> {
 				load(fileName, type)
 				assetManager.finishLoadingAsset<Any>(fileName)
-				finalizeLoadedAssets()
+				finalizeLoadedAsset(fileName)
 				getResource(fileName, type)
 			}
 		} ?: throw GdxRuntimeException("Resource not found: $fileName")
@@ -218,7 +240,7 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun finish() {
 		assetManager.finishLoading()
-		finalizeLoadedAssets()
+		finalizeLoadedAssets(Int.MAX_VALUE)
 	}
 
 	override fun dispose() {
@@ -249,5 +271,10 @@ class MetaAssetProvider : AssetProvider {
 		override fun resolve(fileName: String): FileHandle {
 			return fileCache[fileName] ?: Gdx.files.internal(fileName)
 		}
+	}
+
+	private companion object {
+		const val MAX_FINALIZATIONS_PER_FRAME = 2
+		const val FILES_PER_YIELD = 64
 	}
 }
