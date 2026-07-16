@@ -82,6 +82,9 @@ Follow these so screens share one look:
   mouse-wheel step, right-side content gutter, and automatic hover-based scroll focus. Nested panes claim focus on
   mouse enter and restore the containing pane on exit, so consumers must not add their own scroll-focus listeners. If
   you need a scrollable list, wrap it in `MetaScrollPane` and let the component enforce the behavior and padding.
+- **Use `MetaActionList` / `MetaActionRow` for tool-style entry lists.** They centralize compact row density,
+  reactive selection/items, leading and trailing metadata, and the standard overflow action menu. Consumers provide
+  domain content and callbacks; do not rebuild the clickable-row-plus-burger-menu pattern in each window.
 - **Use `MetaBottomBar` for bottom prompt/status strips.** It is a generic, content-width container with rounded top
   corners and reactive visibility/content binding helpers; keep game-specific glyph/font lookup in the consuming game
   and pass the resulting actor as content.

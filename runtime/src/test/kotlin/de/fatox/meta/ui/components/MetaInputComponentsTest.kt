@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
@@ -27,6 +28,8 @@ import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.error.MetaError
 import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.injection.MetaInject.Companion.global
+import de.fatox.meta.reactive.ReactiveScope
+import de.fatox.meta.reactive.signal
 import de.fatox.meta.test.GdxTestEnvironment
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaSkin
@@ -101,6 +104,33 @@ internal class MetaInputComponentsTest {
 	fun tearDown() {
 		MetaSkin.dispose()
 		global(clear = true) {}
+	}
+
+	@Test
+	fun `MetaActionList reactively rebuilds rows and centralizes selection`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON, Button.ButtonStyle())
+		skin.add(MetaSkin.BUTTON_PRIMARY, Button.ButtonStyle())
+		skin.add(MetaSkin.BUTTON_TERTIARY, Button.ButtonStyle())
+		skin.add("list", ScrollPane.ScrollPaneStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val source = signal(listOf("One", "Two"))
+		val scope = ReactiveScope()
+		val list = MetaActionList<String> { item, select ->
+			MetaActionRow(item).onActivate(select)
+		}
+
+		list.bindItems(scope, source)
+		assertEquals(2, list.rowsTable.children.size)
+		list.selectItem("Two")
+		assertFalse((list.rowsTable.children[0] as MetaActionRow).selectedValue.value)
+		assertTrue((list.rowsTable.children[1] as MetaActionRow).selectedValue.value)
+
+		source.value = listOf("Three")
+		assertEquals(1, list.rowsTable.children.size)
+		assertEquals(null, list.selectedItemValue.value)
+		scope.dispose()
 	}
 
 	@Test
