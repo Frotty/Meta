@@ -38,12 +38,12 @@ import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.ui.detectDockSide
 import de.fatox.meta.api.ui.dockDividerBottom
-import de.fatox.meta.api.ui.dockTitleY
 import de.fatox.meta.api.ui.resolveDockUpdate
 import de.fatox.meta.api.ui.resolveDockWidths
 import de.fatox.meta.api.ui.resolveDockWidthForSide
 import de.fatox.meta.api.ui.resizedLowerDockPanelHeight
 import de.fatox.meta.api.ui.resizedDockPanelHeight
+import de.fatox.meta.api.ui.shouldResizeLowerDockPanel
 import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.MetaDataKey
@@ -650,14 +650,17 @@ class MetaUiManager : UIManager {
 	}
 
 	private fun nextDockOrder(side: MetaDockSide, movingWindow: Window, persistNormalized: Boolean): Int {
-		val movingTitleY = dockTitleY(movingWindow.y, movingWindow.height)
+		val movingAnchorY = (movingWindow as? MetaWindow)?.dockOrderAnchorY
+			?.takeIf(Float::isFinite)
+			?: movingWindow.y + movingWindow.height
 		val ordered = if (side == MetaDockSide.LEFT) leftDockedWindows else rightDockedWindows
 		collectDockedWindows(side, ordered, movingWindow)
 		ordered.sort(DOCKED_WINDOW_COMPARATOR)
 		var insertion = ordered.size
 		for (index in 0 until ordered.size) {
 			val window = ordered[index].window
-			if (movingTitleY > dockTitleY(window.y, window.height)) {
+			val thresholdY = (window as? MetaWindow)?.dockOrderThresholdY ?: window.y + window.height
+			if (movingAnchorY > thresholdY) {
 				insertion = index
 				break
 			}
@@ -863,7 +866,7 @@ class MetaUiManager : UIManager {
 			}
 			if (index < docked.size - 1 && config.gap > 0f) {
 				val divider = dockDividerFor(entry.window)
-				divider.configure(entry, docked[index + 1], dockLayoutGeneration)
+				divider.configure(entry, docked[index + 1], index + 1 == docked.size - 1, dockLayoutGeneration)
 				divider.setBounds(x, dockDividerBottom(y, config.gap), width, config.gap)
 				if (divider.stage == null) uiRenderer.addActor(divider)
 				divider.toFront()
@@ -907,7 +910,9 @@ class MetaUiManager : UIManager {
 		private lateinit var upper: DockedWindow
 		private var lower: DockedWindow? = null
 		private lateinit var resized: DockedWindow
+		private var fixedLower: DockedWindow? = null
 		private var resizeLowerPanel = false
+		private var lowerIsLast = false
 		private var startStageY = 0f
 		private var startHeight = 0f
 		private var cursorActive = false
@@ -927,7 +932,15 @@ class MetaUiManager : UIManager {
 					dragging = true
 					startStageY = event.stageY
 					val lowerPanel = lower
-					resizeLowerPanel = lowerPanel != null && upper.data.dockFill
+					fixedLower = if (lowerPanel != null && lowerIsLast) lowerPanel else null
+					fixedLower?.let {
+						// Preserve the final panel's current height so dragging the divider moves it as a block. The
+						// released space then remains intentionally empty below the dock.
+						it.data.dockHeight = it.window.height
+						it.data.dockFill = false
+					}
+					resizeLowerPanel = lowerPanel != null &&
+						shouldResizeLowerDockPanel(upper.data.dockFill, lowerIsLast)
 					resized = if (resizeLowerPanel) lowerPanel!! else upper
 					startHeight = resized.window.height
 					return true
@@ -946,20 +959,24 @@ class MetaUiManager : UIManager {
 					if (!dragging) return
 					dragging = false
 					metaSave(resized.name, resized.data)
+					fixedLower?.let { metaSave(it.name, it.data) }
+					fixedLower = null
 					setDividerCursor(hit(x, y, true) === this@DockDivider)
 				}
 			})
 		}
 
-		fun configure(upper: DockedWindow, lower: DockedWindow, generation: Int) {
+		fun configure(upper: DockedWindow, lower: DockedWindow, lowerIsLast: Boolean, generation: Int) {
 			this.upper = upper
 			this.lower = lower
+			this.lowerIsLast = lowerIsLast
 			layoutGeneration = generation
 		}
 
 		fun configureLast(window: DockedWindow, generation: Int) {
 			upper = window
 			lower = null
+			lowerIsLast = false
 			layoutGeneration = generation
 		}
 

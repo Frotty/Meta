@@ -359,6 +359,25 @@ internal class MetaWindowDockingTest {
 	fun `last dock boundary drag converts fill height into a fixed request`() {
 		assertEquals(150f, resizedDockPanelHeight(180f, 30f, resizeLowerPanel = false, minimumHeight = 64f))
 		assertEquals(210f, resizedDockPanelHeight(180f, -30f, resizeLowerPanel = false, minimumHeight = 64f))
+		assertFalse(shouldResizeLowerDockPanel(upperFill = true, lowerIsLast = true))
+		assertTrue(shouldResizeLowerDockPanel(upperFill = true, lowerIsLast = false))
+	}
+
+	@Test
+	fun `fixed final panel can leave empty dock space below`() {
+		val config = MetaDockConfig(topInset = 40f, bottomInset = 40f, gap = 6f)
+		val bounds = calculateDockBounds(
+			viewportWidth = 800f,
+			viewportHeight = 600f,
+			config = config,
+			side = MetaDockSide.LEFT,
+			items = listOf(
+				MetaDockItem("upper", 0, 100f, 64f, 100f, fill = false),
+				MetaDockItem("lower", 100, 100f, 64f, 100f, fill = false),
+			),
+		)
+
+		assertTrue(bounds.getValue("lower").y > config.bottomInset)
 	}
 
 	@Test
@@ -422,26 +441,21 @@ internal class MetaWindowDockingTest {
 	}
 
 	@Test
-	fun `dock ordering follows title position regardless of moving window height`() {
-		val compactTitle = dockTitleY(windowY = 600f, windowHeight = 100f)
-		val tallTitle = dockTitleY(windowY = 300f, windowHeight = 400f)
+	fun `dock ordering anchor can always reach first middle and last slots`() {
 		val existing = listOf(
 			MetaDockOrderItem("upper", 0, 760f),
 			MetaDockOrderItem("lower", 100, 620f),
 		)
 
-		assertEquals(compactTitle, tallTitle)
-		assertEquals(
-			calculateDockOrder(compactTitle, existing).order,
-			calculateDockOrder(tallTitle, existing).order,
-		)
-		assertEquals(50, calculateDockOrder(compactTitle, existing).order)
+		assertEquals(-100, calculateDockOrder(800f, existing).order)
+		assertEquals(50, calculateDockOrder(700f, existing).order)
+		assertEquals(200, calculateDockOrder(0f, existing).order)
 	}
 
 	@Test
 	fun `exhausted order gaps are normalized without duplicate order values`() {
 		val update = calculateDockOrder(
-			movingTitleY = 600f,
+			movingAnchorY = 600f,
 			existing = listOf(
 				MetaDockOrderItem("a", 10, 700f),
 				MetaDockOrderItem("b", 11, 500f),

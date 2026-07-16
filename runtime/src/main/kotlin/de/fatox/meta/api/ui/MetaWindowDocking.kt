@@ -312,6 +312,10 @@ internal fun resizedDockPanelHeight(
 	minimumHeight: Float,
 ): Float = (startHeight + if (resizeLowerPanel) deltaY else -deltaY).coerceAtLeast(minimumHeight)
 
+/** The final lower panel moves as a fixed-height block; only interior fill panels absorb divider movement. */
+internal fun shouldResizeLowerDockPanel(upperFill: Boolean, lowerIsLast: Boolean): Boolean =
+	upperFill && !lowerIsLast
+
 /**
  * Converts movement of a fill panel's lower divider into the requested height of its lower neighbour. The fill panel
  * continues to consume the remainder, while the explicitly sized lower panel stays fixed at the divider position.
@@ -327,17 +331,17 @@ internal fun resizedLowerDockPanelHeight(
 	return (lowerHeight - upperGrowth).coerceAtLeast(minimumHeight)
 }
 
-internal data class MetaDockOrderItem(val key: String, val order: Int, val titleY: Float)
+internal data class MetaDockOrderItem(val key: String, val order: Int, val anchorY: Float)
 internal data class MetaDockOrderUpdate(val order: Int, val normalizedOrders: Map<String, Int> = emptyMap())
 
 internal fun calculateDockOrder(
-	movingTitleY: Float,
+	movingAnchorY: Float,
 	existing: List<MetaDockOrderItem>,
 	orderStep: Int = 100,
 ): MetaDockOrderUpdate {
 	require(orderStep > 1) { "Dock order step must leave insertion space" }
 	val ordered = existing.sortedWith(compareBy(MetaDockOrderItem::order, MetaDockOrderItem::key))
-	val insertion = ordered.indexOfFirst { movingTitleY > it.titleY }
+	val insertion = ordered.indexOfFirst { movingAnchorY > it.anchorY }
 	val index = if (insertion < 0) ordered.size else insertion
 	if (ordered.isEmpty()) return MetaDockOrderUpdate(0)
 	if (index == 0) return MetaDockOrderUpdate(ordered.first().order - orderStep)
@@ -353,9 +357,6 @@ internal fun calculateDockOrder(
 	}
 	return MetaDockOrderUpdate(index * orderStep, normalized)
 }
-
-/** Window titles share the same top inset, so their top edge is a size-independent ordering anchor. */
-internal fun dockTitleY(windowY: Float, windowHeight: Float): Float = windowY + windowHeight
 
 internal fun detectDockSide(
 	x: Float,

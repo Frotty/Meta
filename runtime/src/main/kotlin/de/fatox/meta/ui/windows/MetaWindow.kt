@@ -96,6 +96,8 @@ abstract class MetaWindow(
 	private var resizeStartY = 0f
 	private var resizeStartWidth = 0f
 	private var resizeStartHeight = 0f
+	internal var dockOrderAnchorY = Float.NaN
+		private set
 
 	/** The provider font generation this window's fonts were fetched for; see [refreshFontsIfStale]. */
 	private var fontGeneration = 0
@@ -114,8 +116,11 @@ abstract class MetaWindow(
 	private val resizeCursorListener = object : InputListener() {
 		override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
 			if (pointer != 0 || button != 0) return false
+			dockOrderAnchorY = event.stageY
 			resizeEdge = resizeEdgeAt(x, y)
-			if (resizeEdge == 0) return false
+			// Keep a non-exclusive touch focus for title drags so their pointer anchor remains available even when a
+			// tall window itself is clamped by the stage. The built-in Window listener still owns the actual movement.
+			if (resizeEdge == 0) return y >= height - padTop
 			activeInteraction = if (resizeEdge and (Align.left or Align.right) != 0 && dockSide != null) {
 				MetaWindowInteraction.DOCK_WIDTH_RESIZE
 			} else {
@@ -132,7 +137,9 @@ abstract class MetaWindow(
 		}
 
 		override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
-			if (pointer != 0 || resizeEdge == 0) return
+			if (pointer != 0) return
+			dockOrderAnchorY = event.stageY
+			if (resizeEdge == 0) return
 			resizeFrom(event.stageX, event.stageY)
 			event.stop()
 		}
@@ -269,6 +276,7 @@ abstract class MetaWindow(
 				height,
 			)
 			if (changed) uiManager.updateWindow(this, activeInteraction, finished = true)
+			dockOrderAnchorY = Float.NaN
 			activeInteraction = MetaWindowInteraction.PROGRAMMATIC
 			liveResizeWidth = Float.NaN
 			liveResizeHeight = Float.NaN
@@ -395,6 +403,7 @@ abstract class MetaWindow(
 			clearDockPreview()
 			startDrag = false
 			activeInteraction = MetaWindowInteraction.PROGRAMMATIC
+			dockOrderAnchorY = Float.NaN
 		}
 		super.setStage(stage)
 		if (stage != null && !wasOnStage) {
@@ -600,6 +609,7 @@ abstract class MetaWindow(
 	}
 
 	internal val minimumDockHeight: Float get() = DOCK_MIN_WINDOW_HEIGHT
+	internal val dockOrderThresholdY: Float get() = y + height - HEADER_HEIGHT * 0.5f
 }
 
 /** Docked content can be smaller in either dimension than its preferred size, so both axes must remain scrollable. */
