@@ -81,9 +81,9 @@ class MetaActionRow @JvmOverloads constructor(
 			}
 			add(MetaTable().apply {
 				left()
-				add(titleLabel).minWidth(0f).growX().left()
+				add(titleLabel).minWidth(0f).prefWidth(0f).growX().left()
 				row()
-				subtitleCell = add(subtitleLabel).minWidth(0f).growX().left()
+				subtitleCell = add(subtitleLabel).minWidth(0f).prefWidth(0f).growX().left()
 			}).minWidth(0f).growX()
 			if (trailing != null) {
 				if (!interactiveTrailing) trailing.touchable = Touchable.disabled
@@ -151,6 +151,7 @@ class MetaActionRow @JvmOverloads constructor(
 		button.localToStageCoordinates(menuPosition.set(0f, 0f))
 		menu.showMenu(stage, menuPosition.x, menuPosition.y)
 	}
+
 }
 
 /**

@@ -42,6 +42,7 @@ import java.lang.reflect.Proxy
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -166,6 +167,21 @@ internal class MetaInputComponentsTest {
 		MetaActionRow("Level", trailing = trailing, interactiveTrailing = true)
 
 		assertTrue(trailing.touchable != Touchable.disabled)
+	}
+
+	@Test
+	fun `action row long title does not increase responsive preferred width`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON_TERTIARY, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val short = MetaActionRow("Short")
+		val long = MetaActionRow("A very long level name that must be ellipsized inside a narrow dock")
+		val wideTrailing = MetaTable().apply { add().width(120f) }
+		val withWideTrailing = MetaActionRow("Short", trailing = wideTrailing)
+
+		assertEquals(short.prefWidth, long.prefWidth)
+		assertNotEquals(short.prefWidth, withWideTrailing.prefWidth)
 	}
 
 	@Test

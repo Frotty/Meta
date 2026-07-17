@@ -23,6 +23,7 @@ import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.MetaDockSide
 import de.fatox.meta.api.ui.MetaWindowInteraction
+import de.fatox.meta.api.ui.dockPreviewChanged
 import de.fatox.meta.api.ui.windowGestureChanged
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -79,6 +80,7 @@ abstract class MetaWindow(
 	private var previewX = Float.NaN
 	private var previewY = Float.NaN
 	private var previewWidth = Float.NaN
+	private var previewOrderAnchorY = Float.NaN
 	private var liveResizeWidth = Float.NaN
 	private var liveResizeHeight = Float.NaN
 	private var fadeInAction: Action? = null
@@ -121,6 +123,7 @@ abstract class MetaWindow(
 			// Keep a non-exclusive touch focus for title drags so their pointer anchor remains available even when a
 			// tall window itself is clamped by the stage. The built-in Window listener still owns the actual movement.
 			if (resizeEdge == 0) return y >= height - padTop
+			updateResizeCursor(x, y)
 			activeInteraction = if (resizeEdge and (Align.left or Align.right) != 0 && dockSide != null) {
 				MetaWindowInteraction.DOCK_WIDTH_RESIZE
 			} else {
@@ -141,6 +144,8 @@ abstract class MetaWindow(
 			dockOrderAnchorY = event.stageY
 			if (resizeEdge == 0) return
 			resizeFrom(event.stageX, event.stageY)
+			// Platforms may restore the default cursor on mouse press; retain the active edge cursor for the gesture.
+			updateResizeCursor(x, y)
 			event.stop()
 		}
 
@@ -246,10 +251,15 @@ abstract class MetaWindow(
 				if (activeInteraction == MetaWindowInteraction.PROGRAMMATIC) activeInteraction = MetaWindowInteraction.MOVE
 			}
 			if (resizeEdge == 0) {
-				if (x != previewX || y != previewY || width != previewWidth) {
+				if (dockPreviewChanged(
+						x, y, width, dockOrderAnchorY,
+						previewX, previewY, previewWidth, previewOrderAnchorY,
+					)
+				) {
 					previewX = x
 					previewY = y
 					previewWidth = width
+					previewOrderAnchorY = dockOrderAnchorY
 					uiManager.previewWindowDock(this)
 					uiManager.updateWindow(this, MetaWindowInteraction.MOVE, finished = false)
 				}
@@ -333,10 +343,11 @@ abstract class MetaWindow(
 	}
 
 	private fun clearDockPreview() {
-		if (previewX.isNaN() && previewY.isNaN() && previewWidth.isNaN()) return
+		if (previewX.isNaN() && previewY.isNaN() && previewWidth.isNaN() && previewOrderAnchorY.isNaN()) return
 		previewX = Float.NaN
 		previewY = Float.NaN
 		previewWidth = Float.NaN
+		previewOrderAnchorY = Float.NaN
 		uiManager.previewWindowDock(null)
 	}
 

@@ -301,6 +301,22 @@ internal fun windowGestureChanged(
 	kotlin.math.abs(endWidth - startWidth) >= epsilon
 }
 
+/** Pointer movement must keep live dock ordering active even after stage clamping freezes the window bounds. */
+internal fun dockPreviewChanged(
+	x: Float,
+	y: Float,
+	width: Float,
+	orderAnchorY: Float,
+	previousX: Float,
+	previousY: Float,
+	previousWidth: Float,
+	previousOrderAnchorY: Float,
+): Boolean = x != previousX || y != previousY || width != previousWidth ||
+	!sameDockPreviewCoordinate(orderAnchorY, previousOrderAnchorY)
+
+private fun sameDockPreviewCoordinate(value: Float, previous: Float): Boolean =
+	value == previous || value.isNaN() && previous.isNaN()
+
 /** A dock divider occupies the configured inter-window gap, never either window's content bounds. */
 internal fun dockDividerBottom(upperWindowBottom: Float, gap: Float): Float = upperWindowBottom - gap
 

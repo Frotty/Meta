@@ -930,6 +930,7 @@ class MetaUiManager : UIManager {
 				override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
 					if (pointer != 0 || button != Input.Buttons.LEFT) return false
 					dragging = true
+					setDividerCursor(true, force = true)
 					startStageY = event.stageY
 					val lowerPanel = lower
 					fixedLower = if (lowerPanel != null && lowerIsLast) lowerPanel else null
@@ -947,6 +948,7 @@ class MetaUiManager : UIManager {
 				}
 
 				override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
+					setDividerCursor(true, force = true)
 					val deltaY = event.stageY - startStageY
 					resized.data.dockHeight = resizedDockPanelHeight(
 						startHeight, deltaY, resizeLowerPanel, dockPanelMinimumHeight(resized.window),
@@ -985,8 +987,8 @@ class MetaUiManager : UIManager {
 			remove()
 		}
 
-		private fun setDividerCursor(active: Boolean) {
-			if (cursorActive == active) return
+		private fun setDividerCursor(active: Boolean, force: Boolean = false) {
+			if (cursorActive == active && !force) return
 			cursorActive = active
 			Gdx.graphics.setSystemCursor(if (active) Cursor.SystemCursor.VerticalResize else Cursor.SystemCursor.Arrow)
 		}

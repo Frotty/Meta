@@ -345,6 +345,38 @@ internal class MetaWindowDockingTest {
 	}
 
 	@Test
+	fun `pointer movement refreshes dock order after window bounds hit the screen clamp`() {
+		assertTrue(
+			dockPreviewChanged(
+				x = 10f,
+				y = 0f,
+				width = 300f,
+				orderAnchorY = 40f,
+				previousX = 10f,
+				previousY = 0f,
+				previousWidth = 300f,
+				previousOrderAnchorY = 80f,
+			),
+		)
+	}
+
+	@Test
+	fun `missing pointer anchors do not continuously refresh an unchanged dock preview`() {
+		assertFalse(
+			dockPreviewChanged(
+				x = 10f,
+				y = 0f,
+				width = 300f,
+				orderAnchorY = Float.NaN,
+				previousX = 10f,
+				previousY = 0f,
+				previousWidth = 300f,
+				previousOrderAnchorY = Float.NaN,
+			),
+		)
+	}
+
+	@Test
 	fun `dock divider occupies only the gap below the upper window`() {
 		val upperBottom = 240f
 		val lowerTop = 234f
