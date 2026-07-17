@@ -124,6 +124,54 @@ private inline val Graphics.DisplayMode.monitorIndex
 
 fun Graphics.DisplayMode.toMetaDisplayMode(): MetaDisplayMode = MetaDisplayMode(this)
 
+/** Safe decorated-window geometry shared by startup launchers and persisted display restoration. */
+object MetaWindowBounds {
+	const val MIN_WIDTH = 854
+	const val MIN_HEIGHT = 480
+	private const val MONITOR_MARGIN = 80
+
+	internal fun initial(monitorX: Int, monitorY: Int, monitorWidth: Int, monitorHeight: Int): IntArray {
+		val limits = limits(monitorWidth, monitorHeight)
+		val width = (monitorWidth * 0.75f).toInt().coerceIn(limits[0], limits[2])
+		val height = (monitorHeight * 0.75f).toInt().coerceIn(limits[1], limits[3])
+		return intArrayOf(
+			monitorX + (monitorWidth - width) / 2,
+			monitorY + (monitorHeight - height) / 2,
+			width,
+			height,
+		)
+	}
+
+	internal fun sanitize(
+		x: Int,
+		y: Int,
+		width: Int,
+		height: Int,
+		monitorX: Int,
+		monitorY: Int,
+		monitorWidth: Int,
+		monitorHeight: Int,
+	): IntArray {
+		val limits = limits(monitorWidth, monitorHeight)
+		val safeWidth = width.coerceIn(limits[0], limits[2])
+		val safeHeight = height.coerceIn(limits[1], limits[3])
+		val safeX = x.coerceIn(monitorX, monitorX + monitorWidth - safeWidth)
+		val safeY = y.coerceIn(monitorY, monitorY + monitorHeight - safeHeight)
+		return intArrayOf(safeX, safeY, safeWidth, safeHeight)
+	}
+
+	private fun limits(monitorWidth: Int, monitorHeight: Int): IntArray {
+		val maximumWidth = (monitorWidth - MONITOR_MARGIN).coerceAtLeast(1)
+		val maximumHeight = (monitorHeight - MONITOR_MARGIN).coerceAtLeast(1)
+		return intArrayOf(
+			MIN_WIDTH.coerceAtMost(maximumWidth),
+			MIN_HEIGHT.coerceAtMost(maximumHeight),
+			maximumWidth,
+			maximumHeight,
+		)
+	}
+}
+
 private fun getCurrentMonitor(): Graphics.Monitor {
 	val graphics = Gdx.graphics
 	val monitors = graphics.monitors
@@ -262,24 +310,23 @@ data class MetaAudioVideoData(
 		}
 		val mode = Gdx.graphics.getDisplayMode(monitor)
 		if (!windowedBoundsInitialized) {
-			val initialWidth = (mode.width * 0.75f).toInt().coerceAtLeast(320)
-			val initialHeight = (mode.height * 0.75f).toInt().coerceAtLeast(240)
-			val initialX = monitor.virtualX + (mode.width - initialWidth) / 2
-			val initialY = monitor.virtualY + (mode.height - initialHeight) / 2
+			val initial = MetaWindowBounds.initial(monitor.virtualX, monitor.virtualY, mode.width, mode.height)
 			windowedBoundsInitialized = true
 			log.info(
 				"Using initial centered windowed bounds {}x{} at {},{} on monitor {},{} {}x{}",
-				initialWidth, initialHeight, initialX, initialY,
+				initial[2], initial[3], initial[0], initial[1],
 				monitor.virtualX, monitor.virtualY, mode.width, mode.height,
 			)
-			return intArrayOf(initialX, initialY, initialWidth, initialHeight)
+			return initial
 		}
-		val maxWidth = (mode.width - 80).coerceAtLeast(320)
-		val maxHeight = (mode.height - 80).coerceAtLeast(240)
-		val safeWidth = width.coerceIn(320, maxWidth)
-		val safeHeight = height.coerceIn(240, maxHeight)
-		val safeX = x.coerceIn(monitor.virtualX, monitor.virtualX + mode.width - safeWidth)
-		val safeY = y.coerceIn(monitor.virtualY, monitor.virtualY + mode.height - safeHeight)
+		val safe = MetaWindowBounds.sanitize(
+			x, y, width, height,
+			monitor.virtualX, monitor.virtualY, mode.width, mode.height,
+		)
+		val safeX = safe[0]
+		val safeY = safe[1]
+		val safeWidth = safe[2]
+		val safeHeight = safe[3]
 		if (safeX != x || safeY != y || safeWidth != width || safeHeight != height) {
 			log.warn(
 				"Corrected unsafe windowed bounds {}x{} at {},{} to {}x{} at {},{} on monitor {},{} {}x{}",
@@ -287,6 +334,6 @@ data class MetaAudioVideoData(
 				monitor.virtualX, monitor.virtualY, mode.width, mode.height,
 			)
 		}
-		return intArrayOf(safeX, safeY, safeWidth, safeHeight)
+		return safe
 	}
 }
