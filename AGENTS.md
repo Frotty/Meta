@@ -66,12 +66,20 @@ Follow these so screens share one look:
   stay 100% Remix: use names like `ri-brush-line`, `ri-pencil-line`, `ri-paint-line`, `ri-magic-line`,
   `ri-eraser-line`, `ri-square-fill`/`ri-square-line`, and `ri-circle-fill`/`ri-circle-line` instead of custom
   drawn glyphs.
+- **Responsive layout containers are first-class UI primitives.** Default to nested `MetaFlexBox` containers for
+  ordinary rows, columns, forms, toolbars, and wrapping item bags; use `MetaGrid` when siblings need shared,
+  auto-fitting equal tracks, and `MetaStack` for backgrounds, overlays, and badges. Prefer the `metaFlexRow`,
+  `metaFlexColumn`, `metaGrid`, and `metaStack` builders for concise composition. These containers remeasure nested
+  `Layout` children at their assigned width and must remain allocation-free during steady-state measurement/layout.
+  Do not rebuild manual table rows in `sizeChanged()` to imitate wrapping. Keep `MetaTable` for compatibility and
+  layouts that genuinely need scene2d cell/row-span semantics, not as the default composition tool.
 - **Design tokens live in `ui/MetaUi.kt`** — `MetaType` (typographic scale in px: CAPTION…DISPLAY), `MetaSpacing`
-  (padding rhythm), `MetaColor` (dark palette). Prefer these over magic numbers/colors. Helpers: `metaLabel(...)`,
-  `metaButton(...)`, `metaRow { ... }`, `metaColumn { ... }`, `Table.metaDefaults()`. Default text controls use
-  `MetaType.BODY`; pass a different token only when the hierarchy calls for it. `MetaTable` stays neutral because it
-  is also the structural layout primitive: use `MetaTable(defaultSpacing = true)` or the row/column helpers for normal
-  content rather than repeating cell gaps manually. `MetaColor` values are shared mutable `Color`s — treat read-only,
+  (padding rhythm), `MetaColor` (dark palette). Prefer these over magic numbers/colors. Helpers include
+  `metaLabel(...)`, `metaButton(...)`, `metaFlexRow { ... }`, `metaFlexColumn { ... }`, `metaGrid(...)`,
+  `metaStack { ... }`, and `Table.metaDefaults()`. Default text controls use
+  `MetaType.BODY`; pass a different token only when the hierarchy calls for it. When cell semantics are appropriate,
+  use `MetaTable(defaultSpacing = true)` rather than repeating cell gaps manually. `MetaColor` values are shared
+  mutable `Color`s — treat read-only,
   use `.cpy()` for variants.
 - **Take the composed-control path first.** For forms use `MetaInputLayout.field(...)` / `.area(...)`; these provide
   label, field sizing, helper/error presentation, and collapse unused feedback space. `MetaIconTextButton` lays out a

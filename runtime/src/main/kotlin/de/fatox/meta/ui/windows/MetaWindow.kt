@@ -335,10 +335,13 @@ abstract class MetaWindow(
 		fill: Boolean = false,
 		minimumWidth: Float = MIN_WINDOW_WIDTH,
 	) {
+		val previousSide = dockSide
 		dockSide = side
 		dockFill = side != null && fill
 		dockMinimumWidth = minimumWidth
-		if (side != null && resizeCursorActive) setResizeCursor(null)
+		// Re-layout reapplies the same dock state continuously during sidebar-width drags. Only a real side transition
+		// should clear the old edge cursor; clearing it for an unchanged side breaks the active resize gesture.
+		if (side != previousSide && resizeCursorActive) setResizeCursor(null)
 		invalidate()
 	}
 

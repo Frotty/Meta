@@ -4,7 +4,13 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.ui.components.MetaFlexAlign
+import de.fatox.meta.ui.components.MetaFlexBox
+import de.fatox.meta.ui.components.MetaFlexDirection
+import de.fatox.meta.ui.components.MetaFlexJustify
+import de.fatox.meta.ui.components.MetaGrid
 import de.fatox.meta.ui.components.MetaLabel
+import de.fatox.meta.ui.components.MetaStack
 import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.MetaTextButton
 
@@ -112,3 +118,62 @@ fun metaColumn(spacing: Float = MetaSpacing.SM, init: MetaTable.() -> Unit = {})
 	defaults().growX().spaceBottom(spacing)
 	init()
 }
+
+/** Responsive row layout. Prefer this over table cells for ordinary horizontal composition. */
+fun metaFlexRow(
+	wrap: Boolean = false,
+	gap: Float = MetaSpacing.SM,
+	crossGap: Float = gap,
+	justify: MetaFlexJustify = MetaFlexJustify.START,
+	align: MetaFlexAlign = MetaFlexAlign.START,
+	init: MetaFlexBox.() -> Unit = {},
+): MetaFlexBox = MetaFlexBox(
+	direction = MetaFlexDirection.ROW,
+	wrap = wrap,
+	mainGap = gap,
+	crossGap = crossGap,
+	justify = justify,
+	align = align,
+).apply(init)
+
+/** Responsive column layout. Enable [wrap] to flow tall content into additional columns. */
+fun metaFlexColumn(
+	wrap: Boolean = false,
+	gap: Float = MetaSpacing.SM,
+	crossGap: Float = gap,
+	justify: MetaFlexJustify = MetaFlexJustify.START,
+	align: MetaFlexAlign = MetaFlexAlign.START,
+	init: MetaFlexBox.() -> Unit = {},
+): MetaFlexBox = MetaFlexBox(
+	direction = MetaFlexDirection.COLUMN,
+	wrap = wrap,
+	mainGap = gap,
+	crossGap = crossGap,
+	justify = justify,
+	align = align,
+).apply(init)
+
+/** Responsive equal-track grid with an auto-fit column count. */
+fun metaGrid(
+	minColumnWidth: Float,
+	maxColumns: Int = Int.MAX_VALUE,
+	columnGap: Float = MetaSpacing.SM,
+	rowGap: Float = MetaSpacing.SM,
+	horizontalAlign: MetaFlexAlign = MetaFlexAlign.STRETCH,
+	verticalAlign: MetaFlexAlign = MetaFlexAlign.START,
+	init: MetaGrid.() -> Unit = {},
+): MetaGrid = MetaGrid(
+	minColumnWidth,
+	maxColumns,
+	columnGap,
+	rowGap,
+	horizontalAlign,
+	verticalAlign,
+).apply(init)
+
+/** Layered layout for backgrounds, overlays and badges sharing the same bounds. */
+fun metaStack(
+	horizontalAlign: MetaFlexAlign = MetaFlexAlign.STRETCH,
+	verticalAlign: MetaFlexAlign = MetaFlexAlign.STRETCH,
+	init: MetaStack.() -> Unit = {},
+): MetaStack = MetaStack(horizontalAlign, verticalAlign).apply(init)

@@ -3,6 +3,7 @@ package de.fatox.meta.ui
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import de.fatox.meta.test.GdxTestEnvironment
+import de.fatox.meta.ui.components.MetaFlexDirection
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Test
@@ -29,6 +30,21 @@ internal class MetaUiDefaultsTest {
 
 		assertEquals(MetaSpacing.SM, row.cells.first().spaceRight)
 		assertEquals(MetaSpacing.SM, column.cells.first().spaceBottom)
+	}
+
+	@Test
+	fun `responsive layout builders expose ergonomic framework defaults`() {
+		val row = metaFlexRow(wrap = true) { addItem(Actor(), basisWidth = 20f, basisHeight = 10f) }
+		val column = metaFlexColumn { addItem(Actor(), basisWidth = 20f, basisHeight = 10f) }
+		val grid = metaGrid(minColumnWidth = 80f, maxColumns = 3) { addItem(Actor(), basisHeight = 10f) }
+		val stack = metaStack { addItem(Actor(), basisWidth = 20f, basisHeight = 10f) }
+
+		assertEquals(MetaFlexDirection.ROW, row.direction)
+		assertTrue(row.wrap)
+		assertEquals(MetaSpacing.SM, row.mainGap)
+		assertEquals(MetaFlexDirection.COLUMN, column.direction)
+		assertEquals(3, grid.maxColumns)
+		assertEquals(20f, stack.prefWidth)
 	}
 
 	@Test
