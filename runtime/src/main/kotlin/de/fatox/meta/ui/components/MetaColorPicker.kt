@@ -17,6 +17,7 @@ import de.fatox.meta.api.extensions.tooltip
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.windows.MetaWindow
@@ -61,8 +62,8 @@ open class MetaColorPicker @JvmOverloads constructor(
 			add(inputModeButton.apply {
 				tooltip("Switch between HEX and ${if (isAllowAlphaEdit) "RGBA" else "RGB"} display")
 				onChange { toggleInputMode() }
-			}).width(76f).height(34f).padRight(MetaSpacing.XS)
-			add(colorInput).growX().height(34f)
+			}).width(76f).height(MetaControlSize.STANDARD.height).padRight(MetaSpacing.XS)
+			add(colorInput).growX().height(MetaControlSize.STANDARD.height)
 		}).row()
 		colorInput.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: com.badlogic.gdx.scenes.scene2d.Actor) {

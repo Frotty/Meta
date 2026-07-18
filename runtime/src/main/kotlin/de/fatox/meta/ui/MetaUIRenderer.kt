@@ -74,6 +74,7 @@ class MetaUIRenderer : UIRenderer {
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val focusRenderer: FocusRenderer by lazyInject()
 	private val fontProvider: FontProvider by lazyInject()
+	private val uiControlHelper: UiControlHelper by lazyInject()
 
 	private val stage: Stage = Stage(ScreenViewport(), spriteBatch)
 	private val toastManager = MetaToastManager(stage)
@@ -149,6 +150,7 @@ class MetaUIRenderer : UIRenderer {
 			}
 
 			override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+				uiControlHelper.focusFromPointer(event.target)
 				if (!event.target.isInside<TextField>()) stage.keyboardFocus = null
 				if (!event.target.isInside<ScrollPane>()) stage.scrollFocus = null
 				return false

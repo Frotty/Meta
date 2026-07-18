@@ -48,6 +48,16 @@ internal class MetaUiDefaultsTest {
 	}
 
 	@Test
+	fun `control densities share a coherent target and icon rhythm`() {
+		assertEquals(32f, MetaControlSize.COMPACT.height)
+		assertEquals(40f, MetaControlSize.STANDARD.height)
+		assertEquals(48f, MetaControlSize.COMFORTABLE.height)
+		assertEquals(MetaControlSize.STANDARD.height, MetaControlSize.STANDARD.iconTarget)
+		assertTrue(MetaControlSize.COMPACT.iconSize < MetaControlSize.STANDARD.iconSize)
+		assertTrue(MetaControlSize.STANDARD.iconSize < MetaControlSize.COMFORTABLE.iconSize)
+	}
+
+	@Test
 	fun `theme text colors meet WCAG AA contrast`() {
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.PRIMARY, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.PRIMARY_HOVER, 4.5f)

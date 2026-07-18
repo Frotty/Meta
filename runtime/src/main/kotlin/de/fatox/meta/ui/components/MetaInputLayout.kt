@@ -16,6 +16,7 @@ import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.computed
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaColor
+import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
@@ -138,7 +139,7 @@ class MetaInputLayout<T : Actor> @JvmOverloads constructor(
 	}
 
 	companion object {
-		private const val FIELD_MIN_HEIGHT = 44f
+		private val FIELD_MIN_HEIGHT = MetaControlSize.STANDARD.height
 		private const val TEXT_AREA_MIN_HEIGHT = 112f
 
 		@JvmStatic

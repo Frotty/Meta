@@ -47,29 +47,44 @@ object MetaSpacing {
 }
 
 /**
+ * Shared interaction density for Meta controls. A size owns the complete control rhythm so composed widgets do not
+ * drift into unrelated 30/32/34/38px conventions as their fonts and icons evolve.
+ */
+enum class MetaControlSize(
+	val height: Float,
+	val iconSize: Int,
+	val iconTarget: Float,
+	val horizontalPadding: Float,
+) {
+	COMPACT(32f, 16, 32f, MetaSpacing.SM),
+	STANDARD(40f, 18, 40f, MetaSpacing.MD),
+	COMFORTABLE(48f, 20, 48f, MetaSpacing.LG),
+}
+
+/**
  * The Meta palette. Shared, mutable [Color] instances - do NOT mutate them; use [Color.cpy] for a variant.
  * Dark theme derived from the engine's backdrop/clear colors.
  */
 object MetaColor {
-	val BACKGROUND: Color = Color.valueOf("1F2025FF")
-	val SURFACE: Color = Color.valueOf("2B2B2EFF")
-	val SURFACE_RAISED: Color = Color.valueOf("35353AFF")
-	val BORDER: Color = Color.valueOf("525762FF")
+	val BACKGROUND: Color = Color.valueOf("191C21FF")
+	val SURFACE: Color = Color.valueOf("24282FFF")
+	val SURFACE_RAISED: Color = Color.valueOf("2D323AFF")
+	val BORDER: Color = Color.valueOf("48515DFF")
 
 	val TEXT: Color = Color.valueOf("FFFFFFFF")
 	val TEXT_MUTED: Color = Color.valueOf("B8BBC5FF")
 	val TEXT_DISABLED: Color = Color.valueOf("858894FF")
 
-	/** Primary action fill. White text has a 5.39:1 contrast ratio against this color. */
-	val PRIMARY: Color = Color.valueOf("2F6F9FFF")
-	val PRIMARY_HOVER: Color = Color.valueOf("3879A6FF")
-	val PRIMARY_PRESSED: Color = Color.valueOf("285B82FF")
-	val SECONDARY: Color = Color.valueOf("3A3D45FF")
-	val SECONDARY_HOVER: Color = Color.valueOf("464B55FF")
-	val TERTIARY: Color = Color.valueOf("2E3137FF")
-	val TERTIARY_HOVER: Color = Color.valueOf("393D45FF")
+	/** Primary action fill. Primary states are regression-tested against white text at WCAG AA contrast. */
+	val PRIMARY: Color = Color.valueOf("276F9FFF")
+	val PRIMARY_HOVER: Color = Color.valueOf("3078A5FF")
+	val PRIMARY_PRESSED: Color = Color.valueOf("205B82FF")
+	val SECONDARY: Color = Color.valueOf("303741FF")
+	val SECONDARY_HOVER: Color = Color.valueOf("3A4551FF")
+	val TERTIARY: Color = Color.valueOf("00000000")
+	val TERTIARY_HOVER: Color = Color.valueOf("303842FF")
 
-	val ACCENT: Color = Color.valueOf("65B5F1FF")
+	val ACCENT: Color = Color.valueOf("59C2FFFF")
 	val POSITIVE: Color = Color.valueOf("6FCF63FF")
 	val NEGATIVE: Color = Color.valueOf("E5534BFF")
 	val WARNING: Color = Color.valueOf("E0A33AFF")

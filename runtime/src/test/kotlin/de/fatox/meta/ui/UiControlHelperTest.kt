@@ -95,6 +95,35 @@ internal class UiControlHelperTest {
 	}
 
 	@Test
+	fun `focused semantic control consumes direction before spatial navigation`() {
+		val root = testRoot()
+		val semantic = SemanticControl().apply { setBounds(0f, 0f, 80f, 32f) }
+		val neighbour = button(100f, 0f)
+		root.addActor(semantic)
+		root.addActor(neighbour)
+		stage.addActor(root)
+
+		helper.focusFirstIn(root, semantic)
+		input.keyDown(Input.Keys.RIGHT)
+		input.keyUp(Input.Keys.RIGHT)
+
+		assertEquals(1, semantic.rightActions)
+		assertSame(semantic, helper.focusedActor.value)
+	}
+
+	@Test
+	fun `pointer focus resolves nested content to its navigable parent`() {
+		val button = button(0f, 0f)
+		val child = Actor().apply { setBounds(0f, 0f, 16f, 16f) }
+		button.addActor(child)
+		stage.addActor(button)
+
+		helper.focusFromPointer(child)
+
+		assertSame(button, helper.focusedActor.value)
+	}
+
+	@Test
 	fun `stage scroll focus chooses deepest nested MetaScrollPane and restores its parent`() {
 		val outerContent = Group().apply { setBounds(0f, 0f, 200f, 400f) }
 		val innerContent = Actor().apply { setBounds(0f, 0f, 100f, 300f) }
@@ -304,6 +333,18 @@ internal class UiControlHelperTest {
 
 	private fun button(x: Float, y: Float): Button =
 		Button().apply { setBounds(x, y, 48f, 24f) }
+
+	private class SemanticControl : Actor(), MetaFocusable, MetaUiActionHandler {
+		var rightActions = 0
+
+		override fun setMetaFocused(focused: Boolean) = Unit
+
+		override fun handleMetaUiAction(action: MetaUiAction): Boolean {
+			if (action != MetaUiAction.NAVIGATE_RIGHT) return false
+			rightActions++
+			return true
+		}
+	}
 
 	private fun testRoot(): Group =
 		Group().apply { setBounds(0f, 0f, 800f, 600f) }

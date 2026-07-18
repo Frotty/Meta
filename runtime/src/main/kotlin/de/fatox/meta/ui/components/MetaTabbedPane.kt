@@ -6,6 +6,7 @@ import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.tabs.MetaTab
@@ -76,8 +77,8 @@ class MetaTabbedPane {
 	}
 
 	private companion object {
-		const val TAB_HEIGHT = 32f
-		const val CLOSE_SIZE = 24f
+		val TAB_HEIGHT = MetaControlSize.STANDARD.height
+		val CLOSE_SIZE = MetaControlSize.COMPACT.iconTarget
 	}
 }
 

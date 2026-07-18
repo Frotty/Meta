@@ -1047,6 +1047,8 @@ class MetaUiManager : UIManager {
 
 	override fun showToast(table: Table, duration: Float): Unit = uiRenderer.getToastManager().show(table, duration)
 
+	override fun showToast(spec: de.fatox.meta.api.ui.MetaToastSpec): Unit = uiRenderer.getToastManager().show(spec)
+
 	override fun clearToasts(): Unit = uiRenderer.getToastManager().clear()
 
 	override fun onDialogRemoved(dialog: MetaDialog) {

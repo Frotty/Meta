@@ -2,6 +2,7 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
@@ -89,7 +90,8 @@ class MetaActionRow @JvmOverloads constructor(
 				if (!interactiveTrailing) trailing.touchable = Touchable.disabled
 				add(trailing).padLeft(MetaSpacing.SM)
 			}
-			onClick {
+			onClick primaryClick@ { event ->
+				if (event.targetsNestedButton(primary)) return@primaryClick
 				if (!isDisabled) activation?.invoke()
 			}
 		}

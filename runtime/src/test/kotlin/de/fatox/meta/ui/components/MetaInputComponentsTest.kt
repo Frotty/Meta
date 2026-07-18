@@ -7,7 +7,9 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Matrix4
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
@@ -17,6 +19,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
+import com.badlogic.gdx.scenes.scene2d.utils.FocusListener
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.viewport.Viewport
 import de.fatox.meta.api.AssetProvider
@@ -136,6 +139,56 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
+	fun `spinner keeps partial text until commit and clamps on focus loss`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.SPINNER_TEXT_FIELD, TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle::class.java)))
+		skin.add(MetaSkin.SPINNER_DECREMENT, Button.ButtonStyle())
+		skin.add(MetaSkin.SPINNER_INCREMENT, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val model = MetaIntSpinnerModel(initial = 248, min = 128, max = 512)
+		val spinner = MetaSpinner(model)
+
+		spinner.textField.setText("")
+		assertEquals(248, model.value)
+		assertEquals("", spinner.textField.text)
+		spinner.textField.setText("2")
+		assertEquals(248, model.value)
+		assertEquals("2", spinner.textField.text)
+
+		spinner.textField.setText("200")
+		spinner.textField.fire(FocusListener.FocusEvent().apply {
+			type = FocusListener.FocusEvent.Type.keyboard
+			isFocused = false
+		})
+		assertEquals(200, model.value)
+		assertEquals("200", spinner.textField.text)
+
+		spinner.textField.setText("999")
+		spinner.commitText()
+		assertEquals(512, model.value)
+		assertEquals("512", spinner.textField.text)
+	}
+
+	@Test
+	fun `spinner invalid edit restores committed value when committed or cancelled`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.SPINNER_TEXT_FIELD, TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle::class.java)))
+		skin.add(MetaSkin.SPINNER_DECREMENT, Button.ButtonStyle())
+		skin.add(MetaSkin.SPINNER_INCREMENT, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val spinner = MetaSpinner(MetaIntSpinnerModel(initial = 248, min = 128, max = 512))
+
+		spinner.textField.setText("")
+		spinner.commitText()
+		assertEquals("248", spinner.textField.text)
+		spinner.textField.setText("not a number")
+		spinner.cancelTextEdit()
+		assertEquals("248", spinner.textField.text)
+	}
+
+	@Test
 	fun `compact action row keeps overflow chrome inset from row bounds`() {
 		val skin = MetaSkin.skin()
 		skin.add(MetaSkin.BUTTON_TERTIARY, Button.ButtonStyle())
@@ -167,6 +220,45 @@ internal class MetaInputComponentsTest {
 		MetaActionRow("Level", trailing = trailing, interactiveTrailing = true)
 
 		assertTrue(trailing.touchable != Touchable.disabled)
+	}
+
+	@Test
+	fun `nested button click is owned by the child rather than its composed row`() {
+		val owner = Group()
+		val nestedButton = Button(Button.ButtonStyle())
+		val plainChild = Actor()
+		owner.addActor(nestedButton)
+		owner.addActor(plainChild)
+
+		assertTrue(InputEvent().apply { target = nestedButton }.targetsNestedButton(owner))
+		assertFalse(InputEvent().apply { target = plainChild }.targetsNestedButton(owner))
+	}
+
+	@Test
+	fun `nested button touch down does not press its button container parent`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON_SECONDARY, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val parent = MetaButtonContainer()
+		val nestedButton = Button(Button.ButtonStyle())
+		parent.add(nestedButton)
+		parent.setSize(200f, 40f)
+		parent.validate()
+		val stage = Stage(TestViewport(), noopBatch())
+		stage.addActor(parent)
+		val event = InputEvent().apply {
+			type = InputEvent.Type.touchDown
+			button = 0
+			pointer = 0
+			this.stage = stage
+		}
+
+		nestedButton.fire(event)
+
+		assertTrue(event.isStopped)
+		assertFalse(parent.clickListener.isPressed)
+		stage.dispose()
 	}
 
 	@Test

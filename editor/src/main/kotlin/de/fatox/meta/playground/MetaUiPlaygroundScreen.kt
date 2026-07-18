@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Window
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.ui.MetaDockConfig
 import de.fatox.meta.api.ui.MetaDockSide
+import de.fatox.meta.api.ui.MetaToastSpec
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.showWindow
@@ -15,6 +16,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
+import de.fatox.meta.ui.UiControlHelper
 import de.fatox.meta.ui.components.MetaBottomBar
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaMenu
@@ -27,6 +29,7 @@ class MetaUiPlaygroundScreen(
 ) : ScreenAdapter() {
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val uiManager: UIManager by lazyInject()
+	private val uiControlHelper: UiControlHelper by lazyInject()
 	private val backgroundTitle = MetaLabel("META UI WORKSPACE", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 	private val backgroundDescription = MetaLabel("", MetaType.BODY, MetaColor.TEXT_MUTED)
 	private val bottomCaption = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT)
@@ -130,8 +133,16 @@ class MetaUiPlaygroundScreen(
 		})
 
 		addMenu(MetaMenu("Help").apply {
-			addItem(action("Show toast", "ri-notification-3-line") {
+			addItem(action("Notification toast", "ri-notification-3-line") {
 				uiManager.showToast("Menus, windows, reactive controls, and overlays are active")
+			})
+			addItem(action("Persistent invite", "ri-team-line") {
+				uiManager.showToast(MetaToastSpec.invite("Frotty invited you to join a game.", onAccept = {
+					uiManager.showToast("Invite accepted")
+				}))
+			})
+			addItem(action("Persistent error", "ri-error-warning-line") {
+				uiManager.showToast(MetaToastSpec.error("Could not connect to the game session."))
 			})
 			addSeparator()
 			addItem(MetaMenuItem("Meta UI Playground", "ri-information-line").apply { disabledValue.value = true })
@@ -173,7 +184,7 @@ class MetaUiPlaygroundScreen(
 		backgroundDescription.setText(
 			"Typography, icons, controls, reactive input, selection, progress, menus, lists, and scrolling.",
 		)
-		bottomCaption.setText("Meta UI · batteries-included libGDX components · TTF typography · Remix icons")
+		bottomCaption.setText("Arrow keys / D-pad: navigate  ·  Enter / A: activate  ·  Esc / B: back")
 		backgroundTitle.isVisible = false
 		backgroundDescription.isVisible = false
 		showComponentGallery(resetLayout = true)
@@ -273,6 +284,7 @@ class MetaUiPlaygroundScreen(
 		place(selection, margin, bottomY, leftWidth, bottomHeight)
 		place(collections, rightX, bottomY, rightWidth, bottomHeight)
 		uiManager.bringWindowsToFront()
+		uiControlHelper.focusFirstIn(controls, controls.navigationStart)
 	}
 
 	private fun place(window: Window, x: Float, y: Float, width: Float, height: Float) {

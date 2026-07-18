@@ -108,6 +108,18 @@ class UiControlHelper {
 		return first
 	}
 
+	/** Keeps controller/keyboard focus anchored to the control most recently used by the pointer. */
+	fun focusFromPointer(target: Actor?) {
+		var current = target
+		while (current != null) {
+			if (isNavigable(current)) {
+				selectedActor = current
+				return
+			}
+			current = current.parent
+		}
+	}
+
 	fun clearFocusIfInside(root: Group) {
 		val focused = focusedActorSignal.peek()
 		if (focused != null && focused.isDescendantOf(root)) setFocusedActor(null)
@@ -197,6 +209,7 @@ class UiControlHelper {
 
 	private fun navigate(action: MetaUiAction) {
 		if (!activated || !canMove) return
+		if ((selectedActor as? MetaUiActionHandler)?.handleMetaUiAction(action) == true) return
 		selectedActor = when (action) {
 			MetaUiAction.NAVIGATE_UP -> getNextY(up = true)
 			MetaUiAction.NAVIGATE_DOWN -> getNextY(up = false)

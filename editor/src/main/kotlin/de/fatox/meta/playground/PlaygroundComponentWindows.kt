@@ -15,6 +15,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaButtonTier
+import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.bindColor
@@ -63,7 +64,7 @@ class TypographyPlaygroundWindow : MetaWindow("Typography & Icons", resizable = 
 		contentTable.add(MetaSeparator()).height(1f).padTop(MetaSpacing.MD).padBottom(MetaSpacing.MD).row()
 
 		val icons = MetaTable().apply {
-			defaults().size(30f).padRight(MetaSpacing.SM)
+			defaults().size(MetaControlSize.COMPACT.iconTarget).padRight(MetaSpacing.SM)
 			add(MetaIcon("ri-information-line", 24, MetaColor.ACCENT.cpy()))
 			add(MetaIcon("ri-magic-line", 24, MetaColor.WARNING.cpy()))
 			add(MetaIcon("ri-folder-open-line", 24, MetaColor.TEXT.cpy()))
@@ -75,6 +76,12 @@ class TypographyPlaygroundWindow : MetaWindow("Typography & Icons", resizable = 
 }
 
 class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true, closeButton = true) {
+	val navigationStart = MetaIconTextButton(
+		"Save changes",
+		"ri-save-line",
+		iconSize = 20,
+		tier = MetaButtonTier.PRIMARY,
+	).onClick { uiManager.showToast("Primary action") }
 	private val toolGroup = MetaIconButtonGroup()
 	private val activeTool = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 	private val checkBox = MetaCheckBox(initialChecked = true)
@@ -86,9 +93,8 @@ class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true,
 
 		contentTable.add(MetaLabel("ACTION HIERARCHY", MetaType.CAPTION, MetaColor.ACCENT)).row()
 		val actions = MetaTable().apply {
-			defaults().height(38f).padRight(MetaSpacing.SM)
-			add(MetaIconTextButton("Save changes", "ri-save-line", iconSize = 20, tier = MetaButtonTier.PRIMARY)
-				.onClick { uiManager.showToast("Primary action") })
+			defaults().height(MetaControlSize.STANDARD.height).padRight(MetaSpacing.SM)
+			add(navigationStart)
 			add(MetaTextButton("Preview", tier = MetaButtonTier.SECONDARY)
 				.onClick { uiManager.showToast("Secondary action") })
 			add(MetaTextButton("Reset", tier = MetaButtonTier.TERTIARY)
@@ -102,17 +108,20 @@ class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true,
 		)).row()
 
 		val iconActions = MetaTable().apply {
-			defaults().height(38f).padRight(MetaSpacing.XS)
-			add(MetaIconButton("ri-check-line", MetaButtonTier.PRIMARY).apply { tooltip("Primary icon action") }).width(38f)
-			add(MetaIconButton("ri-settings-3-line", MetaButtonTier.SECONDARY).apply { tooltip("Secondary icon action") }).width(38f)
-			add(MetaIconButton("ri-more-line", MetaButtonTier.TERTIARY).apply { tooltip("Tertiary icon action") }).width(38f)
+			defaults().height(MetaControlSize.STANDARD.height).padRight(MetaSpacing.XS)
+			add(MetaIconButton("ri-check-line", MetaButtonTier.PRIMARY).apply { tooltip("Primary icon action") })
+				.width(MetaControlSize.STANDARD.iconTarget)
+			add(MetaIconButton("ri-settings-3-line", MetaButtonTier.SECONDARY).apply { tooltip("Secondary icon action") })
+				.width(MetaControlSize.STANDARD.iconTarget)
+			add(MetaIconButton("ri-more-line", MetaButtonTier.TERTIARY).apply { tooltip("Tertiary icon action") })
+				.width(MetaControlSize.STANDARD.iconTarget)
 			add(MetaIconTextButton("Disabled", "ri-forbid-line", iconSize = 20).apply { isDisabled = true })
 		}
 		contentTable.add(iconActions).row()
 		contentTable.add(MetaSeparator()).height(1f).row()
 
 		val tools = MetaTable().apply {
-			defaults().size(38f).padRight(MetaSpacing.XS)
+			defaults().size(MetaControlSize.STANDARD.iconTarget).padRight(MetaSpacing.XS)
 			add(toolGroup.add(tool("Brush", "ri-brush-line"), selected = true))
 			add(toolGroup.add(tool("Pencil", "ri-pencil-line")))
 			add(toolGroup.add(tool("Paint", "ri-paint-line")))
@@ -127,14 +136,14 @@ class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true,
 		val fields = MetaTable().apply {
 			defaults().left().padBottom(MetaSpacing.SM)
 			add(fieldLabel("Text field")).width(110f)
-			add(MetaTextField("", placeholder = "Editable text")).growX().height(34f).row()
+			add(MetaTextField("", placeholder = "Editable text")).growX().height(MetaControlSize.STANDARD.height).row()
 			add(fieldLabel("Input field")).width(110f)
-			add(MetaInputField("", placeholder = "Validation-ready input")).growX().height(34f).row()
+			add(MetaInputField("", placeholder = "Validation-ready input")).growX().height(MetaControlSize.STANDARD.height).row()
 			add(fieldLabel("Text area")).width(110f).top()
 			add(MetaTextArea("Multiline editor\nResize the window around me.", prefRows = 2f)).growX().height(72f).row()
 			add(fieldLabel("Checkbox")).width(110f)
 			add(MetaTable().apply {
-				add(checkBox).size(28f).padRight(MetaSpacing.SM)
+				add(checkBox).size(MetaControlSize.COMPACT.iconTarget).padRight(MetaSpacing.SM)
 				add(checkState).left()
 			}).left()
 		}
@@ -179,7 +188,7 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 		val grid = MetaTable().apply {
 			defaults().left().padBottom(MetaSpacing.MD)
 			add(fieldLabel("Select")).width(105f)
-			add(select).growX().height(34f).row()
+			add(select).growX().height(MetaControlSize.STANDARD.height).row()
 			add(fieldLabel("Spinner")).width(105f)
 			add(MetaSpinner(spinnerModel)).width(180f).left().row()
 			add(fieldLabel("Loading")).width(105f)
@@ -189,12 +198,12 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 				add(colorSwatch).size(42f, 22f).padRight(MetaSpacing.SM)
 				add(colorLabel).left().growX()
 				onClick { openColorPicker() }
-			}).growX().height(34f).row()
+			}).growX().height(MetaControlSize.STANDARD.height).row()
 			add(fieldLabel("Slider")).width(105f)
-			add(slider).growX().height(38f).row()
+			add(slider).growX().height(MetaControlSize.STANDARD.height).row()
 			add(fieldLabel("UI scale")).width(105f)
 			add(MetaTable().apply {
-				add(uiScaleSlider).growX().height(38f)
+				add(uiScaleSlider).growX().height(MetaControlSize.STANDARD.height)
 				add(uiScaleLabel).width(48f).right().padLeft(MetaSpacing.SM)
 			}).growX().row()
 			add()
@@ -271,7 +280,7 @@ class CollectionsPlaygroundWindow : MetaWindow("Lists & Scrolling", resizable = 
 					showEntryMenu(item, this@menuButton)
 				}
 			}
-			add(menuButton).size(30f).pad(MetaSpacing.XXS)
+			add(menuButton).size(MetaControlSize.COMPACT.iconTarget).pad(MetaSpacing.XXS)
 		}
 
 		override fun selectView(view: Actor) { (view as? MetaButtonContainer)?.isChecked = true }
@@ -311,8 +320,7 @@ class CollectionsPlaygroundWindow : MetaWindow("Lists & Scrolling", resizable = 
 
 	override fun onShown() {
 		reactiveScope.bindText(selected) {
-			if (entryMenu.openValue()) "Menu: ${menuTarget() ?: "entry"}"
-			else list.selectedItemValue()?.let { "Selected: $it" } ?: "Select an entry"
+			list.selectedItemValue()?.let { "Selected: $it" } ?: "Select an entry"
 		}
 	}
 

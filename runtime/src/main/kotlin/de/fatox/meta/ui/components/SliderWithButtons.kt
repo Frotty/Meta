@@ -13,8 +13,12 @@ import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.input.MetaUiAction
+import de.fatox.meta.ui.MetaControlSize
+import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
+import de.fatox.meta.ui.MetaUiActionHandler
 import kotlin.math.abs
 
 /**
@@ -33,12 +37,7 @@ class SliderWithButtons(
 ) : Table(MetaSkin.skin()) {
 
 	/** The underlying slider; exposed for listeners/styling. */
-	val slider: Slider = Slider(min, max, stepSize, vertical, MetaSkin.skin()).apply {
-		if (!vertical && MetaSkin.skin().has(MetaSkin.SLIDER_HORIZONTAL, Slider.SliderStyle::class.java)) {
-			style = MetaSkin.skin().get(MetaSkin.SLIDER_HORIZONTAL, Slider.SliderStyle::class.java)
-		}
-		cursorPointer()
-	}
+	val slider: Slider = DirectionalSlider(min, max, stepSize, vertical).apply { cursorPointer() }
 
 	val decrementButton: MetaIconButton = MetaIconButton("ri-subtract-line")
 	val incrementButton: MetaIconButton = MetaIconButton("ri-add-line")
@@ -83,13 +82,13 @@ class SliderWithButtons(
 		})
 
 		if (!vertical) {
-			add<Button>(decrementButton).size(STEP_BUTTON_SIZE)
+			add<Button>(decrementButton).size(MetaControlSize.STANDARD.iconTarget)
 			add(slider).growX().padLeft(MetaSpacing.SM).padRight(MetaSpacing.SM)
-			add<Button>(incrementButton).size(STEP_BUTTON_SIZE)
+			add<Button>(incrementButton).size(MetaControlSize.STANDARD.iconTarget)
 		} else {
-			add<Button>(incrementButton).size(STEP_BUTTON_SIZE).row()
+			add<Button>(incrementButton).size(MetaControlSize.STANDARD.iconTarget).row()
 			add(slider).growY().padTop(MetaSpacing.SM).padBottom(MetaSpacing.SM).row()
-			add<Button>(decrementButton).size(STEP_BUTTON_SIZE)
+			add<Button>(decrementButton).size(MetaControlSize.STANDARD.iconTarget)
 		}
 	}
 
@@ -101,7 +100,48 @@ class SliderWithButtons(
 		})
 	}
 
-	private companion object {
-		const val STEP_BUTTON_SIZE = 32f
+	private class DirectionalSlider(
+		min: Float,
+		max: Float,
+		stepSize: Float,
+		private val vertical: Boolean,
+	) : Slider(min, max, stepSize, vertical, sliderStyle(vertical)), MetaFocusable, MetaUiActionHandler {
+		private val normalStyle = SliderStyle(style)
+		private val focusedStyle = SliderStyle(style).apply {
+			knob = normalStyle.knobOver ?: normalStyle.knob
+		}
+
+		override fun setMetaFocused(focused: Boolean) {
+			style = if (focused) focusedStyle else normalStyle
+		}
+
+		override fun handleMetaUiAction(action: MetaUiAction): Boolean {
+			if (isDisabled) return false
+			val delta = when {
+				!vertical && action == MetaUiAction.NAVIGATE_LEFT -> -stepSize
+				!vertical && action == MetaUiAction.NAVIGATE_RIGHT -> stepSize
+				vertical && action == MetaUiAction.NAVIGATE_DOWN -> -stepSize
+				vertical && action == MetaUiAction.NAVIGATE_UP -> stepSize
+				else -> return false
+			}
+			value += delta
+			return true
+		}
+
+		private companion object {
+			fun sliderStyle(vertical: Boolean): SliderStyle {
+				val skin = MetaSkin.skin()
+				return if (!vertical && skin.has(MetaSkin.SLIDER_HORIZONTAL, SliderStyle::class.java)) {
+					SliderStyle(skin.get(MetaSkin.SLIDER_HORIZONTAL, SliderStyle::class.java))
+				} else {
+					val styleName = if (vertical && skin.has("default-vertical", SliderStyle::class.java)) {
+						"default-vertical"
+					} else {
+						"default-horizontal"
+					}
+					SliderStyle(skin.get(styleName, SliderStyle::class.java))
+				}
+			}
+		}
 	}
 }

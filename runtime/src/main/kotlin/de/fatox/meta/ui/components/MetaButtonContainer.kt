@@ -1,6 +1,9 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
@@ -28,6 +31,14 @@ open class MetaButtonContainer(
 	private val checkedBinding = checkedValue.subscribe { setChecked(checkedValue.peek()) }
 	@Suppress("unused")
 	private val disabledBinding = disabledValue.subscribe { setDisabled(disabledValue.peek()) }
+	private val nestedButtonIsolation = object : InputListener() {
+		override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+			// This listener is installed after the nested button's own handlers. The child keeps ownership of the
+			// press, while propagation ends before the composed parent can also become pressed or checked.
+			event.stop()
+			return false
+		}
+	}
 
 	init {
 		cursorPointer()
@@ -36,6 +47,26 @@ open class MetaButtonContainer(
 				checkedValue.value = isChecked
 			}
 		})
+	}
+
+	override fun childrenChanged() {
+		super.childrenChanged()
+		isolateNestedButtons(this)
+	}
+
+	override fun layout() {
+		// Also catches buttons added later inside an already attached nested group.
+		isolateNestedButtons(this)
+		super.layout()
+	}
+
+	private fun isolateNestedButtons(group: Group) {
+		val children = group.children
+		for (i in 0 until children.size) {
+			val child = children[i]
+			if (child is Button) child.addListener(nestedButtonIsolation)
+			if (child is Group) isolateNestedButtons(child)
+		}
 	}
 
 	override fun setMetaFocused(focused: Boolean) {

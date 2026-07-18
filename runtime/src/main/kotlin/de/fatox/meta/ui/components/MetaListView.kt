@@ -3,6 +3,7 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.reactive.Disposable
@@ -33,6 +34,7 @@ class MetaListView<ItemT>(private val adapter: MetaArrayAdapter<ItemT, out Actor
 			val view = adapter.createView(item)
 			view.addListener(object : ClickListener() {
 				override fun clicked(event: InputEvent, x: Float, y: Float) {
+					if (event.targetsNestedButton(view)) return
 					selectedItemValue.value = item
 					itemClickListener?.invoke(item)
 				}
@@ -65,6 +67,16 @@ class MetaListView<ItemT>(private val adapter: MetaArrayAdapter<ItemT, out Actor
 			}
 		}
 	}
+}
+
+/** A nested button owns its click; composed parent rows must not also activate or select themselves. */
+internal fun InputEvent.targetsNestedButton(owner: Actor): Boolean {
+	var current: Actor? = target
+	while (current != null && current !== owner) {
+		if (current is Button) return true
+		current = current.parent
+	}
+	return false
 }
 
 abstract class MetaArrayAdapter<ItemT, ViewT : Actor>(array: Array<ItemT>?) {

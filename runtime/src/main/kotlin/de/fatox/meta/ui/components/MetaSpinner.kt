@@ -1,14 +1,19 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Event
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import com.badlogic.gdx.scenes.scene2d.utils.FocusListener
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
+import de.fatox.meta.ui.MetaControlSize
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -92,22 +97,50 @@ open class MetaSpinner @JvmOverloads constructor(
 		add(decrementButton).width(STEP_BUTTON_WIDTH).height(FIELD_HEIGHT)
 		// Vanilla TextField advertises a 150px preferred width. Letting that leak through made this compact spinner
 		// report a ~206px pref width even when callers assigned 100-112px, so Table laid its children outside the cell
-		// and overlapped neighbouring controls. Override both metrics at the cell boundary: prefer the designed field
-		// width, but allow it to shrink when the two fixed step buttons share a tighter form row.
+		// and overlapped neighbouring controls. Override both metrics at the cell boundary: prefer a field wide enough
+		// for common multi-digit values at the default font size, but allow it to shrink in tighter form rows.
 		add(textField).growX().minWidth(0f).prefWidth(PREF_FIELD_WIDTH).height(FIELD_HEIGHT)
 		add(incrementButton).width(STEP_BUTTON_WIDTH).height(FIELD_HEIGHT)
 		decrementButton.addListener(stepListener { metaModel.decrement() })
 		incrementButton.addListener(stepListener { metaModel.increment() })
+		// TextField ChangeEvents describe edits, not committed spinner values. Keep them from bubbling through this
+		// control; MetaSpinner emits its own ChangeEvent when the model actually changes.
 		textField.addListener(object : ChangeListener() {
-			override fun changed(event: ChangeEvent, actor: Actor) {
+			override fun changed(event: ChangeEvent, actor: Actor) = event.stop()
+		})
+		textField.addListener(object : FocusListener() {
+			override fun keyboardFocusChanged(event: FocusEvent, actor: Actor, focused: Boolean) {
+				if (!focused) commitText()
+			}
+		})
+		textField.addListener(object : InputListener() {
+			override fun keyDown(event: InputEvent, keycode: Int): Boolean {
+				when (keycode) {
+					Keys.ENTER, Keys.NUMPAD_ENTER -> commitText()
+					Keys.ESCAPE -> cancelTextEdit()
+					else -> return false
+				}
 				event.stop()
-				if (syncing) return
-				val parsed = metaModel.parse(textField.text)
-				if (parsed != null) metaModel.value = parsed else syncFromModel()
+				return true
 			}
 		})
 		installBinding()
 	}
+
+	/**
+	 * Parses and commits the current edit. Bounds are applied by the model only at this commit boundary, so an
+	 * in-progress value may temporarily be empty, invalid, or outside the configured range. Invalid input restores
+	 * the last committed value; valid out-of-range input is clamped and displayed in its canonical format.
+	 */
+	fun commitText() {
+		if (syncing) return
+		val parsed = metaModel.parse(textField.text)
+		if (parsed != null) metaModel.value = parsed
+		syncFromModel()
+	}
+
+	/** Discards the current edit and restores the model's last committed value. */
+	fun cancelTextEdit() = syncFromModel()
 
 	override fun setStage(stage: Stage?) {
 		val wasOnStage = this.stage != null
@@ -137,13 +170,14 @@ open class MetaSpinner @JvmOverloads constructor(
 	private fun stepListener(step: () -> Unit) = object : ChangeListener() {
 		override fun changed(event: ChangeEvent, actor: Actor) {
 			event.stop()
+			commitText()
 			step()
 		}
 	}
 
 	private companion object {
-		const val STEP_BUTTON_WIDTH = 30f
-		const val FIELD_HEIGHT = 34f
-		const val PREF_FIELD_WIDTH = 56f
+		val STEP_BUTTON_WIDTH = MetaControlSize.STANDARD.iconTarget - MetaSpacing.XS
+		val FIELD_HEIGHT = MetaControlSize.STANDARD.height
+		const val PREF_FIELD_WIDTH = 72f
 	}
 }

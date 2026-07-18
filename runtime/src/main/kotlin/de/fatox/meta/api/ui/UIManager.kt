@@ -157,6 +157,11 @@ interface UIManager : Disposable {
 	/** Shows a custom [Table] as a toast that always renders above windows, dialogs and the modal backdrop. */
 	fun showToast(table: Table, duration: Float = DEFAULT_TOAST_SECONDS)
 
+	/** Shows a semantically styled toast with type-owned lifetime and optional action/dismiss behavior. */
+	fun showToast(spec: MetaToastSpec) {
+		showToast(spec.message, spec.autoDismissSeconds ?: ACTION_TOAST_SECONDS)
+	}
+
 	/** Clears all visible toast notifications. Use sparingly, mainly when an actionable toast was accepted. */
 	fun clearToasts()
 

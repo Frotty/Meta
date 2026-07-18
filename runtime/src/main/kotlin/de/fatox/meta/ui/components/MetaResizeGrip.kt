@@ -7,11 +7,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaSkin
 
-/** Six-dot corner marker whose bounds match MetaWindow's bottom-right resize target. */
+/** Five-dot corner marker that follows MetaWindow's chamfer without placing a dot in the clipped corner. */
 class MetaResizeGrip : WidgetGroup() {
 	private val bottomLeft = dot()
 	private val bottomCenter = dot()
-	private val bottomRight = dot()
 	private val middleCenter = dot()
 	private val middleRight = dot()
 	private val topRight = dot()
@@ -20,7 +19,6 @@ class MetaResizeGrip : WidgetGroup() {
 		touchable = Touchable.disabled
 		addActor(bottomLeft)
 		addActor(bottomCenter)
-		addActor(bottomRight)
 		addActor(middleCenter)
 		addActor(middleRight)
 		addActor(topRight)
@@ -29,7 +27,6 @@ class MetaResizeGrip : WidgetGroup() {
 	override fun layout() {
 		bottomLeft.setBounds(DOT_MARGIN, DOT_MARGIN, DOT_SIZE, DOT_SIZE)
 		bottomCenter.setBounds(DOT_MARGIN + DOT_STEP, DOT_MARGIN, DOT_SIZE, DOT_SIZE)
-		bottomRight.setBounds(DOT_MARGIN + DOT_STEP * 2f, DOT_MARGIN, DOT_SIZE, DOT_SIZE)
 		middleCenter.setBounds(DOT_MARGIN + DOT_STEP, DOT_MARGIN + DOT_STEP, DOT_SIZE, DOT_SIZE)
 		middleRight.setBounds(DOT_MARGIN + DOT_STEP * 2f, DOT_MARGIN + DOT_STEP, DOT_SIZE, DOT_SIZE)
 		topRight.setBounds(DOT_MARGIN + DOT_STEP * 2f, DOT_MARGIN + DOT_STEP * 2f, DOT_SIZE, DOT_SIZE)

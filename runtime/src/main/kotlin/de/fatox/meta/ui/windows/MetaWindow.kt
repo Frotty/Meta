@@ -195,7 +195,7 @@ abstract class MetaWindow(
 						}
 					})
 				}
-				add(exitButton).size(CLOSE_BUTTON_SIZE).padTop(3f).padBottom(3f).padRight(MetaSpacing.XS)
+				add(exitButton).size(CLOSE_BUTTON_SIZE).pad(3f)
 			}
 			row()
 			add(headerSeparator).colspan(if (closeButton) 2 else 1).growX().height(HEADER_SEPARATOR_HEIGHT)
@@ -613,7 +613,9 @@ abstract class MetaWindow(
 		const val DOCK_RESIZE_SIZE = 8f
 		const val CORNER_RESIZE_SIZE = 24f
 		const val RESIZE_INDICATOR_SIZE = 16f
-		const val RESIZE_GRIP_RIGHT_PAD = 2f
+		// The grip drawable itself leaves two more units on its right than below. Compensate at placement so the
+		// visible dots have equal distance from both window borders.
+		const val RESIZE_GRIP_RIGHT_PAD = 0f
 		const val RESIZE_GRIP_BOTTOM_PAD = 2f
 		const val MIN_WINDOW_WIDTH = 96f
 		const val MIN_WINDOW_HEIGHT = 64f

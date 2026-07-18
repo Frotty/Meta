@@ -45,6 +45,10 @@ object MetaSkin {
 	const val PROGRESS_HORIZONTAL = "meta.progress.horizontal"
 	const val SEPARATOR = "meta.separator"
 	const val TOAST = "meta.toast"
+	const val TOAST_PRIMARY = "meta.toast.primary"
+	const val TOAST_WARNING = "meta.toast.warning"
+	const val TOAST_ERROR = "meta.toast.error"
+	const val TOAST_MUTED = "meta.toast.muted"
 	const val BOTTOM_BAR = "meta.bottomBar"
 	const val COLOR_FILL = "meta.color.fill"
 	const val LOADING_RING = "meta.loading.ring"
@@ -56,6 +60,7 @@ object MetaSkin {
 	private const val INSTALLED_COLOR = "meta.skin.installed"
 	private const val PATCH_SIZE = 32
 	private const val SHAPE_AA_SAMPLES = 4
+	private const val FIELD_RADIUS = 5
 	private const val ICON_SIZE = 24
 	private const val ICON_PIXMAP_SCALE = 3
 	private const val ICON_PIXMAP_SIZE = ICON_SIZE * ICON_PIXMAP_SCALE
@@ -110,15 +115,19 @@ object MetaSkin {
 		solid(skin, COLOR_FILL, Color.WHITE, minWidth = 1f, minHeight = 1f)
 		loadingRing(skin)
 		solid(skin, "meta.menu.bar", MetaColor.SURFACE, minWidth = 1f, minHeight = 1f)
-		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
-		rounded(skin, "meta.panel.raised", MetaColor.SURFACE_RAISED, MetaColor.BORDER, radius = 7, border = 1, padding = 8f)
+		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 4, border = 1, padding = 8f)
+		rounded(skin, "meta.panel.raised", MetaColor.SURFACE_RAISED, MetaColor.BORDER, radius = 4, border = 1, padding = 8f)
 		// Windows need a stronger silhouette than nested panels. The cool-gray two-pixel edge remains neutral while
 		// making overlapping windows and adjacent chrome unambiguous against the dark workspace.
-		rounded(skin, WINDOW_BACKGROUND, MetaColor.SURFACE_RAISED, Color.valueOf("687586FF"),
-			radius = 7, border = 2, padding = 8f)
+		chamfered(skin, WINDOW_BACKGROUND, MetaColor.SURFACE_RAISED, Color.valueOf("617181FF"),
+			cut = 6, border = 1, padding = 8f)
 		// Offset below every solid window so a fully covered sibling still leaves a visible depth cue at its edges.
 		rounded(skin, WINDOW_SHADOW, Color.valueOf("05060988"), null, radius = 9, border = 0, padding = 0f)
 		rounded(skin, TOAST, Color.valueOf("15181EF5"), Color.valueOf("A7B5C8FF"), radius = 8, border = 2, padding = 10f)
+		rounded(skin, TOAST_PRIMARY, Color.valueOf("172733F7"), MetaColor.ACCENT, radius = 6, border = 2, padding = 10f)
+		rounded(skin, TOAST_WARNING, Color.valueOf("302717F7"), MetaColor.WARNING, radius = 6, border = 2, padding = 10f)
+		rounded(skin, TOAST_ERROR, Color.valueOf("321C20F7"), MetaColor.NEGATIVE, radius = 6, border = 2, padding = 10f)
+		rounded(skin, TOAST_MUTED, Color.valueOf("20242AF2"), MetaColor.BORDER, radius = 6, border = 1, padding = 10f)
 		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f)
 		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), Color.valueOf("596170FF"), radius = 7, border = 1, padding = 7f)
 		topRounded(skin, BOTTOM_BAR, Color.valueOf("080A0ECC"), Color.valueOf("2F333BAA"), radius = 12, border = 1, padding = 14f)
@@ -144,34 +153,34 @@ object MetaSkin {
 	}
 
 	private fun addControlDrawables(skin: Skin) {
-		rounded(skin, "meta.button.primary.up", MetaColor.PRIMARY, Color.valueOf("76B9EAFF"), radius = 6, border = 1, padding = 9f)
-		rounded(skin, "meta.button.primary.over", MetaColor.PRIMARY_HOVER, Color.valueOf("9AD1F7FF"), radius = 6, border = 1, padding = 9f)
-		rounded(skin, "meta.button.primary.focus", MetaColor.PRIMARY, Color.valueOf("C5E8FFFF"), radius = 6, border = 2, padding = 9f)
-		rounded(skin, "meta.button.primary.down", MetaColor.PRIMARY_PRESSED, Color.valueOf("9AD1F7FF"), radius = 6, border = 1, padding = 9f)
-		rounded(skin, "meta.button.primary.disabled", Color.valueOf("293844FF"), Color.valueOf("46545FFF"), radius = 6, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.up", MetaColor.PRIMARY, Color.valueOf("3D91C3FF"), radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.over", MetaColor.PRIMARY_HOVER, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.focus", MetaColor.PRIMARY, Color.valueOf("D4F1FFFF"), radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.primary.down", MetaColor.PRIMARY_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.disabled", Color.valueOf("26343DFF"), Color.valueOf("3B4A54FF"), radius = 4, border = 1, padding = 9f)
 
-		rounded(skin, "meta.button.up", MetaColor.SECONDARY, Color.valueOf("606773FF"), radius = 6, border = 1, padding = 9f)
-		rounded(skin, "meta.button.over", MetaColor.SECONDARY_HOVER, Color.valueOf("7B8797FF"), radius = 6, border = 1, padding = 9f)
-		rounded(skin, "meta.button.focus", Color.valueOf("353A43FF"), Color.valueOf("75BDF5FF"), radius = 6, border = 2, padding = 9f)
-		rounded(skin, "meta.button.focusOver", MetaColor.SECONDARY_HOVER, Color.valueOf("A3D9FFFF"), radius = 6, border = 2, padding = 9f)
-		rounded(skin, "meta.button.down", Color.valueOf("25282EFF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 9f)
+		rounded(skin, "meta.button.up", MetaColor.SECONDARY, Color.valueOf("46515EFF"), radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.over", MetaColor.SECONDARY_HOVER, Color.valueOf("627282FF"), radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.focus", Color.valueOf("303A44FF"), MetaColor.ACCENT, radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.focusOver", MetaColor.SECONDARY_HOVER, Color.valueOf("B5E7FFFF"), radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.down", Color.valueOf("22272DFF"), MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
 		rounded(skin, "meta.button.checked", Color.valueOf("253849FF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 9f)
 		rounded(skin, "meta.button.checkedFocus", Color.valueOf("294963FF"), Color.valueOf("B8E3FFFF"), radius = 6, border = 2, padding = 9f)
 		rounded(skin, "meta.button.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = 6, border = 1, padding = 9f)
 
-		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, Color.valueOf("4C525DFF"), radius = 6, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, Color.valueOf("707986FF"), radius = 6, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.focus", Color.valueOf("26292DFF"), Color.valueOf("79C1FBFF"), radius = 6, border = 2, padding = 8f)
-		rounded(skin, "meta.imageButton.down", Color.valueOf("20252BFF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.disabled", Color.valueOf("1E2025FF"), Color.valueOf("2A2B31FF"), radius = 6, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, null, radius = 3, border = 0, padding = 8f)
+		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, Color.valueOf("556575FF"), radius = 3, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.focus", Color.valueOf("28343DFF"), MetaColor.ACCENT, radius = 3, border = 2, padding = 8f)
+		rounded(skin, "meta.imageButton.down", Color.valueOf("202A31FF"), MetaColor.ACCENT, radius = 3, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.disabled", Color.valueOf("00000000"), null, radius = 3, border = 0, padding = 8f)
 
-		rounded(skin, "meta.field.up", Color.valueOf("202126FF"), Color.valueOf("42454DFF"), radius = 5, border = 1, padding = 7f)
-		rounded(skin, "meta.field.over", Color.valueOf("24262BFF"), Color.valueOf("596170FF"), radius = 5, border = 1, padding = 7f)
-		rounded(skin, "meta.field.focus", Color.valueOf("202126FF"), MetaColor.ACCENT, radius = 5, border = 2, padding = 7f)
-		rounded(skin, "meta.field.error", Color.valueOf("241E20FF"), MetaColor.NEGATIVE, radius = 5, border = 2, padding = 7f)
-		rounded(skin, "meta.field.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = 5, border = 1, padding = 7f)
-		rounded(skin, "meta.field.focusBorder", TRANSPARENT, MetaColor.ACCENT, radius = 5, border = 2, padding = 0f)
-		rounded(skin, "meta.field.errorBorder", TRANSPARENT, MetaColor.NEGATIVE, radius = 5, border = 2, padding = 0f)
+		rounded(skin, "meta.field.up", Color.valueOf("1B2026FF"), Color.valueOf("3D4853FF"), radius = FIELD_RADIUS, border = 1, padding = 7f)
+		rounded(skin, "meta.field.over", Color.valueOf("20262DFF"), Color.valueOf("586777FF"), radius = FIELD_RADIUS, border = 1, padding = 7f)
+		rounded(skin, "meta.field.focus", Color.valueOf("1B2026FF"), MetaColor.ACCENT, radius = FIELD_RADIUS, border = 2, padding = 7f)
+		rounded(skin, "meta.field.error", Color.valueOf("241E20FF"), MetaColor.NEGATIVE, radius = FIELD_RADIUS, border = 2, padding = 7f)
+		rounded(skin, "meta.field.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = FIELD_RADIUS, border = 1, padding = 7f)
+		rounded(skin, "meta.field.focusBorder", TRANSPARENT, MetaColor.ACCENT, radius = FIELD_RADIUS, border = 2, padding = 0f)
+		rounded(skin, "meta.field.errorBorder", TRANSPARENT, MetaColor.NEGATIVE, radius = FIELD_RADIUS, border = 2, padding = 0f)
 		rounded(skin, "meta.selection", Color.valueOf("2F5D86FF"), null, radius = 3, border = 0, padding = 4f)
 		rounded(skin, "meta.dropdown.over", Color.valueOf("343842FF"), null, radius = 5, border = 0, padding = 6f)
 		rounded(skin, "meta.dropdown.selection", Color.valueOf("294963FF"), Color.valueOf("4F9DDEFF"), radius = 5, border = 1, padding = 6f)
@@ -511,6 +520,54 @@ object MetaSkin {
 		}, Drawable::class.java)
 	}
 
+	/** Angular window frame used as Meta's restrained signature silhouette. */
+	private fun chamfered(
+		skin: Skin,
+		name: String,
+		fill: Color,
+		stroke: Color,
+		cut: Int,
+		border: Int,
+		padding: Float,
+	) {
+		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
+		pixmap.setBlending(Pixmap.Blending.None)
+		for (y in 0 until PATCH_SIZE) {
+			for (x in 0 until PATCH_SIZE) {
+				val pixel = sampleShapePixel(
+					x,
+					y,
+					fill,
+					stroke,
+					outer = { sx, sy -> insideChamferedRect(sx, sy, PATCH_SIZE.toFloat(), PATCH_SIZE.toFloat(), cut.toFloat()) },
+					inner = { sx, sy ->
+						insideChamferedRect(
+							sx - border,
+							sy - border,
+							(PATCH_SIZE - border * 2).toFloat(),
+							(PATCH_SIZE - border * 2).toFloat(),
+							(cut - border).coerceAtLeast(0).toFloat(),
+						)
+					},
+				)
+				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
+			}
+		}
+		val texture = Texture(pixmap)
+		pixmap.dispose()
+		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+		skin.add("$name.texture", texture)
+		val split = cut + 2
+		skin.add(name, NinePatchDrawable(NinePatch(texture, split, split, split, split)).apply {
+			leftWidth = padding
+			rightWidth = padding
+			topHeight = padding
+			bottomHeight = padding
+			minWidth = 32f
+			minHeight = 32f
+		}, Drawable::class.java)
+	}
+
 	private fun configureToolbarDrawable(drawable: Drawable) {
 		drawable.leftWidth = 8f
 		drawable.rightWidth = 8f
@@ -745,6 +802,15 @@ object MetaSkin {
 		val dx = px - cx
 		val dy = py - cy
 		return dx * dx + dy * dy <= r * r
+	}
+
+	private fun insideChamferedRect(px: Float, py: Float, width: Float, height: Float, cut: Float): Boolean {
+		if (px < 0f || py < 0f || px > width || py > height) return false
+		val c = cut.coerceAtMost(width * 0.5f).coerceAtMost(height * 0.5f)
+		return px + py >= c &&
+			(width - px) + py >= c &&
+			px + (height - py) >= c &&
+			(width - px) + (height - py) >= c
 	}
 
 	private fun insideSegmentRect(

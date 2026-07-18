@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.ui.MetaColor
+import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.windows.MetaWindow
@@ -34,12 +35,14 @@ class MetaFileChooser(val mode: Mode) : MetaWindow(
 		setDefaultSize(DEFAULT_WIDTH, DEFAULT_HEIGHT)
 		contentTable.defaults().growX()
 		val top = MetaTable().apply {
-			add(MetaImageButton("ri-arrow-up-line", 16).onClick { navigate(directory.parent()) }).size(30f)
+			add(MetaImageButton("ri-arrow-up-line", MetaControlSize.COMPACT.iconSize)
+				.onClick { navigate(directory.parent()) }).size(MetaControlSize.COMPACT.iconTarget)
 			add(pathLabel).left().growX().padLeft(MetaSpacing.SM)
 		}
 		contentTable.add(top).padBottom(MetaSpacing.SM).row()
 		contentTable.add(MetaScrollPane(entries)).grow().row()
-		if (mode == Mode.SAVE) contentTable.add(nameField).height(34f).padTop(MetaSpacing.SM).row()
+		if (mode == Mode.SAVE) contentTable.add(nameField).height(MetaControlSize.STANDARD.height)
+			.padTop(MetaSpacing.SM).row()
 		val actions = MetaTable().apply {
 			add(MetaTextButton("Cancel").onClick { listener?.canceled(); fadeOut() }).padRight(MetaSpacing.SM)
 			add(MetaTextButton(if (mode == Mode.OPEN) "Open" else "Save").onClick { confirmSelection() })
@@ -110,7 +113,7 @@ class MetaFileChooser(val mode: Mode) : MetaWindow(
 					if (!entry.isDirectory) nameField.setText(entry.name())
 				}
 			})
-			entries.add(row).growX().height(34f).row()
+			entries.add(row).growX().height(MetaControlSize.STANDARD.height).row()
 		}
 		entries.invalidateHierarchy()
 	}
