@@ -6,7 +6,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.reactive.Disposable
 import de.fatox.meta.reactive.ReactiveScope
+import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.effect
+import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 
@@ -18,16 +21,26 @@ class MetaBottomBar @JvmOverloads constructor(
 	content: Actor? = null,
 	private val contentAlign: Int = Align.center,
 ) : Table(MetaSkin.skin()) {
+	val contentValue: Signal<Actor?> = signal(content)
+	val shownValue: Signal<Boolean> = signal(true)
+	@Suppress("unused")
+	private val contentBinding = contentValue.subscribe { applyContent(contentValue.peek()) }
+	@Suppress("unused")
+	private val shownBinding = shownValue.subscribe { isVisible = shownValue.peek() }
 
 	init {
 		background = MetaSkin.skin().getDrawable(MetaSkin.BOTTOM_BAR)
 		touchable = Touchable.disabled
 		pad(MetaSpacing.SM, MetaSpacing.LG, MetaSpacing.SM, MetaSpacing.LG)
 		defaults().center()
-		setContent(content)
+		applyContent(content)
 	}
 
 	fun setContent(content: Actor?) {
+		contentValue.value = content
+	}
+
+	private fun applyContent(content: Actor?) {
 		clearChildren()
 		if (content != null) {
 			add(content).align(contentAlign)
@@ -36,10 +49,10 @@ class MetaBottomBar @JvmOverloads constructor(
 	}
 
 	fun bindShown(scope: ReactiveScope, shown: () -> Boolean): Disposable =
-		scope.register(effect("MetaBottomBar.shown") { isVisible = shown() })
+		scope.register(effect("MetaBottomBar.shown") { shownValue.value = shown() })
 
 	fun bindContent(scope: ReactiveScope, content: () -> Actor?): Disposable =
-		scope.register(effect("MetaBottomBar.content") { setContent(content()) })
+		scope.register(effect("MetaBottomBar.content") { contentValue.value = content() })
 
 	fun bottomOverlay(bottomPad: Float = MetaSpacing.NONE, horizontalAlign: Int = Align.center): Table =
 		Table(MetaSkin.skin()).apply {

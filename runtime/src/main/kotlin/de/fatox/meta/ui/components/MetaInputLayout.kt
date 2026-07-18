@@ -3,9 +3,7 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.Cell
-import com.badlogic.gdx.scenes.scene2d.ui.Value
-import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.error.MetaErrorHandler
@@ -17,7 +15,6 @@ import de.fatox.meta.reactive.computed
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaControlSize
-import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 
@@ -29,7 +26,11 @@ class MetaInputLayout<T : Actor> @JvmOverloads constructor(
 	labelText: String,
 	val input: T,
 	helperText: String = "",
-) : Table(MetaSkin.skin()) {
+) : MetaFlexBox(
+	direction = MetaFlexDirection.COLUMN,
+	mainGap = MetaSpacing.NONE,
+	align = MetaFlexAlign.STRETCH,
+) {
 	val labelTextValue: Signal<String> = signal(labelText)
 	val helperTextValue: Signal<String> = signal(helperText)
 	val errorTextValue: Signal<String> = signal("")
@@ -60,15 +61,16 @@ class MetaInputLayout<T : Actor> @JvmOverloads constructor(
 	}
 
 	private var reactiveScope = ReactiveScope()
-	private val feedbackCell: Cell<MetaLabel>
+	private val labelGap = Actor().apply { touchable = Touchable.disabled }
+	private val feedbackGap = Actor().apply { touchable = Touchable.disabled }
 
 	init {
-		defaults().left()
-		add(label).growX().padBottom(MetaSpacing.XS)
-		row()
-		add(input).growX().minHeight(if (input is MetaTextArea) TEXT_AREA_MIN_HEIGHT else FIELD_MIN_HEIGHT)
-		row()
-		feedbackCell = add(feedback).growX()
+		addItem(label, shrink = 0f)
+		addItem(labelGap, basisHeight = MetaSpacing.XS, shrink = 0f)
+		addItem(input, basisHeight = if (input is MetaTextArea) TEXT_AREA_MIN_HEIGHT else FIELD_MIN_HEIGHT,
+			minHeight = if (input is MetaTextArea) TEXT_AREA_MIN_HEIGHT else FIELD_MIN_HEIGHT)
+		addItem(feedbackGap, basisHeight = MetaSpacing.NONE, shrink = 0f)
+		addItem(feedback, basisHeight = 0f, minHeight = 0f, shrink = 0f)
 		updateFeedbackVisibility(feedbackTextValue.value.isNotEmpty())
 		installReactiveBindings()
 	}
@@ -133,8 +135,8 @@ class MetaInputLayout<T : Actor> @JvmOverloads constructor(
 
 	private fun updateFeedbackVisibility(visible: Boolean) {
 		feedback.isVisible = visible
-		feedbackCell.padTop(if (visible) MetaSpacing.XS else MetaSpacing.NONE)
-		feedbackCell.height(if (visible) Value.prefHeight else Value.Fixed(0f))
+		configure(feedbackGap, basisHeight = if (visible) MetaSpacing.XS else MetaSpacing.NONE, shrink = 0f)
+		configure(feedback, basisHeight = if (visible) null else 0f, minHeight = if (visible) null else 0f, shrink = 0f)
 		invalidateHierarchy()
 	}
 

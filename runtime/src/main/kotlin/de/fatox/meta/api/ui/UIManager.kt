@@ -122,6 +122,15 @@ interface UIManager : Disposable {
 
 	fun addTable(table: Table?, growX: Boolean, growY: Boolean)
 
+	/** Adds any Scene2D actor to the screen flow. Prefer this over [addTable] for Meta flex/grid/stack layouts. */
+	fun addActor(actor: Actor?, growX: Boolean, growY: Boolean) {
+		when (actor) {
+			null -> addTable(null, growX, growY)
+			is Table -> addTable(actor, growX, growY)
+			else -> error("This UIManager implementation only supports Table actors")
+		}
+	}
+
 	fun <T : Window> showWindow(windowClass: KClass<out T>): T
 
 	fun hideOtherWindowsAndPreventNew(window: Window)

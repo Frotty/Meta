@@ -53,7 +53,7 @@ class MetaEditorUI {
 
 	fun apply() {
 		uiManager.setMainMenuBar(metaToolbar.menuBar)
-		uiManager.addTable(tabbedPane.table, growX = true, growY = false)
+		uiManager.addActor(tabbedPane.layout, growX = true, growY = false)
 		uiManager.addTable(tabTable, growX = true, growY = true)
 	}
 

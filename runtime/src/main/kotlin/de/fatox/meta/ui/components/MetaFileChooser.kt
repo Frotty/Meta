@@ -7,6 +7,9 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.extensions.onClick
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
@@ -22,30 +25,51 @@ class MetaFileChooser(val mode: Mode) : MetaWindow(
 	enum class Mode { OPEN, SAVE }
 	enum class SelectionMode { FILES, DIRECTORIES }
 
-	var selectionMode: SelectionMode = SelectionMode.FILES
+	val selectionModeValue: Signal<SelectionMode> = signal(SelectionMode.FILES)
+	var selectionMode: SelectionMode
+		get() = selectionModeValue.peek()
+		set(value) { selectionModeValue.value = value }
+	val directoryValue: Signal<FileHandle> = signal(defaultDirectory())
+	val selectedFileValue: Signal<FileHandle?> = signal(null)
+	val fileTypeFilterValue: Signal<MetaFileTypeFilter?> = signal(null)
 	private var listener: MetaFileChooserAdapter? = null
-	private var fileTypeFilter: MetaFileTypeFilter? = null
-	private var directory: FileHandle = defaultDirectory()
-	private var selected: FileHandle? = null
 	private val pathLabel = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
-	private val entries = MetaTable()
+	private val entries = MetaFlexBox(
+		direction = MetaFlexDirection.COLUMN,
+		mainGap = MetaSpacing.XXS,
+		align = MetaFlexAlign.STRETCH,
+	)
 	private val nameField = MetaTextField("", MetaType.BODY, placeholder = "File name")
+	@Suppress("unused")
+	private val directoryBinding = directoryValue.subscribe {
+		selectedFileValue.value = null
+		refreshEntries()
+	}
+	@Suppress("unused")
+	private val filterBinding = fileTypeFilterValue.subscribe { refreshEntries() }
 
 	init {
 		setDefaultSize(DEFAULT_WIDTH, DEFAULT_HEIGHT)
 		contentTable.defaults().growX()
-		val top = MetaTable().apply {
-			add(MetaImageButton("ri-arrow-up-line", MetaControlSize.COMPACT.iconSize)
-				.onClick { navigate(directory.parent()) }).size(MetaControlSize.COMPACT.iconTarget)
-			add(pathLabel).left().growX().padLeft(MetaSpacing.SM)
+		val top = MetaFlexBox(mainGap = MetaSpacing.SM, align = MetaFlexAlign.CENTER).apply {
+			addItem(MetaImageButton("ri-arrow-up-line", MetaControlSize.COMPACT.iconSize)
+				.onClick { navigate(directoryValue.peek().parent()) },
+				basisWidth = MetaControlSize.COMPACT.iconTarget,
+				basisHeight = MetaControlSize.COMPACT.iconTarget,
+				shrink = 0f)
+			addItem(pathLabel, grow = 1f, minWidth = 0f)
 		}
 		contentTable.add(top).padBottom(MetaSpacing.SM).row()
 		contentTable.add(MetaScrollPane(entries)).grow().row()
 		if (mode == Mode.SAVE) contentTable.add(nameField).height(MetaControlSize.STANDARD.height)
 			.padTop(MetaSpacing.SM).row()
-		val actions = MetaTable().apply {
-			add(MetaTextButton("Cancel").onClick { listener?.canceled(); fadeOut() }).padRight(MetaSpacing.SM)
-			add(MetaTextButton(if (mode == Mode.OPEN) "Open" else "Save").onClick { confirmSelection() })
+		val actions = MetaFlexBox(
+			mainGap = MetaSpacing.SM,
+			justify = MetaFlexJustify.END,
+			align = MetaFlexAlign.CENTER,
+		).apply {
+			addItem(MetaTextButton("Cancel").onClick { listener?.canceled(); fadeOut() }, shrink = 0f)
+			addItem(MetaTextButton(if (mode == Mode.OPEN) "Open" else "Save").onClick { confirmSelection() }, shrink = 0f)
 		}
 		contentTable.add(actions).right().padTop(MetaSpacing.SM)
 		refreshEntries()
@@ -56,8 +80,7 @@ class MetaFileChooser(val mode: Mode) : MetaWindow(
 	}
 
 	fun setFileTypeFilter(filter: MetaFileTypeFilter?) {
-		fileTypeFilter = filter
-		refreshEntries()
+		fileTypeFilterValue.value = filter
 	}
 
 	fun setListener(listener: MetaFileChooserAdapter?) {
@@ -89,18 +112,16 @@ class MetaFileChooser(val mode: Mode) : MetaWindow(
 
 	private fun navigate(next: FileHandle) {
 		if (!next.exists() || !next.isDirectory) return
-		directory = next
-		selected = null
-		refreshEntries()
+		directoryValue.value = next
 	}
 
 	private fun refreshEntries() {
+		val directory = directoryValue.peek()
 		pathLabel.setText(directory.path())
 		entries.clearChildren()
-		entries.top().left()
 		val listed = directory.list().sortedWith(compareBy<FileHandle>({ !it.isDirectory }, { it.name().lowercase() }))
 		for (entry in listed) {
-			if (!entry.isDirectory && fileTypeFilter?.accepts(entry) == false) continue
+			if (!entry.isDirectory && fileTypeFilterValue.peek()?.accepts(entry) == false) continue
 			val row = MetaIconTextButton(entry.name(), if (entry.isDirectory) "ri-folder-line" else "ri-file-line",
 				size = MetaType.BODY, iconSize = 18).apply { left() }
 			row.addListener(object : ClickListener() {
@@ -109,16 +130,19 @@ class MetaFileChooser(val mode: Mode) : MetaWindow(
 						navigate(entry)
 						return
 					}
-					selected = entry
+					selectedFileValue.value = entry
 					if (!entry.isDirectory) nameField.setText(entry.name())
 				}
 			})
-			entries.add(row).growX().height(MetaControlSize.STANDARD.height).row()
+			entries.addItem(row, basisHeight = MetaControlSize.STANDARD.height,
+				minHeight = MetaControlSize.STANDARD.height, shrink = 0f)
 		}
 		entries.invalidateHierarchy()
 	}
 
 	private fun confirmSelection() {
+		val directory = directoryValue.peek()
+		val selected = selectedFileValue.peek()
 		val choice = when {
 			selectionMode == SelectionMode.DIRECTORIES -> selected?.takeIf { it.isDirectory } ?: directory
 			mode == Mode.SAVE && nameField.text.isNotBlank() -> directory.child(nameField.text.trim())

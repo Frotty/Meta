@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
@@ -138,6 +139,17 @@ internal class MetaInputComponentsTest {
 		scope.dispose()
 	}
 
+	private fun assertDirectChildrenInside(group: Group) {
+		val children = group.children
+		for (i in 0 until children.size) {
+			val child = children[i]
+			assertTrue(child.x >= -0.01f)
+			assertTrue(child.y >= -0.01f)
+			assertTrue(child.x + child.width <= group.width + 0.01f)
+			assertTrue(child.y + child.height <= group.height + 0.01f)
+		}
+	}
+
 	@Test
 	fun `spinner keeps partial text until commit and clamps on focus loss`() {
 		val skin = MetaSkin.skin()
@@ -168,6 +180,29 @@ internal class MetaInputComponentsTest {
 		spinner.commitText()
 		assertEquals(512, model.value)
 		assertEquals("512", spinner.textField.text)
+		spinner.setSize(112f, 40f)
+		spinner.layout()
+		assertDirectChildrenInside(spinner)
+	}
+
+	@Test
+	fun `slider flex layout and value signal stay bidirectional`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.ICON_BUTTON, Button.ButtonStyle())
+		skin.add(MetaSkin.SLIDER_HORIZONTAL, Slider.SliderStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val control = SliderWithButtons(0f, 10f, 1f, false, stubAssetProvider())
+		control.setSize(120f, 40f)
+
+		control.layout()
+		control.valueValue.value = 7f
+
+		assertEquals(7f, control.value)
+		assertDirectChildrenInside(control)
+		control.valueValue.value = 99f
+		assertEquals(10f, control.value)
+		assertEquals(10f, control.valueValue.value)
 	}
 
 	@Test

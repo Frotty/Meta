@@ -7,7 +7,7 @@ import com.badlogic.gdx.utils.ObjectMap
 import kotlin.math.max
 
 /** Layered layout for backgrounds, overlays, badges and other actors sharing the same bounds. */
-class MetaStack(
+open class MetaStack(
 	horizontalAlign: MetaFlexAlign = MetaFlexAlign.STRETCH,
 	verticalAlign: MetaFlexAlign = MetaFlexAlign.STRETCH,
 ) : WidgetGroup() {

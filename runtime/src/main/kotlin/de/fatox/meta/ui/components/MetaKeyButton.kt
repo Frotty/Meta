@@ -3,9 +3,13 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.Input
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 
-class MetaKeyButton(private var keyCode: Int) : MetaTextButton(Input.Keys.toString(keyCode)) {
+class MetaKeyButton(keyCode: Int) : MetaTextButton(Input.Keys.toString(keyCode)) {
 	val keyCodeValue: Signal<Int> = signal(keyCode)
+	val keyCode: Int get() = keyCodeValue.peek()
+	@Suppress("unused")
+	private val keyCodeBinding = keyCodeValue.subscribe { setText(Input.Keys.toString(keyCodeValue.peek())) }
 
 	init {
 		addListener(MetaListener {
@@ -14,8 +18,6 @@ class MetaKeyButton(private var keyCode: Int) : MetaTextButton(Input.Keys.toStri
 	}
 
 	fun setFromKeyCode(keyCode: Int) {
-		this.keyCode = keyCode
 		keyCodeValue.value = keyCode
-		setText(Input.Keys.toString(keyCode))
 	}
 }

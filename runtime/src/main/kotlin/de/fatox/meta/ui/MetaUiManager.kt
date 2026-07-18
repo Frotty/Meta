@@ -311,8 +311,12 @@ class MetaUiManager : UIManager {
 	}
 
 	override fun addTable(table: Table?, growX: Boolean, growY: Boolean) {
+		addActor(table, growX, growY)
+	}
+
+	override fun addActor(actor: Actor?, growX: Boolean, growY: Boolean) {
 		contentTable.row()
-		contentTable.add(table).apply {
+		contentTable.add(actor).apply {
 			if (growX) growX()
 			if (growY) growY()
 		}

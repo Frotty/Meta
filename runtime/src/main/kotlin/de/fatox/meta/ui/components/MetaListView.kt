@@ -13,7 +13,11 @@ import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaSpacing
 
 class MetaListView<ItemT>(private val adapter: MetaArrayAdapter<ItemT, out Actor>) {
-	val mainTable = MetaTable()
+	val mainTable = MetaFlexBox(
+		direction = MetaFlexDirection.COLUMN,
+		mainGap = MetaSpacing.XXS,
+		align = MetaFlexAlign.STRETCH,
+	)
 	val scrollPane: ScrollPane = MetaScrollPane(mainTable)
 	val selectedItemValue: Signal<ItemT?> = signal(null)
 	private var itemClickListener: ((ItemT) -> Unit)? = null
@@ -21,14 +25,10 @@ class MetaListView<ItemT>(private val adapter: MetaArrayAdapter<ItemT, out Actor
 		applySelection(selectedItemValue.peek())
 	}
 
-	init {
-		mainTable.defaults().spaceBottom(MetaSpacing.XXS)
-		rebuildView()
-	}
+	init { rebuildView() }
 
 	fun rebuildView() {
 		mainTable.clearChildren()
-		mainTable.top().left()
 		val selectedItem = selectedItemValue.peek()
 		for (item in adapter.items) {
 			val view = adapter.createView(item)
@@ -39,7 +39,7 @@ class MetaListView<ItemT>(private val adapter: MetaArrayAdapter<ItemT, out Actor
 					itemClickListener?.invoke(item)
 				}
 			})
-			mainTable.add(view).growX().row()
+			mainTable.addItem(view, shrink = 0f)
 		}
 		applySelection(selectedItem)
 	}

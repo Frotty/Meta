@@ -5,8 +5,6 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
-import com.badlogic.gdx.scenes.scene2d.ui.Cell
-import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.extensions.onClick
@@ -41,7 +39,11 @@ class MetaActionRow @JvmOverloads constructor(
 	density: MetaActionRowDensity = MetaActionRowDensity.COMPACT,
 	tier: MetaButtonTier = MetaButtonTier.TERTIARY,
 	private val actions: ((MetaMenu) -> Unit)? = null,
-) : MetaTable() {
+) : MetaFlexBox(
+	direction = MetaFlexDirection.ROW,
+	mainGap = MetaSpacing.NONE,
+	align = MetaFlexAlign.CENTER,
+) {
 	val titleValue: Signal<String> = signal(title)
 	val subtitleValue: Signal<String> = signal(subtitle)
 	val selectedValue: Signal<Boolean> = signal(false)
@@ -57,8 +59,18 @@ class MetaActionRow @JvmOverloads constructor(
 		setEllipsis(true)
 		touchable = Touchable.disabled
 	}
+	private val textColumn = MetaFlexBox(
+		direction = MetaFlexDirection.COLUMN,
+		mainGap = MetaSpacing.XXS,
+		align = MetaFlexAlign.STRETCH,
+	).apply {
+		addItem(titleLabel, minHeight = 0f, shrink = 0f)
+		addItem(subtitleLabel, basisHeight = if (subtitle.isEmpty()) 0f else null,
+			minHeight = if (subtitle.isEmpty()) 0f else null, shrink = 0f)
+	}
 	private val primary = MetaButtonContainer(tier)
-	private val subtitleCell: Cell<MetaLabel>
+	private val actionGap = Actor().apply { touchable = Touchable.disabled }
+	private val actionEndInset = Actor().apply { touchable = Touchable.disabled }
 	private val menuPosition = Vector2()
 	private var popup: MetaMenu? = null
 	private var activation: (() -> Unit)? = null
@@ -72,7 +84,6 @@ class MetaActionRow @JvmOverloads constructor(
 	}
 
 	init {
-		left()
 		primary.apply {
 			left()
 			pad(density.verticalPad, density.horizontalPad, density.verticalPad, density.horizontalPad)
@@ -80,12 +91,7 @@ class MetaActionRow @JvmOverloads constructor(
 				if (!interactiveLeading) leading.touchable = Touchable.disabled
 				add(leading).padRight(MetaSpacing.SM)
 			}
-			add(MetaTable().apply {
-				left()
-				add(titleLabel).minWidth(0f).prefWidth(0f).growX().left()
-				row()
-				subtitleCell = add(subtitleLabel).minWidth(0f).prefWidth(0f).growX().left()
-			}).minWidth(0f).growX()
+			add(textColumn).minWidth(0f).prefWidth(0f).growX()
 			if (trailing != null) {
 				if (!interactiveTrailing) trailing.touchable = Touchable.disabled
 				add(trailing).padLeft(MetaSpacing.SM)
@@ -95,12 +101,13 @@ class MetaActionRow @JvmOverloads constructor(
 				if (!isDisabled) activation?.invoke()
 			}
 		}
-		add(primary).minWidth(0f).growX().height(density.height)
+		addItem(primary, basisHeight = density.height, grow = 1f, minWidth = 0f,
+			minHeight = density.height)
 		actionsButton?.let {
 			val actionSize = density.height - density.verticalPad * 2f
-			add(it).size(actionSize)
-				.padTop(density.verticalPad).padBottom(density.verticalPad)
-				.padLeft(MetaSpacing.XS).padRight(density.verticalPad)
+			addItem(actionGap, basisWidth = MetaSpacing.XS, basisHeight = density.height, shrink = 0f)
+			addItem(it, basisWidth = actionSize, basisHeight = actionSize, shrink = 0f)
+			addItem(actionEndInset, basisWidth = density.verticalPad, basisHeight = density.height, shrink = 0f)
 		}
 		installBindings()
 	}
@@ -131,8 +138,8 @@ class MetaActionRow @JvmOverloads constructor(
 			subtitleLabel.setText(text)
 			val visible = text.isNotEmpty()
 			subtitleLabel.isVisible = visible
-			subtitleCell.height(if (visible) Value.prefHeight else Value.Fixed(0f))
-			subtitleCell.padTop(if (visible) MetaSpacing.XXS else 0f)
+			textColumn.configure(subtitleLabel, basisHeight = if (visible) null else 0f,
+				minHeight = if (visible) null else 0f, shrink = 0f)
 			invalidateHierarchy()
 		}
 		scope.effect("MetaActionRow.selected") { primary.isChecked = selectedValue.value }
@@ -163,12 +170,13 @@ class MetaActionRow @JvmOverloads constructor(
 class MetaActionList<T>(
 	horizontalScroll: Boolean = false,
 	private val createRow: (item: T, select: () -> Unit) -> MetaActionRow,
-) : MetaTable() {
+) : MetaStack() {
 	val selectedItemValue: Signal<T?> = signal(null)
-	val rowsTable = MetaTable().apply {
-		top().left()
-		defaults().growX().spaceBottom(MetaSpacing.XXS)
-	}
+	val rowsTable = MetaFlexBox(
+		direction = MetaFlexDirection.COLUMN,
+		mainGap = MetaSpacing.XXS,
+		align = MetaFlexAlign.STRETCH,
+	)
 	val scrollPane = MetaScrollPane(rowsTable).apply {
 		fadeScrollBars = false
 		setFlickScroll(false)
@@ -179,7 +187,7 @@ class MetaActionList<T>(
 	private val rows = Array<MetaActionRow>()
 
 	init {
-		add(scrollPane).grow()
+		addItem(scrollPane)
 	}
 
 	fun submit(newItems: Array<out T>) {
@@ -210,7 +218,7 @@ class MetaActionList<T>(
 			val item = items[i]
 			val row = createRow(item) { selectItem(item) }
 			rows.add(row)
-			rowsTable.add(row).growX().row()
+			rowsTable.addItem(row, shrink = 0f)
 		}
 		val selected = selectedItemValue.peek()
 		if (selected != null && !items.contains(selected, false)) selectedItemValue.value = null

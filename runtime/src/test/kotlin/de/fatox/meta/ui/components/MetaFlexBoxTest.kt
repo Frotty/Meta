@@ -41,6 +41,23 @@ internal class MetaFlexBoxTest {
 	}
 
 	@Test
+	fun `shrink distributes overflow without crossing item minimums`() {
+		val protected = Actor()
+		val flexible = Actor()
+		val flex = MetaFlexBox(mainGap = 4f)
+		flex.addItem(protected, basisWidth = 100f, basisHeight = 10f, minWidth = 80f)
+		flex.addItem(flexible, basisWidth = 100f, basisHeight = 10f, minWidth = 0f)
+		flex.setSize(100f, 10f)
+
+		flex.layout()
+
+		assertEquals(80f, protected.width)
+		assertEquals(84f, flexible.x)
+		assertEquals(16f, flexible.width)
+		assertEquals(84f, flex.minWidth)
+	}
+
+	@Test
 	fun `column direction wraps into additional columns`() {
 		val items = List(3) { Actor() }
 		val flex = MetaFlexBox(direction = MetaFlexDirection.COLUMN, wrap = true, mainGap = 4f, crossGap = 4f)
@@ -168,6 +185,8 @@ internal class MetaFlexBoxTest {
 			MetaFlexBox().addItem(Actor(), basisWidth = -1f)
 		}
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), grow = -1f) }
+		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), shrink = -1f) }
+		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), minWidth = -1f) }
 	}
 
 	private class WidthResponsiveWidget : Widget() {

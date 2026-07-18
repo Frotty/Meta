@@ -3,9 +3,7 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
-import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import de.fatox.meta.api.AssetProvider
@@ -13,6 +11,7 @@ import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.input.MetaUiAction
 import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaFocusable
@@ -34,7 +33,11 @@ class SliderWithButtons(
 	vertical: Boolean,
 	@Suppress("UNUSED_PARAMETER")
 	assetProvider: AssetProvider = inject(),
-) : Table(MetaSkin.skin()) {
+) : MetaFlexBox(
+	direction = if (vertical) MetaFlexDirection.COLUMN else MetaFlexDirection.ROW,
+	mainGap = MetaSpacing.SM,
+	align = MetaFlexAlign.CENTER,
+) {
 
 	/** The underlying slider; exposed for listeners/styling. */
 	val slider: Slider = DirectionalSlider(min, max, stepSize, vertical).apply { cursorPointer() }
@@ -48,14 +51,23 @@ class SliderWithButtons(
 	 */
 	val committedValue: Signal<Float> = signal(slider.value) { a, b -> abs(a - b) < 0.0001f }
 	private var pointerGestureActive = false
+	private var syncingFromSignal = false
+	@Suppress("unused")
+	private val valueBinding = valueValue.subscribe {
+		if (syncingFromSignal) return@subscribe
+		syncingFromSignal = true
+		slider.value = valueValue.peek()
+		val actual = slider.value
+		if (abs(valueValue.peek() - actual) >= 0.0001f) valueValue.value = actual
+		if (!pointerGestureActive && !slider.isDragging) committedValue.value = actual
+		syncingFromSignal = false
+	}
 
 	/** Syntactic sugar for the current slider value. */
 	var value: Float
 		get() = slider.value
 		set(value) {
-			slider.value = value
-			valueValue.value = slider.value
-			committedValue.value = slider.value
+			valueValue.value = value
 		}
 
 	init {
@@ -63,7 +75,7 @@ class SliderWithButtons(
 		incrementButton.onStep(+stepSize)
 		slider.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
-				valueValue.value = slider.value
+				if (!syncingFromSignal) valueValue.value = slider.value
 				if (!pointerGestureActive && !slider.isDragging) committedValue.value = slider.value
 			}
 		})
@@ -82,13 +94,17 @@ class SliderWithButtons(
 		})
 
 		if (!vertical) {
-			add<Button>(decrementButton).size(MetaControlSize.STANDARD.iconTarget)
-			add(slider).growX().padLeft(MetaSpacing.SM).padRight(MetaSpacing.SM)
-			add<Button>(incrementButton).size(MetaControlSize.STANDARD.iconTarget)
+			addItem(decrementButton, basisWidth = MetaControlSize.STANDARD.iconTarget,
+				basisHeight = MetaControlSize.STANDARD.iconTarget, shrink = 0f)
+			addItem(slider, grow = 1f, minWidth = 0f)
+			addItem(incrementButton, basisWidth = MetaControlSize.STANDARD.iconTarget,
+				basisHeight = MetaControlSize.STANDARD.iconTarget, shrink = 0f)
 		} else {
-			add<Button>(incrementButton).size(MetaControlSize.STANDARD.iconTarget).row()
-			add(slider).growY().padTop(MetaSpacing.SM).padBottom(MetaSpacing.SM).row()
-			add<Button>(decrementButton).size(MetaControlSize.STANDARD.iconTarget)
+			addItem(incrementButton, basisWidth = MetaControlSize.STANDARD.iconTarget,
+				basisHeight = MetaControlSize.STANDARD.iconTarget, shrink = 0f)
+			addItem(slider, grow = 1f, minHeight = 0f)
+			addItem(decrementButton, basisWidth = MetaControlSize.STANDARD.iconTarget,
+				basisHeight = MetaControlSize.STANDARD.iconTarget, shrink = 0f)
 		}
 	}
 

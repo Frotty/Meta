@@ -53,7 +53,6 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 	private fun setup() {
 		adapter = FolderListAdapter(Array())
 		view = MetaListView(adapter!!).apply {
-			mainTable.defaults().pad(2f)
 			setItemClickListener {
 				assetDiscoverer.openFolder((it as FolderModel).fileHandle)
 			}

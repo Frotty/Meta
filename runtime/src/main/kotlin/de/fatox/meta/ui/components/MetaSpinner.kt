@@ -85,7 +85,11 @@ class MetaFloatSpinnerModel(
 open class MetaSpinner @JvmOverloads constructor(
 	val metaModel: MetaSpinnerModel,
 	fontSize: Int = MetaType.BODY,
-) : MetaTable() {
+) : MetaFlexBox(
+	direction = MetaFlexDirection.ROW,
+	mainGap = MetaSpacing.NONE,
+	align = MetaFlexAlign.STRETCH,
+) {
 	val textField = MetaTextField(metaModel.format(metaModel.value), fontSize, styleName = de.fatox.meta.ui.MetaSkin.SPINNER_TEXT_FIELD)
 	private val decrementButton = MetaIconButton("ri-subtract-line", de.fatox.meta.ui.MetaSkin.SPINNER_DECREMENT, 14)
 	private val incrementButton = MetaIconButton("ri-add-line", de.fatox.meta.ui.MetaSkin.SPINNER_INCREMENT, 14)
@@ -93,14 +97,14 @@ open class MetaSpinner @JvmOverloads constructor(
 	private var syncing = false
 
 	init {
-		defaults().space(0f)
-		add(decrementButton).width(STEP_BUTTON_WIDTH).height(FIELD_HEIGHT)
-		// Vanilla TextField advertises a 150px preferred width. Letting that leak through made this compact spinner
-		// report a ~206px pref width even when callers assigned 100-112px, so Table laid its children outside the cell
-		// and overlapped neighbouring controls. Override both metrics at the cell boundary: prefer a field wide enough
-		// for common multi-digit values at the default font size, but allow it to shrink in tighter form rows.
-		add(textField).growX().minWidth(0f).prefWidth(PREF_FIELD_WIDTH).height(FIELD_HEIGHT)
-		add(incrementButton).width(STEP_BUTTON_WIDTH).height(FIELD_HEIGHT)
+		addItem(decrementButton, basisWidth = STEP_BUTTON_WIDTH, basisHeight = FIELD_HEIGHT, shrink = 0f,
+			minWidth = STEP_BUTTON_WIDTH, minHeight = FIELD_HEIGHT)
+		// Vanilla TextField advertises a 150px preferred width. Give flex a useful basis for common multi-digit values,
+		// while its explicit zero minimum lets the field shrink in tighter form rows without overflowing neighbours.
+		addItem(textField, basisWidth = PREF_FIELD_WIDTH, basisHeight = FIELD_HEIGHT, grow = 1f,
+			minWidth = 0f, minHeight = FIELD_HEIGHT)
+		addItem(incrementButton, basisWidth = STEP_BUTTON_WIDTH, basisHeight = FIELD_HEIGHT, shrink = 0f,
+			minWidth = STEP_BUTTON_WIDTH, minHeight = FIELD_HEIGHT)
 		decrementButton.addListener(stepListener { metaModel.decrement() })
 		incrementButton.addListener(stepListener { metaModel.increment() })
 		// TextField ChangeEvents describe edits, not committed spinner values. Keep them from bubbling through this

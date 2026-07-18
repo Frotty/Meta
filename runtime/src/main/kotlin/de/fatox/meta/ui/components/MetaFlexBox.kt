@@ -18,7 +18,7 @@ enum class MetaFlexAlign { START, CENTER, END, STRETCH }
  * Wrapped boxes request only one item's main-axis size so parents may assign the available width/height responsively.
  * Steady-state measurement and layout are allocation-free; scratch buffers grow only when the child count grows.
  */
-class MetaFlexBox(
+open class MetaFlexBox(
 	direction: MetaFlexDirection = MetaFlexDirection.ROW,
 	wrap: Boolean = false,
 	mainGap: Float = MetaSpacing.XS,
@@ -30,6 +30,9 @@ class MetaFlexBox(
 		val basisWidth: Float?,
 		val basisHeight: Float?,
 		val grow: Float,
+		val shrink: Float,
+		val minWidth: Float?,
+		val minHeight: Float?,
 	)
 
 	private val itemSpecs = ObjectMap<Actor, ItemSpec>()
@@ -38,6 +41,9 @@ class MetaFlexBox(
 	private var itemMain = FloatArray(0)
 	private var itemCross = FloatArray(0)
 	private var itemGrow = FloatArray(0)
+	private var itemShrink = FloatArray(0)
+	private var itemMinMain = FloatArray(0)
+	private var itemLayoutMain = FloatArray(0)
 	private var lineCapacity = 0
 	private var lineStart = IntArray(0)
 	private var lineCount = IntArray(0)
@@ -84,8 +90,11 @@ class MetaFlexBox(
 		basisWidth: Float? = null,
 		basisHeight: Float? = null,
 		grow: Float = 0f,
+		shrink: Float = 1f,
+		minWidth: Float? = null,
+		minHeight: Float? = null,
 	): MetaFlexBox = apply {
-		configure(actor, basisWidth, basisHeight, grow)
+		configure(actor, basisWidth, basisHeight, grow, shrink, minWidth, minHeight)
 		addActor(actor)
 		invalidateHierarchy()
 	}
@@ -95,13 +104,19 @@ class MetaFlexBox(
 		basisWidth: Float? = null,
 		basisHeight: Float? = null,
 		grow: Float = 0f,
+		shrink: Float = 1f,
+		minWidth: Float? = null,
+		minHeight: Float? = null,
 	): MetaFlexBox = apply {
 		if (basisWidth != null) checkedNonNegative(basisWidth, "Flex item width")
 		if (basisHeight != null) checkedNonNegative(basisHeight, "Flex item height")
 		checkedNonNegative(grow, "Flex grow")
+		checkedNonNegative(shrink, "Flex shrink")
+		if (minWidth != null) checkedNonNegative(minWidth, "Flex item minimum width")
+		if (minHeight != null) checkedNonNegative(minHeight, "Flex item minimum height")
 		val resolvedWidth = basisWidth ?: if (actor is Layout) null else actor.width
 		val resolvedHeight = basisHeight ?: if (actor is Layout) null else actor.height
-		itemSpecs.put(actor, ItemSpec(resolvedWidth, resolvedHeight, grow))
+		itemSpecs.put(actor, ItemSpec(resolvedWidth, resolvedHeight, grow, shrink, minWidth, minHeight))
 		invalidateHierarchy()
 	}
 
@@ -124,8 +139,8 @@ class MetaFlexBox(
 		for (line in 0 until lines) {
 			val count = lineCount[line]
 			val layoutCross = if (!wrap) crossAvailable else lineCross[line]
-			val free = (mainAvailable - lineMain[line]).coerceAtLeast(0f)
-			val growUnit = if (lineGrow[line] > 0f) free / lineGrow[line] else 0f
+			val usedMain = resolveLineMainSizes(line, mainAvailable)
+			val free = (mainAvailable - usedMain).coerceAtLeast(0f)
 			var offset = 0f
 			var gap = mainGap
 			if (lineGrow[line] == 0f) {
@@ -150,7 +165,7 @@ class MetaFlexBox(
 			val end = lineStart[line] + count
 			for (index in lineStart[line] until end) {
 				val actor = children[index]
-				val actorMain = itemMain[index] + itemGrow[index] * growUnit
+				val actorMain = itemLayoutMain[index]
 				val actorCross = if (align == MetaFlexAlign.STRETCH) layoutCross else itemCross[index]
 				val crossOffset = when (align) {
 					MetaFlexAlign.START, MetaFlexAlign.STRETCH -> 0f
@@ -178,9 +193,9 @@ class MetaFlexBox(
 		}
 	}
 
-	override fun getMinWidth(): Float = axisMaximum(horizontal = true, useMinimum = true)
+	override fun getMinWidth(): Float = minimumSize(horizontal = true)
 
-	override fun getMinHeight(): Float = axisMaximum(horizontal = false, useMinimum = true)
+	override fun getMinHeight(): Float = minimumSize(horizontal = false)
 
 	override fun getPrefWidth(): Float = preferredSize(horizontal = true)
 
@@ -234,12 +249,11 @@ class MetaFlexBox(
 	private fun measureResponsiveCrossSizes(lines: Int, mainAvailable: Float) {
 		for (line in 0 until lines) {
 			lineCross[line] = 0f
-			val free = (mainAvailable - lineMain[line]).coerceAtLeast(0f)
-			val growUnit = if (lineGrow[line] > 0f) free / lineGrow[line] else 0f
+			resolveLineMainSizes(line, mainAvailable)
 			val end = lineStart[line] + lineCount[line]
 			for (index in lineStart[line] until end) {
 				val actor = children[index]
-				val actorMain = itemMain[index] + itemGrow[index] * growUnit
+				val actorMain = itemLayoutMain[index]
 				itemCross[index] = responsiveCrossSize(actor, actorMain)
 				lineCross[line] = max(lineCross[line], itemCross[index])
 			}
@@ -276,12 +290,57 @@ class MetaFlexBox(
 			if (direction == MetaFlexDirection.ROW) {
 				itemMain[index] = actorWidth
 				itemCross[index] = actorHeight
+				itemMinMain[index] = spec?.minWidth ?: minimumWidth(actor)
 			} else {
 				itemMain[index] = actorHeight
 				itemCross[index] = actorWidth
+				itemMinMain[index] = spec?.minHeight ?: minimumHeight(actor)
 			}
 			itemGrow[index] = spec?.grow ?: 0f
+			itemShrink[index] = spec?.shrink ?: 1f
+			if (itemMinMain[index] > itemMain[index]) itemMinMain[index] = itemMain[index]
 		}
+	}
+
+	private fun resolveLineMainSizes(line: Int, mainAvailable: Float): Float {
+		val start = lineStart[line]
+		val end = start + lineCount[line]
+		val gaps = mainGap * max(0, lineCount[line] - 1)
+		var itemTotal = 0f
+		for (index in start until end) {
+			itemLayoutMain[index] = itemMain[index]
+			itemTotal += itemMain[index]
+		}
+		val itemAvailable = (mainAvailable - gaps).coerceAtLeast(0f)
+		if (itemTotal < itemAvailable && lineGrow[line] > 0f) {
+			val growUnit = (itemAvailable - itemTotal) / lineGrow[line]
+			for (index in start until end) itemLayoutMain[index] += itemGrow[index] * growUnit
+			itemTotal = itemAvailable
+		} else if (itemTotal > itemAvailable) {
+			var remaining = itemTotal - itemAvailable
+			while (remaining > SIZE_EPSILON) {
+				var weight = 0f
+				for (index in start until end) {
+					if (itemLayoutMain[index] > itemMinMain[index] + SIZE_EPSILON) {
+						weight += itemShrink[index] * itemMain[index]
+					}
+				}
+				if (weight <= SIZE_EPSILON) break
+				var removed = 0f
+				for (index in start until end) {
+					if (itemLayoutMain[index] <= itemMinMain[index] + SIZE_EPSILON) continue
+					val share = remaining * (itemShrink[index] * itemMain[index]) / weight
+					val next = (itemLayoutMain[index] - share).coerceAtLeast(itemMinMain[index])
+					removed += itemLayoutMain[index] - next
+					itemLayoutMain[index] = next
+				}
+				if (removed <= SIZE_EPSILON) break
+				remaining -= removed
+			}
+			itemTotal = 0f
+			for (index in start until end) itemTotal += itemLayoutMain[index]
+		}
+		return itemTotal + gaps
 	}
 
 	private fun axisTotal(horizontal: Boolean): Float {
@@ -301,10 +360,24 @@ class MetaFlexBox(
 	private fun axisSize(actor: Actor, horizontal: Boolean, useMinimum: Boolean): Float {
 		val spec = itemSpecs[actor]
 		return if (horizontal) {
-			spec?.basisWidth ?: if (useMinimum) minimumWidth(actor) else preferredWidth(actor)
+			if (useMinimum) spec?.minWidth ?: minimumWidth(actor) else spec?.basisWidth ?: preferredWidth(actor)
 		} else {
-			spec?.basisHeight ?: if (useMinimum) minimumHeight(actor) else preferredHeight(actor)
+			if (useMinimum) spec?.minHeight ?: minimumHeight(actor) else spec?.basisHeight ?: preferredHeight(actor)
 		}
+	}
+
+	private fun minimumSize(horizontal: Boolean): Float {
+		if (children.size == 0) return 0f
+		val mainAxis = horizontal == (direction == MetaFlexDirection.ROW)
+		if (!mainAxis) return axisMaximum(horizontal, useMinimum = true)
+		if (wrap) return axisMaximum(horizontal, useMinimum = true)
+		return axisTotalMinimum(horizontal) + mainGap * max(0, children.size - 1)
+	}
+
+	private fun axisTotalMinimum(horizontal: Boolean): Float {
+		var total = 0f
+		for (index in 0 until children.size) total += axisSize(children[index], horizontal, useMinimum = true)
+		return total
 	}
 
 	private fun resetLine(line: Int, start: Int) {
@@ -321,6 +394,9 @@ class MetaFlexBox(
 		itemMain = itemMain.copyOf(itemCapacity)
 		itemCross = itemCross.copyOf(itemCapacity)
 		itemGrow = itemGrow.copyOf(itemCapacity)
+		itemShrink = itemShrink.copyOf(itemCapacity)
+		itemMinMain = itemMinMain.copyOf(itemCapacity)
+		itemLayoutMain = itemLayoutMain.copyOf(itemCapacity)
 	}
 
 	private fun ensureLineCapacity(required: Int) {
@@ -339,6 +415,7 @@ class MetaFlexBox(
 	private fun minimumHeight(actor: Actor): Float = (actor as? Layout)?.minHeight ?: actor.height
 
 	private companion object {
+		const val SIZE_EPSILON = 0.001f
 		fun checkedNonNegative(value: Float, label: String): Float {
 			require(value.isFinite() && value >= 0f) { "$label must be finite and not negative" }
 			return value

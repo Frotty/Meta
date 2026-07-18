@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Disposable
@@ -16,6 +17,7 @@ import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.extensions.tooltip
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
@@ -35,14 +37,22 @@ open class MetaColorPicker @JvmOverloads constructor(
 	private val parsedColor = Color()
 	val colorValue: Signal<Color> = signal(working.cpy()) { a, b -> a == b }
 	private val colorField = MetaColorField { hue, saturation, value -> updateFromField(hue, saturation, value) }
-	private val preview = MetaTable().apply { background = MetaSkin.skin().getDrawable(MetaSkin.COLOR_FILL) }
-	private var inputMode = ColorInputMode.HEX
+	private val preview = Image(MetaSkin.skin().getDrawable(MetaSkin.COLOR_FILL))
+	private val inputModeValue: Signal<ColorInputMode> = signal(ColorInputMode.HEX)
 	private val inputModeButton = MetaTextButton("HEX", MetaType.CAPTION, tier = de.fatox.meta.ui.MetaButtonTier.TERTIARY)
 	private val colorInput = MetaInputField(
 		placeholder = if (isAllowAlphaEdit) "#RRGGBBAA or rgba(255, 128, 0, 1)" else "#RRGGBB or rgb(255, 128, 0)",
 	)
 	private var syncing = false
 	private var dismissing = false
+	@Suppress("unused")
+	private val colorBinding = colorValue.subscribe {
+		if (syncing) return@subscribe
+		working.set(colorValue.peek())
+		syncModels()
+	}
+	@Suppress("unused")
+	private val inputModeBinding = inputModeValue.subscribe { syncInputMode() }
 
 	var metaListener: MetaColorPickerListener? = listener
 	var selectedColor: Color
@@ -58,12 +68,12 @@ open class MetaColorPicker @JvmOverloads constructor(
 		contentTable.defaults().growX().padBottom(MetaSpacing.XS)
 		contentTable.add(colorField).height(210f).row()
 		contentTable.add(preview).height(36f).padTop(MetaSpacing.XS).padBottom(MetaSpacing.SM).row()
-		contentTable.add(MetaTable().apply {
-			add(inputModeButton.apply {
+		contentTable.add(MetaFlexBox(mainGap = MetaSpacing.XS, align = MetaFlexAlign.STRETCH).apply {
+			addItem(inputModeButton.apply {
 				tooltip("Switch between HEX and ${if (isAllowAlphaEdit) "RGBA" else "RGB"} display")
 				onChange { toggleInputMode() }
-			}).width(76f).height(MetaControlSize.STANDARD.height).padRight(MetaSpacing.XS)
-			add(colorInput).growX().height(MetaControlSize.STANDARD.height)
+			}, basisWidth = 76f, basisHeight = MetaControlSize.STANDARD.height, shrink = 0f)
+			addItem(colorInput, basisHeight = MetaControlSize.STANDARD.height, grow = 1f, minWidth = 0f)
 		}).row()
 		colorInput.addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: com.badlogic.gdx.scenes.scene2d.Actor) {
@@ -77,8 +87,12 @@ open class MetaColorPicker @JvmOverloads constructor(
 				}
 			}
 		})
-		contentTable.add(MetaTable().apply {
-			add(MetaTextButton("Cancel").apply {
+		contentTable.add(MetaFlexBox(
+			mainGap = MetaSpacing.SM,
+			justify = MetaFlexJustify.END,
+			align = MetaFlexAlign.CENTER,
+		).apply {
+			addItem(MetaTextButton("Cancel").apply {
 				// Dismiss on the press itself. This deliberately bypasses Button's checked/change machinery so Cancel
 				// remains an unconditional escape hatch even when focus or another listener consumes touch-up.
 				addListener(object : InputListener() {
@@ -95,19 +109,19 @@ open class MetaColorPicker @JvmOverloads constructor(
 						return true
 					}
 				})
-			}).padRight(MetaSpacing.SM)
-			add(MetaTextButton("Reset").onChange {
+			}, shrink = 0f)
+			addItem(MetaTextButton("Reset").onChange {
 				working.set(original)
 				syncModels()
 				metaListener?.reset(selectedColor, original.cpy())
-			}).padRight(MetaSpacing.SM)
-			add(MetaTextButton("OK").onChange {
+			}, shrink = 0f)
+			addItem(MetaTextButton("OK").onChange {
 				try {
 					metaListener?.finished(selectedColor)
 				} finally {
 					dismiss()
 				}
-			})
+			}, shrink = 0f)
 		}).right().padTop(MetaSpacing.SM)
 		syncModels()
 	}
@@ -149,7 +163,11 @@ open class MetaColorPicker @JvmOverloads constructor(
 	}
 
 	private fun toggleInputMode() {
-		inputMode = if (inputMode == ColorInputMode.HEX) ColorInputMode.RGB else ColorInputMode.HEX
+		inputModeValue.value = if (inputModeValue.peek() == ColorInputMode.HEX) ColorInputMode.RGB else ColorInputMode.HEX
+	}
+
+	private fun syncInputMode() {
+		val inputMode = inputModeValue.peek()
 		inputModeButton.setText(if (inputMode == ColorInputMode.HEX) "HEX" else if (isAllowAlphaEdit) "RGBA" else "RGB")
 		syncing = true
 		colorInput.setText(formatInput())
@@ -157,7 +175,7 @@ open class MetaColorPicker @JvmOverloads constructor(
 		syncing = false
 	}
 
-	private fun formatInput(): String = when (inputMode) {
+	private fun formatInput(): String = when (inputModeValue.peek()) {
 		ColorInputMode.HEX -> MetaColorCodec.format(working, isAllowAlphaEdit)
 		ColorInputMode.RGB -> MetaColorCodec.formatRgb(working, isAllowAlphaEdit)
 	}
