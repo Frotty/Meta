@@ -108,13 +108,13 @@ class MetaUiManager : UIManager {
 		// Swallow input so the backdrop is a real modal shield: clicks on it never reach the UI beneath.
 		addListener { true }
 	}
-	private val dockPreview = Image(ColorDrawable(whitePixel, Color.valueOf("5D8DFF2E"))).apply {
+	private val dockPreview = Image(ColorDrawable(whitePixel, Color(MetaColor.ACCENT).apply { a = 0.18f })).apply {
 		touchable = Touchable.disabled
 	}
-	private val leftDockHint = Image(ColorDrawable(whitePixel, Color.valueOf("5D8DFF99"))).apply {
+	private val leftDockHint = Image(ColorDrawable(whitePixel, Color(MetaColor.ACCENT).apply { a = 0.6f })).apply {
 		touchable = Touchable.disabled
 	}
-	private val rightDockHint = Image(ColorDrawable(whitePixel, Color.valueOf("5D8DFF99"))).apply {
+	private val rightDockHint = Image(ColorDrawable(whitePixel, Color(MetaColor.ACCENT).apply { a = 0.6f })).apply {
 		touchable = Touchable.disabled
 	}
 

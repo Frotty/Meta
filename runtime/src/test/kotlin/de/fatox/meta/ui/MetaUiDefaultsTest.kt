@@ -63,8 +63,24 @@ internal class MetaUiDefaultsTest {
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.PRIMARY_HOVER, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.SECONDARY, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.TERTIARY, 4.5f)
+		assertContrastAtLeast(MetaColor.TEXT, MetaColor.SELECTION, 4.5f)
+		assertContrastAtLeast(MetaColor.TEXT, MetaColor.SELECTION_FILL, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT_MUTED, MetaColor.SURFACE_RAISED, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT_MUTED, MetaColor.BACKGROUND, 4.5f)
+		// Error helper text is CAPTION-sized on window (raised) surfaces, so NEGATIVE itself must be AA there.
+		assertContrastAtLeast(MetaColor.NEGATIVE, MetaColor.SURFACE_RAISED, 4.5f)
+		assertContrastAtLeast(MetaColor.NEGATIVE, MetaColor.SURFACE, 4.5f)
+	}
+
+	@Test
+	fun `functional boundaries meet WCAG non-text contrast`() {
+		// BORDER_STRONG is the boundary for controls whose border is the affordance (WCAG 1.4.11: >=3:1).
+		assertContrastAtLeast(MetaColor.BORDER_STRONG, MetaColor.SURFACE, 3f)
+		assertContrastAtLeast(MetaColor.BORDER_STRONG, MetaColor.SURFACE_RAISED, 3f)
+		assertContrastAtLeast(MetaColor.BORDER_STRONG, MetaColor.FILL_FIELD, 3f)
+		assertContrastAtLeast(MetaColor.BORDER_STRONG, MetaColor.FILL_SUNKEN, 3f)
+		assertContrastAtLeast(MetaColor.ACCENT, MetaColor.FILL_FIELD, 3f)
+		assertContrastAtLeast(MetaColor.ACCENT_DIM, MetaColor.SURFACE, 3f)
 	}
 
 	private fun assertContrastAtLeast(foreground: com.badlogic.gdx.graphics.Color, background: com.badlogic.gdx.graphics.Color, minimum: Float) {

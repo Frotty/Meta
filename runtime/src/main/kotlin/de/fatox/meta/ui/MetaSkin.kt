@@ -105,10 +105,13 @@ object MetaSkin {
 		skin.add("meta.surface", MetaColor.SURFACE.cpy())
 		skin.add("meta.surfaceRaised", MetaColor.SURFACE_RAISED.cpy())
 		skin.add("meta.border", MetaColor.BORDER.cpy())
+		skin.add("meta.borderStrong", MetaColor.BORDER_STRONG.cpy())
 		skin.add("meta.text", MetaColor.TEXT.cpy())
 		skin.add("meta.textMuted", MetaColor.TEXT_MUTED.cpy())
 		skin.add("meta.textDisabled", MetaColor.TEXT_DISABLED.cpy())
 		skin.add("meta.accent", MetaColor.ACCENT.cpy())
+		skin.add("meta.selection", MetaColor.SELECTION.cpy())
+		skin.add("meta.selectionFill", MetaColor.SELECTION_FILL.cpy())
 	}
 
 	private fun addPanelDrawables(skin: Skin) {
@@ -117,19 +120,20 @@ object MetaSkin {
 		solid(skin, "meta.menu.bar", MetaColor.SURFACE, minWidth = 1f, minHeight = 1f)
 		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 4, border = 1, padding = 8f)
 		rounded(skin, "meta.panel.raised", MetaColor.SURFACE_RAISED, MetaColor.BORDER, radius = 4, border = 1, padding = 8f)
-		// Windows need a stronger silhouette than nested panels. The cool-gray two-pixel edge remains neutral while
+		// Windows need a stronger silhouette than nested panels. The strong cool-gray edge remains neutral while
 		// making overlapping windows and adjacent chrome unambiguous against the dark workspace.
-		chamfered(skin, WINDOW_BACKGROUND, MetaColor.SURFACE_RAISED, Color.valueOf("617181FF"),
+		chamfered(skin, WINDOW_BACKGROUND, MetaColor.SURFACE_RAISED, MetaColor.BORDER_STRONG,
 			cut = 6, border = 1, padding = 8f)
 		// Offset below every solid window so a fully covered sibling still leaves a visible depth cue at its edges.
 		rounded(skin, WINDOW_SHADOW, Color.valueOf("05060988"), null, radius = 9, border = 0, padding = 0f)
-		rounded(skin, TOAST, Color.valueOf("15181EF5"), Color.valueOf("A7B5C8FF"), radius = 8, border = 2, padding = 10f)
+		// Neutral notifications must not outshout semantic toasts, so they get the neutral strong border.
+		rounded(skin, TOAST, Color.valueOf("15181EF5"), MetaColor.BORDER_STRONG, radius = 6, border = 2, padding = 10f)
 		rounded(skin, TOAST_PRIMARY, Color.valueOf("172733F7"), MetaColor.ACCENT, radius = 6, border = 2, padding = 10f)
 		rounded(skin, TOAST_WARNING, Color.valueOf("302717F7"), MetaColor.WARNING, radius = 6, border = 2, padding = 10f)
 		rounded(skin, TOAST_ERROR, Color.valueOf("321C20F7"), MetaColor.NEGATIVE, radius = 6, border = 2, padding = 10f)
 		rounded(skin, TOAST_MUTED, Color.valueOf("20242AF2"), MetaColor.BORDER, radius = 6, border = 1, padding = 10f)
 		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f)
-		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), Color.valueOf("596170FF"), radius = 7, border = 1, padding = 7f)
+		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), MetaColor.BORDER_STRONG, radius = 7, border = 1, padding = 7f)
 		topRounded(skin, BOTTOM_BAR, Color.valueOf("080A0ECC"), Color.valueOf("2F333BAA"), radius = 12, border = 1, padding = 14f)
 	}
 
@@ -153,56 +157,62 @@ object MetaSkin {
 	}
 
 	private fun addControlDrawables(skin: Skin) {
-		rounded(skin, "meta.button.primary.up", MetaColor.PRIMARY, Color.valueOf("3D91C3FF"), radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.up", MetaColor.PRIMARY, MetaColor.ACCENT_DIM, radius = 4, border = 1, padding = 9f)
 		rounded(skin, "meta.button.primary.over", MetaColor.PRIMARY_HOVER, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.primary.focus", MetaColor.PRIMARY, Color.valueOf("D4F1FFFF"), radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.primary.focus", MetaColor.PRIMARY, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f)
 		rounded(skin, "meta.button.primary.down", MetaColor.PRIMARY_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.primary.disabled", Color.valueOf("26343DFF"), Color.valueOf("3B4A54FF"), radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = 4, border = 1, padding = 9f)
 
-		rounded(skin, "meta.button.up", MetaColor.SECONDARY, Color.valueOf("46515EFF"), radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.over", MetaColor.SECONDARY_HOVER, Color.valueOf("627282FF"), radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.focus", Color.valueOf("303A44FF"), MetaColor.ACCENT, radius = 4, border = 2, padding = 9f)
-		rounded(skin, "meta.button.focusOver", MetaColor.SECONDARY_HOVER, Color.valueOf("B5E7FFFF"), radius = 4, border = 2, padding = 9f)
-		rounded(skin, "meta.button.down", Color.valueOf("22272DFF"), MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.checked", Color.valueOf("253849FF"), MetaColor.ACCENT, radius = 6, border = 1, padding = 9f)
-		rounded(skin, "meta.button.checkedFocus", Color.valueOf("294963FF"), Color.valueOf("B8E3FFFF"), radius = 6, border = 2, padding = 9f)
-		rounded(skin, "meta.button.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = 6, border = 1, padding = 9f)
+		rounded(skin, "meta.button.up", MetaColor.SECONDARY, MetaColor.BORDER, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.over", MetaColor.SECONDARY_HOVER, MetaColor.BORDER_STRONG, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.focusOver", MetaColor.SECONDARY_HOVER, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.checked", MetaColor.SELECTION_FILL, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.checkedOver", MetaColor.SELECTION, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.checkedFocus", MetaColor.SELECTION_FILL, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = 4, border = 1, padding = 9f)
 
 		// Tertiary is low-emphasis, not invisible. Ordinary buttons and selectable rows keep a restrained resting
 		// frame so their hit area remains legible; only MetaImageButton utilities are borderless until interaction.
-		rounded(skin, "meta.button.tertiary.up", MetaColor.TERTIARY, Color.valueOf("3E4854FF"), radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.tertiary.over", MetaColor.TERTIARY_HOVER, Color.valueOf("657687FF"), radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.tertiary.focus", Color.valueOf("263541FF"), MetaColor.ACCENT, radius = 4, border = 2, padding = 9f)
-		rounded(skin, "meta.button.tertiary.down", Color.valueOf("202A31FF"), MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.tertiary.disabled", Color.valueOf("00000000"), Color.valueOf("30363EFF"), radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.tertiary.up", MetaColor.TERTIARY, MetaColor.BORDER, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.tertiary.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.tertiary.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.tertiary.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.tertiary.disabled", MetaColor.TERTIARY, MetaColor.BORDER_DISABLED, radius = 4, border = 1, padding = 9f)
 
 	// Image utilities stay visually lighter than tertiary actions, but retain a faint resting edge so their hit
 	// target is discoverable without requiring hover (important for keyboard/controller and dense editor toolbars).
 		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, Color.valueOf("353E48FF"), radius = 3, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, Color.valueOf("556575FF"), radius = 3, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.focus", Color.valueOf("28343DFF"), MetaColor.ACCENT, radius = 3, border = 2, padding = 8f)
-		rounded(skin, "meta.imageButton.down", Color.valueOf("202A31FF"), MetaColor.ACCENT, radius = 3, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, radius = 3, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 3, border = 2, padding = 8f)
+		rounded(skin, "meta.imageButton.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 3, border = 1, padding = 8f)
+		// Checked is a persistent "on" state: selection fill plus dim-accent edge, clearly distinct from the
+		// 2px bright-accent focus ring so keyboard users can tell the cursor from a toggled-on tool.
+		rounded(skin, "meta.imageButton.checked", MetaColor.SELECTION_FILL, MetaColor.ACCENT_DIM, radius = 3, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.checkedOver", MetaColor.SELECTION, MetaColor.ACCENT_DIM, radius = 3, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.checkedFocus", MetaColor.SELECTION_FILL, MetaColor.ACCENT_BRIGHT, radius = 3, border = 2, padding = 8f)
 		rounded(skin, "meta.imageButton.disabled", Color.valueOf("00000000"), null, radius = 3, border = 0, padding = 8f)
 
-		rounded(skin, "meta.field.up", Color.valueOf("1B2026FF"), Color.valueOf("3D4853FF"), radius = FIELD_RADIUS, border = 1, padding = 7f)
-		rounded(skin, "meta.field.over", Color.valueOf("20262DFF"), Color.valueOf("586777FF"), radius = FIELD_RADIUS, border = 1, padding = 7f)
-		rounded(skin, "meta.field.focus", Color.valueOf("1B2026FF"), MetaColor.ACCENT, radius = FIELD_RADIUS, border = 2, padding = 7f)
+		rounded(skin, "meta.field.up", MetaColor.FILL_FIELD, MetaColor.BORDER_STRONG, radius = FIELD_RADIUS, border = 1, padding = 7f)
+		rounded(skin, "meta.field.over", Color.valueOf("20262DFF"), MetaColor.BORDER_STRONG, radius = FIELD_RADIUS, border = 1, padding = 7f)
+		rounded(skin, "meta.field.focus", MetaColor.FILL_FIELD, MetaColor.ACCENT, radius = FIELD_RADIUS, border = 2, padding = 7f)
 		rounded(skin, "meta.field.error", Color.valueOf("241E20FF"), MetaColor.NEGATIVE, radius = FIELD_RADIUS, border = 2, padding = 7f)
-		rounded(skin, "meta.field.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = FIELD_RADIUS, border = 1, padding = 7f)
+		rounded(skin, "meta.field.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = FIELD_RADIUS, border = 1, padding = 7f)
 		rounded(skin, "meta.field.focusBorder", TRANSPARENT, MetaColor.ACCENT, radius = FIELD_RADIUS, border = 2, padding = 0f)
 		rounded(skin, "meta.field.errorBorder", TRANSPARENT, MetaColor.NEGATIVE, radius = FIELD_RADIUS, border = 2, padding = 0f)
-		rounded(skin, "meta.selection", Color.valueOf("2F5D86FF"), null, radius = 3, border = 0, padding = 4f)
-		rounded(skin, "meta.dropdown.over", Color.valueOf("343842FF"), null, radius = 5, border = 0, padding = 6f)
-		rounded(skin, "meta.dropdown.selection", Color.valueOf("294963FF"), Color.valueOf("4F9DDEFF"), radius = 5, border = 1, padding = 6f)
+		rounded(skin, "meta.selection", MetaColor.SELECTION, null, radius = 3, border = 0, padding = 4f)
+		rounded(skin, "meta.dropdown.over", MetaColor.TERTIARY_HOVER, null, radius = 5, border = 0, padding = 6f)
+		rounded(skin, "meta.dropdown.selection", MetaColor.SELECTION_FILL, MetaColor.ACCENT_DIM, radius = 5, border = 1, padding = 6f)
 		rounded(skin, "meta.menu.bar.open", TRANSPARENT, null, radius = 5, border = 0, padding = 0f)
-		rounded(skin, "meta.menu.bar.over", Color.valueOf("343842FF"), null, radius = 5, border = 0, padding = 0f)
-		rounded(skin, "meta.menu.bar.selected", Color.valueOf("294963FF"), MetaColor.ACCENT, radius = 5, border = 1, padding = 0f)
+		rounded(skin, "meta.menu.bar.over", MetaColor.TERTIARY_HOVER, null, radius = 5, border = 0, padding = 0f)
+		rounded(skin, "meta.menu.bar.selected", MetaColor.SELECTION_FILL, MetaColor.ACCENT, radius = 5, border = 1, padding = 0f)
 		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.open"))
 		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.over"))
 		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.selected"))
 		rounded(skin, "meta.menu.item", TRANSPARENT, null, radius = 4, border = 0, padding = 0f)
-		rounded(skin, "meta.menu.item.over", Color.valueOf("343842FF"), null, radius = 4, border = 0, padding = 0f)
-		rounded(skin, "meta.menu.item.selected", Color.valueOf("294963FF"), null, radius = 4, border = 0, padding = 0f)
+		rounded(skin, "meta.menu.item.over", MetaColor.TERTIARY_HOVER, null, radius = 4, border = 0, padding = 0f)
+		rounded(skin, "meta.menu.item.selected", MetaColor.SELECTION_FILL, null, radius = 4, border = 0, padding = 0f)
 		configureMenuItemDrawable(skin.getDrawable("meta.menu.item"))
 		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.over"))
 		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.selected"))
@@ -210,22 +220,23 @@ object MetaSkin {
 
 		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 3, border = 0, padding = 0f, minWidth = 6f, minHeight = 6f)
 		rounded(skin, "meta.scroll.knob", Color.valueOf("858F9EFF"), null, radius = 3, border = 0, padding = 0f, minWidth = 6f, minHeight = 6f)
-		solid(skin, SEPARATOR, Color.valueOf("59606BFF"), minWidth = 1f, minHeight = 1f)
-		rounded(skin, "meta.slider.track", Color.valueOf("24262BFF"), Color.valueOf("4B515EFF"), radius = 4, border = 1, padding = 0f, minHeight = 8f)
-		rounded(skin, "meta.slider.fill", Color.valueOf("4F9DDEFF"), null, radius = 4, border = 0, padding = 0f, minHeight = 8f)
-		rounded(skin, "meta.slider.knob", MetaColor.ACCENT, Color.valueOf("D3ECFFFF"), radius = 8, border = 1, padding = 0f, minWidth = 18f, minHeight = 18f)
-		rounded(skin, "meta.slider.knob.over", Color.valueOf("8DCCF7FF"), Color.WHITE, radius = 10, border = 2, padding = 0f, minWidth = 20f, minHeight = 20f)
-		rounded(skin, "meta.slider.knob.down", MetaColor.PRIMARY, Color.valueOf("D3ECFFFF"), radius = 10, border = 2, padding = 0f, minWidth = 20f, minHeight = 20f)
+		solid(skin, SEPARATOR, MetaColor.BORDER_STRONG, minWidth = 1f, minHeight = 1f)
+		rounded(skin, "meta.slider.track", Color.valueOf("24262BFF"), MetaColor.BORDER, radius = 4, border = 1, padding = 0f, minHeight = 8f)
+		rounded(skin, "meta.slider.fill", MetaColor.ACCENT_DIM, null, radius = 4, border = 0, padding = 0f, minHeight = 8f)
+		// Knobs are true circles; a nine-patch drawn below its corner budget squashes, so rasterize them directly.
+		circle(skin, "meta.slider.knob", MetaColor.ACCENT, MetaColor.ACCENT_BRIGHT, border = 1, diameter = 18)
+		circle(skin, "meta.slider.knob.over", MetaColor.ACCENT_BRIGHT, Color.WHITE, border = 2, diameter = 20)
+		circle(skin, "meta.slider.knob.down", MetaColor.PRIMARY, MetaColor.ACCENT_BRIGHT, border = 2, diameter = 20)
 
-		segmentedRounded(skin, "meta.spinner.left.up", MetaColor.TERTIARY, Color.valueOf("4C525DFF"), roundLeft = true)
-		segmentedRounded(skin, "meta.spinner.left.over", MetaColor.TERTIARY_HOVER, Color.valueOf("707986FF"), roundLeft = true)
-		segmentedRounded(skin, "meta.spinner.left.down", Color.valueOf("20252BFF"), MetaColor.ACCENT, roundLeft = true)
-		segmentedRounded(skin, "meta.spinner.right.up", MetaColor.TERTIARY, Color.valueOf("4C525DFF"), roundRight = true)
-		segmentedRounded(skin, "meta.spinner.right.over", MetaColor.TERTIARY_HOVER, Color.valueOf("707986FF"), roundRight = true)
-		segmentedRounded(skin, "meta.spinner.right.down", Color.valueOf("20252BFF"), MetaColor.ACCENT, roundRight = true)
-		rounded(skin, "meta.spinner.field.up", Color.valueOf("202126FF"), Color.valueOf("42454DFF"), radius = 0, border = 1, padding = 7f)
-		rounded(skin, "meta.spinner.field.focus", Color.valueOf("202126FF"), MetaColor.ACCENT, radius = 0, border = 2, padding = 7f)
-		rounded(skin, "meta.spinner.field.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = 0, border = 1, padding = 7f)
+		segmentedRounded(skin, "meta.spinner.left.up", MetaColor.TERTIARY, MetaColor.BORDER, roundLeft = true)
+		segmentedRounded(skin, "meta.spinner.left.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, roundLeft = true)
+		segmentedRounded(skin, "meta.spinner.left.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, roundLeft = true)
+		segmentedRounded(skin, "meta.spinner.right.up", MetaColor.TERTIARY, MetaColor.BORDER, roundRight = true)
+		segmentedRounded(skin, "meta.spinner.right.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, roundRight = true)
+		segmentedRounded(skin, "meta.spinner.right.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, roundRight = true)
+		rounded(skin, "meta.spinner.field.up", MetaColor.FILL_SUNKEN, MetaColor.BORDER_STRONG, radius = 0, border = 1, padding = 7f)
+		rounded(skin, "meta.spinner.field.focus", MetaColor.FILL_SUNKEN, MetaColor.ACCENT, radius = 0, border = 2, padding = 7f)
+		rounded(skin, "meta.spinner.field.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = 0, border = 1, padding = 7f)
 
 		checkbox(skin, "meta.checkbox.off", checked = false, over = false, down = false)
 		checkbox(skin, "meta.checkbox.over", checked = false, over = true, down = false)
@@ -282,16 +293,16 @@ object MetaSkin {
 		skin.add(BUTTON_TOGGLE, Button.ButtonStyle(skin.get(BUTTON, Button.ButtonStyle::class.java)).apply {
 			up = skin.getDrawable("meta.button.up")
 			checked = skin.getDrawable("meta.button.checked")
-			checkedOver = skin.getDrawable("meta.button.checked")
+			checkedOver = skin.getDrawable("meta.button.checkedOver")
 			checkedFocused = skin.getDrawable("meta.button.checkedFocus")
 		})
 		skin.add(ICON_BUTTON, Button.ButtonStyle(skin.get(BUTTON_SECONDARY, Button.ButtonStyle::class.java)))
 		skin.add(IMAGE_BUTTON, Button.ButtonStyle().apply {
 			up = skin.getDrawable("meta.imageButton.up")
 			over = skin.getDrawable("meta.imageButton.over")
-			checked = skin.getDrawable("meta.imageButton.focus")
-			checkedOver = skin.getDrawable("meta.imageButton.focus")
-			checkedFocused = skin.getDrawable("meta.imageButton.focus")
+			checked = skin.getDrawable("meta.imageButton.checked")
+			checkedOver = skin.getDrawable("meta.imageButton.checkedOver")
+			checkedFocused = skin.getDrawable("meta.imageButton.checkedFocus")
 			down = skin.getDrawable("meta.imageButton.down")
 			disabled = skin.getDrawable("meta.imageButton.disabled")
 		})
@@ -633,36 +644,44 @@ object MetaSkin {
 			down = skin.getDrawable("meta.imageButton.down")
 			disabled = skin.getDrawable("meta.imageButton.disabled")
 			if (base.checked != null || base.checkedOver != null || base.checkedFocused != null) {
-				checked = skin.getDrawable("meta.imageButton.focus")
-				checkedOver = skin.getDrawable("meta.imageButton.focus")
-				checkedFocused = skin.getDrawable("meta.imageButton.focus")
+				checked = skin.getDrawable("meta.imageButton.checkedFocus")
+				checkedOver = skin.getDrawable("meta.imageButton.checkedFocus")
+				checkedFocused = skin.getDrawable("meta.imageButton.checkedFocus")
 			}
 		}
 	}
 
+	// Selection is a persistent state, not the keyboard cursor: selected controls wear the checked (selection-fill)
+	// look, keeping the bright 2px focus ring unambiguous for keyboard/controller navigation.
 	internal fun selectedButtonStyle(base: Button.ButtonStyle): Button.ButtonStyle {
+		val skin = skin()
 		return Button.ButtonStyle(base).apply {
-			val selected = base.focused ?: skin().getDrawable("meta.button.focus")
+			val selected = skin.getDrawable("meta.button.checked")
+			val selectedOver = skin.getDrawable("meta.button.checkedOver")
+			val selectedFocus = skin.getDrawable("meta.button.checkedFocus")
 			up = selected
-			over = selected
+			over = selectedOver
 			down = selected
 			checked = selected
-			checkedOver = selected
-			checkedFocused = selected
-			focused = selected
+			checkedOver = selectedOver
+			checkedFocused = selectedFocus
+			focused = selectedFocus
 		}
 	}
 
 	internal fun selectedImageButtonStyle(base: Button.ButtonStyle): Button.ButtonStyle {
 		val skin = skin()
 		return Button.ButtonStyle(base).apply {
-			up = skin.getDrawable("meta.imageButton.focus")
-			over = skin.getDrawable("meta.imageButton.focus")
+			val selected = skin.getDrawable("meta.imageButton.checked")
+			val selectedOver = skin.getDrawable("meta.imageButton.checkedOver")
+			val selectedFocus = skin.getDrawable("meta.imageButton.checkedFocus")
+			up = selected
+			over = selectedOver
 			down = skin.getDrawable("meta.imageButton.down")
-			checked = skin.getDrawable("meta.imageButton.focus")
-			checkedOver = skin.getDrawable("meta.imageButton.focus")
-			checkedFocused = skin.getDrawable("meta.imageButton.focus")
-			focused = skin.getDrawable("meta.imageButton.focus")
+			checked = selected
+			checkedOver = selectedOver
+			checkedFocused = selectedFocus
+			focused = selectedFocus
 		}
 	}
 
@@ -758,16 +777,16 @@ object MetaSkin {
 		pixmap.setBlending(Pixmap.Blending.None)
 		val fill = when {
 			disabled -> Color.valueOf("292A2EFF")
-			down -> Color.valueOf("253849FF")
-			over -> Color.valueOf("343842FF")
-			else -> Color.valueOf("202126FF")
+			down -> MetaColor.FILL_PRESSED
+			over -> MetaColor.TERTIARY_HOVER
+			else -> MetaColor.FILL_SUNKEN
 		}
 		val stroke = when {
-			disabled -> Color.valueOf("3A3A40FF")
-			focused -> Color.valueOf("B8E3FFFF")
+			disabled -> MetaColor.BORDER_DISABLED
+			focused -> MetaColor.ACCENT_BRIGHT
 			checked -> MetaColor.ACCENT
-			over -> Color.valueOf("6D7584FF")
-			else -> Color.valueOf("4A4D56FF")
+			over -> MetaColor.BORDER_STRONG
+			else -> MetaColor.BORDER_STRONG
 		}
 		drawRoundedPixels(pixmap, fill, stroke, radius = 5 * scale, border = 2 * scale)
 		val texture = Texture(pixmap)
@@ -777,6 +796,22 @@ object MetaSkin {
 		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
 			minWidth = ICON_SIZE.toFloat()
 			minHeight = ICON_SIZE.toFloat()
+		}, Drawable::class.java)
+	}
+
+	/** Supersampled solid circle rendered at [ICON_PIXMAP_SCALE], for knobs that must never nine-patch-stretch. */
+	private fun circle(skin: Skin, name: String, fill: Color, stroke: Color, border: Int, diameter: Int) {
+		val size = diameter * ICON_PIXMAP_SCALE
+		val pixmap = Pixmap(size, size, Pixmap.Format.RGBA8888)
+		pixmap.setBlending(Pixmap.Blending.None)
+		drawRoundedPixels(pixmap, fill, stroke, radius = size / 2, border = border * ICON_PIXMAP_SCALE)
+		val texture = Texture(pixmap)
+		pixmap.dispose()
+		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+		skin.add("$name.texture", texture)
+		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
+			minWidth = diameter.toFloat()
+			minHeight = diameter.toFloat()
 		}, Drawable::class.java)
 	}
 

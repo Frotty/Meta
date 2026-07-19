@@ -9,7 +9,7 @@ import de.fatox.meta.api.ui.FocusRenderer
 
 class DefaultFocusRenderer : FocusRenderer {
 	private val shapeRenderer = ShapeRenderer()
-	private val highlightColor = Color.valueOf("75BDF5FF")
+	private val highlightColor = Color(MetaColor.ACCENT)
 	private val highlightPos = Vector2(0f, 0f)
 
 	override fun draw(stage: Stage, focusedActor: Actor?, deltaTime: Float) {

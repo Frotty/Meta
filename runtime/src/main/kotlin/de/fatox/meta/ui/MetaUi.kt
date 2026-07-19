@@ -69,7 +69,14 @@ object MetaColor {
 	val BACKGROUND: Color = Color.valueOf("191C21FF")
 	val SURFACE: Color = Color.valueOf("24282FFF")
 	val SURFACE_RAISED: Color = Color.valueOf("2D323AFF")
+	/** Quiet edge for decorative outlines and resting button frames. */
 	val BORDER: Color = Color.valueOf("48515DFF")
+	/**
+	 * Boundary for controls whose border IS the affordance (text fields, checkboxes, separators, window frames) and
+	 * for hover edges. Regression-tested at >=3:1 (WCAG 1.4.11) against SURFACE and SURFACE_RAISED.
+	 */
+	val BORDER_STRONG: Color = Color.valueOf("6F7F93FF")
+	val BORDER_DISABLED: Color = Color.valueOf("2C2D32FF")
 
 	val TEXT: Color = Color.valueOf("FFFFFFFF")
 	val TEXT_MUTED: Color = Color.valueOf("B8BBC5FF")
@@ -82,11 +89,30 @@ object MetaColor {
 	val SECONDARY: Color = Color.valueOf("303741FF")
 	val SECONDARY_HOVER: Color = Color.valueOf("3A4551FF")
 	val TERTIARY: Color = Color.valueOf("00000000")
-	val TERTIARY_HOVER: Color = Color.valueOf("303842FF")
+	val TERTIARY_HOVER: Color = Color.valueOf("343842FF")
+
+	/** Sunken fill for text inputs. */
+	val FILL_FIELD: Color = Color.valueOf("1B2026FF")
+	/** Sunken fill for checkboxes, spinner fields, dropdown lists and disabled controls. */
+	val FILL_SUNKEN: Color = Color.valueOf("202126FF")
+	/** Shared pressed-state fill for dark controls. */
+	val FILL_PRESSED: Color = Color.valueOf("202A31FF")
+	/** Slightly accent-tinted fill shown behind the accent focus ring on dark controls. */
+	val FILL_FOCUS: Color = Color.valueOf("28343DFF")
+
+	/** Text-selection fill. */
+	val SELECTION: Color = Color.valueOf("2F5D86FF")
+	/** Fill for selected rows, list items, tabs and toggled-on controls. */
+	val SELECTION_FILL: Color = Color.valueOf("294963FF")
 
 	val ACCENT: Color = Color.valueOf("59C2FFFF")
+	/** Dimmer accent for filled meters (slider/progress fill) and selected-item edges. */
+	val ACCENT_DIM: Color = Color.valueOf("4F9DDEFF")
+	/** Near-white accent for high-emphasis focus halos on already-accented controls. */
+	val ACCENT_BRIGHT: Color = Color.valueOf("B8E3FFFF")
 	val POSITIVE: Color = Color.valueOf("6FCF63FF")
-	val NEGATIVE: Color = Color.valueOf("E5534BFF")
+	/** Light enough to stay WCAG AA as error text/icon on SURFACE_RAISED; also used for error borders. */
+	val NEGATIVE: Color = Color.valueOf("F47B6BFF")
 	val WARNING: Color = Color.valueOf("E0A33AFF")
 }
 
