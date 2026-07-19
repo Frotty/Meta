@@ -19,6 +19,7 @@ import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
+import de.fatox.meta.ui.installPressSquish
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -65,6 +66,7 @@ open class MetaTextButton @JvmOverloads constructor(
 		labelCell = add(label)
 		centerText()
 		cursorPointer()
+		installPressSquish()
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				checkedValue.value = isChecked

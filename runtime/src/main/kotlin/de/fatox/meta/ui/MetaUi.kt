@@ -1,6 +1,7 @@
 package de.fatox.meta.ui
 
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.math.Interpolation
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import de.fatox.meta.api.graphics.FontType
@@ -114,6 +115,30 @@ object MetaColor {
 	/** Light enough to stay WCAG AA as error text/icon on SURFACE_RAISED; also used for error borders. */
 	val NEGATIVE: Color = Color.valueOf("F47B6BFF")
 	val WARNING: Color = Color.valueOf("E0A33AFF")
+}
+
+/**
+ * Motion design tokens: durations (seconds), interpolations and scale factors for Meta's interaction juice.
+ * [enabled] is the global reduced-motion switch — decorative animation helpers must no-op when it is false while
+ * still landing widgets in their final state instantly.
+ */
+object MetaMotion {
+	var enabled: Boolean = true
+
+	/** Press feedback; must feel instantaneous. */
+	const val PRESS = 0.07f
+	/** Standard transition: fades, releases, hovers. */
+	const val QUICK = 0.15f
+	/** Entrance pop for windows, toasts and check glyphs. */
+	const val POP = 0.22f
+
+	/** Scale a control shrinks to while pressed. */
+	const val PRESS_SCALE = 0.965f
+	/** Scale an entering surface pops up from. */
+	const val POP_SCALE = 0.95f
+
+	/** Springy overshoot for entrances and releases. */
+	val OVERSHOOT: Interpolation = Interpolation.swingOut
 }
 
 /** Semantic action emphasis shared by text, icon-text, icon, and custom-content buttons. */

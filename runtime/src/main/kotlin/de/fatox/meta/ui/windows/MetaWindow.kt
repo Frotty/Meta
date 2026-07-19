@@ -29,6 +29,7 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.ui.FontRefreshable
+import de.fatox.meta.ui.MetaMotion
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.refreshFontsRecursively
 import de.fatox.meta.ui.MetaSpacing
@@ -54,7 +55,6 @@ abstract class MetaWindow(
 	protected val assetProvider: AssetProvider by lazyInject()
 	protected val metaData: MetaData by lazyInject()
 	private val fontProvider: FontProvider by lazyInject()
-	private val windowShadow = MetaSkin.skin().getDrawable(MetaSkin.WINDOW_SHADOW)
 
 	var contentTable: Table = MetaTable()
 
@@ -84,6 +84,8 @@ abstract class MetaWindow(
 	private var liveResizeWidth = Float.NaN
 	private var liveResizeHeight = Float.NaN
 	private var fadeInAction: Action? = null
+	// Preallocated so entrances don't allocate a capturing lambda per show.
+	private val resetEntranceTransform = Runnable { setTransform(false) }
 	private val headerEnabled = hasHeader
 	private var metaResizable = resizable
 	internal var dockSide: MetaDockSide? = null
@@ -195,7 +197,7 @@ abstract class MetaWindow(
 						}
 					})
 				}
-				add(exitButton).size(CLOSE_BUTTON_SIZE).pad(3f)
+				add(exitButton).size(CLOSE_BUTTON_SIZE).pad(3f).padRight(MetaSpacing.SM)
 			}
 			row()
 			add(headerSeparator).colspan(if (closeButton) 2 else 1).growX().height(HEADER_SEPARATOR_HEIGHT)
@@ -230,16 +232,6 @@ abstract class MetaWindow(
 		snapBoundsToPixelGrid()
 		validate()
 		snapTitleToPixelGrid()
-		val oldBatchColor = batch.packedColor
-		batch.setColor(color.r, color.g, color.b, color.a * parentAlpha)
-		windowShadow.draw(
-			batch,
-			x + WINDOW_SHADOW_X,
-			y + WINDOW_SHADOW_Y,
-			width,
-			height,
-		)
-		batch.packedColor = oldBatchColor
 		super.draw(batch, parentAlpha)
 		if (isDragging) {
 			if (!startDrag) {
@@ -301,15 +293,32 @@ abstract class MetaWindow(
 
 	override fun setVisible(visible: Boolean) {
 		super.setVisible(visible)
-		// Drop any pending fade first so rapid show/hide can't stack conflicting alpha actions.
+		// Drop any pending entrance first so rapid show/hide can't stack conflicting alpha/scale actions.
 		fadeInAction?.let { removeAction(it) }
 		fadeInAction = null
 		if (visible) {
-			// Fade in only when showing; hiding must not reset alpha or keep animating in the background.
+			// Quick fade+scale pop only when showing; hiding must not reset alpha or keep animating in the background.
 			setColor(1f, 1f, 1f, 0f)
-			val fade = Actions.alpha(1f, 0.75f)
-			fadeInAction = fade
-			addAction(fade)
+			val entrance = if (MetaMotion.enabled && width > 0f && height > 0f) {
+				setOrigin(Align.center)
+				setTransform(true)
+				setScale(MetaMotion.POP_SCALE)
+				Actions.sequence(
+					Actions.parallel(
+						Actions.alpha(1f, MetaMotion.QUICK),
+						Actions.scaleTo(1f, 1f, MetaMotion.POP, MetaMotion.OVERSHOOT),
+					),
+					Actions.run(resetEntranceTransform),
+				)
+			} else {
+				Actions.alpha(1f, MetaMotion.QUICK)
+			}
+			fadeInAction = entrance
+			addAction(entrance)
+		} else {
+			// A window hidden mid-entrance must not stay scaled or keep the batch-breaking transform enabled.
+			setTransform(false)
+			setScale(1f)
 		}
 	}
 
@@ -620,8 +629,6 @@ abstract class MetaWindow(
 		const val MIN_WINDOW_WIDTH = 96f
 		const val MIN_WINDOW_HEIGHT = 64f
 		const val DOCK_MIN_WINDOW_HEIGHT = HEADER_HEIGHT + 24f
-		const val WINDOW_SHADOW_X = 5f
-		const val WINDOW_SHADOW_Y = -5f
 	}
 
 	internal val minimumDockHeight: Float get() = DOCK_MIN_WINDOW_HEIGHT

@@ -18,6 +18,7 @@ import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
+import de.fatox.meta.ui.installPressSquish
 
 /**
  * A dedicated "action" icon button (full button affordance, text-label-less variant). For plain clickable media, use
@@ -79,6 +80,8 @@ open class MetaIconButton private constructor(
 	@Suppress("unused")
 	private val selectedBinding = selectedValue.subscribe { selected = selectedValue.peek() }
 	var momentary: Boolean = true
+	/** Composite parents (e.g. [MetaSpinner]) disable this so a segment can't squish independently of its siblings. */
+	var pressSquish: Boolean = true
 	var selected: Boolean = false
 		set(value) {
 			if (field == value) return
@@ -89,6 +92,7 @@ open class MetaIconButton private constructor(
 
 	init {
 		cursorPointer()
+		installPressSquish { pressSquish }
 		// The momentary reset below calls setChecked from inside a ChangeEvent listener; with libGDX's default
 		// programmaticChangeEvents that fired a SECOND nested ChangeEvent, running every consumer onChange twice
 		// per click. Programmatic state changes still sync [checkedValue] via the setChecked override.

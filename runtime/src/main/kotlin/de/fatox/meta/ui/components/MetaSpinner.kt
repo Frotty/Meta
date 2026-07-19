@@ -91,8 +91,9 @@ open class MetaSpinner @JvmOverloads constructor(
 	align = MetaFlexAlign.STRETCH,
 ) {
 	val textField = MetaTextField(metaModel.format(metaModel.value), fontSize, styleName = de.fatox.meta.ui.MetaSkin.SPINNER_TEXT_FIELD)
-	private val decrementButton = MetaIconButton("ri-subtract-line", de.fatox.meta.ui.MetaSkin.SPINNER_DECREMENT, 14)
-	private val incrementButton = MetaIconButton("ri-add-line", de.fatox.meta.ui.MetaSkin.SPINNER_INCREMENT, 14)
+	// Squishing one segment of the composite would detach it from the field; the spinner reacts as one control.
+	private val decrementButton = MetaIconButton("ri-subtract-line", de.fatox.meta.ui.MetaSkin.SPINNER_DECREMENT, 14).apply { pressSquish = false }
+	private val incrementButton = MetaIconButton("ri-add-line", de.fatox.meta.ui.MetaSkin.SPINNER_INCREMENT, 14).apply { pressSquish = false }
 	private var scope = ReactiveScope()
 	private var syncing = false
 

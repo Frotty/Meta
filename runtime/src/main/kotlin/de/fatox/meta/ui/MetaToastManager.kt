@@ -16,6 +16,7 @@ import de.fatox.meta.ui.components.MetaTextButton
 
 class MetaToastManager(private val stage: Stage) {
 	private val root = Table()
+	private val activeToasts = com.badlogic.gdx.utils.Array<Table>(4)
 	internal val rootForLayoutTest: Table
 		get() = root
 	private var lastText = ""
@@ -51,13 +52,30 @@ class MetaToastManager(private val stage: Stage) {
 
 	private fun present(toast: Table, autoDismissSeconds: Float?) {
 		if (root.stage == null) stage.addActor(root)
-		root.add(toast).center().padTop(MetaSpacing.SM).row()
+		activeToasts.add(toast)
+		rebuildRows()
 		toast.color.a = 0f
+		val entrance: com.badlogic.gdx.scenes.scene2d.Action = if (MetaMotion.enabled) {
+			// Scale (not position) pop: the root table owns toast positions, so a move action would fight layout.
+			toast.pack()
+			toast.setOrigin(Align.center)
+			toast.setTransform(true)
+			toast.setScale(MetaMotion.POP_SCALE)
+			Actions.parallel(
+				Actions.fadeIn(MetaMotion.QUICK),
+				Actions.sequence(
+					Actions.scaleTo(1f, 1f, MetaMotion.POP, MetaMotion.OVERSHOOT),
+					Actions.run { toast.setTransform(false) },
+				),
+			)
+		} else {
+			Actions.fadeIn(MetaMotion.QUICK)
+		}
 		if (autoDismissSeconds == null) {
-			toast.addAction(Actions.fadeIn(0.12f))
+			toast.addAction(entrance)
 		} else {
 			toast.addAction(Actions.sequence(
-				Actions.fadeIn(0.12f),
+				entrance,
 				Actions.delay(autoDismissSeconds),
 				Actions.fadeOut(0.25f),
 				Actions.run { removeToast(toast) },
@@ -67,7 +85,20 @@ class MetaToastManager(private val stage: Stage) {
 	}
 
 	fun clear() {
+		activeToasts.clear()
 		root.clearChildren()
+	}
+
+	/**
+	 * The root's rows are rebuilt from the active list on every change instead of accumulating add/remove edits, so
+	 * a toast can never leave a phantom spacer row behind and the newest state always hugs the top of the screen.
+	 * Re-adding a live actor preserves its running fade/pop actions.
+	 */
+	private fun rebuildRows() {
+		root.clearChildren()
+		for (i in 0 until activeToasts.size) {
+			root.add(activeToasts[i]).center().padTop(MetaSpacing.SM).row()
+		}
 	}
 
 	fun resize() = Unit
@@ -142,8 +173,9 @@ class MetaToastManager(private val stage: Stage) {
 	}
 
 	private fun removeToast(toast: Table) {
+		activeToasts.removeValue(toast, true)
 		toast.remove()
-		root.invalidate()
+		rebuildRows()
 	}
 
 	private fun drawableFor(type: MetaToastType): String = when (type) {

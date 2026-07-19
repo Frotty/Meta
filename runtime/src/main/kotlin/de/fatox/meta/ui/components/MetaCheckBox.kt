@@ -2,6 +2,7 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.AssetProvider
@@ -11,6 +12,7 @@ import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaFocusable
+import de.fatox.meta.ui.MetaMotion
 import de.fatox.meta.ui.MetaSkin
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
@@ -90,11 +92,26 @@ class MetaCheckBox @JvmOverloads constructor(
 	private fun syncCheckIcon() {
 		if (isChecked != checkIconAttached) {
 			clearChildren()
-			if (isChecked) add(checkIcon).size(CHECK_ICON_SIZE.toFloat()).center()
+			if (isChecked) {
+				add(checkIcon).size(CHECK_ICON_SIZE.toFloat()).center()
+				popCheckIcon()
+			}
 			checkIconAttached = isChecked
 			invalidateHierarchy()
 		}
 		if (checkIconAttached) checkIcon.setColor(if (isDisabled) MetaColor.TEXT_DISABLED else MetaColor.TEXT)
+	}
+
+	/** Springs the check glyph in on interactive checks; initial off-stage state renders instantly. */
+	private fun popCheckIcon() {
+		checkIcon.clearActions()
+		if (stage == null || !MetaMotion.enabled) {
+			checkIcon.setScale(1f)
+			return
+		}
+		checkIcon.setOrigin(CHECK_ICON_SIZE * 0.5f, CHECK_ICON_SIZE * 0.5f)
+		checkIcon.setScale(0.3f)
+		checkIcon.addAction(Actions.scaleTo(1f, 1f, MetaMotion.POP, MetaMotion.OVERSHOOT))
 	}
 
 	private companion object {

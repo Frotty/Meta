@@ -34,6 +34,37 @@ internal class MetaToastManagerTest {
 		assertTrue(toast.y >= 600f - MetaSpacing.LG - toast.prefHeight - 1f, "toast y=${toast.y}")
 	}
 
+	@Test
+	fun `presented toasts hug the top edge and rows collapse after dismissal`() {
+		MetaSkin.dispose()
+		MetaSkin.initialize(com.badlogic.gdx.scenes.scene2d.ui.Skin().apply {
+			add(MetaSkin.TOAST, com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable(),
+				com.badlogic.gdx.scenes.scene2d.utils.Drawable::class.java)
+		}, installDefaults = false)
+		val stage = Stage(TestViewport(), noopBatch()).apply {
+			viewport.update(800, 600, true)
+		}
+		val manager = MetaToastManager(stage)
+		manager.show(com.badlogic.gdx.scenes.scene2d.ui.Table().apply { add(FixedWidget(120f, 24f)) }, 0.3f)
+		stage.act(0.01f)
+		manager.rootForLayoutTest.validate()
+
+		val toast = manager.rootForLayoutTest.children.first()
+		val topGap = 600f - (toast.y + toast.height)
+		assertTrue(
+			topGap <= MetaSpacing.LG + MetaSpacing.SM + 1f,
+			"first toast must sit inside the top padding band, gap=$topGap",
+		)
+
+		// After the auto-dismiss delay plus entrance/fade time the row must be gone, not left as a phantom spacer.
+		var elapsed = 0f
+		while (elapsed < 3f) {
+			stage.act(0.1f)
+			elapsed += 0.1f
+		}
+		assertEquals(0, manager.rootForLayoutTest.children.size)
+	}
+
 	private class FixedWidget(
 		private val prefWidth: Float,
 		private val prefHeight: Float,

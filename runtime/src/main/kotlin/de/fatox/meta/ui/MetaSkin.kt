@@ -54,12 +54,12 @@ object MetaSkin {
 	const val LOADING_RING = "meta.loading.ring"
 	const val WINDOW = "meta.window"
 	const val WINDOW_RESIZABLE = "meta.window.resizable"
-	const val WINDOW_SHADOW = "meta.window.shadow"
 	private const val WINDOW_BACKGROUND = "meta.window.background"
 
 	private const val INSTALLED_COLOR = "meta.skin.installed"
 	private const val PATCH_SIZE = 32
 	private const val SHAPE_AA_SAMPLES = 4
+	private const val DEPTH_EDGE_THICKNESS = 1.4f
 	private const val FIELD_RADIUS = 5
 	private const val ICON_SIZE = 24
 	private const val ICON_PIXMAP_SCALE = 3
@@ -118,22 +118,20 @@ object MetaSkin {
 		solid(skin, COLOR_FILL, Color.WHITE, minWidth = 1f, minHeight = 1f)
 		loadingRing(skin)
 		solid(skin, "meta.menu.bar", MetaColor.SURFACE, minWidth = 1f, minHeight = 1f)
-		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 4, border = 1, padding = 8f)
-		rounded(skin, "meta.panel.raised", MetaColor.SURFACE_RAISED, MetaColor.BORDER, radius = 4, border = 1, padding = 8f)
+		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 4, border = 1, padding = 8f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.panel.raised", MetaColor.SURFACE_RAISED, MetaColor.BORDER, radius = 4, border = 1, padding = 8f, depth = MetaDepth.RAISED)
 		// Windows need a stronger silhouette than nested panels. The strong cool-gray edge remains neutral while
 		// making overlapping windows and adjacent chrome unambiguous against the dark workspace.
 		chamfered(skin, WINDOW_BACKGROUND, MetaColor.SURFACE_RAISED, MetaColor.BORDER_STRONG,
 			cut = 6, border = 1, padding = 8f)
-		// Offset below every solid window so a fully covered sibling still leaves a visible depth cue at its edges.
-		rounded(skin, WINDOW_SHADOW, Color.valueOf("05060988"), null, radius = 9, border = 0, padding = 0f)
 		// Neutral notifications must not outshout semantic toasts, so they get the neutral strong border.
-		rounded(skin, TOAST, Color.valueOf("15181EF5"), MetaColor.BORDER_STRONG, radius = 6, border = 2, padding = 10f)
-		rounded(skin, TOAST_PRIMARY, Color.valueOf("172733F7"), MetaColor.ACCENT, radius = 6, border = 2, padding = 10f)
-		rounded(skin, TOAST_WARNING, Color.valueOf("302717F7"), MetaColor.WARNING, radius = 6, border = 2, padding = 10f)
-		rounded(skin, TOAST_ERROR, Color.valueOf("321C20F7"), MetaColor.NEGATIVE, radius = 6, border = 2, padding = 10f)
-		rounded(skin, TOAST_MUTED, Color.valueOf("20242AF2"), MetaColor.BORDER, radius = 6, border = 1, padding = 10f)
-		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f)
-		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), MetaColor.BORDER_STRONG, radius = 7, border = 1, padding = 7f)
+		rounded(skin, TOAST, Color.valueOf("15181EF5"), MetaColor.BORDER_STRONG, radius = 6, border = 2, padding = 10f, depth = MetaDepth.RAISED)
+		rounded(skin, TOAST_PRIMARY, Color.valueOf("172733F7"), MetaColor.ACCENT, radius = 6, border = 2, padding = 10f, depth = MetaDepth.RAISED)
+		rounded(skin, TOAST_WARNING, Color.valueOf("302717F7"), MetaColor.WARNING, radius = 6, border = 2, padding = 10f, depth = MetaDepth.RAISED)
+		rounded(skin, TOAST_ERROR, Color.valueOf("321C20F7"), MetaColor.NEGATIVE, radius = 6, border = 2, padding = 10f, depth = MetaDepth.RAISED)
+		rounded(skin, TOAST_MUTED, Color.valueOf("20242AF2"), MetaColor.BORDER, radius = 6, border = 1, padding = 10f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f, depth = MetaDepth.RAISED)
+		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), MetaColor.BORDER_STRONG, radius = 7, border = 1, padding = 7f, depth = MetaDepth.RAISED)
 		topRounded(skin, BOTTOM_BAR, Color.valueOf("080A0ECC"), Color.valueOf("2F333BAA"), radius = 12, border = 1, padding = 14f)
 	}
 
@@ -157,47 +155,47 @@ object MetaSkin {
 	}
 
 	private fun addControlDrawables(skin: Skin) {
-		rounded(skin, "meta.button.primary.up", MetaColor.PRIMARY, MetaColor.ACCENT_DIM, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.primary.over", MetaColor.PRIMARY_HOVER, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.primary.focus", MetaColor.PRIMARY, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f)
-		rounded(skin, "meta.button.primary.down", MetaColor.PRIMARY_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.primary.up", MetaColor.PRIMARY, MetaColor.ACCENT_DIM, radius = 4, border = 1, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.primary.over", MetaColor.PRIMARY_HOVER, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.primary.focus", MetaColor.PRIMARY, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.primary.down", MetaColor.PRIMARY_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f, depth = MetaDepth.PRESSED)
 		rounded(skin, "meta.button.primary.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = 4, border = 1, padding = 9f)
 
-		rounded(skin, "meta.button.up", MetaColor.SECONDARY, MetaColor.BORDER, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.over", MetaColor.SECONDARY_HOVER, MetaColor.BORDER_STRONG, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 4, border = 2, padding = 9f)
-		rounded(skin, "meta.button.focusOver", MetaColor.SECONDARY_HOVER, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f)
-		rounded(skin, "meta.button.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.checked", MetaColor.SELECTION_FILL, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.checkedOver", MetaColor.SELECTION, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.checkedFocus", MetaColor.SELECTION_FILL, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.up", MetaColor.SECONDARY, MetaColor.BORDER, radius = 4, border = 1, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.over", MetaColor.SECONDARY_HOVER, MetaColor.BORDER_STRONG, radius = 4, border = 1, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 4, border = 2, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.focusOver", MetaColor.SECONDARY_HOVER, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f, depth = MetaDepth.PRESSED)
+		rounded(skin, "meta.button.checked", MetaColor.SELECTION_FILL, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.checkedOver", MetaColor.SELECTION, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.checkedFocus", MetaColor.SELECTION_FILL, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f, depth = MetaDepth.RAISED)
 		rounded(skin, "meta.button.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = 4, border = 1, padding = 9f)
 
 		// Tertiary is low-emphasis, not invisible. Ordinary buttons and selectable rows keep a restrained resting
 		// frame so their hit area remains legible; only MetaImageButton utilities are borderless until interaction.
 		rounded(skin, "meta.button.tertiary.up", MetaColor.TERTIARY, MetaColor.BORDER, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.tertiary.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, radius = 4, border = 1, padding = 9f)
-		rounded(skin, "meta.button.tertiary.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 4, border = 2, padding = 9f)
-		rounded(skin, "meta.button.tertiary.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.tertiary.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, radius = 4, border = 1, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.tertiary.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 4, border = 2, padding = 9f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.button.tertiary.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f, depth = MetaDepth.PRESSED)
 		rounded(skin, "meta.button.tertiary.disabled", MetaColor.TERTIARY, MetaColor.BORDER_DISABLED, radius = 4, border = 1, padding = 9f)
 
 	// Image utilities stay visually lighter than tertiary actions, but retain a faint resting edge so their hit
 	// target is discoverable without requiring hover (important for keyboard/controller and dense editor toolbars).
 		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, Color.valueOf("353E48FF"), radius = 3, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, radius = 3, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 3, border = 2, padding = 8f)
-		rounded(skin, "meta.imageButton.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 3, border = 1, padding = 8f)
+		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, radius = 3, border = 1, padding = 8f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.imageButton.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 3, border = 2, padding = 8f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.imageButton.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 3, border = 1, padding = 8f, depth = MetaDepth.PRESSED)
 		// Checked is a persistent "on" state: selection fill plus dim-accent edge, clearly distinct from the
 		// 2px bright-accent focus ring so keyboard users can tell the cursor from a toggled-on tool.
-		rounded(skin, "meta.imageButton.checked", MetaColor.SELECTION_FILL, MetaColor.ACCENT_DIM, radius = 3, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.checkedOver", MetaColor.SELECTION, MetaColor.ACCENT_DIM, radius = 3, border = 1, padding = 8f)
-		rounded(skin, "meta.imageButton.checkedFocus", MetaColor.SELECTION_FILL, MetaColor.ACCENT_BRIGHT, radius = 3, border = 2, padding = 8f)
+		rounded(skin, "meta.imageButton.checked", MetaColor.SELECTION_FILL, MetaColor.ACCENT_DIM, radius = 3, border = 1, padding = 8f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.imageButton.checkedOver", MetaColor.SELECTION, MetaColor.ACCENT_DIM, radius = 3, border = 1, padding = 8f, depth = MetaDepth.RAISED)
+		rounded(skin, "meta.imageButton.checkedFocus", MetaColor.SELECTION_FILL, MetaColor.ACCENT_BRIGHT, radius = 3, border = 2, padding = 8f, depth = MetaDepth.RAISED)
 		rounded(skin, "meta.imageButton.disabled", Color.valueOf("00000000"), null, radius = 3, border = 0, padding = 8f)
 
-		rounded(skin, "meta.field.up", MetaColor.FILL_FIELD, MetaColor.BORDER_STRONG, radius = FIELD_RADIUS, border = 1, padding = 7f)
-		rounded(skin, "meta.field.over", Color.valueOf("20262DFF"), MetaColor.BORDER_STRONG, radius = FIELD_RADIUS, border = 1, padding = 7f)
-		rounded(skin, "meta.field.focus", MetaColor.FILL_FIELD, MetaColor.ACCENT, radius = FIELD_RADIUS, border = 2, padding = 7f)
-		rounded(skin, "meta.field.error", Color.valueOf("241E20FF"), MetaColor.NEGATIVE, radius = FIELD_RADIUS, border = 2, padding = 7f)
+		rounded(skin, "meta.field.up", MetaColor.FILL_FIELD, MetaColor.BORDER_STRONG, radius = FIELD_RADIUS, border = 1, padding = 7f, depth = MetaDepth.PRESSED)
+		rounded(skin, "meta.field.over", Color.valueOf("20262DFF"), MetaColor.BORDER_STRONG, radius = FIELD_RADIUS, border = 1, padding = 7f, depth = MetaDepth.PRESSED)
+		rounded(skin, "meta.field.focus", MetaColor.FILL_FIELD, MetaColor.ACCENT, radius = FIELD_RADIUS, border = 2, padding = 7f, depth = MetaDepth.PRESSED)
+		rounded(skin, "meta.field.error", Color.valueOf("241E20FF"), MetaColor.NEGATIVE, radius = FIELD_RADIUS, border = 2, padding = 7f, depth = MetaDepth.PRESSED)
 		rounded(skin, "meta.field.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = FIELD_RADIUS, border = 1, padding = 7f)
 		rounded(skin, "meta.field.focusBorder", TRANSPARENT, MetaColor.ACCENT, radius = FIELD_RADIUS, border = 2, padding = 0f)
 		rounded(skin, "meta.field.errorBorder", TRANSPARENT, MetaColor.NEGATIVE, radius = FIELD_RADIUS, border = 2, padding = 0f)
@@ -221,7 +219,7 @@ object MetaSkin {
 		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 3, border = 0, padding = 0f, minWidth = 6f, minHeight = 6f)
 		rounded(skin, "meta.scroll.knob", Color.valueOf("858F9EFF"), null, radius = 3, border = 0, padding = 0f, minWidth = 6f, minHeight = 6f)
 		solid(skin, SEPARATOR, MetaColor.BORDER_STRONG, minWidth = 1f, minHeight = 1f)
-		rounded(skin, "meta.slider.track", Color.valueOf("24262BFF"), MetaColor.BORDER, radius = 4, border = 1, padding = 0f, minHeight = 8f)
+		rounded(skin, "meta.slider.track", Color.valueOf("24262BFF"), MetaColor.BORDER, radius = 4, border = 1, padding = 0f, minHeight = 8f, depth = MetaDepth.PRESSED)
 		rounded(skin, "meta.slider.fill", MetaColor.ACCENT_DIM, null, radius = 4, border = 0, padding = 0f, minHeight = 8f)
 		// Knobs are true circles; a nine-patch drawn below its corner budget squashes, so rasterize them directly.
 		circle(skin, "meta.slider.knob", MetaColor.ACCENT, MetaColor.ACCENT_BRIGHT, border = 1, diameter = 18)
@@ -234,6 +232,7 @@ object MetaSkin {
 		segmentedRounded(skin, "meta.spinner.right.up", MetaColor.TERTIARY, MetaColor.BORDER, roundRight = true)
 		segmentedRounded(skin, "meta.spinner.right.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, roundRight = true)
 		segmentedRounded(skin, "meta.spinner.right.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, roundRight = true)
+		// The spinner is a composite (segment | field | segment); its parts stay flat so shading seams can't split it.
 		rounded(skin, "meta.spinner.field.up", MetaColor.FILL_SUNKEN, MetaColor.BORDER_STRONG, radius = 0, border = 1, padding = 7f)
 		rounded(skin, "meta.spinner.field.focus", MetaColor.FILL_SUNKEN, MetaColor.ACCENT, radius = 0, border = 2, padding = 7f)
 		rounded(skin, "meta.spinner.field.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = 0, border = 1, padding = 7f)
@@ -442,6 +441,13 @@ object MetaSkin {
 			})
 	}
 
+	/**
+	 * Baked lighting for generated fills: a subtle vertical gradient plus a one-pixel inner edge at the top.
+	 * RAISED reads as a lit surface (buttons, panels, toasts); PRESSED reads as sunken (inputs, tracks, pressed
+	 * states). Rendered once into the patch texture, so richness costs nothing at draw time.
+	 */
+	private enum class MetaDepth { NONE, RAISED, PRESSED }
+
 	private fun rounded(
 		skin: Skin,
 		name: String,
@@ -452,28 +458,43 @@ object MetaSkin {
 		padding: Float,
 		minWidth: Float = 24f,
 		minHeight: Float = 24f,
+		depth: MetaDepth = MetaDepth.NONE,
 	) {
 		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		val innerRadius = (radius - border).coerceAtLeast(0)
+		val outerTest = { sx: Float, sy: Float ->
+			insideRoundRect(sx, sy, PATCH_SIZE.toFloat(), PATCH_SIZE.toFloat(), radius.toFloat())
+		}
+		val innerTest = { sx: Float, sy: Float ->
+			border <= 0 || insideRoundRect(
+				sx - border,
+				sy - border,
+				(PATCH_SIZE - border * 2).toFloat(),
+				(PATCH_SIZE - border * 2).toFloat(),
+				innerRadius.toFloat(),
+			)
+		}
+		// A fully transparent fill has nothing to light; gradients on it would ghost a gray plate into thin air.
+		val useDepth = depth != MetaDepth.NONE && fill.a > 0f
+		val raised = depth == MetaDepth.RAISED
+		val topFill = if (useDepth) Color(fill).lerp(if (raised) Color.WHITE else Color.BLACK, if (raised) 0.06f else 0.09f).also { it.a = fill.a } else fill
+		val bottomFill = if (useDepth) Color(fill).lerp(if (raised) Color.BLACK else Color.WHITE, if (raised) 0.09f else 0.04f).also { it.a = fill.a } else fill
+		val edgeLight = if (useDepth) Color(fill).lerp(if (raised) Color.WHITE else Color.BLACK, if (raised) 0.30f else 0.25f).also { it.a = fill.a } else fill
+		val rowFill = Color()
 		for (y in 0 until PATCH_SIZE) {
 			for (x in 0 until PATCH_SIZE) {
-				val pixel = sampleShapePixel(
-					x,
-					y,
-					fill,
-					stroke,
-					outer = { sx, sy -> insideRoundRect(sx, sy, PATCH_SIZE.toFloat(), PATCH_SIZE.toFloat(), radius.toFloat()) },
-					inner = { sx, sy ->
-						border <= 0 || insideRoundRect(
-							sx - border,
-							sy - border,
-							(PATCH_SIZE - border * 2).toFloat(),
-							(PATCH_SIZE - border * 2).toFloat(),
-							innerRadius.toFloat(),
-						)
-					},
-				)
+				val pixelFill = if (!useDepth) fill else {
+					rowFill.set(topFill).lerp(bottomFill, y / (PATCH_SIZE - 1f))
+					// The lit/shadowed inner edge lives in the top nine-patch region, so it stays one crisp pixel
+					// no matter how far the middle band stretches.
+					val cx = x + 0.5f
+					val cy = y + 0.5f
+					if (innerTest(cx, cy) && !innerTest(cx, cy - DEPTH_EDGE_THICKNESS)) rowFill.lerp(edgeLight, 0.8f)
+					rowFill.a = fill.a
+					rowFill
+				}
+				val pixel = sampleShapePixel(x, y, pixelFill, stroke, outerTest, innerTest)
 				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
 			}
 		}
