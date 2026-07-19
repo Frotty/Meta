@@ -179,9 +179,9 @@ object MetaSkin {
 		rounded(skin, "meta.button.tertiary.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f, depth = MetaDepth.PRESSED)
 		rounded(skin, "meta.button.tertiary.disabled", MetaColor.TERTIARY, MetaColor.BORDER_DISABLED, radius = 4, border = 1, padding = 9f)
 
-	// Image utilities stay visually lighter than tertiary actions, but retain a faint resting edge so their hit
-	// target is discoverable without requiring hover (important for keyboard/controller and dense editor toolbars).
-		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, Color.valueOf("353E48FF"), radius = 3, border = 1, padding = 8f)
+	// Image utilities share the tertiary resting frame: anything fainter disappears on raised window surfaces,
+	// and the resting edge is what makes their hit target discoverable without hover (keyboard/controller, tiles).
+		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, MetaColor.BORDER, radius = 3, border = 1, padding = 8f)
 		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, radius = 3, border = 1, padding = 8f, depth = MetaDepth.RAISED)
 		rounded(skin, "meta.imageButton.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 3, border = 2, padding = 8f, depth = MetaDepth.RAISED)
 		rounded(skin, "meta.imageButton.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 3, border = 1, padding = 8f, depth = MetaDepth.PRESSED)
