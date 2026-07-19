@@ -168,7 +168,17 @@ object MetaSkin {
 		rounded(skin, "meta.button.checkedFocus", Color.valueOf("294963FF"), Color.valueOf("B8E3FFFF"), radius = 6, border = 2, padding = 9f)
 		rounded(skin, "meta.button.disabled", Color.valueOf("202126FF"), Color.valueOf("2C2D32FF"), radius = 6, border = 1, padding = 9f)
 
-		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, null, radius = 3, border = 0, padding = 8f)
+		// Tertiary is low-emphasis, not invisible. Ordinary buttons and selectable rows keep a restrained resting
+		// frame so their hit area remains legible; only MetaImageButton utilities are borderless until interaction.
+		rounded(skin, "meta.button.tertiary.up", MetaColor.TERTIARY, Color.valueOf("3E4854FF"), radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.tertiary.over", MetaColor.TERTIARY_HOVER, Color.valueOf("657687FF"), radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.tertiary.focus", Color.valueOf("263541FF"), MetaColor.ACCENT, radius = 4, border = 2, padding = 9f)
+		rounded(skin, "meta.button.tertiary.down", Color.valueOf("202A31FF"), MetaColor.ACCENT, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.tertiary.disabled", Color.valueOf("00000000"), Color.valueOf("30363EFF"), radius = 4, border = 1, padding = 9f)
+
+	// Image utilities stay visually lighter than tertiary actions, but retain a faint resting edge so their hit
+	// target is discoverable without requiring hover (important for keyboard/controller and dense editor toolbars).
+		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, Color.valueOf("353E48FF"), radius = 3, border = 1, padding = 8f)
 		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, Color.valueOf("556575FF"), radius = 3, border = 1, padding = 8f)
 		rounded(skin, "meta.imageButton.focus", Color.valueOf("28343DFF"), MetaColor.ACCENT, radius = 3, border = 2, padding = 8f)
 		rounded(skin, "meta.imageButton.down", Color.valueOf("202A31FF"), MetaColor.ACCENT, radius = 3, border = 1, padding = 8f)
@@ -249,11 +259,11 @@ object MetaSkin {
 			disabled = skin.getDrawable("meta.button.disabled")
 		})
 		skin.add(BUTTON_TERTIARY, Button.ButtonStyle().apply {
-			up = skin.getDrawable("meta.imageButton.up")
-			over = skin.getDrawable("meta.imageButton.over")
-			down = skin.getDrawable("meta.imageButton.down")
-			focused = skin.getDrawable("meta.imageButton.focus")
-			disabled = skin.getDrawable("meta.imageButton.disabled")
+			up = skin.getDrawable("meta.button.tertiary.up")
+			over = skin.getDrawable("meta.button.tertiary.over")
+			down = skin.getDrawable("meta.button.tertiary.down")
+			focused = skin.getDrawable("meta.button.tertiary.focus")
+			disabled = skin.getDrawable("meta.button.tertiary.disabled")
 		})
 		skin.add(SPINNER_DECREMENT, Button.ButtonStyle().apply {
 			up = skin.getDrawable("meta.spinner.left.up")
