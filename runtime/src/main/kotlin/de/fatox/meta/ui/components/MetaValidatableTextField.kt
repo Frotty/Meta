@@ -23,12 +23,14 @@ class MetaValidatableTextField @JvmOverloads constructor(
 	private val errorStyle = textFieldStyle(size, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
 	private val fontSize = size
 	private val fontProvider = fontProvider
+	private var inputInitialized = false
 
 	var isInputValid: Boolean = true
 		private set
 	val inputValidValue: Signal<Boolean> = signal(true)
 
 	init {
+		inputInitialized = true
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				validateInput()
@@ -39,7 +41,8 @@ class MetaValidatableTextField @JvmOverloads constructor(
 	/** Also re-validate on a programmatic write, since [ChangeListener] above only fires for user-typed changes. */
 	override fun setText(str: String) {
 		super.setText(str)
-		validateInput()
+		// TextField's constructor calls this virtual method before this subclass's fields have been initialized.
+		if (inputInitialized) validateInput()
 	}
 
 	/** Also refresh the validation style clones, which get re-installed into the focus style on [validateInput]. */

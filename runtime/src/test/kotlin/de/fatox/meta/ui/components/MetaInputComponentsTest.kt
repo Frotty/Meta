@@ -409,6 +409,23 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
+	fun `legacy validatable field survives TextField constructor callback`() {
+		val field = MetaValidatableTextField("initial", fontProvider = fontProvider)
+		field.addValidator(object : MetaInputValidator() {
+			override fun validateInput(input: String, errors: MetaErrorHandler) {
+				if (input.isEmpty()) errors.add(MetaError("Required", ""))
+			}
+		})
+
+		assertEquals("initial", field.text)
+		assertTrue(field.isInputValid)
+
+		field.setText("")
+
+		assertFalse(field.isInputValid)
+	}
+
+	@Test
 	fun `wide icon text button centers icon and label as one action`() {
 		val skin = MetaSkin.skin()
 		skin.add(MetaSkin.BUTTON, Button.ButtonStyle())
