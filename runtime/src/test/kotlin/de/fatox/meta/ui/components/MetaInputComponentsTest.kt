@@ -21,6 +21,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.FocusListener
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.viewport.Viewport
 import de.fatox.meta.api.AssetProvider
@@ -153,7 +154,12 @@ internal class MetaInputComponentsTest {
 	@Test
 	fun `spinner keeps partial text until commit and clamps on focus loss`() {
 		val skin = MetaSkin.skin()
-		skin.add(MetaSkin.SPINNER_TEXT_FIELD, TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle::class.java)))
+		skin.add(MetaSkin.SPINNER_TEXT_FIELD, TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle::class.java)).apply {
+			background = BaseDrawable().apply {
+				leftWidth = 7f
+				rightWidth = 7f
+			}
+		})
 		skin.add(MetaSkin.SPINNER_DECREMENT, Button.ButtonStyle())
 		skin.add(MetaSkin.SPINNER_INCREMENT, Button.ButtonStyle())
 		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
@@ -175,6 +181,7 @@ internal class MetaInputComponentsTest {
 		})
 		assertEquals(200, model.value)
 		assertEquals("200", spinner.textField.text)
+		assertEquals(0, spinner.textField.cursorPosition)
 
 		spinner.textField.setText("999")
 		spinner.commitText()
@@ -183,6 +190,28 @@ internal class MetaInputComponentsTest {
 		spinner.setSize(112f, 40f)
 		spinner.layout()
 		assertDirectChildrenInside(spinner)
+	}
+
+	@Test
+	fun `spinner preferred width follows bounds and fractional precision`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.SPINNER_TEXT_FIELD, TextField.TextFieldStyle(skin.get(TextField.TextFieldStyle::class.java)).apply {
+			background = BaseDrawable().apply {
+				leftWidth = 7f
+				rightWidth = 7f
+			}
+		})
+		skin.add(MetaSkin.SPINNER_DECREMENT, Button.ButtonStyle())
+		skin.add(MetaSkin.SPINNER_INCREMENT, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val short = MetaSpinner(MetaIntSpinnerModel(1, 0, 9))
+		val wide = MetaSpinner(MetaIntSpinnerModel(1, 0, 2048))
+		val fractional = MetaSpinner(MetaFloatSpinnerModel(1f, 0f, 30f, 0.25f))
+
+		assertTrue(wide.prefWidth > short.prefWidth)
+		assertTrue(fractional.prefWidth > short.prefWidth)
+		assertEquals(Align.center, fractional.textField.alignment)
 	}
 
 	@Test

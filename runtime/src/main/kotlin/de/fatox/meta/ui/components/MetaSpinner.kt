@@ -1,6 +1,8 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.Input.Keys
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Event
 import com.badlogic.gdx.scenes.scene2d.InputEvent
@@ -8,6 +10,8 @@ import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.FocusListener
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
+import com.badlogic.gdx.utils.Align
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
@@ -16,6 +20,8 @@ import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.MetaControlSize
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.math.ceil
+import kotlin.math.max
 
 interface MetaSpinnerModel {
 	var value: Number
@@ -26,6 +32,8 @@ interface MetaSpinnerModel {
 	fun decrement()
 	fun parse(text: String): Number?
 	fun format(value: Number): String
+	/** A canonical value wide enough to represent this model's configured range. */
+	fun widthHint(): String = widest(format(min), format(max))
 }
 
 class MetaIntSpinnerModel(
@@ -51,6 +59,7 @@ class MetaIntSpinnerModel(
 	override fun decrement() { value = value.toInt() - step }
 	override fun parse(text: String): Number? = text.trim().toIntOrNull()
 	override fun format(value: Number): String = value.toInt().toString()
+	override fun widthHint(): String = widest(minimum.toString(), maximum.toString())
 }
 
 class MetaFloatSpinnerModel(
@@ -63,7 +72,7 @@ class MetaFloatSpinnerModel(
 	private var minimum = min
 	private var maximum = max
 	override val valueValue: Signal<Number> = signal(initial.coerceIn(minimum, maximum)) { a, b -> a.toFloat() == b.toFloat() }
-	var precision: Int = precision.coerceAtLeast(0)
+	var precision: Int = precision.coerceAtLeast(MIN_FRACTION_DIGITS)
 
 	override var value: Number
 		get() = valueValue.peek()
@@ -78,7 +87,55 @@ class MetaFloatSpinnerModel(
 	override fun decrement() { value = value.toFloat() - step }
 	override fun parse(text: String): Number? = text.trim().toFloatOrNull()
 	override fun format(value: Number): String = BigDecimal.valueOf(value.toDouble())
-		.setScale(precision, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+		.setScale(precision, RoundingMode.HALF_UP).toPlainString()
+	override fun widthHint(): String = widest(format(minimum), format(maximum))
+
+	private companion object {
+		const val MIN_FRACTION_DIGITS = 2
+	}
+}
+
+private fun widest(first: String, second: String): String = if (first.length >= second.length) first else second
+
+private class MetaSpinnerTextField(
+	private val model: MetaSpinnerModel?,
+	text: String,
+	fontSize: Int,
+) : MetaTextField(text, fontSize, styleName = de.fatox.meta.ui.MetaSkin.SPINNER_TEXT_FIELD) {
+	private val widthLayout = GlyphLayout()
+	private var measuredHint = ""
+	private var measuredFont: BitmapFont? = null
+	private var measuredWidth = MIN_FIELD_WIDTH
+
+	init {
+		setAlignment(Align.center)
+	}
+
+	override fun getPrefWidth(): Float {
+		// TextField's constructor calls this virtual method before this subclass's fields are initialized.
+		val hint = model?.widthHint() ?: return MIN_FIELD_WIDTH
+		val font = style.font
+		if (hint != measuredHint || font !== measuredFont) {
+			widthLayout.setText(font, hint)
+			measuredHint = hint
+			measuredFont = font
+			measuredWidth = ceil(widthLayout.width + horizontalPadding() + TEXT_ROOM).coerceAtLeast(MIN_FIELD_WIDTH)
+		}
+		return measuredWidth
+	}
+
+	private fun horizontalPadding(): Float = max(
+		horizontalPadding(style.background),
+		max(horizontalPadding(style.focusedBackground), horizontalPadding(style.disabledBackground)),
+	)
+
+	private fun horizontalPadding(drawable: Drawable?): Float =
+		if (drawable == null) 0f else drawable.leftWidth + drawable.rightWidth
+
+	private companion object {
+		const val MIN_FIELD_WIDTH = 40f
+		const val TEXT_ROOM = 4f
+	}
 }
 
 /** Scene2d-native numeric field with compact step controls and reactive model ownership. */
@@ -90,7 +147,7 @@ open class MetaSpinner @JvmOverloads constructor(
 	mainGap = MetaSpacing.NONE,
 	align = MetaFlexAlign.STRETCH,
 ) {
-	val textField = MetaTextField(metaModel.format(metaModel.value), fontSize, styleName = de.fatox.meta.ui.MetaSkin.SPINNER_TEXT_FIELD)
+	val textField: MetaTextField = MetaSpinnerTextField(metaModel, metaModel.format(metaModel.value), fontSize)
 	// Squishing one segment of the composite would detach it from the field; the spinner reacts as one control.
 	private val decrementButton = MetaIconButton("ri-subtract-line", de.fatox.meta.ui.MetaSkin.SPINNER_DECREMENT, 14).apply { pressSquish = false }
 	private val incrementButton = MetaIconButton("ri-add-line", de.fatox.meta.ui.MetaSkin.SPINNER_INCREMENT, 14).apply { pressSquish = false }
@@ -100,9 +157,8 @@ open class MetaSpinner @JvmOverloads constructor(
 	init {
 		addItem(decrementButton, basisWidth = STEP_BUTTON_WIDTH, basisHeight = FIELD_HEIGHT, shrink = 0f,
 			minWidth = STEP_BUTTON_WIDTH, minHeight = FIELD_HEIGHT)
-		// Vanilla TextField advertises a 150px preferred width. Give flex a useful basis for common multi-digit values,
-		// while its explicit zero minimum lets the field shrink in tighter form rows without overflowing neighbours.
-		addItem(textField, basisWidth = PREF_FIELD_WIDTH, basisHeight = FIELD_HEIGHT, grow = 1f,
+		// MetaSpinnerTextField derives its preferred width from the model bounds instead of TextField's arbitrary 150 px.
+		addItem(textField, basisHeight = FIELD_HEIGHT, grow = 1f,
 			minWidth = 0f, minHeight = FIELD_HEIGHT)
 		addItem(incrementButton, basisWidth = STEP_BUTTON_WIDTH, basisHeight = FIELD_HEIGHT, shrink = 0f,
 			minWidth = STEP_BUTTON_WIDTH, minHeight = FIELD_HEIGHT)
@@ -115,7 +171,12 @@ open class MetaSpinner @JvmOverloads constructor(
 		})
 		textField.addListener(object : FocusListener() {
 			override fun keyboardFocusChanged(event: FocusEvent, actor: Actor, focused: Boolean) {
-				if (!focused) commitText()
+				if (!focused) {
+					commitText()
+					// TextField retains its edit-time horizontal scroll offset. Move the idle cursor home so the
+					// next layout pass recenters the complete canonical value instead of showing only its suffix.
+					textField.setCursorPosition(0)
+				}
 			}
 		})
 		textField.addListener(object : InputListener() {
@@ -183,6 +244,5 @@ open class MetaSpinner @JvmOverloads constructor(
 	private companion object {
 		val STEP_BUTTON_WIDTH = MetaControlSize.STANDARD.iconTarget - MetaSpacing.XS
 		val FIELD_HEIGHT = MetaControlSize.STANDARD.height
-		const val PREF_FIELD_WIDTH = 72f
 	}
 }

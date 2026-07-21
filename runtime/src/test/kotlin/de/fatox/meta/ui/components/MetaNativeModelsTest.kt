@@ -24,10 +24,18 @@ internal class MetaNativeModelsTest {
 	fun `float spinner parsing and formatting respect precision`() {
 		val model = MetaFloatSpinnerModel(initial = 1f, min = 0f, max = 2f, step = 0.25f, precision = 2)
 
+		assertEquals("1.00", model.format(model.value))
 		model.value = model.parse("1.236")!!
 		assertEquals("1.24", model.format(model.value))
 		model.increment()
 		assertEquals("1.49", model.format(model.value))
+	}
+
+	@Test
+	fun `spinner width hints cover bounds and fractional digits`() {
+		assertEquals("2048", MetaIntSpinnerModel(128, 128, 2048).widthHint())
+		assertEquals("-10000", MetaIntSpinnerModel(0, -10000, 10000).widthHint())
+		assertEquals("30.00", MetaFloatSpinnerModel(5f, 0.5f, 30f, 0.25f).widthHint())
 	}
 
 	@Test
