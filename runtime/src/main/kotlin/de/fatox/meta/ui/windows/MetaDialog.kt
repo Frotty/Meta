@@ -5,7 +5,9 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
+import com.badlogic.gdx.scenes.scene2d.ui.Value
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.extensions.onClick
@@ -24,6 +26,8 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
 	override val preserveCenterOnAutoFit: Boolean = true
 	protected val buttonTable = MetaTable()
 	protected val statusLabel = MetaLabel("", 14)
+	private val statusCell: Cell<MetaLabel>
+	private val buttonCell: Cell<MetaTable>
 
 	var dialogListener: DialogListener = EmptyListener
 	private var buttonCount = 0
@@ -67,7 +71,7 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
 
 	open fun show() {
 		// Set color invisible for fade in to work
-		centerWindow()
+		fitAndCenterInStage()
 		setColor(1f, 1f, 1f, 0f)
 		clearActions()
 		addAction(Actions.alpha(0.95f, 0.75f))
@@ -141,9 +145,33 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
 		contentTable.top()
 		statusLabel.setAlignment(Align.center)
 		statusLabel.setWrap(true)
-		add(statusLabel).growX()
+		statusCell = add(statusLabel).growX()
 		row()
-		add(buttonTable).bottom().growX().pad(MetaSpacing.SM)
+		buttonCell = add(buttonTable).bottom().growX().pad(MetaSpacing.SM)
+		updateOptionalRows()
+	}
+
+	private fun updateOptionalRows() {
+		val hasStatus = statusLabel.text.isNotEmpty()
+		statusLabel.isVisible = hasStatus
+		statusCell.height(if (hasStatus) Value.prefHeight else Value.zero)
+
+		// A consumer may deliberately move this inherited table into its designed body. Its old outer cell then stays
+		// collapsed even when the table contains buttons.
+		val hasActions = buttonTable.parent === this && buttonTable.children.size > 0
+		buttonTable.isVisible = hasActions
+		buttonCell.height(if (hasActions) Value.prefHeight else Value.zero)
+		buttonCell.pad(if (hasActions) MetaSpacing.SM else 0f)
+	}
+
+	override fun getPrefHeight(): Float {
+		updateOptionalRows()
+		return super.getPrefHeight()
+	}
+
+	override fun layout() {
+		updateOptionalRows()
+		super.layout()
 	}
 
 	override fun act(delta: Float) {

@@ -328,6 +328,66 @@ internal class MetaWindowScrollingTest {
 		assertFalse(dialog.contentViewport.isScrollY)
 	}
 
+	@Test
+	fun `empty dialog status and action rows consume no layout space`() {
+		val dialog = TestDialog()
+		dialog.contentTable.add(FixedSizeWidget(220f, 100f))
+		dialog.invalidateHierarchy()
+		val emptyHeight = dialog.prefHeight
+
+		assertFalse(dialog.status.isVisible)
+		assertFalse(dialog.footer.isVisible)
+
+		dialog.setStatus("Ready")
+		dialog.footer.add(Button()).size(100f, 36f)
+		dialog.invalidateHierarchy()
+		val populatedHeight = dialog.prefHeight
+
+		assertTrue(dialog.status.isVisible)
+		assertTrue(dialog.footer.isVisible)
+		assertTrue(populatedHeight > emptyHeight)
+
+		dialog.setStatus("")
+		dialog.footer.clearChildren()
+		dialog.invalidateHierarchy()
+		assertEquals(emptyHeight, dialog.prefHeight, 0.01f)
+	}
+
+	@Test
+	fun `centered surface bounds preserve a stage margin and constrain oversized content`() {
+		val bounds = resolveCenteredSurfaceBounds(900f, 700f, 800f, 600f, 16f)
+
+		assertEquals(MetaSurfaceBounds(16f, 16f, 768f, 568f), bounds)
+	}
+
+	@Test
+	fun `centered surface bounds retain fitting content size`() {
+		val bounds = resolveCenteredSurfaceBounds(320f, 180f, 800f, 600f, 16f)
+
+		assertEquals(MetaSurfaceBounds(240f, 210f, 320f, 180f), bounds)
+	}
+
+	@Test
+	fun `manager hide restore keeps title attached after dock bounds change`() {
+		val window = TestWindow(resizable = true)
+		window.setBounds(20f, 180f, 300f, 160f)
+		window.layout()
+
+		window.setManagerVisible(false)
+		window.setBounds(20f, 40f, 300f, 96f)
+		window.setManagerVisible(true)
+		window.layout()
+
+		assertTrue(window.isVisible)
+		assertFalse(window.isTransform)
+		assertEquals(1f, window.scaleX)
+		assertEquals(1f, window.color.a)
+		assertEquals(window.padLeft, window.titleTable.x, 0.01f)
+		assertEquals(window.height - window.padTop, window.titleTable.y, 0.01f)
+		assertEquals(window.width - window.padLeft - window.padRight, window.titleTable.width, 0.01f)
+		assertTrue(window.titleTable.y >= 0f)
+	}
+
 	private fun pane(
 		content: Actor,
 		width: Float,
@@ -343,6 +403,8 @@ internal class MetaWindowScrollingTest {
 
 	private class TestDialog : MetaDialog("", false) {
 		val footer get() = buttonTable
+		val status get() = statusLabel
+		fun setStatus(text: String) = statusLabel.setText(text)
 	}
 
 	private class FixedSizeWidget(

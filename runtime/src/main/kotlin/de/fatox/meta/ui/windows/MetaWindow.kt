@@ -343,6 +343,23 @@ abstract class MetaWindow(
 		}
 	}
 
+	/** Manager-owned temporary hiding must not replay a floating-window entrance when dock panels are restored. */
+	internal fun setManagerVisible(visible: Boolean) {
+		if (!visible) {
+			setVisible(false)
+			return
+		}
+		// These windows never left the stage; they are resuming the same presentation with settled dock geometry.
+		super.setVisible(true)
+		fadeInAction?.let { removeAction(it) }
+		fadeInAction = null
+		setColor(color.r, color.g, color.b, 1f)
+		setScale(1f)
+		setTransform(false)
+		positionTitleTableGeometry()
+		invalidateHierarchy()
+	}
+
 	override fun setResizable(isResizable: Boolean) {
 		metaResizable = isResizable
 		super.setResizable(false)
@@ -414,7 +431,14 @@ abstract class MetaWindow(
 			if (newH != oldH) setY(top - newH)
 			super.layout()
 		}
+		positionTitleTableGeometry()
 		positionChrome()
+	}
+
+	private fun positionTitleTableGeometry() {
+		if (!headerEnabled) return
+		titleTable.setSize((width - padLeft - padRight).coerceAtLeast(0f), padTop.coerceAtMost(height))
+		titleTable.setPosition(padLeft, (height - padTop).coerceAtLeast(0f))
 	}
 
 	override fun getMinWidth(): Float {
@@ -435,6 +459,20 @@ abstract class MetaWindow(
 	fun centerWindow() {
 		val stage = stage ?: return
 		setPosition((stage.width - width) * 0.5f, (stage.height - height) * 0.5f)
+		snapBoundsToPixelGrid()
+	}
+
+	/**
+	 * Fits this surface inside its stage and centers it with a stable edge margin. Use this after dynamically
+	 * rebuilding dialog content; unlike the normal layout pass it is explicit, so movable dialogs stay where the user
+	 * dragged them until the consumer deliberately requests a new presentation fit.
+	 */
+	fun fitAndCenterInStage(margin: Float = MetaSpacing.MD) {
+		val stage = stage ?: return
+		layout()
+		val bounds = resolveCenteredSurfaceBounds(width, height, stage.width, stage.height, margin)
+		setBounds(bounds.x, bounds.y, bounds.width, bounds.height)
+		layout()
 		snapBoundsToPixelGrid()
 	}
 
@@ -708,6 +746,33 @@ internal fun updateWindowContentScrolling(scrollPane: ScrollPane) {
 }
 
 internal data class MetaSurfaceSize(val width: Float, val height: Float)
+
+internal data class MetaSurfaceBounds(
+	val x: Float,
+	val y: Float,
+	val width: Float,
+	val height: Float,
+)
+
+internal fun resolveCenteredSurfaceBounds(
+	surfaceWidth: Float,
+	surfaceHeight: Float,
+	viewportWidth: Float,
+	viewportHeight: Float,
+	margin: Float,
+): MetaSurfaceBounds {
+	val safeMargin = margin.coerceAtLeast(0f)
+	val maximumWidth = (viewportWidth - safeMargin * 2f).coerceAtLeast(0f)
+	val maximumHeight = (viewportHeight - safeMargin * 2f).coerceAtLeast(0f)
+	val width = surfaceWidth.coerceAtMost(maximumWidth)
+	val height = surfaceHeight.coerceAtMost(maximumHeight)
+	return MetaSurfaceBounds(
+		x = (viewportWidth - width) * 0.5f,
+		y = (viewportHeight - height) * 0.5f,
+		width = width,
+		height = height,
+	)
+}
 
 /** Responsive caps shared by dialogs and fixed windows; limits include their complete chrome. */
 internal fun resolveMetaSurfaceSize(

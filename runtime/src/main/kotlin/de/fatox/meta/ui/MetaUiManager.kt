@@ -365,7 +365,8 @@ class MetaUiManager : UIManager {
 		for (index in 0 until displayedWindows.size) {
 			val displayedWindow = displayedWindows[index]
 			if (displayedWindow !== window && displayedWindow.isVisible) {
-				displayedWindow.isVisible = false
+				if (displayedWindow is MetaWindow) displayedWindow.setManagerVisible(false)
+				else displayedWindow.isVisible = false
 				hiddenWindows.add(displayedWindow)
 			}
 		}
@@ -377,8 +378,13 @@ class MetaUiManager : UIManager {
 	override fun restoreOtherWindowsAndAllowNew() {
 		if (preventShowWindow) {
 			preventShowWindow = false
-			for (index in 0 until hiddenWindows.size) hiddenWindows[index].isVisible = true
+			for (index in 0 until hiddenWindows.size) {
+				val hiddenWindow = hiddenWindows[index]
+				if (hiddenWindow is MetaWindow) hiddenWindow.setManagerVisible(true)
+				else hiddenWindow.isVisible = true
+			}
 			hiddenWindows.clear()
+			layoutDockedWindows()
 			// Visibility changed outside show/remove: re-derive the backdrop for any re-shown modal dialog.
 			modalRevision.update { it + 1 }
 		}
