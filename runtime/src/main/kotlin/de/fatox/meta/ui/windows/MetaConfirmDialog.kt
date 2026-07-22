@@ -14,21 +14,23 @@ import kotlin.math.roundToInt
  */
 class MetaConfirmDialog(title: String = "", message: String?) :
 	MetaWindow(title, false, true, hasHeader = title.isNotBlank()) {
+	override val preserveCenterOnAutoFit: Boolean = true
 	fun show(stage: Stage) {
-		pack()
+		stage.addActor(this)
+		fitStaticSurfaceToContent(stage.width, stage.height)
+		validate()
 		setColor(1f, 1f, 1f, 0f)
 		setPosition(
 			((stage.width - width) / 2).roundToInt().toFloat(),
 			((stage.height - height) / 2).roundToInt().toFloat()
 		)
-		stage.addActor(this)
 		addAction(Actions.alpha(0.925f, 0.5f))
 	}
 
 	init {
-		defaults().pad(MetaSpacing.SM)
-		add(MetaLabel(message ?: "", MetaType.BODY)).growX()
-		row()
-		add(MetaTextButton("Close").onClick { close() }).right()
+		contentTable.defaults().pad(MetaSpacing.SM)
+		contentTable.add(MetaLabel(message ?: "", MetaType.BODY).apply { setWrap(true) }).growX()
+		// Keep the only action outside the body viewport, matching MetaDialog's sticky action-row contract.
+		add(MetaTextButton("Close").onClick { close() }).right().pad(MetaSpacing.SM)
 	}
 }

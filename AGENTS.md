@@ -99,6 +99,13 @@ Follow these so screens share one look:
 - **Window chrome and dialog actions are automatic.** `MetaWindow` has a title header and separator by default.
   Untitled `MetaDialog`/`MetaConfirmDialog` presentations collapse that header completely. Add dialog actions through
   `addButton`; the shared action row owns its border padding, so consumers must not compensate with one-off edge pads.
+- **Window overflow is a framework contract.** Dialogs and non-resizable windows auto-fit their content up to Meta's
+  responsive viewport cap; resizable windows retain the user's chosen size. In both cases `contentTable` owns an
+  automatic two-axis overflow viewport: responsive content is assigned the available width until its minimum width
+  no longer fits, then horizontal scrolling activates; vertical scrolling activates only for real height overflow.
+  Put persistent filters, breadcrumbs, selectors, and primary actions in `controlTable` so they remain sticky above
+  the scrolling body. Dialog status and action rows are already sticky below it. Do not wrap the entire window in a
+  second consumer-owned scroll pane.
 - **Docking is owned by `MetaUiManager`.** Keep order normalization, width resolution, height compression, edge hints,
   and persistence centralized there. Docked windows may be shorter than content minima; `MetaWindow` provides the
   constrained scroll viewport. Do not add parallel dock-layout state in windows or consumers.

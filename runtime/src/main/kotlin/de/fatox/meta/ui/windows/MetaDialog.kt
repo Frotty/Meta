@@ -21,6 +21,7 @@ import de.fatox.meta.ui.components.MetaTable
  */
 abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
 	MetaWindow(title, false, hasCloseButton, hasHeader = title.isNotBlank()) {
+	override val preserveCenterOnAutoFit: Boolean = true
 	protected val buttonTable = MetaTable()
 	protected val statusLabel = MetaLabel("", 14)
 

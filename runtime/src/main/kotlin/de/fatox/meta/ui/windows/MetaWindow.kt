@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
+import com.badlogic.gdx.scenes.scene2d.utils.Layout
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.onChange
@@ -39,6 +40,7 @@ import de.fatox.meta.ui.components.MetaScrollPane
 import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.components.MetaTable
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.round
 
 /**
@@ -57,6 +59,13 @@ abstract class MetaWindow(
 	private val fontProvider: FontProvider by lazyInject()
 
 	var contentTable: Table = MetaTable()
+
+	/**
+	 * Optional sticky controls rendered above [contentTable]. This row never participates in the content viewport,
+	 * so filters, breadcrumbs and primary actions remain reachable while a long body scrolls. Leave it empty when a
+	 * window has no persistent controls; its layout row then collapses to zero height.
+	 */
+	val controlTable: Table = MetaTable()
 
 	/**
 	 * Reactive bindings owned by this window's current on-screen presentation. Create bindings/effects here inside
@@ -93,6 +102,10 @@ abstract class MetaWindow(
 	internal var dockFill: Boolean = false
 		private set
 	private var dockMinimumWidth = MIN_WINDOW_WIDTH
+	private var configuredMinimumWidth = 0f
+	private var configuredMinimumHeight = 0f
+	/** Dialogs override this so live content changes resize around their current screen center. */
+	protected open val preserveCenterOnAutoFit: Boolean = false
 	private var resizeEdge = 0
 	private var resizeStartStageX = 0f
 	private var resizeStartStageY = 0f
@@ -112,6 +125,7 @@ abstract class MetaWindow(
 	private val contentScrollPane = MetaScrollPane(contentTable).apply {
 		configureWindowContentScrolling(this)
 	}
+	internal val contentViewport: MetaScrollPane get() = contentScrollPane
 	private val resizeIndicator = MetaResizeGrip().apply {
 		touchable = Touchable.disabled
 		isVisible = resizable
@@ -209,6 +223,9 @@ abstract class MetaWindow(
 		addCaptureListener(resizeCursorListener)
 		applyWindowMetrics()
 		contentTable.top().left()
+		controlTable.top().left()
+		add(controlTable).top().growX()
+		row()
 		add(contentScrollPane).top().grow()
 			.padTop(MetaSpacing.XS).padLeft(MetaSpacing.XS).padRight(MetaSpacing.SM).padBottom(MetaSpacing.XS)
 		row()
@@ -216,14 +233,18 @@ abstract class MetaWindow(
 	}
 
 	fun setDefaultSize(width: Float, height: Float) {
-		setDefault(x, y, width, height)
+		configuredMinimumWidth = width
+		configuredMinimumHeight = height
+		setSize(width, height)
 	}
 
 	fun setDefaultPos(x: Float, y: Float) {
-		setDefault(x, y, width, height)
+		setPosition(x, y)
 	}
 
 	fun setDefault(x: Float, y: Float, width: Float, height: Float) {
+		configuredMinimumWidth = width
+		configuredMinimumHeight = height
 		setPosition(x, y)
 		setSize(width, height)
 	}
@@ -375,10 +396,12 @@ abstract class MetaWindow(
 	}
 
 	override fun layout() {
+		fitStaticSurfaceToContent()
 		// Assign child widths before asking for minimum height. A wrapped Label reports prefWidth=0 and derives its
 		// height from its current width; querying minHeight before this pass can briefly wrap one character per line
 		// and permanently inflate a small window because this layout only grows to satisfy minima.
 		super.layout()
+		updateWindowContentScrolling(contentScrollPane)
 		val minW = minWidth
 		val minH = minHeight
 		// Sidebar width belongs to the shared dock, so a wide panel's preferred minimum must not override the user.
@@ -399,7 +422,7 @@ abstract class MetaWindow(
 	}
 
 	override fun getMinHeight(): Float {
-		// Content is owned by a two-axis MetaScrollPane. Keeping its preferred height as a hard window minimum makes
+		// Content is owned by an overflow viewport. Keeping its preferred height as a hard window minimum makes
 		// constrained floating layouts overlap and then snap larger; chrome is the only true minimum.
 		return max(super.getMinHeight(), MIN_WINDOW_HEIGHT)
 	}
@@ -430,12 +453,37 @@ abstract class MetaWindow(
 		}
 		super.setStage(stage)
 		if (stage != null && !wasOnStage) {
+			fitStaticSurfaceToContent(stage.width, stage.height)
 			refreshFontsIfStale()
 			if (reactiveScope.isDisposed) reactiveScope = ReactiveScope()
 			onShown()
 		} else if (wasOnStage && stage == null) {
 			onRemovedFromStage()
 			reactiveScope.dispose()
+		}
+	}
+
+	/** Auto-fit dialogs and fixed windows. User-resizable windows deliberately retain their chosen/persisted size. */
+	internal fun fitStaticSurfaceToContent(
+		viewportWidth: Float = stage?.width ?: 0f,
+		viewportHeight: Float = stage?.height ?: 0f,
+	) {
+		if (metaResizable || viewportWidth <= 0f || viewportHeight <= 0f) return
+		val resolved = resolveMetaSurfaceSize(
+			configuredMinimumWidth = configuredMinimumWidth,
+			configuredMinimumHeight = configuredMinimumHeight,
+			preferredWidth = prefWidth,
+			preferredHeight = prefHeight,
+			viewportWidth = viewportWidth,
+			viewportHeight = viewportHeight,
+		)
+		if (width != resolved.width || height != resolved.height) {
+			val centerX = x + width * 0.5f
+			val centerY = y + height * 0.5f
+			setSize(resolved.width, resolved.height)
+			if (preserveCenterOnAutoFit && stage != null) {
+				setPosition(centerX - resolved.width * 0.5f, centerY - resolved.height * 0.5f)
+			}
 		}
 	}
 
@@ -635,7 +683,51 @@ abstract class MetaWindow(
 	internal val dockOrderThresholdY: Float get() = y + height - HEADER_HEIGHT * 0.5f
 }
 
-/** Docked content can be smaller in either dimension than its preferred size, so both axes must remain scrollable. */
+/** Start responsive: horizontal scrolling is enabled later only when the content's minimum width truly overflows. */
 internal fun configureWindowContentScrolling(scrollPane: ScrollPane) {
-	scrollPane.setScrollingDisabled(false, false)
+	scrollPane.setScrollingDisabled(true, false)
 }
+
+/**
+ * Re-evaluates horizontal overflow after the viewport has a real size. Preferred width is deliberately ignored:
+ * responsive layouts may be narrower than preferred without clipping. Their minimum width is the point below which
+ * content can no longer reflow, so only then does the viewport expose horizontal scrolling. Vertical overflow stays
+ * owned by libGDX's normal preferred-height check.
+ */
+internal fun updateWindowContentScrolling(scrollPane: ScrollPane) {
+	repeat(2) {
+		scrollPane.validate()
+		val layout = scrollPane.actor as? Layout
+		val minimumWidth = layout?.minWidth ?: scrollPane.actor?.width ?: 0f
+		val disableHorizontal = minimumWidth <= scrollPane.scrollWidth + SCROLL_OVERFLOW_TOLERANCE
+		if (scrollPane.isScrollingDisabledX == disableHorizontal) return
+		scrollPane.setScrollingDisabled(disableHorizontal, false)
+		scrollPane.invalidate()
+	}
+	scrollPane.validate()
+}
+
+internal data class MetaSurfaceSize(val width: Float, val height: Float)
+
+/** Responsive caps shared by dialogs and fixed windows; limits include their complete chrome. */
+internal fun resolveMetaSurfaceSize(
+	configuredMinimumWidth: Float,
+	configuredMinimumHeight: Float,
+	preferredWidth: Float,
+	preferredHeight: Float,
+	viewportWidth: Float,
+	viewportHeight: Float,
+): MetaSurfaceSize {
+	val maximumWidth = min(viewportWidth * SURFACE_VIEWPORT_WIDTH_FRACTION, SURFACE_ABSOLUTE_MAX_WIDTH)
+	val maximumHeight = min(viewportHeight * SURFACE_VIEWPORT_HEIGHT_FRACTION, SURFACE_ABSOLUTE_MAX_HEIGHT)
+	return MetaSurfaceSize(
+		width = max(configuredMinimumWidth, preferredWidth).coerceIn(0f, maximumWidth.coerceAtLeast(0f)),
+		height = max(configuredMinimumHeight, preferredHeight).coerceIn(0f, maximumHeight.coerceAtLeast(0f)),
+	)
+}
+
+private const val SCROLL_OVERFLOW_TOLERANCE = 0.5f
+private const val SURFACE_VIEWPORT_WIDTH_FRACTION = 0.90f
+private const val SURFACE_VIEWPORT_HEIGHT_FRACTION = 0.88f
+private const val SURFACE_ABSOLUTE_MAX_WIDTH = 960f
+private const val SURFACE_ABSOLUTE_MAX_HEIGHT = 840f
