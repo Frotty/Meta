@@ -8,7 +8,6 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Disposable
@@ -37,7 +36,7 @@ open class MetaColorPicker @JvmOverloads constructor(
 	private val parsedColor = Color()
 	val colorValue: Signal<Color> = signal(working.cpy()) { a, b -> a == b }
 	private val colorField = MetaColorField { hue, saturation, value -> updateFromField(hue, saturation, value) }
-	private val preview = Image(MetaSkin.skin().getDrawable(MetaSkin.COLOR_FILL))
+	private val preview = MetaColorSwatch()
 	private val inputModeValue: Signal<ColorInputMode> = signal(ColorInputMode.HEX)
 	private val inputModeButton = MetaTextButton("HEX", MetaType.CAPTION, tier = de.fatox.meta.ui.MetaButtonTier.TERTIARY)
 	private val colorInput = MetaInputField(
@@ -64,10 +63,11 @@ open class MetaColorPicker @JvmOverloads constructor(
 		}
 
 	init {
-		setDefaultSize(410f, 410f)
+		setDefaultSize(440f, 420f)
 		contentTable.defaults().growX().padBottom(MetaSpacing.XS)
-		contentTable.add(colorField).height(210f).row()
-		contentTable.add(preview).height(36f).padTop(MetaSpacing.XS).padBottom(MetaSpacing.SM).row()
+		contentTable.add(colorField).height(210f).padLeft(MetaSpacing.SM).padRight(MetaSpacing.SM).row()
+		contentTable.add(preview).height(36f).padTop(MetaSpacing.XS).padBottom(MetaSpacing.SM)
+			.padLeft(MetaSpacing.SM).padRight(MetaSpacing.SM).row()
 		contentTable.add(MetaFlexBox(mainGap = MetaSpacing.XS, align = MetaFlexAlign.STRETCH).apply {
 			addItem(inputModeButton.apply {
 				tooltip("Switch between HEX and ${if (isAllowAlphaEdit) "RGBA" else "RGB"} display")
@@ -181,7 +181,7 @@ open class MetaColorPicker @JvmOverloads constructor(
 	}
 
 	private fun publish(notifyListener: Boolean) {
-		preview.color.set(working)
+		preview.selectedColor = working
 		colorValue.value = working.cpy()
 		if (notifyListener) metaListener?.changed(working.cpy())
 	}
@@ -219,10 +219,11 @@ open class MetaColorPicker @JvmOverloads constructor(
 private enum class ColorInputMode { HEX, RGB }
 
 /** Saturation/value square with a vertical hue strip, drawn directly as interpolated shape geometry. */
-private class MetaColorField(
+internal class MetaColorField(
 	private val changed: (hue: Float, saturation: Float, value: Float) -> Unit,
 ) : Widget(), Disposable {
-	private val shapeRenderer = ShapeRenderer()
+	private val shapeRendererDelegate = lazy { ShapeRenderer() }
+	private val shapeRenderer by shapeRendererDelegate
 	private val origin = Vector2()
 	private val hueColor = Color.RED.cpy()
 	private val converted = FloatArray(3)
@@ -237,12 +238,16 @@ private class MetaColorField(
 		addListener(object : InputListener() {
 			override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
 				if (pointer != 0 || button != 0) return false
+				event.stop()
 				updateFromPointer(x, y)
 				return true
 			}
 
 			override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
-				if (pointer == 0) updateFromPointer(x, y)
+				if (pointer == 0) {
+					event.stop()
+					updateFromPointer(x, y)
+				}
 			}
 		})
 	}
@@ -295,10 +300,10 @@ private class MetaColorField(
 
 	private fun updateFromPointer(x: Float, y: Float) {
 		val squareWidth = squareWidth()
-		if (x <= squareWidth) {
+		if (regionAt(x, width) == ColorFieldRegion.SATURATION_VALUE) {
 			saturation = (x / squareWidth).coerceIn(0f, 1f)
 			value = (y / height).coerceIn(0f, 1f)
-		} else if (x >= squareWidth + HUE_GAP) {
+		} else if (regionAt(x, width) == ColorFieldRegion.HUE) {
 			hue = (y / height).coerceIn(0f, 1f) * 360f
 			MetaHsv.toColor(hue, 1f, 1f, 1f, hueColor)
 		} else return
@@ -310,7 +315,7 @@ private class MetaColorField(
 	override fun dispose() {
 		if (disposed) return
 		disposed = true
-		shapeRenderer.dispose()
+		if (shapeRendererDelegate.isInitialized()) shapeRenderer.dispose()
 	}
 
 	private fun Color.withAlpha(alpha: Float): Color {
@@ -318,14 +323,31 @@ private class MetaColorField(
 		return this
 	}
 
-	private companion object {
-		const val HUE_WIDTH = 22f
-		const val HUE_GAP = 10f
+	internal companion object {
+		const val HUE_WIDTH = 28f
+		const val HUE_GAP = 8f
 		const val MARKER_OUTER = 6f
 		const val MARKER_INNER = 4f
 		val WHITE = Color.WHITE.cpy()
 		val BLACK = Color.BLACK.cpy()
+
+		fun regionAt(x: Float, totalWidth: Float): ColorFieldRegion {
+			if (x < 0f || x > totalWidth) return ColorFieldRegion.OUTSIDE
+			val squareWidth = (totalWidth - HUE_GAP - HUE_WIDTH).coerceAtLeast(1f)
+			return if (x <= squareWidth) {
+				ColorFieldRegion.SATURATION_VALUE
+			} else {
+				// Give the visual gap to the hue slider as deliberate hit slop.
+				ColorFieldRegion.HUE
+			}
+		}
 	}
+}
+
+internal enum class ColorFieldRegion {
+	SATURATION_VALUE,
+	HUE,
+	OUTSIDE
 }
 
 /** Allocation-free HSV conversion shared by the picker geometry and channel synchronization. */
