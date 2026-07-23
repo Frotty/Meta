@@ -52,6 +52,7 @@ class MetaUiPlaygroundMeta(
 		registerSingleton { TypographyPlaygroundWindow() }
 		registerSingleton { ControlsPlaygroundWindow() }
 		registerSingleton { SelectionPlaygroundWindow() }
+		registerSingleton { ColorPickerPlaygroundWindow() }
 		registerSingleton { CollectionsPlaygroundWindow() }
 		registerSingleton { MetaColorPicker(isAllowAlphaEdit = true) }
 	}

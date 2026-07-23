@@ -18,7 +18,6 @@ import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
-import de.fatox.meta.ui.bindColor
 import de.fatox.meta.ui.bindText
 import de.fatox.meta.ui.components.MetaArrayAdapter
 import de.fatox.meta.ui.components.MetaActionRow
@@ -26,6 +25,11 @@ import de.fatox.meta.ui.components.MetaButtonContainer
 import de.fatox.meta.ui.components.MetaCheckBox
 import de.fatox.meta.ui.components.MetaColorPicker
 import de.fatox.meta.ui.components.MetaColorPickerListener
+import de.fatox.meta.ui.components.MetaColorSwatch
+import de.fatox.meta.ui.components.MetaFlexAlign
+import de.fatox.meta.ui.components.MetaFlexBox
+import de.fatox.meta.ui.components.MetaFlexDirection
+import de.fatox.meta.ui.components.MetaFlexJustify
 import de.fatox.meta.ui.components.MetaIcon
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaIconButtonGroup
@@ -174,9 +178,7 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 	private val loading = MetaLoadingSpinner(32f, 3.5f)
 	private val summary = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 	private val pickedColor = signal(Color.valueOf("4F9DDEFF"))
-	private val colorSwatch = MetaTable().apply {
-		background = de.fatox.meta.ui.MetaSkin.skin().getDrawable(de.fatox.meta.ui.MetaSkin.COLOR_FILL)
-	}
+	private val colorSwatch = MetaColorSwatch(pickedColor.peek())
 	private val colorLabel = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 	private val pickerListener = object : MetaColorPickerListener {
 		override fun changed(newColor: Color) { pickedColor.value = newColor.cpy() }
@@ -222,7 +224,9 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 			uiScaleSlider.value = playgroundUiRenderer.uiScale().coerceIn(0.5f, 2f)
 		}
 		reactiveScope.bindText(uiScaleLabel) { "${(uiScaleSlider.valueValue() * 100f).roundToInt()}%" }
-		reactiveScope.bindColor(colorSwatch) { pickedColor() }
+		reactiveScope.effect("selectionPlaygroundColorPreview") {
+			colorSwatch.selectedColor = pickedColor()
+		}
 		reactiveScope.bindText(colorLabel) { "#${pickedColor()}" }
 		reactiveScope.bindText(summary) {
 			"${select.selectedValue() ?: "—"} · count ${spinnerModel.valueValue().toInt()} · value ${slider.valueValue().toInt()}"
@@ -240,6 +244,91 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 
 	override fun dispose() {
 		loading.dispose()
+	}
+}
+
+class ColorPickerPlaygroundWindow : MetaWindow("Color Picker", resizable = true, closeButton = true) {
+	private val pickedColor = signal(Color.valueOf("4F9DDEB3"))
+	private val swatch = MetaColorSwatch(pickedColor.peek())
+	private val colorLabel = MetaLabel("", MetaType.BODY, MetaColor.TEXT)
+	private val alphaLabel = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
+	private val pickerListener = object : MetaColorPickerListener {
+		override fun changed(newColor: Color) {
+			pickedColor.value = newColor.cpy()
+		}
+
+		override fun canceled(oldColor: Color) {
+			pickedColor.value = oldColor.cpy()
+		}
+	}
+
+	init {
+		setDefaultSize(500f, 250f)
+
+		val preview = MetaFlexBox(mainGap = MetaSpacing.MD, align = MetaFlexAlign.CENTER).apply {
+			addItem(swatch, basisWidth = 88f, basisHeight = 56f, shrink = 0f)
+			addItem(MetaFlexBox(
+				direction = MetaFlexDirection.COLUMN,
+				mainGap = MetaSpacing.XS,
+				align = MetaFlexAlign.STRETCH,
+			).apply {
+				addItem(colorLabel, grow = 0f)
+				addItem(alphaLabel, grow = 0f)
+			}, grow = 1f, minWidth = 0f)
+		}
+		val presets = MetaFlexBox(mainGap = MetaSpacing.SM, align = MetaFlexAlign.CENTER).apply {
+			addItem(MetaTextButton("Opaque preset", tier = MetaButtonTier.TERTIARY).onClick {
+				pickedColor.value = Color.valueOf("FF7A59FF")
+			}, shrink = 0f)
+			addItem(MetaTextButton("Translucent preset", tier = MetaButtonTier.TERTIARY).onClick {
+				pickedColor.value = Color.valueOf("4F9DDE80")
+			}, shrink = 0f)
+		}
+		val actions = MetaFlexBox(
+			mainGap = MetaSpacing.SM,
+			justify = MetaFlexJustify.END,
+			align = MetaFlexAlign.CENTER,
+		).apply {
+			addItem(MetaIconTextButton(
+				"Open color picker",
+				"ri-palette-line",
+				iconSize = 20,
+				tier = MetaButtonTier.PRIMARY,
+			).onClick { openColorPicker() }, shrink = 0f)
+		}
+		val layout = MetaFlexBox(
+			direction = MetaFlexDirection.COLUMN,
+			mainGap = MetaSpacing.MD,
+			align = MetaFlexAlign.STRETCH,
+		).apply {
+			addItem(MetaLabel(
+				"Test hue and saturation/value dragging, brightness, alpha, and typed HEX/RGBA input.",
+				MetaType.CAPTION,
+				MetaColor.TEXT_MUTED,
+			), grow = 0f)
+			addItem(preview, basisHeight = 64f, grow = 0f)
+			addItem(presets, basisHeight = MetaControlSize.STANDARD.height, grow = 0f)
+			addItem(actions, basisHeight = MetaControlSize.STANDARD.height, grow = 0f)
+		}
+		contentTable.add(layout).grow().pad(MetaSpacing.SM)
+	}
+
+	override fun onShown() {
+		reactiveScope.effect("colorPickerPlaygroundPreview") {
+			val color = pickedColor()
+			swatch.selectedColor = color
+			colorLabel.setText("#$color")
+			alphaLabel.setText("Alpha ${(color.a * 100f).roundToInt()}%")
+		}
+	}
+
+	fun openColorPicker() {
+		uiManager.showWindow<MetaColorPicker>().apply {
+			selectedColor = pickedColor.peek()
+			setListener(pickerListener)
+			centerWindow()
+			fadeIn()
+		}
 	}
 }
 

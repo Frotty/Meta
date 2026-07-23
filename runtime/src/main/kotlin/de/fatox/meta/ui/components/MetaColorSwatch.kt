@@ -21,7 +21,21 @@ class MetaColorSwatch(initialColor: Color = Color.WHITE) : MetaTable() {
 			MetaSkin.skin().getDrawable(MetaSkin.COLOR_FILL),
 			MetaColor.BORDER_STRONG
 		)
-		add(fill).grow().pad(BORDER_WIDTH)
+		val checkerboard = MetaTable().apply {
+			for (row in 0 until CHECKER_ROWS) {
+				for (column in 0 until CHECKER_COLUMNS) {
+					add(Image(ColorDrawable(
+						MetaSkin.skin().getDrawable(MetaSkin.COLOR_FILL),
+						if ((row + column) and 1 == 0) CHECK_LIGHT else CHECK_DARK,
+					))).grow()
+				}
+				row()
+			}
+		}
+		add(MetaStack().apply {
+			addItem(checkerboard)
+			addItem(fill)
+		}).grow().pad(BORDER_WIDTH)
 		selectedColor = initialColor
 	}
 
@@ -31,5 +45,9 @@ class MetaColorSwatch(initialColor: Color = Color.WHITE) : MetaTable() {
 
 	private companion object {
 		const val BORDER_WIDTH = 2f
+		const val CHECKER_COLUMNS = 12
+		const val CHECKER_ROWS = 2
+		val CHECK_LIGHT = Color(0.72f, 0.72f, 0.72f, 1f)
+		val CHECK_DARK = Color(0.42f, 0.42f, 0.42f, 1f)
 	}
 }

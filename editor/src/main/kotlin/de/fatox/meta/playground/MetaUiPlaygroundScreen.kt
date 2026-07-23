@@ -129,6 +129,9 @@ class MetaUiPlaygroundScreen(
 			addItem(action("Typography & icons", "ri-font-size") { uiManager.showWindow<TypographyPlaygroundWindow>() })
 			addItem(action("Buttons & input", "ri-input-method-line") { uiManager.showWindow<ControlsPlaygroundWindow>() })
 			addItem(action("Selection & progress", "ri-equalizer-line") { uiManager.showWindow<SelectionPlaygroundWindow>() })
+			addItem(action("Color picker", "ri-palette-line") {
+				uiManager.showWindow<ColorPickerPlaygroundWindow>().openColorPicker()
+			})
 			addItem(action("Lists & scrolling", "ri-list-check-2") { uiManager.showWindow<CollectionsPlaygroundWindow>() })
 		})
 
@@ -235,6 +238,7 @@ class MetaUiPlaygroundScreen(
 				is TypographyPlaygroundWindow,
 				is ControlsPlaygroundWindow,
 				is SelectionPlaygroundWindow,
+				is ColorPickerPlaygroundWindow,
 				is CollectionsPlaygroundWindow -> uiManager.closeWindow(window)
 			}
 		}
