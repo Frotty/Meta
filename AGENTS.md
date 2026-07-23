@@ -136,6 +136,11 @@ A whole class of "the dialog opens but its buttons are dead (no visible cause) a
 - `UIManager.showDialog` cancels existing scene2d touch focus before the modal takes over, preventing a press/drag
   begun behind the dialog from completing through it. Normal clicks outside text inputs also clear stale keyboard
   focus automatically; do not duplicate either behavior in consumers.
+- Scene2d keyboard focus is authoritative while a `TextField`/`TextArea` is being edited. `UiControlHelper` must not
+  reinterpret arrows, Enter, Escape, or custom-bound typing keys as spatial navigation/actions during that time.
+- For viewfinders/capture overlays, use `UIManager.temporarilyHideOtherWindows(owner)` and dispose its lease on every
+  exit path. It suppresses draw/hit without toggling window visibility or disturbing title/layout state; do not loop
+  through windows and set `isVisible` yourself.
 
 ## Reactive state — USE THIS, don't reinvent it
 

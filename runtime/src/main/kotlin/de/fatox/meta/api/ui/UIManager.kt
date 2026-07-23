@@ -133,7 +133,23 @@ interface UIManager : Disposable {
 
 	fun <T : Window> showWindow(windowClass: KClass<out T>): T
 
+	/**
+	 * Temporarily presents [window] alone without detaching or toggling visibility on any existing window.
+	 * Dispose the returned lease on every exit path; leases are nest-safe and idempotent.
+	 */
+	fun temporarilyHideOtherWindows(window: Window): Disposable {
+		hideOtherWindowsAndPreventNew(window)
+		var disposed = false
+		return Disposable {
+			if (disposed) return@Disposable
+			disposed = true
+			restoreOtherWindowsAndAllowNew()
+		}
+	}
+
+	/** Legacy paired API. Prefer the scoped [temporarilyHideOtherWindows] lease. */
 	fun hideOtherWindowsAndPreventNew(window: Window)
+	/** Legacy paired API. Prefer disposing the lease returned by [temporarilyHideOtherWindows]. */
 	fun restoreOtherWindowsAndAllowNew()
 	fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>, showBackdrop: Boolean): T
 	fun setMainMenuBar(menuBar: MetaMenuBar?)

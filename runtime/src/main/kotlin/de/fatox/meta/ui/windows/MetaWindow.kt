@@ -93,6 +93,8 @@ abstract class MetaWindow(
 	private var liveResizeWidth = Float.NaN
 	private var liveResizeHeight = Float.NaN
 	private var fadeInAction: Action? = null
+	private var managerConcealed = false
+	internal val isManagerConcealed: Boolean get() = managerConcealed
 	// Preallocated so entrances don't allocate a capturing lambda per show.
 	private val resetEntranceTransform = Runnable { setTransform(false) }
 	private val headerEnabled = hasHeader
@@ -250,6 +252,7 @@ abstract class MetaWindow(
 	}
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
+		if (managerConcealed) return
 		snapBoundsToPixelGrid()
 		validate()
 		snapTitleToPixelGrid()
@@ -343,21 +346,9 @@ abstract class MetaWindow(
 		}
 	}
 
-	/** Manager-owned temporary hiding must not replay a floating-window entrance when dock panels are restored. */
-	internal fun setManagerVisible(visible: Boolean) {
-		if (!visible) {
-			setVisible(false)
-			return
-		}
-		// These windows never left the stage; they are resuming the same presentation with settled dock geometry.
-		super.setVisible(true)
-		fadeInAction?.let { removeAction(it) }
-		fadeInAction = null
-		setColor(color.r, color.g, color.b, 1f)
-		setScale(1f)
-		setTransform(false)
-		positionTitleTableGeometry()
-		invalidateHierarchy()
+	/** Manager-owned capture isolation skips presentation without mutating visibility, layout, or title geometry. */
+	internal fun setManagerConcealed(concealed: Boolean) {
+		managerConcealed = concealed
 	}
 
 	override fun setResizable(isResizable: Boolean) {
@@ -406,6 +397,7 @@ abstract class MetaWindow(
 	override fun isDragging(): Boolean = resizeEdge != 0 || super.isDragging()
 
 	override fun hit(x: Float, y: Float, touchable: Boolean): Actor? {
+		if (managerConcealed) return null
 		// Resize chrome is conceptually above window content even though it is not a layout row. Returning the window
 		// here keeps scroll panes from receiving presses or cursor events in any resize activation zone.
 		if (isVisible && (!touchable || this.touchable == Touchable.enabled) && resizeEdgeAt(x, y) != 0) return this

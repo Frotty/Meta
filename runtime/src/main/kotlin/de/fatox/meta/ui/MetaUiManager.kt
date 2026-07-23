@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.Disposable as GdxDisposable
 import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.TimeUtils
 import com.badlogic.gdx.utils.Timer
@@ -62,6 +63,12 @@ import java.io.File
 import kotlin.reflect.KClass
 
 private val log = MetaLoggerFactory.logger {}
+
+private class ConcealedWindowState(
+	val alpha: Float,
+	val touchable: Touchable,
+	var depth: Int = 0,
+)
 
 internal fun contextualBottomOverlay(screenOverlay: Actor?, hasModal: Boolean, modalOverlay: Actor?): Actor? =
 	if (hasModal) modalOverlay else screenOverlay
@@ -137,7 +144,7 @@ class MetaUiManager : UIManager {
 		// Only a dialog that is actually on stage AND visible should hold the input-blocking backdrop up. A dialog
 		// being hidden (isVisible=false during a close fade, or hidden by other windows) must not keep the shield
 		// over whatever is beneath it.
-		val top = modalDialogs.lastOrNull { it.stage != null && it.isVisible }
+		val top = modalDialogs.lastOrNull { it.stage != null && it.isVisible && !it.isManagerConcealed }
 		val topStage = top?.stage
 		if (top != null && topStage != null) {
 			top.toFront()
@@ -176,7 +183,9 @@ class MetaUiManager : UIManager {
 
 	@Deprecated("Bind to preventShowWindowState instead, e.g. actor.bindDisabled { uiManager.preventShowWindowState() }.")
 	override val preventShowWindowObservers: Array<(Boolean) -> Unit> = Array()
-	private val hiddenWindows = Array<Window>()
+	private val concealedWindows = ObjectMap<Window, ConcealedWindowState>()
+	private val activeIsolations = Array<WindowIsolationLease>()
+	private var legacyIsolation: GdxDisposable? = null
 
 	override var windowHandler: WindowHandler = NoWindowHandler
 
@@ -247,7 +256,7 @@ class MetaUiManager : UIManager {
 		screenMetaDataKeys.clear()
 		metaInput.changeScreen()
 
-		if (preventShowWindow) restoreOtherWindowsAndAllowNew()
+		if (preventShowWindow) releaseAllWindowIsolations()
 
 		// Close or move currently shown windows. A window whose metadata says it is displayed on the new screen
 		// survives the change: it stays on stage AND stays registered in displayedWindows, so restoreWindows will
@@ -360,34 +369,74 @@ class MetaUiManager : UIManager {
 		return this
 	}
 
-	override fun hideOtherWindowsAndPreventNew(window: Window) {
-		preventShowWindow = true
+	override fun temporarilyHideOtherWindows(window: Window): GdxDisposable {
+		val concealedByLease = Array<Window>()
 		for (index in 0 until displayedWindows.size) {
 			val displayedWindow = displayedWindows[index]
 			if (displayedWindow !== window && displayedWindow.isVisible) {
-				if (displayedWindow is MetaWindow) displayedWindow.setManagerVisible(false)
-				else displayedWindow.isVisible = false
-				hiddenWindows.add(displayedWindow)
+				var state = concealedWindows[displayedWindow]
+				if (state == null) {
+					state = ConcealedWindowState(
+						displayedWindow.color.a,
+						displayedWindow.touchable,
+					)
+					concealedWindows.put(displayedWindow, state)
+					if (displayedWindow is MetaWindow) displayedWindow.setManagerConcealed(true)
+					else {
+						displayedWindow.color.a = 0f
+						displayedWindow.touchable = Touchable.disabled
+					}
+				}
+				state.depth++
+				concealedByLease.add(displayedWindow)
 			}
 		}
-		// Visibility changed outside show/remove: re-derive the backdrop, or it would stay up (swallowing input)
-		// over a now-invisible modal dialog.
+		val lease = WindowIsolationLease(concealedByLease)
+		activeIsolations.add(lease)
+		preventShowWindow = true
 		modalRevision.update { it + 1 }
+		return lease
+	}
+
+	override fun hideOtherWindowsAndPreventNew(window: Window) {
+		legacyIsolation?.dispose()
+		legacyIsolation = temporarilyHideOtherWindows(window)
 	}
 
 	override fun restoreOtherWindowsAndAllowNew() {
-		if (preventShowWindow) {
-			preventShowWindow = false
-			for (index in 0 until hiddenWindows.size) {
-				val hiddenWindow = hiddenWindows[index]
-				if (hiddenWindow is MetaWindow) hiddenWindow.setManagerVisible(true)
-				else hiddenWindow.isVisible = true
+		legacyIsolation?.dispose()
+		legacyIsolation = null
+	}
+
+	private fun releaseIsolation(lease: WindowIsolationLease) {
+		if (lease.disposed) return
+		lease.disposed = true
+		activeIsolations.removeValue(lease, true)
+		for (index in 0 until lease.windows.size) {
+			val concealed = lease.windows[index]
+			val state = concealedWindows[concealed] ?: continue
+			state.depth--
+			if (state.depth == 0) {
+				if (concealed is MetaWindow) concealed.setManagerConcealed(false)
+				else {
+					concealed.color.a = state.alpha
+					concealed.touchable = state.touchable
+				}
+				concealedWindows.remove(concealed)
 			}
-			hiddenWindows.clear()
-			layoutDockedWindows()
-			// Visibility changed outside show/remove: re-derive the backdrop for any re-shown modal dialog.
-			modalRevision.update { it + 1 }
 		}
+		preventShowWindow = activeIsolations.size > 0
+		modalRevision.update { it + 1 }
+	}
+
+	private fun releaseAllWindowIsolations() {
+		for (index in activeIsolations.size - 1 downTo 0) activeIsolations[index].dispose()
+		legacyIsolation = null
+	}
+
+	private inner class WindowIsolationLease(val windows: Array<Window>) : GdxDisposable {
+		var disposed = false
+		override fun dispose() = releaseIsolation(this)
 	}
 
 	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>, showBackdrop: Boolean): T {
@@ -1116,7 +1165,17 @@ class MetaUiManager : UIManager {
 		rightDockedWindows.clear()
 		clearDockIndicators()
 		windowConfig.disposeCachedWindows()
-		hiddenWindows.clear()
+		releaseAllWindowIsolations()
+		for (entry in concealedWindows.entries()) {
+			val window = entry.key
+			val state = entry.value
+			if (window is MetaWindow) window.setManagerConcealed(false)
+			else {
+				window.color.a = state.alpha
+				window.touchable = state.touchable
+			}
+		}
+		concealedWindows.clear()
 		modalDialogs.clear()
 		screenBottomOverlay = null
 		displayedBottomOverlay = null

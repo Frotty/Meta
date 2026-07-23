@@ -21,6 +21,8 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -368,24 +370,36 @@ internal class MetaWindowScrollingTest {
 	}
 
 	@Test
-	fun `manager hide restore keeps title attached after dock bounds change`() {
+	fun `manager concealment preserves visibility and title geometry`() {
 		val window = TestWindow(resizable = true)
 		window.setBounds(20f, 180f, 300f, 160f)
 		window.layout()
+		val titleX = window.titleTable.x
+		val titleY = window.titleTable.y
+		val titleWidth = window.titleTable.width
+		val transform = window.isTransform
+		val scale = window.scaleX
+		val alpha = window.color.a
 
-		window.setManagerVisible(false)
-		window.setBounds(20f, 40f, 300f, 96f)
-		window.setManagerVisible(true)
-		window.layout()
+		window.setManagerConcealed(true)
 
 		assertTrue(window.isVisible)
-		assertFalse(window.isTransform)
-		assertEquals(1f, window.scaleX)
-		assertEquals(1f, window.color.a)
-		assertEquals(window.padLeft, window.titleTable.x, 0.01f)
-		assertEquals(window.height - window.padTop, window.titleTable.y, 0.01f)
-		assertEquals(window.width - window.padLeft - window.padRight, window.titleTable.width, 0.01f)
-		assertTrue(window.titleTable.y >= 0f)
+		assertEquals(transform, window.isTransform)
+		assertEquals(scale, window.scaleX)
+		assertEquals(alpha, window.color.a)
+		assertTrue(window.isManagerConcealed)
+		assertNull(window.hit(10f, 10f, true))
+		assertEquals(titleX, window.titleTable.x, 0.01f)
+		assertEquals(titleY, window.titleTable.y, 0.01f)
+		assertEquals(titleWidth, window.titleTable.width, 0.01f)
+
+		window.setManagerConcealed(false)
+
+		assertFalse(window.isManagerConcealed)
+		assertNotNull(window.hit(10f, 10f, true))
+		assertEquals(titleX, window.titleTable.x, 0.01f)
+		assertEquals(titleY, window.titleTable.y, 0.01f)
+		assertEquals(titleWidth, window.titleTable.width, 0.01f)
 	}
 
 	private fun pane(

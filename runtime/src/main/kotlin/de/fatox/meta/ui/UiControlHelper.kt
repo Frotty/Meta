@@ -137,6 +137,10 @@ class UiControlHelper {
 			override fun keyDown(keycode: Int): Boolean {
 				if (synthesizingCanonicalAction) return false
 				val action = uiBindings.actionForKey(keycode) ?: return false
+				if (hasTextEditingFocus()) {
+					cancelRepeat(action)
+					return false
+				}
 				handleActionDown(action, keycode)
 				return false
 			}
@@ -144,6 +148,10 @@ class UiControlHelper {
 			override fun keyUp(keycode: Int): Boolean {
 				if (synthesizingCanonicalAction) return false
 				val action = uiBindings.actionForKey(keycode) ?: return false
+				if (hasTextEditingFocus()) {
+					cancelRepeat(action)
+					return false
+				}
 				handleActionUp(action, keycode)
 				return false
 			}
@@ -192,7 +200,7 @@ class UiControlHelper {
 			override fun run() {
 				// While an exclusive grab is active, MetaInput routes keyUp to the grab owner only, so cancelRepeat
 				// would never be reached - self-cancel instead of stepping navigation forever behind the grab.
-				if (metaInput.exclusiveProcessor != null) {
+				if (metaInput.exclusiveProcessor != null || hasTextEditingFocus()) {
 					cancel()
 					return
 				}
@@ -205,6 +213,15 @@ class UiControlHelper {
 
 	private fun cancelRepeat(action: MetaUiAction) {
 		repeatTasks.remove(action)?.cancel()
+	}
+
+	/**
+	 * Scene2d keyboard focus is authoritative while text is being edited. UI navigation must not reinterpret arrows,
+	 * Enter, Escape, or custom-bound typing keys, otherwise the caret edit and controller selection diverge.
+	 */
+	private fun hasTextEditingFocus(): Boolean {
+		val stage = selectedActor.stage ?: focusedRoot?.stage ?: return false
+		return stage.keyboardFocus is TextField
 	}
 
 	private fun navigate(action: MetaUiAction) {

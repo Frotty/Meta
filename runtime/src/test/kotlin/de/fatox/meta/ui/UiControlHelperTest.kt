@@ -271,6 +271,51 @@ internal class UiControlHelperTest {
 	}
 
 	@Test
+	fun `arrow keys stay with text editing focus instead of moving UI selection`() {
+		val root = testRoot()
+		val textField = TextField("", TextField.TextFieldStyle(headlessFont(), Color.WHITE, null, null, null))
+			.apply { setBounds(0f, 60f, 120f, 24f) }
+		val nextButton = button(0f, 0f)
+		root.addActor(textField)
+		root.addActor(nextButton)
+		stage.addActor(root)
+		helper.focusFirstIn(root, textField)
+		stage.keyboardFocus = textField
+
+		input.keyDown(Input.Keys.DOWN)
+		input.keyUp(Input.Keys.DOWN)
+
+		assertSame(textField, stage.keyboardFocus)
+		assertSame(textField, helper.focusedActor.value)
+	}
+
+	@Test
+	fun `confirm does not activate another UI control while a text field owns keyboard focus`() {
+		val root = testRoot()
+		val textField = TextField("", TextField.TextFieldStyle(headlessFont(), Color.WHITE, null, null, null))
+			.apply { setBounds(0f, 60f, 120f, 24f) }
+		val button = button(0f, 0f)
+		var clicks = 0
+		button.addListener(object : ChangeListener() {
+			override fun changed(event: ChangeEvent, actor: Actor) {
+				clicks++
+			}
+		})
+		root.addActor(textField)
+		root.addActor(button)
+		stage.addActor(root)
+		helper.selectedActor = button
+		stage.keyboardFocus = textField
+
+		input.keyDown(Input.Keys.ENTER)
+		input.keyUp(Input.Keys.ENTER)
+
+		assertEquals(0, clicks)
+		assertSame(textField, stage.keyboardFocus)
+		assertSame(button, helper.focusedActor.value)
+	}
+
+	@Test
 	fun `custom keyboard confirm activates focused button and emits canonical enter`() {
 		val root = testRoot()
 		val button = button(0f, 0f)
