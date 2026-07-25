@@ -214,6 +214,22 @@ private fun requestedMonitor(requested: MetaDisplayMode): Graphics.Monitor {
 	}
 }
 
+private fun requestedDisplayMode(requested: MetaDisplayMode): Graphics.DisplayMode {
+	val monitor = requestedMonitor(requested)
+	val modes = Gdx.graphics.getDisplayModes(monitor)
+	for (i in modes.indices) {
+		val mode = modes[i]
+		if (requested.equalsDisplayMode(mode)) return mode
+	}
+	val current = Gdx.graphics.getDisplayMode(monitor)
+	log.warn(
+		"Requested fullscreen mode {}x{}@{} bpp={} on monitor {} is unavailable; using {}x{}@{} bpp={}",
+		requested.width, requested.height, requested.refreshRate, requested.bitsPerPixel, requested.monitorIndex,
+		current.width, current.height, current.refreshRate, current.bitsPerPixel,
+	)
+	return current
+}
+
 data class MetaAudioVideoData(
 	var profile: String = "default",
 	var hd: Boolean = true,
@@ -236,13 +252,10 @@ data class MetaAudioVideoData(
 	var windowedBoundsInitialized: Boolean = false,
 	var maximized: Boolean = false,
 ) {
-	/** Both persisted flags deliberately map to the same compositor-friendly borderless-windowed presentation. */
-	internal fun usesBorderlessPresentation(): Boolean = fullscreen || borderless
+	internal fun usesBorderlessPresentation(): Boolean = borderless
 
 	fun captureWindowedBounds() {
-		// Meta presents fullscreen as an undecorated monitor-sized window. Never overwrite the remembered decorated
-		// bounds with that temporary presentation, even though libGDX correctly reports it as "windowed".
-		if (usesBorderlessPresentation() || Gdx.graphics.isFullscreen) return
+		if (fullscreen || usesBorderlessPresentation() || Gdx.graphics.isFullscreen) return
 		if (Meta.instance.windowHandler.isMaximized) {
 			maximized = true
 			metaDisplayMode = Gdx.graphics.getDisplayMode(getCurrentMonitor()).toMetaDisplayMode()
@@ -269,30 +282,35 @@ data class MetaAudioVideoData(
 		)
 
 		var expectedBounds: IntArray? = null
-		if (usesBorderlessPresentation()) {
-				// Borderless is a monitor-sized window, not the previously saved decorated-window rectangle. Keep x/y/
-				// width/height untouched as windowed-mode history, and place this presentation on the selected monitor.
-				val monitor = requestedMonitor(metaDisplayMode)
-				val mode = Gdx.graphics.getDisplayMode(monitor)
-				metaDisplayMode = mode.toMetaDisplayMode()
-				Gdx.graphics.setUndecorated(true)
-				Gdx.graphics.setWindowedMode(mode.width, mode.height)
-				Meta.instance.windowHandler.modify(monitor.virtualX, monitor.virtualY)
-				expectedBounds = intArrayOf(monitor.virtualX, monitor.virtualY, mode.width, mode.height)
+		if (fullscreen) {
+			val mode = requestedDisplayMode(metaDisplayMode)
+			metaDisplayMode = mode.toMetaDisplayMode()
+			Gdx.graphics.setUndecorated(false)
+			Gdx.graphics.setFullscreenMode(mode)
+		} else if (usesBorderlessPresentation()) {
+			// Borderless is a monitor-sized window, not the previously saved decorated-window rectangle. Keep x/y/
+			// width/height untouched as windowed-mode history, and place this presentation on the selected monitor.
+			val monitor = requestedMonitor(metaDisplayMode)
+			val mode = Gdx.graphics.getDisplayMode(monitor)
+			metaDisplayMode = mode.toMetaDisplayMode()
+			Gdx.graphics.setUndecorated(true)
+			Gdx.graphics.setWindowedMode(mode.width, mode.height)
+			Meta.instance.windowHandler.modify(monitor.virtualX, monitor.virtualY)
+			expectedBounds = intArrayOf(monitor.virtualX, monitor.virtualY, mode.width, mode.height)
 		} else {
-				val restored = safeWindowedBounds()
-				x = restored[0]
-				y = restored[1]
-				width = restored[2]
-				height = restored[3]
-				Gdx.graphics.setUndecorated(false)
-				Gdx.graphics.setWindowedMode(width, height)
-				Meta.instance.windowHandler.modify(x, y)
-				if (maximized) {
-					Meta.instance.windowHandler.maximize()
-				} else {
-					expectedBounds = intArrayOf(x, y, width, height)
-				}
+			val restored = safeWindowedBounds()
+			x = restored[0]
+			y = restored[1]
+			width = restored[2]
+			height = restored[3]
+			Gdx.graphics.setUndecorated(false)
+			Gdx.graphics.setWindowedMode(width, height)
+			Meta.instance.windowHandler.modify(x, y)
+			if (maximized) {
+				Meta.instance.windowHandler.maximize()
+			} else {
+				expectedBounds = intArrayOf(x, y, width, height)
+			}
 		}
 		Gdx.graphics.setVSync(vsyncEnabled)
 		// LWJGL3 treats 0 as "never sleep" (uncapped); map any non-positive value to that.
