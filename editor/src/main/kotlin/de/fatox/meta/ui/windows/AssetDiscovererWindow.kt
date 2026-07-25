@@ -95,7 +95,9 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		visTable2.setSize(((width - 128).toInt()).toFloat(), height - 64)
 		visTable2.row().height(78f)
 		var counter = 0f
-		for (file in assetDiscoverer.currentChildFiles!!) {
+		val childFiles = assetDiscoverer.currentChildFiles!!
+		for (index in 0 until childFiles.size) {
+			val file = childFiles[index]
 			val fileButton =
 				MetaIconTextButton(file.name(), "ri-file-text-line", maxWidth = 78, vertical = true)
 			fileButton.onClick {
@@ -132,8 +134,9 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 				}
 			})
 		}
-		for (child in assetDiscoverer.currentChildFolders!!) {
-			adapter!!.add(FolderModel(child))
+		val childFolders = assetDiscoverer.currentChildFolders!!
+		for (index in 0 until childFolders.size) {
+			adapter!!.add(FolderModel(childFolders[index]))
 		}
 		view.rebuildView()
 	}

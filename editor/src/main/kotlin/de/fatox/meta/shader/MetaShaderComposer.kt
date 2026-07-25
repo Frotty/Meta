@@ -55,7 +55,10 @@ class MetaShaderComposer {
 			compositions.clear()
 			val compositionFolder = projectManager.currentProjectRoot.child("meta/compositions/")
 			if (compositionFolder.exists()) {
-				for (metaComp in compositionFolder.list { pathname -> pathname.name.endsWith(META_COMP_SUFFIX) }) {
+				val compositionFiles =
+					compositionFolder.list { pathname -> pathname.name.endsWith(META_COMP_SUFFIX) }
+				for (index in compositionFiles.indices) {
+					val metaComp = compositionFiles[index]
 					val compositionData = json.fromJson(MetaShaderCompData::class.java, metaComp.readString())
 					addComposition(ShaderComposition(metaComp, compositionData))
 				}

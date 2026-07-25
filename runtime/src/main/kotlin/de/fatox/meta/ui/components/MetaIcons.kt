@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.ObjectMap
+import de.fatox.meta.api.extensions.forEachEntryReentrant
 
 object MetaIcons {
 	const val INDEX_PATH: String = "ui/icons/remixicon.tsv"
@@ -36,16 +37,14 @@ object MetaIcons {
 
 	fun names(): Array<String> {
 		val result = Array<String>(icons.size)
-		val keys = icons.keys()
-		while (keys.hasNext()) result.add(keys.next())
+		icons.forEachEntryReentrant { name, _ -> result.add(name) }
 		result.sort()
 		return result
 	}
 
 	fun entries(): Array<IconInfo> {
 		val result = Array<IconInfo>(icons.size)
-		val values = icons.values()
-		while (values.hasNext()) result.add(values.next())
+		icons.forEachEntryReentrant { _, info -> result.add(info) }
 		result.sort { a, b -> a.name.compareTo(b.name) }
 		return result
 	}
@@ -55,9 +54,7 @@ object MetaIcons {
 		val result = Array<IconInfo>()
 		if (needle.isEmpty() || limit <= 0) return result
 
-		val values = icons.values()
-		while (values.hasNext()) {
-			val info = values.next()
+		icons.forEachEntryReentrant { _, info ->
 			if (info.name.lowercase().contains(needle) || info.category.lowercase().contains(needle)) {
 				result.add(info)
 			}
@@ -77,8 +74,9 @@ object MetaIcons {
 			throw GdxRuntimeException("Remix Icon index not found: $INDEX_PATH")
 		}
 
-		val lines = file.readString("UTF-8").lineSequence()
-		for (line in lines) {
+		val lines = file.readString("UTF-8").lines()
+		for (index in lines.indices) {
+			val line = lines[index]
 			if (line.isEmpty() || line[0] == '#') continue
 			val columns = line.split('\t')
 			if (columns.size < 2) continue

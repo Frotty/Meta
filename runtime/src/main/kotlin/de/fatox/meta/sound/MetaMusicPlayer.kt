@@ -11,6 +11,7 @@ import com.badlogic.gdx.utils.Timer.Task
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.error
+import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.api.get
 import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -216,7 +217,7 @@ class MetaMusicPlayer : Disposable {
 		task.cancel()
 		// allPool only ever holds Music instances already present in musicCache, so disposing
 		// via musicCache covers both pooled and directly-played (playMusic/getMusic-only) tracks.
-		musicCache.values().forEach { it.dispose() }
+		musicCache.forEachEntryReentrant { _, music -> music.dispose() }
 		musicCache.clear()
 		activePool.clear()
 		allPool.clear()

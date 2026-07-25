@@ -43,7 +43,9 @@ class WindowConfig {
 	internal fun <T : Window> create(windowClass: KClass<out T>): T = create(nameOf(windowClass))
 
 	internal fun disposeCachedWindows() {
-		for (window in singletonCache.values) {
+		val cachedWindows = singletonCache.values.toTypedArray()
+		for (index in cachedWindows.indices) {
+			val window = cachedWindows[index]
 			if (window is Disposable) {
 				runCatching { window.dispose() }
 					.onFailure { logger.error("Failed to dispose cached window ${window.javaClass.name}", it) }
@@ -94,12 +96,19 @@ val logger = MetaLoggerFactory.logger {}
 
 inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
 	val gameName: String = MetaInject.inject("gameName")
-	Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list().forEach { screenId ->
-		if (screenId.isDirectory)
-			screenId.list().firstOrNull { it.name() == T::class.qualifiedName }?.let { windowId ->
+	val screenFolders = Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list()
+	for (screenIndex in screenFolders.indices) {
+		val screenId = screenFolders[screenIndex]
+		if (screenId.isDirectory) {
+			val windowFiles = screenId.list()
+			for (windowIndex in windowFiles.indices) {
+				val windowId = windowFiles[windowIndex]
+				if (windowId.name() != T::class.qualifiedName) continue
 				logger.debug("Found legacy window name: ${windowId.name()}, replacing with $name")
 				windowId.moveTo(windowId.sibling(name))
+				break
 			}
+		}
 	}
 }
 

@@ -101,8 +101,8 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 
 	private fun loadBuffers(buffers: Array<RenderBufferHandle>) {
 		bufferTable.clear()
-		for (buffer in buffers) {
-			loadBuffer(buffer)
+		for (index in 0 until buffers.size) {
+			loadBuffer(buffers[index])
 		}
 	}
 

@@ -7,6 +7,8 @@ buildscript {
 	}
 }
 
+apply from: "$rootDir/gradle/iteration-safety.gradle"
+
 allprojects {
 	apply plugin: 'eclipse'
 	apply plugin: 'idea'

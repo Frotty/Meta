@@ -5,6 +5,7 @@ import com.badlogic.gdx.controllers.ControllerListener
 import com.badlogic.gdx.utils.IntSet
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.api.extensions.forEachIntReentrant
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.absoluteValue
 
@@ -115,10 +116,7 @@ object MetaControllerListener : ControllerListener {
 	}
 
 	private fun releaseButtonKeys() {
-		val iterator = downButtonKeys.iterator()
-		while (iterator.hasNext) {
-			emitKeyUp(iterator.next())
-		}
+		downButtonKeys.forEachIntReentrant(::emitKeyUp)
 		downButtonKeys.clear()
 	}
 

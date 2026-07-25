@@ -9,7 +9,6 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.Timer
 import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.api.model.MetaAudioVideoState
@@ -19,11 +18,17 @@ import kotlin.math.sqrt
 
 private val log = MetaLoggerFactory.logger {}
 private val soundSourceMap = ObjectMap<MetaPositionalSoundDefinition, MetaSoundClustering>()
+private val soundClusterings = Array<MetaSoundClustering>()
 private var focusVolume = 1f
 
 fun addSoundSource(soundDefinition: MetaPositionalSoundDefinition, position: Vector2): MetaSoundSource {
 	val source = MetaSoundSource(soundDefinition, position)
-	val clustering = soundSourceMap.getOrPut(source.definition) { MetaSoundClustering(source.definition) }
+	var clustering = soundSourceMap[source.definition]
+	if (clustering == null) {
+		clustering = MetaSoundClustering(source.definition)
+		soundSourceMap.put(source.definition, clustering)
+		soundClusterings.add(clustering)
+	}
 	clustering.sources.add(source)
 	return source
 }
@@ -38,6 +43,7 @@ fun removeSoundSource(source: MetaSoundSource) {
 		soundClustering.clusters.clear()
 		soundClustering.sourcesNear.clear()
 		soundSourceMap.remove(source.definition)
+		soundClusterings.removeValue(soundClustering, true)
 	}
 }
 
@@ -46,13 +52,14 @@ fun silencePositionalSounds(flag: Boolean) {
 }
 
 fun updateSoundSources(listenerPos: Vector2, delta: Float) {
-	for (value in soundSourceMap.values()) {
-		value.update(listenerPos, delta)
+	for (index in 0 until soundClusterings.size) {
+		soundClusterings[index].update(listenerPos, delta)
 	}
 }
 
 fun stopAllSoundSources() {
-	for (value in soundSourceMap.values()) {
+	for (index in 0 until soundClusterings.size) {
+		val value = soundClusterings[index]
 		for (i in value.clusters.size - 1 downTo 0) {
 			value.clusters[i].stopNow()
 			value.clusters[i].sources.clear()
@@ -62,6 +69,7 @@ fun stopAllSoundSources() {
 		value.sourcesNear.clear()
 	}
 	soundSourceMap.clear()
+	soundClusterings.clear()
 }
 
 /** Backwards-compatible alias for callers that only manage positional loop sources through this API. */

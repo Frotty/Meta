@@ -164,7 +164,8 @@ class MetaUiInputBindings {
 	}
 
 	fun actionForKey(keycode: Int): MetaUiAction? {
-		for (action in MetaUiAction.entries) {
+		for (actionIndex in MetaUiAction.entries.indices) {
+			val action = MetaUiAction.entries[actionIndex]
 			val keys = keyboardBindings[action] ?: continue
 			for (i in keys.indices) if (keys[i] == keycode) return action
 		}
@@ -172,7 +173,8 @@ class MetaUiInputBindings {
 	}
 
 	fun actionForButton(controller: Controller, buttonCode: Int): MetaUiAction? {
-		for (action in MetaUiAction.entries) {
+		for (actionIndex in MetaUiAction.entries.indices) {
+			val action = MetaUiAction.entries[actionIndex]
 			val bindings = controllerBindings[action] ?: continue
 			for (i in bindings.indices) if (bindings[i].matches(controller, buttonCode)) return action
 		}
@@ -194,12 +196,18 @@ class MetaUiInputBindings {
 		}
 
 	private fun String.toUiActionOrNull(): MetaUiAction? {
-		for (action in MetaUiAction.entries) if (action.name == this) return action
+		for (index in MetaUiAction.entries.indices) {
+			val action = MetaUiAction.entries[index]
+			if (action.name == this) return action
+		}
 		return null
 	}
 
 	private fun String.toControllerButtonOrNull(): MetaControllerButton? {
-		for (button in MetaControllerButton.entries) if (button.name == this) return button
+		for (index in MetaControllerButton.entries.indices) {
+			val button = MetaControllerButton.entries[index]
+			if (button.name == this) return button
+		}
 		return null
 	}
 }

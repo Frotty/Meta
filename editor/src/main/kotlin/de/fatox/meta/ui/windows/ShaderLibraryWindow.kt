@@ -48,8 +48,9 @@ class ShaderLibraryWindow : MetaWindow("Shader Library", true, true) {
 		visTable.defaults().pad(4f)
 		scrollPane = MetaScrollPane(visTable)
 		contentTable.add(scrollPane).top().grow()
-		for (shader in shaderLibrary.getLoadedShaders()) {
-			addShader(shader)
+		val shaders = shaderLibrary.getLoadedShaders()
+		for (index in 0 until shaders.size) {
+			addShader(shaders[index])
 		}
 	}
 }

@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.utils.ObjectMap
+import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.ui.MetaColor
 
 internal class MetaButtonFocusStyle(
@@ -144,10 +145,8 @@ internal class MetaDisabledTint(private val root: Group) {
 	}
 
 	private fun restore() {
-		val entries = originalColors.entries()
-		while (entries.hasNext()) {
-			val entry = entries.next()
-			entry.key.color.set(entry.value)
+		originalColors.forEachEntryReentrant { actor, color ->
+			actor.color.set(color)
 		}
 		originalColors.clear()
 	}

@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.IntMap
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.get
@@ -79,7 +80,7 @@ class MetaFontProvider : FontProvider {
 	}
 
 	private fun orphanFonts(fontMap: IntMap<BitmapFont>) {
-		for (entry in fontMap.entries()) orphanedFonts.add(entry.value)
+		fontMap.forEachEntryReentrant { _, font -> orphanedFonts.add(font) }
 		fontMap.clear()
 	}
 
@@ -105,7 +106,7 @@ class MetaFontProvider : FontProvider {
 	}
 
 	private fun disposeAll(fontMap: IntMap<BitmapFont>) {
-		for (entry in fontMap.entries()) disposeFont(entry.value)
+		fontMap.forEachEntryReentrant { _, font -> disposeFont(font) }
 		fontMap.clear()
 	}
 

@@ -23,7 +23,7 @@ class MetaIconButtonGroup {
 	constructor()
 
 	constructor(vararg buttons: MetaIconButton) {
-		for (button in buttons) add(button)
+		for (index in buttons.indices) add(buttons[index])
 	}
 
 	fun add(button: MetaIconButton, selected: Boolean = false): MetaIconButton {

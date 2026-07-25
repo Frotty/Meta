@@ -235,7 +235,8 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 
 	private fun jsonEscape(value: String): String =
 		buildString(value.length + 16) {
-			for (char in value) {
+			for (index in value.indices) {
+				val char = value[index]
 				when (char) {
 					'\\' -> append("\\\\")
 					'"' -> append("\\\"")

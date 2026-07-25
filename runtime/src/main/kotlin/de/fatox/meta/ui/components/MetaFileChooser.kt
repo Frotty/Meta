@@ -120,7 +120,8 @@ class MetaFileChooser(val mode: Mode) : MetaWindow(
 		pathLabel.setText(directory.path())
 		entries.clearChildren()
 		val listed = directory.list().sortedWith(compareBy<FileHandle>({ !it.isDirectory }, { it.name().lowercase() }))
-		for (entry in listed) {
+		for (index in listed.indices) {
+			val entry = listed[index]
 			if (!entry.isDirectory && fileTypeFilterValue.peek()?.accepts(entry) == false) continue
 			val row = MetaIconTextButton(entry.name(), if (entry.isDirectory) "ri-folder-line" else "ri-file-line",
 				size = MetaType.BODY, iconSize = 18).apply { left() }
@@ -178,7 +179,9 @@ class MetaFileTypeFilter(private val allTypesAllowed: Boolean) {
 	private val extensions = com.badlogic.gdx.utils.ObjectSet<String>()
 
 	fun addRule(description: String, vararg extensions: String) {
-		for (extension in extensions) this.extensions.add(extension.lowercase().trimStart('.'))
+		for (index in extensions.indices) {
+			this.extensions.add(extensions[index].lowercase().trimStart('.'))
+		}
 	}
 
 	internal fun accepts(file: FileHandle): Boolean = allTypesAllowed || extensions.size == 0 ||

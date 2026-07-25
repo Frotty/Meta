@@ -71,7 +71,9 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun loadPackedAssetsFromFolder(folder: FileHandle): Boolean {
 		if (folder.isDirectory) {
-			for (itrHandle in folder.list()) {
+			val children = folder.list()
+			for (childIndex in children.indices) {
+				val itrHandle = children[childIndex]
 				if (itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) {
 					val list = getList(itrHandle)
 					for (index in 0 until list.size) {
@@ -93,7 +95,9 @@ class MetaAssetProvider : AssetProvider {
 		// always stripping out `rootFolderName` from the path.
 		fun loadFolderRecursively(currentFolder: FileHandle, rootFolderName: String) {
 			// List everything in currentFolder
-			for (child in currentFolder.list()) {
+			val children = currentFolder.list()
+			for (childIndex in children.indices) {
+				val child = children[childIndex]
 				if (child.isDirectory) {
 					// Recurse into subdirectories
 					loadFolderRecursively(child, rootFolderName)

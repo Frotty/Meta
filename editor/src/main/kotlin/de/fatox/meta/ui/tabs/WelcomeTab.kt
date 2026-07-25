@@ -53,7 +53,8 @@ class WelcomeTab : MetaTab(false, false) {
 		visTable.add(actions).padBottom(16f)
 		if (!metaData.has(lastProjectsKey)) metaData.save(lastProjectsKey, Array())
 		val lastProjects = metaData[lastProjectsKey]
-		for (lastProj in lastProjects) {
+		for (index in 0 until lastProjects.size) {
+			val lastProj = lastProjects[index]
 			visTable.row()
 			val linkLabel = MetaTextButton(lastProj.substring(0, lastProj.lastIndexOf("/")), 14)
 				.onClick { projectManager.loadProject(Gdx.files.absolute(lastProj)) }

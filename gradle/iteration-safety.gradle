@@ -1,0 +1,79 @@
+/*
+ * Kotlin resolves members before extensions, so Meta cannot deprecate or shadow libGDX's iterator() methods.
+ * This lexical guard keeps iterator-based collection syntax out of production Kotlin instead. It intentionally
+ * accepts only compiler-special-cased index/range loops; lifecycle code that must traverse a libGDX map can use
+ * the fresh-iterator helpers in api/extensions/Collection.kt.
+ */
+
+def productionKotlinSources = files(subprojects.collect { project ->
+	project.fileTree('src/main') {
+		include '**/*.kt'
+	}
+})
+
+def iterationSafetyTask = tasks.register('verifyKotlinIterationSafety') {
+	group = 'verification'
+	description = 'Rejects implicit or cached iterator use in production Kotlin sources.'
+	inputs.files(productionKotlinSources)
+
+	doLast {
+		def violations = []
+
+		productionKotlinSources.files.sort { first, second -> first.path <=> second.path }.each { sourceFile ->
+			sourceFile.eachLine('UTF-8') { rawLine, lineNumber ->
+				def trimmed = rawLine.trim()
+				if (trimmed.isEmpty() || trimmed.startsWith('//') || trimmed.startsWith('/*') ||
+					trimmed.startsWith('*') || trimmed.startsWith('*/')) {
+					return
+				}
+
+				def code = rawLine.replaceFirst(/\/\/.*$/, '')
+				if (code.contains('GDXKotlinUnsafeIterator')) {
+					violations.add("${sourceFile}:${lineNumber}: do not suppress GDXKotlinUnsafeIterator")
+				}
+
+				def forStart = code =~ /\bfor\s*\(/
+				if (forStart.find()) {
+					def forLoop = code =~ /\bfor\s*\((.*)\)/
+					if (!forLoop.find()) {
+						violations.add("${sourceFile}:${lineNumber}: keep for-loop headers on one line so the safety guard can verify them")
+					} else {
+						def header = forLoop.group(1)
+						def inOperator = header =~ /\s+in\s+/
+						if (inOperator.find()) {
+							def expression = header.substring(inOperator.end()).trim()
+							def indexed = expression.contains('.indices') ||
+								(expression =~ /\buntil\b/).find() ||
+								(expression =~ /\bdownTo\b/).find() ||
+								expression.contains('..')
+							if (!indexed) {
+								violations.add("${sourceFile}:${lineNumber}: iterator-based for-loop; use indices/ranges or a Meta iteration helper")
+							}
+						}
+					}
+				}
+
+				if ((code =~ /\.(?:forEach|forEachIndexed)\s*[\(\{]/).find()) {
+					violations.add("${sourceFile}:${lineNumber}: iterator-based Kotlin helper; use indices/ranges or forEachValue/forEachIndexedValue")
+				}
+				if ((code =~ /\.(?:iterator|entries|values|keys)\s*\(\s*\)/).find()) {
+					violations.add("${sourceFile}:${lineNumber}: cached iterator accessor; use indexed access or a reentrant Meta map helper")
+				}
+			}
+		}
+
+		if (!violations.isEmpty()) {
+			throw new GradleException(
+				"Unsafe Kotlin iteration found (${violations.size()}):\n" +
+					violations.collect { "  - ${it}" }.join('\n') +
+					"\nSee AGENTS.md: libGDX iterators are cached and are not reentrant-safe."
+			)
+		}
+	}
+}
+
+subprojects {
+	tasks.matching { task -> task.name == 'compileKotlin' || task.name == 'check' }.configureEach {
+		dependsOn(iterationSafetyTask)
+	}
+}

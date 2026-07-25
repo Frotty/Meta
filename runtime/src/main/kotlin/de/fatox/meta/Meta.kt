@@ -38,7 +38,9 @@ inline fun <reified T : Screen> ScreenConfig.register(
 	noinline creator: () -> T,
 ) {
 	val gameName: String = MetaInject.inject("gameName")
-	Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list().forEach { screenId ->
+	val screenFolders = Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list()
+	for (index in screenFolders.indices) {
+		val screenId = screenFolders[index]
 		if (screenId.isDirectory && screenId.name().equals(T::class.qualifiedName, ignoreCase = true)) {
 			logger.debug("Found legacy screen name: ${screenId.name()}, replacing with $name")
 			screenId.moveTo(screenId.sibling(name))

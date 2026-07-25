@@ -7,16 +7,15 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.math.Matrix3
 import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.utils.ObjectMap
+import de.fatox.meta.api.extensions.forEachEntryReentrant
 
 object UniformAssignments {
 	val customAssignments = ObjectMap<String, (ShaderProgram, Camera, RenderContext, Renderable?) -> Unit>()
 
 	fun assignCustomUniforms(program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable? = null) {
-		val assignments = customAssignments.entries()
-		while (assignments.hasNext()) {
-			val assignment = assignments.next()
-			if (program.hasUniform(assignment.key)) {
-				assignment.value.invoke(program, cam, context, renderable)
+		customAssignments.forEachEntryReentrant { name, assignment ->
+			if (program.hasUniform(name)) {
+				assignment.invoke(program, cam, context, renderable)
 			}
 		}
 	}

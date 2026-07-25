@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -242,9 +243,7 @@ class MetaSoundPlayer {
 	 */
 	fun stopAllSounds() {
 		stopAllSoundSources()
-		val handleGroups = playingHandles.values()
-		while (handleGroups.hasNext()) {
-			val soundHandles = handleGroups.next()
+		playingHandles.forEachEntryReentrant { _, soundHandles ->
 			for (i in soundHandles.size - 1 downTo 0) {
 				stopSound(soundHandles[i], false)
 			}

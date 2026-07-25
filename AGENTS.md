@@ -191,8 +191,11 @@ here is **allocation rate** — minimize GC churn; most other micro-optimization
 - **libGDX collection iterator quirk:** never iterate a libGDX `Array` with `for (value in array)`, `forEach`, or an
   explicit iterator. libGDX reuses its `Array` iterators, so nested iteration over the same array can invalidate the
   outer iterator and fail at runtime. Use an indexed loop (`for (i in 0 until array.size) array[i]`) whenever random
-  access is available; it is nesting-safe and avoids iterator overhead. Do not suppress `GDXKotlinUnsafeIterator` to
-  permit iterator-based loops.
+  access is available; it is nesting-safe and avoids iterator overhead. `Array.forEachValue` and
+  `forEachIndexedValue` are inline indexed conveniences. Lifecycle/setup traversal of `ObjectMap`, `IntMap`, or
+  `LongMap` can use `forEachEntryReentrant`, which allocates a fresh iterator; hot paths need an indexed data layout.
+  Do not suppress `GDXKotlinUnsafeIterator` to permit iterator-based loops. The `verifyKotlinIterationSafety` Gradle
+  task enforces these production-source rules and runs automatically before `compileKotlin` and `check`.
 - **Beware hidden allocations:** Kotlin lambdas that capture, autoboxing of `Int`/`Float` into generic collections,
   varargs, and iterator-based loops over other collection types.
 - **Don't chase what the JVM hides from you.** Cache-line layout, struct packing, manual SIMD, branch-elimination etc.

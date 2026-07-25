@@ -34,7 +34,9 @@ class AssetDiscoverer {
 	fun refresh() {
 		currentChildFolders = Array()
 		currentChildFiles = Array()
-		for (child in currentFolder!!.list()) {
+		val children = currentFolder!!.list()
+		for (index in children.indices) {
+			val child = children[index]
 			if (child.isDirectory) {
 				currentChildFolders!!.add(child)
 			} else {

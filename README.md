@@ -153,10 +153,16 @@ Named default providers can be replaced by a consumer during startup.
 The Gradle wrapper is authoritative:
 
 ```powershell
+.\gradlew.bat verifyKotlinIterationSafety
 .\gradlew.bat :runtime:compileKotlin
 .\gradlew.bat :runtime:test
 .\gradlew.bat :runtime-desktop:compileKotlin :editor:compileKotlin :editor-desktop:compileKotlin
 ```
+
+`compileKotlin` and `check` run the iteration guard automatically. Production Kotlin must use index/range loops for
+collections. `Array.forEachValue` and `forEachIndexedValue` are allocation-free, reentrant-safe conveniences;
+`ObjectMap`/`IntMap`/`LongMap.forEachEntryReentrant` are safe for nested lifecycle/setup traversal but allocate a fresh
+iterator and therefore do not belong in per-frame paths.
 
 Run the UI playground with:
 

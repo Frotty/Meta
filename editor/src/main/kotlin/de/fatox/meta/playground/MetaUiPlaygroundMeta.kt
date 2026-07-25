@@ -37,7 +37,9 @@ class MetaUiPlaygroundMeta(
 					assetProvider.loadRawAssetsFromFolder(Gdx.files.internal("."))
 					val dataFolders = Array<FileHandle>()
 					dataFolders.add(Gdx.files.internal("data/"))
-					for (folder in dataFolders) assetProvider.loadPackedAssetsFromFolder(folder)
+					for (index in 0 until dataFolders.size) {
+						assetProvider.loadPackedAssetsFromFolder(dataFolders[index])
+					}
 				}
 			}
 		}

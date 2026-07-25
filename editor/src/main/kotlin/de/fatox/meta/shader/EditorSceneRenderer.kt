@@ -184,8 +184,16 @@ class EditorSceneRenderer : Renderer {
 			if (activeScene.data.showGrid) {
 				staticModelCache.add(grid.actorModel)
 			}
-			for (entity in activeScene.entityManager.staticEntities) {
-				staticModelCache.add(entity.actorModel)
+			val entities = activeScene.entityManager.staticEntities
+			if (entities is com.badlogic.gdx.utils.Array<*>) {
+				for (index in 0 until entities.size) {
+					staticModelCache.add((entities[index] as Meta3DEntity).actorModel)
+				}
+			} else {
+				// EntityManager is a compatibility interface typed as Iterable. Snapshot non-libGDX implementations;
+				// the built-in manager takes the indexed branch above and never touches Array's cached traversal.
+				val snapshot = entities.toList()
+				for (index in snapshot.indices) staticModelCache.add(snapshot[index].actorModel)
 			}
 		}
 		staticModelCache.end()

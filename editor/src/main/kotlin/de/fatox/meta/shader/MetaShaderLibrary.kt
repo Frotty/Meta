@@ -29,7 +29,7 @@ class MetaShaderLibrary {
 	private fun notifyChanged() = _changes.update { it + 1 }
 
 	val defaultShaderPath: String
-		get() = projectManager.relativize(loadedShaders.values().next().shaderHandle)
+		get() = projectManager.relativize(metaShaders.first().shaderHandle)
 
 	init {
 		projectManager.addOnLoadListener {
@@ -94,8 +94,9 @@ class MetaShaderLibrary {
 		if (projectManager.hasCurrentProject) {
 			val shaderFolder = projectManager.currentProjectRoot.child(INTERNAL_SHADER_PATH)
 			if (shaderFolder.exists()) {
-				for (metaShaderDef in shaderFolder.list { pathname -> pathname.name.endsWith(META_SHADER_SUFFIX) }) {
-					loadShader(metaShaderDef, true)
+				val shaderFiles = shaderFolder.list { pathname -> pathname.name.endsWith(META_SHADER_SUFFIX) }
+				for (index in shaderFiles.indices) {
+					loadShader(shaderFiles[index], true)
 				}
 			}
 		}

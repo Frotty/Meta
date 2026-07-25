@@ -150,9 +150,10 @@ internal fun dockZoneBounds(
 internal data class MetaDockWidths(val left: Float?, val right: Float?)
 
 /** The sidebar may be compact, but never narrower than the widest window's declared usable minimum. */
-internal fun resolveDockMinimum(configuredMinimum: Float, windowMinimums: Iterable<Float>): Float? {
+internal fun resolveDockMinimum(configuredMinimum: Float, windowMinimums: List<Float>): Float? {
 	var minimum: Float? = null
-	for (windowMinimum in windowMinimums) {
+	for (index in windowMinimums.indices) {
+		val windowMinimum = windowMinimums[index]
 		val usableMinimum = windowMinimum.coerceAtLeast(configuredMinimum)
 		minimum = minimum?.coerceAtLeast(usableMinimum) ?: usableMinimum
 	}

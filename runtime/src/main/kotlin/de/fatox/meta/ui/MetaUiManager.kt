@@ -28,6 +28,7 @@ import de.fatox.meta.api.NoWindowHandler
 import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.api.extensions.warn
 import de.fatox.meta.api.model.MetaWindowData
 import de.fatox.meta.api.ui.UIManager
@@ -289,7 +290,8 @@ class MetaUiManager : UIManager {
 
 	private fun restoreWindows() {
 		val list = metaData.getCachedHandle(MetaDataKey<Any>(currentScreenId)).list()
-		outer@ for (fh: FileHandle in list) {
+		outer@ for (fileIndex in list.indices) {
+			val fh: FileHandle = list[fileIndex]
 			if (fh.name().endsWith("Window")) {
 				val windowClass: KClass<out Window>? = windowConfig.nameToClass[fh.name()]
 				if (windowClass != null) {
@@ -1094,8 +1096,8 @@ class MetaUiManager : UIManager {
 
 	private fun flushPendingSaves() {
 		if (pendingSaves.isEmpty) return
-		for (entry in pendingSaves.entries()) {
-			metaData.save(entry.key, entry.value)
+		pendingSaves.forEachEntryReentrant { key, value ->
+			metaData.save(key, value)
 		}
 		pendingSaves.clear()
 	}
@@ -1164,9 +1166,7 @@ class MetaUiManager : UIManager {
 		clearDockIndicators()
 		windowConfig.disposeCachedWindows()
 		releaseAllWindowIsolations()
-		for (entry in concealedWindows.entries()) {
-			val window = entry.key
-			val state = entry.value
+		concealedWindows.forEachEntryReentrant { window, state ->
 			if (window is MetaWindow) window.setManagerConcealed(false)
 			else {
 				window.color.a = state.alpha

@@ -383,7 +383,9 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 
 		fun getManagedStatus(builder: StringBuilder): StringBuilder {
 			builder.append("Managed buffers/app: { ")
-			for (app in buffers.keys) {
+			val applications = buffers.keys.toTypedArray()
+			for (index in applications.indices) {
+				val app = applications[index]
 				builder.append(buffers[app]!!.size)
 				builder.append(" ")
 			}
