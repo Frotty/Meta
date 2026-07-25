@@ -198,16 +198,22 @@ class MetaMusicPlayer : Disposable {
 	}
 
 	private var vol = 1f
+	private var focusSilenced = false
 	fun silenceMusic(musicEnabled: Boolean) {
 		if (currentMusic !== UninitializedMusic) {
 			if (musicEnabled) {
-				currentMusic.volume = vol
+				focusSilenced = false
+				currentMusic.volume = vol.coerceAtLeast(startVolume)
 				start()
 			} else {
-				vol = currentMusic.volume
+				if (!focusSilenced && currentMusic.volume > startVolume) vol = currentMusic.volume
+				focusSilenced = true
 				currentMusic.volume = 0f
 				task.cancel()
 			}
+		} else if (!musicEnabled) {
+			focusSilenced = true
+			task.cancel()
 		}
 	}
 
