@@ -1,11 +1,14 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.TextArea
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.extensions.cursorText
 import de.fatox.meta.api.graphics.FontProvider
@@ -35,6 +38,7 @@ open class MetaTextArea @JvmOverloads constructor(
 	private val validStyle = MetaTextField.textFieldStyle(fontSize, fontProvider, MetaSkin.TEXT_AREA)
 	private val invalidStyle = MetaTextField.textFieldStyle(fontSize, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
 	private val fontTracker = FontGenerationTracker()
+	private val placeholderLayout = GlyphLayout()
 	private var metaInitialized = false
 
 	val textValue: Signal<String> = signal(text)
@@ -121,6 +125,14 @@ open class MetaTextArea @JvmOverloads constructor(
 	// with no pixel-grid awareness, unlike MetaLabel - snap it so multi-line input stays crisp at every UI scale.
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		drawPixelSnapped(batch, parentAlpha, style.font.physicalPixelsPerUnit()) { b, a -> super.draw(b, a) }
+	}
+
+	override fun drawMessageText(batch: Batch, font: BitmapFont, x: Float, y: Float, maxWidth: Float) {
+		val message = messageText
+		if (message.isNullOrEmpty()) return
+		val color = style.messageFontColor ?: font.color
+		placeholderLayout.setText(font, message, 0, message.length, color, maxWidth, Align.left, true, null)
+		font.draw(batch, placeholderLayout, x, y)
 	}
 
 	private companion object {
