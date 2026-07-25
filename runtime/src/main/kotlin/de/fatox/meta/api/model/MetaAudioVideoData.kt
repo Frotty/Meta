@@ -91,7 +91,7 @@ object MetaDisplayTransition {
 			Gdx.graphics.height,
 			Meta.instance.windowHandler.x,
 			Meta.instance.windowHandler.y,
-			expected?.let { "${it[2]}x${it[3]} at ${it[0]},${it[1]}" } ?: "fullscreen",
+			expected?.let { "${it[2]}x${it[3]} at ${it[0]},${it[1]}" } ?: "dynamic",
 		)
 	}
 }
@@ -234,6 +234,7 @@ data class MetaAudioVideoData(
 	var metaDisplayMode: MetaDisplayMode = MetaDisplayMode(),
 	var runWithUI: Boolean = true,
 	var windowedBoundsInitialized: Boolean = false,
+	var maximized: Boolean = false,
 ) {
 	/** Both persisted flags deliberately map to the same compositor-friendly borderless-windowed presentation. */
 	internal fun usesBorderlessPresentation(): Boolean = fullscreen || borderless
@@ -242,10 +243,17 @@ data class MetaAudioVideoData(
 		// Meta presents fullscreen as an undecorated monitor-sized window. Never overwrite the remembered decorated
 		// bounds with that temporary presentation, even though libGDX correctly reports it as "windowed".
 		if (usesBorderlessPresentation() || Gdx.graphics.isFullscreen) return
+		if (Meta.instance.windowHandler.isMaximized) {
+			maximized = true
+			metaDisplayMode = Gdx.graphics.getDisplayMode(getCurrentMonitor()).toMetaDisplayMode()
+			windowedBoundsInitialized = true
+			return
+		}
 		x = Meta.instance.windowHandler.x
 		y = Meta.instance.windowHandler.y
 		width = Gdx.graphics.width
 		height = Gdx.graphics.height
+		maximized = false
 		// Remember which monitor owns these bounds for the next fullscreen/borderless transition.
 		metaDisplayMode = Gdx.graphics.getDisplayMode(getCurrentMonitor()).toMetaDisplayMode()
 		windowedBoundsInitialized = true
@@ -280,7 +288,11 @@ data class MetaAudioVideoData(
 				Gdx.graphics.setUndecorated(false)
 				Gdx.graphics.setWindowedMode(width, height)
 				Meta.instance.windowHandler.modify(x, y)
-				expectedBounds = intArrayOf(x, y, width, height)
+				if (maximized) {
+					Meta.instance.windowHandler.maximize()
+				} else {
+					expectedBounds = intArrayOf(x, y, width, height)
+				}
 		}
 		Gdx.graphics.setVSync(vsyncEnabled)
 		// LWJGL3 treats 0 as "never sleep" (uncapped); map any non-positive value to that.
