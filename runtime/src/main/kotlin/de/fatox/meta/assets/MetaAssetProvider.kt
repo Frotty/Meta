@@ -203,20 +203,24 @@ class MetaAssetProvider : AssetProvider {
 		return complete && pendingFinalization.size == 0
 	}
 
-	override fun <T: Any> getResource(fileName: String, type: Class<T>, index: Int): T {
+	override fun <T : Any> getResource(fileName: String, type: Class<T>, index: Int): T {
 		return when {
 			type == FileHandle::class.java -> {
-				if (fileCache.containsKey(fileName))
-					fileCache[fileName] as T
-				else
-					Gdx.files.internal(fileName) as T
+				type.cast(fileCache[fileName] ?: Gdx.files.internal(fileName))
 			}
 			assetManager.isLoaded(fileName, type) -> assetManager[fileName, type]
 			fileCache.containsKey(fileName) && assetManager.isLoaded(fileCache[fileName].path(), type) -> assetManager[fileCache[fileName].path(), type]
 			type == TextureRegion::class.java -> {
-				atlasCache.asSequence().map {
-					if (index <= 0) it.findRegion(fileName) else it.findRegion(fileName, index)
-				}.firstOrNull() as T? ?: TextureRegion(getResource(fileName, Texture::class.java)) as T?
+				var region: TextureRegion? = null
+				for (atlasIndex in 0 until atlasCache.size) {
+					region = if (index <= 0) {
+						atlasCache[atlasIndex].findRegion(fileName)
+					} else {
+						atlasCache[atlasIndex].findRegion(fileName, index)
+					}
+					if (region != null) break
+				}
+				type.cast(region ?: TextureRegion(getResource(fileName, Texture::class.java)))
 			}
 			fileCache.containsKey(fileName) -> {
 				load(fileName, type)
@@ -254,11 +258,16 @@ class MetaAssetProvider : AssetProvider {
 	override fun loadAnimationFrames(baseName: String, frames: Int): Array<out TextureRegion> {
 		val key = 31 * baseName.hashCode() + frames
 		if (!animCache.containsKey(key)) {
-			// Since we use asSequence() map is lazily evaluated, thus only calling it when necessary.
-			val regions: Array<AtlasRegion> = atlasCache.asSequence().map { it.findRegions(baseName) }
-				.firstOrNull { it.size > 0 } ?: Array()
+			var regions: Array<AtlasRegion>? = null
+			for (atlasIndex in 0 until atlasCache.size) {
+				val candidate = atlasCache[atlasIndex].findRegions(baseName)
+				if (candidate.size > 0) {
+					regions = candidate
+					break
+				}
+			}
 
-			if (regions.size > 0) {
+			if (regions != null) {
 				if (frames > -1) regions.setSize(frames) // limit to the request number of frames
 				animCache.put(key, regions)
 			} else

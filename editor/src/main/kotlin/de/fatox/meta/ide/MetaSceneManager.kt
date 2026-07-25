@@ -17,9 +17,6 @@ import java.io.File
 private val FOLDER = "scenes" + File.separator
 private const val EXTENSION = "metascene"
 
-/**
- * Created by Frotty on 15.06.2016.
- */
 class MetaSceneManager : SceneManager {
 	private val projectManager: ProjectManager by lazyInject()
 	private val metaEditorUI: MetaEditorUI by lazyInject()

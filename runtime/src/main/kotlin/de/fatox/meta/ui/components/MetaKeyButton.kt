@@ -11,12 +11,6 @@ class MetaKeyButton(keyCode: Int) : MetaTextButton(Input.Keys.toString(keyCode))
 	@Suppress("unused")
 	private val keyCodeBinding = keyCodeValue.subscribe { setText(Input.Keys.toString(keyCodeValue.peek())) }
 
-	init {
-		addListener(MetaListener {
-			// TODO dialog
-		})
-	}
-
 	fun setFromKeyCode(keyCode: Int) {
 		keyCodeValue.value = keyCode
 	}

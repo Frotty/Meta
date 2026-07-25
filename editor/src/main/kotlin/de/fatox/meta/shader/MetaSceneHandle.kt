@@ -9,9 +9,6 @@ import de.fatox.meta.entity.MetaEntityManager
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
-/**
- * Created by Frotty on 18.04.2017.
- */
 class MetaSceneHandle(var data: MetaSceneData, var shaderComposition: ShaderComposition?, val sceneFile: FileHandle) {
 	var entityManager: EntityManager<Meta3DEntity> = MetaEntityManager()
 

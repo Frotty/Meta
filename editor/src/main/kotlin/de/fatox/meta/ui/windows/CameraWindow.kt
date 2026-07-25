@@ -6,9 +6,6 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaTextField
 
-/**
- * Created by Frotty on 20.05.2016.
- */
 class CameraWindow : MetaWindow("Camera", true, true) {
 	private val xPosField: MetaTextField
 	private val yPosField: MetaTextField

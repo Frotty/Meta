@@ -8,9 +8,6 @@ import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.windows.AssetDiscovererWindow
 
-/**
- * Created by Frotty on 07.06.2016.
- */
 class AssetDiscoverer {
 	private val uiManager: UIManager by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()

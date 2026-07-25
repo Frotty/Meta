@@ -76,7 +76,8 @@ object MetaLayout {
 		// ScrollPane content is meant to exceed the viewport; don't descend into it.
 		if (actor is ScrollPane) return
 
-		for (child in actor.children) {
+		for (index in 0 until actor.children.size) {
+			val child = actor.children[index]
 			val childPath = "$path>${child.javaClass.simpleName.ifEmpty { "<anon>" }}"
 			if (child.x < -tolerance) {
 				out += Problem(Kind.OVERFLOW, child, childPath, "x=${child.x.r()} < 0 (left edge)")

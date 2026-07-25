@@ -12,9 +12,6 @@ import de.fatox.meta.ui.windows.AssetDiscovererWindow
 import de.fatox.meta.ui.windows.ShaderComposerWindow
 import de.fatox.meta.ui.windows.ShaderLibraryWindow
 
-/**
- * Created by Frotty on 06.06.2016.
- */
 class ProjectHomeTab(private val projectData: MetaProjectData) : MetaTab(true, false) {
 	private val visTable = MetaTable()
 

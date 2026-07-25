@@ -27,9 +27,6 @@ import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.UiControlHelper
 
-/**
- * Created by Frotty on 04.06.2016.
- */
 open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectBox<T>(MetaSkin.skin()), MetaFocusable, FontRefreshable {
 
 	private val uiControlHelper: UiControlHelper = inject()

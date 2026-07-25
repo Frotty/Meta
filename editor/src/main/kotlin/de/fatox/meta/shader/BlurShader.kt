@@ -10,9 +10,6 @@ import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.utils.GdxRuntimeException
 import de.fatox.meta.graphics.renderer.FullscreenShader
 
-/**
- * Created by Frotty on 20.05.2016.
- */
 class BlurShader : FullscreenShader() {
     override lateinit var program: ShaderProgram
         private set

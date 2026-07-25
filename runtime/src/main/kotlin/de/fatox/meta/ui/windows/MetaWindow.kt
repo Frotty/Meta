@@ -43,9 +43,6 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.round
 
-/**
- * Created by Frotty on 08.05.2016.
- */
 abstract class MetaWindow(
 	title: String,
 	resizable: Boolean = false,

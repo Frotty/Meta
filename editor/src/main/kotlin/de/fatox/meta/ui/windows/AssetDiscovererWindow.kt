@@ -20,9 +20,6 @@ import de.fatox.meta.ui.components.MetaTextField
 
 private const val TAG = "adwSettings"
 
-/**
- * Created by Frotty on 07.06.2016.
- */
 class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 
 	private val assetDiscoverer: AssetDiscoverer by lazyInject()
@@ -54,7 +51,7 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		adapter = FolderListAdapter(Array())
 		view = MetaListView(adapter!!).apply {
 			setItemClickListener {
-				assetDiscoverer.openFolder((it as FolderModel).fileHandle)
+				assetDiscoverer.openFolder(it.fileHandle)
 			}
 		}
 		contentTable.apply {

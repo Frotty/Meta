@@ -14,9 +14,6 @@ import de.fatox.meta.graphics.buffer.NoMetaFrameBuffer
 private val log = MetaLoggerFactory.logger {}
 private val emptyArray: Array<out Texture> = Array(0)
 
-/**
- * Created by Frotty on 18.04.2017.
- */
 class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShader) {
 
 	private var metaFrameBuffer: MetaFrameBuffer = NoMetaFrameBuffer
@@ -40,7 +37,11 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
 				builder.addDepthTextureAttachment(GL30.GL_DEPTH_COMPONENT32F, GL30.GL_FLOAT)
 			}
 			metaFrameBuffer =
-				builder.build().also { colorTextures = Array<Texture>(1).apply { add(it.colorBufferTexture) } }
+				builder.build().also {
+					colorTextures = Array<Texture>(1).apply {
+						add(requireNotNull(it.colorBufferTexture) { "Framebuffer has no color attachment" })
+					}
+				}
 		}
 	}
 
@@ -55,10 +56,12 @@ class RenderBufferHandle(var data: RenderBufferData, var metaShader: MetaGLShade
 		metaFrameBuffer.begin()
 	}
 
-	fun end(x: Float, y: Float) {
-		// TODO use x and y parameters?
+	fun end() {
 		metaFrameBuffer.end()
 	}
+
+	@Deprecated("Viewport coordinates were never applied; use end()", ReplaceWith("end()"))
+	fun end(@Suppress("UNUSED_PARAMETER") x: Float, @Suppress("UNUSED_PARAMETER") y: Float) = end()
 
 	fun getFBO(): Int = metaFrameBuffer.getFBO()
 

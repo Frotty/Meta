@@ -8,6 +8,7 @@ import de.fatox.meta.api.extensions.writeBytesAtomic
 import de.fatox.meta.api.model.MetaProjectData
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.assets.MetaDataKey
 import de.fatox.meta.assets.get
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.lastProjectsKey
@@ -16,9 +17,6 @@ import de.fatox.meta.ui.tabs.ProjectHomeTab
 import java.nio.file.Paths
 import kotlin.reflect.KClass
 
-/**
- * Created by Frotty on 04.06.2016.
- */
 class MetaProjectManager : ProjectManager {
 	private val json: Json by lazyInject()
 	private val editorUI: MetaEditorUI by lazyInject()
@@ -52,7 +50,9 @@ class MetaProjectManager : ProjectManager {
 			lastProjects.add(realFile.path())
 			metaData.save(lastProjectsKey, lastProjects)
 		}
-		onLoadListeners.forEach { it.handle(null) }
+		for (index in 0 until onLoadListeners.size) {
+			onLoadListeners[index].handle(null)
+		}
 		editorUI.tryCloseTab("home")
 		editorUI.addTab(ProjectHomeTab(metaProjectData))
 		return metaProjectData
@@ -96,11 +96,12 @@ class MetaProjectManager : ProjectManager {
 	}
 
 	override fun <T : Any> get(key: String, type: KClass<out T>): T {
-		return metaData.load(key, type, currentProjectRoot) as T
+		return metaData.load(MetaDataKey<T>(key), type, currentProjectRoot)
+			?: error("Project metadata '$key' does not exist")
 	}
 
 	override fun save(key: String, obj: Any): FileHandle {
-		return metaData.save(key, obj, currentProjectRoot)
+		return metaData.save(MetaDataKey(key), obj, currentProjectRoot)
 	}
 
 	override fun relativize(fh: FileHandle): String {

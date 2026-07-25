@@ -22,9 +22,6 @@ import de.fatox.meta.ui.components.RenderBufferButton
 import de.fatox.meta.ui.dialogs.ShaderCompositionWizard
 import java.util.*
 
-/**
- * Created by Frotty on 29.07.2016.
- */
 class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val shaderComposer: MetaShaderComposer by lazyInject()

@@ -31,7 +31,7 @@ class TestApp : ApplicationListener {
 
 	override fun render() {
 		mrtFrameBuffer.begin()
-		mrtFrameBuffer.end(0f, 0f)
+		mrtFrameBuffer.end()
 	}
 
 	override fun pause() = Unit

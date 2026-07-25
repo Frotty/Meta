@@ -30,6 +30,9 @@ import de.fatox.meta.ui.UiControlHelper
 import org.intellij.lang.annotations.Language
 
 object MetaModule {
+	/** Forces this module's registration block to run before services are resolved. */
+	internal fun initialize() = Unit
+
 	init {
 		MetaInject.global {
 			singleton<FontProvider>("default") { MetaFontProvider() }

@@ -116,8 +116,6 @@ class LightShader : Shader {
 		program!!.setUniformMatrix(u_invProjTrans, camera.invProjectionView)
 		program!!.setUniformMatrix(u_ViewTrans, camera.view)
 		program!!.setUniformMatrix(u_ProjViewTrans, camera.combined)
-		//        program.setUniformf("u_nearDistance", camera.near);
-		//        program.setUniformf("u_farDistance", camera.far);
 		program!!.setUniformf(u_FarDistance, camera.far)
 		program!!.setUniformf(u_CamPos, camera.position)
 	}

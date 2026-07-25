@@ -332,7 +332,8 @@ class UiControlHelper {
 		}
 
 	private fun targetsInGroup(group: Group) {
-		for (actor in group.children) {
+		for (index in 0 until group.children.size) {
+			val actor = group.children[index]
 			if (actor.isVisible) {
 				if (actor != selectedActor && isNavigable(actor) && !targets.contains(actor, true)) {
 					targets.add(actor)
@@ -344,7 +345,8 @@ class UiControlHelper {
 	}
 
 	private fun firstNavigable(group: Group): Actor? {
-		for (actor in group.children) {
+		for (index in 0 until group.children.size) {
+			val actor = group.children[index]
 			if (!actor.isVisible) continue
 			if (isNavigable(actor)) return actor
 			if (actor is Group) firstNavigable(actor)?.let { return it }

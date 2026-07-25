@@ -12,9 +12,6 @@ import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.windows.AssetDiscovererWindow
 
-/**
- * Created by Frotty on 04.07.2016.
- */
 class AssetSelectButton {
 	val table = MetaTable()
 	private lateinit var selectAssetButton: MetaTextButton

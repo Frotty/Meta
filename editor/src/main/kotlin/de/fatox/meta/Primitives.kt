@@ -13,9 +13,6 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 private const val defaultAttr: Long = (VertexAttributes.Usage.Position or VertexAttributes.Usage.Normal
 	or VertexAttributes.Usage.ColorUnpacked or VertexAttributes.Usage.TextureCoordinates).toLong()
 
-/**
- * Created by Frotty on 04.04.2017.
- */
 class Primitives {
 	private val assetProvider: AssetProvider by lazyInject()
 	private val modelBuilder: ModelBuilder by lazyInject()

@@ -214,9 +214,6 @@ private fun requestedMonitor(requested: MetaDisplayMode): Graphics.Monitor {
 	}
 }
 
-/**
- * Created by Frotty on 05.11.2016.
- */
 data class MetaAudioVideoData(
 	var profile: String = "default",
 	var hd: Boolean = true,

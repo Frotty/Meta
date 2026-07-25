@@ -19,10 +19,9 @@ import kotlin.reflect.KClass
 private val log = MetaLoggerFactory.logger {}
 
 /**
- * Created by Frotty on 10.03.2017.
- * Handles MetaData needs.
- * De-/serializes config classes from a .meta sub folder in the game's data folder inside user home
- * MetaData can be accessed via #.get and will be cached.
+ * Serializes application metadata beneath the game's external `.meta` directory and caches loaded values.
+ *
+ * Prefer reusable [MetaDataKey] instances over the deprecated string-key overloads.
  */
 class MetaData {
 	internal class CacheObj<T : Any>(var obj: T, var created: Long = TimeUtils.millis())
@@ -36,6 +35,9 @@ class MetaData {
 	val dataRoot: FileHandle = Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME).also { it.mkdirs() }
 
 	private val emptyByteArray = ByteArray(0)
+
+	private fun cacheId(key: String, parent: FileHandle): String =
+		parent.file().absolutePath + '\u0000' + key
 
 	/**
 	 * @param key String
@@ -56,6 +58,7 @@ class MetaData {
 		)
 	)
 	fun <T : Any> save(key: String, obj: T, target: FileHandle = dataRoot): FileHandle {
+		val cacheId = cacheId(key, target)
 		// Get the file handle and (over) write the serialized json object to it
 		return getCachedHandle(key, target).also { fileHandle: FileHandle ->
 			val newBytes = json.toJson(obj).toByteArray()
@@ -82,11 +85,11 @@ class MetaData {
 				""".trimIndent()
 			}
 
-			fileHandle.parent().mkdirs();
+			fileHandle.parent().mkdirs()
 			fileHandle.writeBytes(newBytes, false)
 
 			// Update object in json cache, if it exists
-			jsonCache.get(key)?.let {
+			jsonCache.get(cacheId)?.let {
 				log.debug { "Update json cache!" }
 
 				it.obj = obj
@@ -102,6 +105,10 @@ class MetaData {
 	@Suppress("DEPRECATION")
 	fun <T : Any> get(key: MetaDataKey<T>, type: KClass<out T>, parent: FileHandle = dataRoot): T =
 		get(key.name, type, parent)
+
+	@Suppress("DEPRECATION")
+	fun <T : Any> load(key: MetaDataKey<T>, type: KClass<out T>, target: FileHandle = dataRoot): T? =
+		load(key.name, type, target)
 
 	/**
 	 * Caches and returns this object loaded from json at the specified location.
@@ -126,6 +133,7 @@ class MetaData {
 	)
 	operator fun <T : Any> get(key: String, type: KClass<out T>, parent: FileHandle = dataRoot): T {
 		return try {
+			val cacheId = cacheId(key, parent)
 			log.trace {
 				"""
 				Try to load the following from the json cache:
@@ -135,12 +143,12 @@ class MetaData {
 				""".trimIndent()
 			}
 
-			if (jsonCache.containsKey(key)) { // Data exists in cache
+			if (jsonCache.containsKey(cacheId)) { // Data exists in cache
 				log.trace { "Found key in json cache: $key" }
 				@Suppress("UNCHECKED_CAST")
-				(jsonCache.get(key) as CacheObj<T>).let {
+				(jsonCache.get(cacheId) as CacheObj<T>).let {
 					// Update cache when file is newer than the cached data
-					val lastModified = fileCache.get(key)?.lastModified() ?: 0L
+					val lastModified = fileCache.get(cacheId)?.lastModified() ?: 0L
 					if (it.created < lastModified) {
 						log.debug { "File is newer than the cached data, updating cache!" }
 						it.obj = json.fromJson(type.java, getCachedHandle(key, parent))
@@ -148,7 +156,7 @@ class MetaData {
 					}
 					it.obj
 				}
-			} else { // Data does not exists in cache
+			} else { // Data does not exist in cache
 				log.debug { "Did not find key in json cache: $key" }
 				val cachedHandle = getCachedHandle(key, parent)
 				if (!cachedHandle.exists()) {
@@ -162,16 +170,17 @@ class MetaData {
 						log.error("Failed to create class from type: ${type.simpleName}", e)
 					}
 				}
-				json.fromJson(type.java, cachedHandle).also { jsonCache.put(key, CacheObj(it)) }
+				json.fromJson(type.java, cachedHandle).also { jsonCache.put(cacheId, CacheObj(it)) }
 			}
 		} catch (e: SerializationException) {
 			log.error { "Failed to load key: $key" }
 			log.debug { "Fallback to new instance creation!" }
 			// Overwrite corrupted file with new instance
-			ClassReflection.newInstance(type.java).also { save(key, it) }
+			ClassReflection.newInstance(type.java).also { save(key, it, parent) }
 		}
 	}
 
+	@Suppress("DEPRECATION")
 	@Deprecated(
 		"Use MetaData#load with MetaDataKey. " +
 			"This method will be made private in a future version. " +
@@ -200,20 +209,22 @@ class MetaData {
 		)
 	)
 	fun getCachedHandle(key: String, parent: FileHandle = dataRoot): FileHandle {
-		if (!fileHandleCache.containsKey(key)) {
+		val cacheId = cacheId(key, parent)
+		if (!fileHandleCache.containsKey(cacheId)) {
 			var child: FileHandle = parent.child(key)
-			if (!child.exists()) {
+			if (!child.exists() && parent.path() == dataRoot.path()) {
 				val fileHandle2 = Gdx.files.external(GLOBAL_DATA_FOLDER_NAME + key)
 				if (fileHandle2.exists()) {
 					child = fileHandle2
 				}
 			}
-			fileHandleCache.put(key, child)
-			fileCache.put(key, child.file())
+			fileHandleCache.put(cacheId, child)
+			fileCache.put(cacheId, child.file())
 		}
-		return fileHandleCache.get(key)
+		return fileHandleCache.get(cacheId)
 	}
 
+	@Suppress("DEPRECATION")
 	fun getCachedHandle(key: MetaDataKey<*>, parent: FileHandle = dataRoot): FileHandle =
 		getCachedHandle(key.name, parent)
 
@@ -229,7 +240,7 @@ class MetaData {
 		)
 	)
 	fun has(name: String, fileHandle: FileHandle = dataRoot): Boolean {
-		return fileHandleCache.containsKey(name) || fileHandle.child(name).exists()
+		return fileHandleCache.containsKey(cacheId(name, fileHandle)) || fileHandle.child(name).exists()
 	}
 
 	@Suppress("DEPRECATION")
@@ -244,6 +255,7 @@ class MetaData {
 @JvmInline
 value class MetaDataKey<T : Any>(val name: String)
 
+@Suppress("DEPRECATION")
 @Deprecated(
 	"Use MetaData#get with MetaDataKey. " +
 		"This method will be made private in a future version. " +

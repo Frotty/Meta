@@ -23,12 +23,8 @@ import de.fatox.meta.graphics.renderer.FullscreenQuad
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.MetaLabel
 
-/**
- * Created by Frotty on 17.04.2017.
- */
 class EditorSceneRenderer : Renderer {
 	private val batch: SpriteBatch by lazyInject()
-	private val shaderComposer: MetaShaderComposer by lazyInject()
 	private val cam: PerspectiveCamera by lazyInject()
 	private val primitives: Primitives by lazyInject()
 	private val uiManager: UIManager by lazyInject()
@@ -48,61 +44,72 @@ class EditorSceneRenderer : Renderer {
 
 	private val fsquad = FullscreenQuad(1f)
 	private var lastComposition: ShaderComposition? = null
+	private val noCompositionTable = Table().apply {
+		add(MetaLabel("No composition selected", 20)).pad(128f).center()
+	}
 
 	override fun render(x: Float, y: Float) {
-		if (sceneHandle != null) {
-			if (sceneHandle?.shaderComposition == null) {
-				val table = Table()
-				table.add(MetaLabel("No composition selected", 20)).pad(128f).center()
+		val activeScene = sceneHandle ?: run {
+			noCompositionTable.remove()
+			return
+		}
+		val composition = activeScene.shaderComposition ?: run {
+			if (noCompositionTable.parent == null) {
+				val table = noCompositionTable
 				uiManager.addTable(table, true, true)
+			}
+			return
+		}
+		noCompositionTable.remove()
+		val bufferHandles = composition.bufferHandles
+
+		for (bufferIndex in 0 until bufferHandles.size) {
+			val bufferHandle = bufferHandles[bufferIndex]
+			renderContext.begin()
+			bufferHandle.begin()
+			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
+
+			if (bufferHandle.data.inType === RenderBufferData.IN.GEOMETRY) {
+				modelBatch.begin(cam)
+				modelBatch.render(staticModelCache, bufferHandle.metaShader)
+				modelBatch.end()
 			} else {
-				val bufferHandles = sceneHandle?.shaderComposition?.bufferHandles
+				bufferHandle.metaShader.begin(cam, renderContext)
+				fsquad.render(bufferHandle.metaShader.shaderProgram)
+				bufferHandle.metaShader.end()
+			}
 
-				for ((i, bufferHandle) in bufferHandles!!.withIndex()) {
-					renderContext.begin()
-					bufferHandle.begin()
-					Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
-
-					if (bufferHandle.data.inType === RenderBufferData.IN.GEOMETRY) {
-						modelBatch.begin(cam)
-						modelBatch.render(staticModelCache, bufferHandle.metaShader)
-						modelBatch.end()
-					} else {
-						bufferHandle.metaShader.begin(cam, renderContext)
-						fsquad.render(bufferHandle.metaShader.shaderProgram)
-						bufferHandle.metaShader.end()
-					}
-
-					bufferHandle.end(x, y)
-					renderContext.end()
-					bufferHandle.colorTextures.forEachIndexed { j, texture ->
-						val name = "s_pass${i}_$j"
-						UniformAssignments.customAssignments.put(name) { prog, _, context, _ ->
-							prog.setUniformi(name, context.textureBinder.bind(texture))
-						}
-					}
-
+			bufferHandle.end()
+			renderContext.end()
+			for (textureIndex in 0 until bufferHandle.colorTextures.size) {
+				val texture = bufferHandle.colorTextures[textureIndex]
+				val name = "s_pass${bufferIndex}_$textureIndex"
+				UniformAssignments.customAssignments.put(name) { prog, _, context, _ ->
+					prog.setUniformi(name, context.textureBinder.bind(texture))
 				}
-
-				renderContext.begin()
-				Gdx.gl20.glViewport(0, 0, cam.viewportWidth.toInt(), cam.viewportHeight.toInt())
-				if (sceneHandle?.shaderComposition?.outputBuffer?.data?.inType === RenderBufferData.IN.GEOMETRY) {
-					modelBatch.begin(cam)
-					modelBatch.render(staticModelCache, sceneHandle?.shaderComposition?.outputBuffer?.metaShader)
-					modelBatch.end()
-				} else {
-					sceneHandle?.shaderComposition?.outputBuffer?.metaShader?.begin(cam, renderContext)
-					fsquad.render(sceneHandle?.shaderComposition?.outputBuffer?.metaShader?.shaderProgram)
-					sceneHandle?.shaderComposition?.outputBuffer?.metaShader?.end()
-				}
-
-				renderContext.end()
-				UniformAssignments.customAssignments.clear()
-
-				HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
-				debugAll(x, y, bufferHandles)
 			}
 		}
+
+		renderContext.begin()
+		Gdx.gl20.glViewport(0, 0, cam.viewportWidth.toInt(), cam.viewportHeight.toInt())
+		val outputBuffer = composition.outputBuffer
+		if (outputBuffer != null) {
+			if (outputBuffer.data.inType === RenderBufferData.IN.GEOMETRY) {
+				modelBatch.begin(cam)
+				modelBatch.render(staticModelCache, outputBuffer.metaShader)
+				modelBatch.end()
+			} else {
+				outputBuffer.metaShader.begin(cam, renderContext)
+				fsquad.render(outputBuffer.metaShader.shaderProgram)
+				outputBuffer.metaShader.end()
+			}
+		}
+
+		renderContext.end()
+		UniformAssignments.customAssignments.clear()
+
+		HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+		debugAll(x, y, bufferHandles)
 
 	}
 
@@ -111,17 +118,20 @@ class EditorSceneRenderer : Renderer {
 		try {
 			batch.use {
 				var debugScreens = 1f
-				bufferHandles.forEach {
-					debugScreens += if (it.colorTextures.size == 0) 1 else it.colorTextures.size
+				for (bufferIndex in 0 until bufferHandles.size) {
+					val textureCount = bufferHandles[bufferIndex].colorTextures.size
+					debugScreens += if (textureCount == 0) 1 else textureCount
 				}
 
 				var count = 0
 
-				for (bufferHandle in bufferHandles) {
+				for (bufferIndex in 0 until bufferHandles.size) {
+					val bufferHandle = bufferHandles[bufferIndex]
 					val height = bufferHandle.height
 					val width = bufferHandle.width
 					val colorTextures = bufferHandle.colorTextures
-					for (texture in colorTextures) {
+					for (textureIndex in 0 until colorTextures.size) {
+						val texture = colorTextures[textureIndex]
 						val fl = 0.75f
 						batch.draw(texture, x + width / debugScreens * count.toFloat() * fl, y, width / debugScreens * fl, height / debugScreens * fl, 0f, 0f, 1f, 1f)
 						count++
@@ -154,9 +164,9 @@ class EditorSceneRenderer : Renderer {
 		if (width > 0 && height > 0) {
 			resizeCam(width, height)
 
-			val composition = shaderComposer.currentComposition
-			for (bufferHandle in composition?.bufferHandles!!) {
-				bufferHandle.rebuild(width, height)
+			val composition = sceneHandle?.shaderComposition ?: return
+			for (index in 0 until composition.bufferHandles.size) {
+				composition.bufferHandles[index].rebuild(width, height)
 			}
 		}
 	}
@@ -169,11 +179,14 @@ class EditorSceneRenderer : Renderer {
 
 	override fun rebuildCache() {
 		staticModelCache.begin()
-		if (sceneHandle?.data?.showGrid!!) {
-			staticModelCache.add(grid.actorModel)
-		}
-		for (entity in sceneHandle?.entityManager?.staticEntities!!) {
-			staticModelCache.add(entity.actorModel)
+		val activeScene = sceneHandle
+		if (activeScene != null) {
+			if (activeScene.data.showGrid) {
+				staticModelCache.add(grid.actorModel)
+			}
+			for (entity in activeScene.entityManager.staticEntities) {
+				staticModelCache.add(entity.actorModel)
+			}
 		}
 		staticModelCache.end()
 	}

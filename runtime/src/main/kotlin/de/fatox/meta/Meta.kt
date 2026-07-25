@@ -92,7 +92,7 @@ abstract class Meta(
 	final override fun create() {
 		instance = this
 		MetaInject.injection()
-		MetaModule
+		MetaModule.initialize()
 		uiManager.windowHandler = windowHandler
 		MetaInject.global { singleton("default") { ScreenConfig().apply { screens() } } }
 		MetaInject.global { singleton("default") { WindowConfig().apply { windows() } } }

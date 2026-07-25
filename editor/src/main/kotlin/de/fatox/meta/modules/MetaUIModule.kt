@@ -7,10 +7,10 @@ import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.lang.MetaLanguageBundle
 import de.fatox.meta.ui.MetaEditorUI
 
-/**
- * Created by Frotty on 07.06.2016.
- */
 object MetaUIModule {
+	/** Forces this module's registration block to run before editor services are resolved. */
+	internal fun initialize() = Unit
+
 	init {
 		MetaInject.global {
 			singleton("meta", "gameName")

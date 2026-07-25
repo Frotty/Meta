@@ -24,9 +24,6 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-/**
- * Created by Frotty on 04.06.2016.
- */
 open class MetaTextButton @JvmOverloads constructor(
 	text: String = "",
 	size: Int = MetaType.BODY,

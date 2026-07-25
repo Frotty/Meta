@@ -19,9 +19,6 @@ import de.fatox.meta.ui.windows.ShaderComposerWindow
 const val META_COMP_SUFFIX = ".mco"
 const val META_COMP_PATH = "meta/compositions/"
 
-/**
- * Created by Frotty on 10.04.2017.
- */
 class MetaShaderComposer {
 	private val projectManager: ProjectManager by lazyInject()
 	private val json: Json by lazyInject()
@@ -51,16 +48,16 @@ class MetaShaderComposer {
 	}
 
 	fun loadProjectCompositions() {
-		if (projectManager.currentProject != null) {
-			compositions.forEach { it.dispose() }
+		if (projectManager.hasCurrentProject) {
+			for (index in 0 until compositions.size) {
+				compositions[index].dispose()
+			}
 			compositions.clear()
 			val compositionFolder = projectManager.currentProjectRoot.child("meta/compositions/")
 			if (compositionFolder.exists()) {
 				for (metaComp in compositionFolder.list { pathname -> pathname.name.endsWith(META_COMP_SUFFIX) }) {
 					val compositionData = json.fromJson(MetaShaderCompData::class.java, metaComp.readString())
-					if (compositionData != null) {
-						addComposition(ShaderComposition(metaComp, compositionData))
-					}
+					addComposition(ShaderComposition(metaComp, compositionData))
 				}
 			}
 		}
@@ -85,7 +82,8 @@ class MetaShaderComposer {
 		if (!path.contains('/')) {
 			path = META_COMP_PATH + path + META_COMP_SUFFIX
 		}
-		for (comp in compositions) {
+		for (index in 0 until compositions.size) {
+			val comp = compositions[index]
 			val relativizedPath = projectManager.relativize(comp.compositionHandle).replace('\\', '/')
 			if (relativizedPath.equals(path, ignoreCase = true)) {
 				return comp
@@ -106,7 +104,7 @@ class MetaShaderComposer {
 	fun addRenderBuffer(data: RenderBufferData): RenderBufferHandle {
 		val bufferHandle = RenderBufferHandle(data, MetaGeoShader(shaderLibrary.getFirstShader()))
 		currentComposition?.let {
-			currentComposition?.addBufferHandle(bufferHandle)
+			it.addBufferHandle(bufferHandle)
 			saveComposition(it)
 		}
 		notifyChanged()

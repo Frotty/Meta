@@ -14,7 +14,6 @@ import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.utils.GdxRuntimeException
 
 import de.fatox.meta.api.AssetProvider
-import de.fatox.meta.camera.ArcCamControl
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 class GBufferShader : Shader {
@@ -85,25 +84,15 @@ class GBufferShader : Shader {
 		tempV[.1f, 1f] = 0f
 		program.setUniformf(u_mat, tempV)
 
-		// Bind Textures
-		// Diffuse-
 		val diffuseTex = renderable.material[TextureAttribute.Diffuse] as TextureAttribute?
 		if (diffuseTex != null) {
 			program.setUniformi(s_diffuseTex, context!!.textureBinder.bind(diffuseTex.textureDescription.texture))
 		} else {
 			program.setUniformi(s_diffuseTex, context!!.textureBinder.bind(whiteTex))
 		}
-		// Normal Map (for different lighting on a plane)
 		val normalTex = renderable.material[TextureAttribute.Normal] as TextureAttribute?
-		if (normalTex != null) {
-			if (ArcCamControl.yes) {
-				program.setUniformi(s_normalTex, context!!.textureBinder.bind(normalTex.textureDescription.texture))
-			} else {
-				program.setUniformi(s_normalTex, context!!.textureBinder.bind(emptyNormals))
-			}
-		} else {
-			program.setUniformi(s_normalTex, context!!.textureBinder.bind(emptyNormals))
-		}
+		val normalTexture = normalTex?.textureDescription?.texture ?: emptyNormals
+		program.setUniformi(s_normalTex, context!!.textureBinder.bind(normalTexture))
 		val col = renderable.material[ColorAttribute.Diffuse] as ColorAttribute?
 		if (col != null) {
 			program.setUniformf(u_diffuseColor, col.color.r, col.color.g, col.color.b)

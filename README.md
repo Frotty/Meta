@@ -44,18 +44,20 @@ scene2d text controls:
 
 - `MetaLabel`, `MetaTextButton`, `MetaIconTextButton`, `MetaIconButton`
 - `MetaTextField`, `MetaTextArea`, `MetaSelectBox`, `MetaCheckBox`, `MetaSpinner`
-- `MetaInputLayout`, `MetaScrollPane`, `MetaBottomBar`, `MetaWindow`, `MetaDialog`
+- `MetaInputLayout`, `MetaScrollPane`, `MetaActionList`, `MetaBottomBar`, `MetaWindow`, `MetaDialog`
+- `MetaFlexBox`, `MetaGrid`, and `MetaStack` for responsive composition
 
 Use `MetaType`, `MetaSpacing`, `MetaColor`, and `MetaButtonTier` instead of consumer-specific styles and magic
-numbers. `metaRow`, `metaColumn`, and `MetaTable(defaultSpacing = true)` provide the normal content spacing rhythm.
+numbers. Prefer `metaFlexRow`, `metaFlexColumn`, `metaGrid`, and `metaStack` for new layouts. Keep
+`MetaTable(defaultSpacing = true)` for layouts that genuinely need scene2d cell or row-span semantics.
 
 ```kotlin
-val form = metaColumn {
-    add(MetaInputLayout.field("Name", placeholder = "Player name")).row()
-    add(metaRow {
-        add(MetaTextButton("Cancel", tier = MetaButtonTier.TERTIARY))
-        add(MetaIconTextButton("Create", "ri-add-line", tier = MetaButtonTier.PRIMARY))
-    }).right().row()
+val form = metaFlexColumn(align = MetaFlexAlign.STRETCH) {
+    addItem(MetaInputLayout.field("Name", placeholder = "Player name"))
+    addItem(metaFlexRow(justify = MetaFlexJustify.END) {
+        addItem(MetaTextButton("Cancel", tier = MetaButtonTier.TERTIARY))
+        addItem(MetaIconTextButton("Create", "ri-add-line", tier = MetaButtonTier.PRIMARY))
+    })
 }
 ```
 

@@ -42,7 +42,7 @@ class MetaShaderLibrary {
 			loadProjectShaders()
 			false
 		}
-		projectManager.currentProject?.let {
+		if (projectManager.hasCurrentProject) {
 			loadedShaders.clear()
 			metaShaders.clear()
 			val internal = Gdx.files.internal("shaders/Default.msh")
@@ -91,7 +91,7 @@ class MetaShaderLibrary {
 	}
 
 	fun loadProjectShaders() {
-		if (projectManager.currentProject != null) {
+		if (projectManager.hasCurrentProject) {
 			val shaderFolder = projectManager.currentProjectRoot.child(INTERNAL_SHADER_PATH)
 			if (shaderFolder.exists()) {
 				for (metaShaderDef in shaderFolder.list { pathname -> pathname.name.endsWith(META_SHADER_SUFFIX) }) {

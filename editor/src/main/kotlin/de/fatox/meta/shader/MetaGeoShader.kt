@@ -16,11 +16,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.UniformAssignments.assignCameraUniforms
 import de.fatox.meta.shader.UniformAssignments.assignRenderableUniforms
 
-/**
- * Created by Frotty on 29.06.2016.
- *
- * Geometry Shader (when chosen geometry shaderpass)
- */
+/** Renders scene geometry into a composition pass. */
 class MetaGeoShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHandle) {
 	private lateinit var camera: Camera
 	private lateinit var context: RenderContext

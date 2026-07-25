@@ -7,9 +7,6 @@ import de.fatox.meta.api.model.RenderTargetData
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-/**
- * Created by Frotty on 02.07.2016.
- */
 class GLShaderHandle(
 	val shaderHandle: FileHandle,
 	vertexHandle: FileHandle,

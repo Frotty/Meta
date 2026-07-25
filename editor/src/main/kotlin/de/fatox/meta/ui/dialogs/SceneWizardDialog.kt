@@ -13,9 +13,6 @@ import de.fatox.meta.ui.components.MetaValidTextField
 import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaDialog.DialogListener
 
-/**
- * Created by Frotty on 13.06.2016.
- */
 class SceneWizardDialog : MetaDialog("Scene Wizard", true) {
 	private val cancelBtn: MetaTextButton
 	private val createBtn: MetaTextButton
@@ -50,7 +47,6 @@ class SceneWizardDialog : MetaDialog("Scene Wizard", true) {
 			}
 		}
 		pack()
-//		setDefaultSize(200f, 400f)
 	}
 
 	override fun onShown() {

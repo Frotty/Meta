@@ -11,9 +11,6 @@ import de.fatox.meta.api.model.RenderBufferData
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
-/**
- * Created by Frotty on 10.04.2017.
- */
 class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderCompData) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
@@ -86,6 +83,8 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
 
 	/** Releases the GL resources (framebuffers, color textures, shader programs) every buffer handle owns. */
 	fun dispose() {
-		bufferHandles.forEach { it.dispose() }
+		for (index in 0 until bufferHandles.size) {
+			bufferHandles[index].dispose()
+		}
 	}
 }

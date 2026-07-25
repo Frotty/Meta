@@ -7,11 +7,7 @@ import com.badlogic.gdx.math.Matrix4
 import de.fatox.meta.api.graphics.GLShaderHandle
 import de.fatox.meta.api.graphics.MetaGLShader
 
-/**
- * Created by Frotty on 20.05.2016.
- *
- * Fullscreen Shader (for fullscreen option, renders to fsquad)
- */
+/** Runs a composition pass over the fullscreen quad. */
 class MetaFullscreenShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHandle) {
 	private val s_albedoTex: Int = 0
 	private var s_depthTex: Int = 0

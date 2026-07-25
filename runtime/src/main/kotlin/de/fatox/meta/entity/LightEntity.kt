@@ -13,9 +13,6 @@ import com.badlogic.gdx.math.Vector3
 import de.fatox.meta.api.entity.Entity
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
-/**
- * Created by Frotty on 20.03.2017.
- */
 class LightEntity(override var position: Vector3, radius: Float, color: Vector3) : Entity<Vector3> {
 	var color: Vector3
 	var intensity: Float = 0f

@@ -63,7 +63,7 @@ class MetaAnimationHandler(
 	}
 
 	override fun randomizeStateTime() {
-		stateTime = MathUtils.random(0f, currentAnimation.animationDuration) // TODO replace with own random
+		stateTime = MathUtils.random(0f, currentAnimation.animationDuration)
 	}
 
 	override fun pause() {

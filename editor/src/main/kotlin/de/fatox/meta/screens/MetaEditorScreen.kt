@@ -2,32 +2,22 @@ package de.fatox.meta.screens
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.ScreenAdapter
-import com.badlogic.gdx.graphics.FPSLogger
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.GL30
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
-import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.model.MetaAudioVideoState
-import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.changeScreen
-import de.fatox.meta.ide.SceneManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.MetaEditorUI
 
 class MetaEditorScreen : ScreenAdapter() {
 	private val uiManager: UIManager by lazyInject()
 	private val uiRenderer: UIRenderer by lazyInject()
-	private val spriteBatch: SpriteBatch by lazyInject()
-	private val fontProvider: FontProvider by lazyInject()
 	private val metaEditorUISetup: MetaEditorUI by lazyInject()
-	private val assetProvider: AssetProvider by lazyInject()
-	private val sceneManager: SceneManager by lazyInject()
 
 	private var isInited = false
-	private val fpsLogger = FPSLogger()
 	override fun show() {
 		if (!isInited) {
 			uiManager.changeScreen<MetaEditorScreen>()
@@ -42,7 +32,6 @@ class MetaEditorScreen : ScreenAdapter() {
 		uiRenderer.update()
 		clearFrame()
 		uiRenderer.draw()
-		//        fpsLogger.log();
 	}
 
 	private fun clearFrame() {

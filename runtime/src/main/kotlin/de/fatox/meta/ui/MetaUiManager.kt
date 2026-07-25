@@ -73,9 +73,6 @@ private class ConcealedWindowState(
 internal fun contextualBottomOverlay(screenOverlay: Actor?, hasModal: Boolean, modalOverlay: Actor?): Actor? =
 	if (hasModal) modalOverlay else screenOverlay
 
-/**
- * Created by Frotty on 20.05.2016.
- */
 class MetaUiManager : UIManager {
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val metaData: MetaData by lazyInject()
@@ -491,6 +488,7 @@ class MetaUiManager : UIManager {
 		contentTable.invalidate()
 	}
 
+	@Suppress("UNCHECKED_CAST")
 	override fun <T : Window> getWindow(windowClass: KClass<out T>): T {
 		return displayedWindows.firstOrNull { it::class == windowClass } as T?
 			?: windowConfig.create(windowClass)

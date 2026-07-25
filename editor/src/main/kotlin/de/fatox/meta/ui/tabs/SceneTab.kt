@@ -15,9 +15,6 @@ import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.SceneWidget
 import de.fatox.meta.ui.windows.*
 
-/**
- * Created by Frotty on 13.06.2016.
- */
 class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
 	private val perspectiveCamera: PerspectiveCamera by lazyInject()
 	private val uiRenderer: UIRenderer by lazyInject()
@@ -59,6 +56,5 @@ class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
 		table = MetaTable()
 		table.add(sceneWidget).grow()
 		table.invalidate()
-		//        table.debugAll();
 	}
 }

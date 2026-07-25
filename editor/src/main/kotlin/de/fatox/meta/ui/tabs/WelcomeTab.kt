@@ -20,9 +20,6 @@ import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.MetaTextButton
 import de.fatox.meta.ui.components.TextWidget
 
-/**
- * Created by Frotty on 05.06.2016.
- */
 class WelcomeTab : MetaTab(false, false) {
 	private val visTable = MetaTable()
 

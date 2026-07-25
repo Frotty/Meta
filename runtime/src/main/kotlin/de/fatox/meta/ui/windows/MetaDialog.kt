@@ -18,9 +18,6 @@ import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaTable
 
-/**
- * Created by Frotty on 04.06.2016.
- */
 abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
 	MetaWindow(title, false, hasCloseButton, hasHeader = title.isNotBlank()) {
 	override val preserveCenterOnAutoFit: Boolean = true
@@ -102,7 +99,8 @@ abstract class MetaDialog(title: String = "", hasCloseButton: Boolean) :
 	}
 
 	private fun firstTextField(group: Group = this): TextField? {
-		for (child in group.children) {
+		for (index in 0 until group.children.size) {
+			val child = group.children[index]
 			if (child is TextField) return child
 			if (child is Group) firstTextField(child)?.let { return it }
 		}

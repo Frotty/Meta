@@ -1,6 +1,5 @@
 package de.fatox.meta.desktop
 
-import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.GL30
@@ -12,8 +11,6 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.graphics.buffer.MultisampleFBO
 import org.lwjgl.opengl.GL32
 import org.slf4j.Logger
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
 private val log: Logger = MetaLoggerFactory.logger {}
 
@@ -47,17 +44,9 @@ class DesktopGraphicsHandler : GraphicsHandler {
 		val gl = Gdx.gl20
 		fbo.checkValidBuilder()
 
-		// iOS uses a different framebuffer handle! (not necessarily 0)
 		if (!MultisampleFBO.defaultFramebufferHandleInitialized) {
 			MultisampleFBO.defaultFramebufferHandleInitialized = true
-			if (Gdx.app.type == Application.ApplicationType.iOS) {
-				val intbuf =
-					ByteBuffer.allocateDirect(16 * Integer.SIZE / 8).order(ByteOrder.nativeOrder()).asIntBuffer()
-				gl.glGetIntegerv(GL20.GL_FRAMEBUFFER_BINDING, intbuf)
-				MultisampleFBO.defaultFramebufferHandle = intbuf[0]
-			} else {
-				MultisampleFBO.defaultFramebufferHandle = 0
-			}
+			MultisampleFBO.defaultFramebufferHandle = 0
 		}
 		fbo.framebufferHandle = gl.glGenFramebuffer()
 		gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, fbo.framebufferHandle)
@@ -100,8 +89,8 @@ class DesktopGraphicsHandler : GraphicsHandler {
 		fbo.isMRT = fbo.bufferBuilder.textureAttachmentSpecs.size > 1
 		var colorTextureCounter = 0
 		if (fbo.isMRT) {
-			@Suppress("GDXKotlinUnsafeIterator")
-			for (attachmentSpec in fbo.bufferBuilder.textureAttachmentSpecs) {
+			for (index in 0 until fbo.bufferBuilder.textureAttachmentSpecs.size) {
+				val attachmentSpec = fbo.bufferBuilder.textureAttachmentSpecs[index]
 				val texture = fbo.createTexture(attachmentSpec)
 				fbo.textureHandles.add(texture)
 				fbo.textureAttachments++
@@ -187,7 +176,7 @@ class DesktopGraphicsHandler : GraphicsHandler {
 		}
 		gl.glBindRenderbuffer(GL20.GL_RENDERBUFFER, 0)
 		gl.glBindTexture(GL32.GL_TEXTURE_2D_MULTISAMPLE, 0)
-		fbo.assertShit()
+		fbo.validateFramebufferComplete()
 		gl.glBindFramebuffer(GL20.GL_FRAMEBUFFER, MultisampleFBO.defaultFramebufferHandle)
 		MultisampleFBO.addManagedFrameBuffer(Gdx.app, fbo)
 		fbo.nonMultisampledFbo = imBuilder.build()
@@ -202,8 +191,8 @@ class DesktopGraphicsHandler : GraphicsHandler {
 			if (bufferBuilder.textureAttachmentSpecs.size > 1) {
 				throw GdxRuntimeException("Multiple render targets not available on GLES 2.0")
 			}
-			@Suppress("GDXKotlinUnsafeIterator")
-			for (spec in bufferBuilder.textureAttachmentSpecs) {
+			for (index in 0 until bufferBuilder.textureAttachmentSpecs.size) {
+				val spec = bufferBuilder.textureAttachmentSpecs[index]
 				if (spec.isDepth) throw GdxRuntimeException("Depth texture FrameBuffer Attachment not available on GLES 2.0")
 				if (spec.isStencil) throw GdxRuntimeException("Stencil texture FrameBuffer Attachment not available on GLES 2.0")
 				if (spec.isFloat && !Gdx.graphics.supportsExtension("OES_texture_float")) {
@@ -213,7 +202,7 @@ class DesktopGraphicsHandler : GraphicsHandler {
 		}
 	}
 
-	private fun MultisampleFBO.assertShit() {
+	private fun MultisampleFBO.validateFramebufferComplete() {
 		val gl = Gdx.gl
 		val result = gl.glCheckFramebufferStatus(GL20.GL_FRAMEBUFFER)
 		if (result != GL20.GL_FRAMEBUFFER_COMPLETE) {

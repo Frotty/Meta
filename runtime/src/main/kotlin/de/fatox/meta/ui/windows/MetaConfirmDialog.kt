@@ -9,9 +9,6 @@ import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaTextButton
 import kotlin.math.roundToInt
 
-/**
- * Created by Frotty on 14.06.2016.
- */
 class MetaConfirmDialog(title: String = "", message: String?) :
 	MetaWindow(title, false, true, hasHeader = title.isNotBlank()) {
 	override val preserveCenterOnAutoFit: Boolean = true

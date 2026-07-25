@@ -33,17 +33,12 @@ import de.fatox.meta.api.extensions.error
 private val log = MetaLoggerFactory.logger {}
 
 /**
- *
- *
- * Encapsulates OpenGL ES 2.0 frame buffer objects. This is a simple helper class which should cover most FBO uses. It
- * will automatically create a gltexture for the color attachment and a renderbuffer for the depth buffer. You can get a
- * hold of the gltexture by [MultisampleFBO.colorBufferTexture]. This class will only work with OpenGL ES 2.0.
+ * Multisampled framebuffer whose color attachments are resolved into libGDX [FrameBuffer] textures.
  *
  * FrameBuffers are managed. In case of an OpenGL context loss, which only happens on Android when a user switches to
  * another application or receives an incoming call, the framebuffer will be automatically recreated.
  *
- * A FrameBuffer must be disposed if it is no longer needed
- *
+ * A framebuffer must be disposed if it is no longer needed.
  *
  * @author mzechner, realitix
  */
@@ -87,11 +82,11 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	 * GL texture handles created via [createTexture] for this FBO's attachments; freed in [dispose].
 	 */
 	val textureHandles: IntArray = IntArray()
+	/** Resolves and returns the first color attachment, or `null` when the framebuffer has none. */
 	val colorBufferTexture: Texture?
 		get() {
 			val nonMultisampledFbo = nonMultisampledFbo
 			if (nonMultisampledFbo == null) {
-				// TODO fix
 				return null
 			}
 			Gdx.gl30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, framebufferHandle)
@@ -222,7 +217,7 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	 * Unbinds the framebuffer and sets viewport sizes, all drawing will be performed to the normal framebuffer from here on.
 	 *
 	 * @param x      the x-axis position of the viewport in pixels
-	 * @param y      the y-asis position of the viewport in pixels
+	 * @param y      the y-axis position of the viewport in pixels
 	 * @param width  the width of the viewport in pixels
 	 * @param height the height of the viewport in pixels
 	 */
@@ -372,7 +367,7 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 
 		/**
 		 * Invalidates all frame buffers. This can be used when the OpenGL context is lost to rebuild all managed frame buffers. This
-		 * assumes that the texture attached to this buffer has already been rebuild! Use with care.
+		 * assumes that the texture attached to this buffer has already been rebuilt. Use with care.
 		 */
 		fun invalidateAllFrameBuffers(app: Application) {
 			if (Gdx.gl20 == null) return

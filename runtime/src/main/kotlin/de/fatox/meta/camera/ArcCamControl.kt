@@ -12,43 +12,32 @@ import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.sound.dlerp
 
-/**
- * Better camera control because I dislike LibGDX's
- * Very similar to World Editor.
- *
- * @author Frotty
- */
+/** Arcball-style editor camera control with pan, rotate, reset, and wheel zoom gestures. */
 class ArcCamControl : InputProcessor {
-	/** The button for moving the target.  */
+	/** Pointer button used to pan or rotate around the target. */
 	var moveCameraButton: Int = Buttons.RIGHT
 	var resetCameraButton: Int = Buttons.MIDDLE
 
-	/** The units to translate the camera when moved the full width or height of the screen.  */
-	var translateUnits: Float = 0.2f // FIXME auto calculate this based on the target
+	/** Distance adjustment per wheel unit. Holding Shift multiplies it by ten. */
+	var translateUnits: Float = 0.2f
 
-	/** The key which must be pressed to enter rotation mode.  */
+	/** Key held while dragging to rotate instead of pan. */
 	var rotateMode: Int = Input.Keys.CONTROL_LEFT
 	private var rotateModeOn: Boolean = false
 	private var fastZoomMode: Boolean = false
 
-	/** The camera.  */
 	val camera: PerspectiveCamera by lazyInject()
 	val entityManager: EntityManager<Meta3DEntity> by lazyInject()
 	val modelBuilder: ModelBuilder by lazyInject()
 
-	/** Are we in moveMode?  */
 	private var moveModeOn = false
 
-	/** The target of the arcball  */
 	private val target = Vector3()
 
-	/** The planar (X/Y) rotation of the camera  */
 	private var rotationAngle = 0f
 
-	/** The angle in which the camera looks onto the target  */
 	private var angleOfAttack = 56f
 
-	/** Distance from target  */
 	private var distance = 10f
 	fun getDistance(): Float {
 		return distance
@@ -104,20 +93,15 @@ class ArcCamControl : InputProcessor {
 	}
 
 	override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
-		// Touch drag equals clicking a mouseButton and then moving the mouse
-		// In case the right mouse button is clicked, we are in MoveMode
 		if (moveModeOn) {
-			// Calculate the middle of old and new mousePosition
 			var deltaX = (screenX - startX).toFloat()
 			var deltaY = (startY - screenY).toFloat()
 			startX = screenX
 			startY = screenY
-			// If CTRL is active, we only rotate
 			if (rotateModeOn) {
 				angleOfAttack += deltaY * .25.toFloat()
 				rotationAngle += deltaX * .25.toFloat()
 			} else {
-				// Otherwise we simple move the target
 				if (distance < 150) {
 					deltaX *= distance / 100
 					deltaY *= distance / 100
@@ -148,16 +132,15 @@ class ArcCamControl : InputProcessor {
 	}
 
 	override fun keyDown(keycode: Int): Boolean {
-		when (keycode) {
-			Input.Keys.CONTROL_LEFT -> rotateModeOn = true
-			Input.Keys.SHIFT_LEFT -> fastZoomMode = true
-			else -> yes = !yes
+		when {
+			keycode == rotateMode -> rotateModeOn = true
+			keycode == Input.Keys.SHIFT_LEFT -> fastZoomMode = true
 		}
 		return false
 	}
 
 	override fun keyUp(keycode: Int): Boolean {
-		if (keycode == Input.Keys.CONTROL_LEFT) {
+		if (keycode == rotateMode) {
 			rotateModeOn = false
 		} else if (keycode == Input.Keys.SHIFT_LEFT) {
 			fastZoomMode = false
@@ -176,8 +159,10 @@ class ArcCamControl : InputProcessor {
 	companion object {
 		private val temp = Vector3()
 
+		@Deprecated("Normal mapping is no longer controlled by camera input")
 		@JvmField
 		var yes: Boolean = true
+
 		private fun cos(aoa: Float): Float {
 			return kotlin.math.cos(aoa * DEG_TO_RAD.toDouble()).toFloat()
 		}

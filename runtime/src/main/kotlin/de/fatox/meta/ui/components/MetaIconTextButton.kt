@@ -18,9 +18,6 @@ import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 
-/**
- * Created by Frotty on 04.06.2016.
- */
 class MetaIconTextButton private constructor(
 	text: String,
 	iconActor: Actor,

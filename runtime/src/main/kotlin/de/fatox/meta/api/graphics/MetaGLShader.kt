@@ -5,9 +5,6 @@ import com.badlogic.gdx.graphics.g3d.Shader
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.GdxRuntimeException
 
-/**
- * Created by Frotty on 29.06.2016.
- */
 abstract class MetaGLShader(val shaderHandle: GLShaderHandle) : Shader {
 	//    private val metaErrorHandler = MetaErrorHandler()
 

@@ -10,9 +10,6 @@ import de.fatox.meta.shader.EditorSceneRenderer
 import de.fatox.meta.shader.MetaSceneHandle
 import de.fatox.meta.shader.MetaShaderComposer
 
-/**
- * Created by Frotty on 16.06.2016.
- */
 class SceneWidget(val sceneHandle: MetaSceneHandle) : Widget() {
 	private val renderer: Renderer by lazyInject()
 	private val composer: MetaShaderComposer by lazyInject()

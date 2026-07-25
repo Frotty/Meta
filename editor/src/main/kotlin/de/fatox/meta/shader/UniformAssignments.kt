@@ -12,38 +12,28 @@ object UniformAssignments {
 	val customAssignments = ObjectMap<String, (ShaderProgram, Camera, RenderContext, Renderable?) -> Unit>()
 
 	fun assignCustomUniforms(program: ShaderProgram, cam: Camera, context: RenderContext, renderable: Renderable? = null) {
-		customAssignments.forEach {
-			if (program.hasUniform(it.key)) {
-				it.value.invoke(program, cam, context, renderable)
+		val assignments = customAssignments.entries()
+		while (assignments.hasNext()) {
+			val assignment = assignments.next()
+			if (program.hasUniform(assignment.key)) {
+				assignment.value.invoke(program, cam, context, renderable)
 			}
 		}
 	}
 
 	fun ShaderProgram.assignCameraUniforms(cam: Camera) {
-		setIfHasUniform("u_camPos", cam::position, ShaderProgram::setUniformf)
-		setIfHasUniform("u_projTrans", cam::combined, ShaderProgram::setUniformMatrix)
+		if (hasUniform("u_camPos")) setUniformf("u_camPos", cam.position)
+		if (hasUniform("u_projTrans")) setUniformMatrix("u_projTrans", cam.combined)
 	}
 
 	fun ShaderProgram.assignRenderableUniforms(cam: Camera, renderable: Renderable) {
-		setIfHasUniform("u_worldTrans", renderable::worldTransform, ShaderProgram::setUniformMatrix)
-		setIfHasUniform(
-			"u_normalTrans",
-			{ tmpM3.set(renderable.worldTransform).inv().transpose() },
-			ShaderProgram::setUniformMatrix
-		)
-		setIfHasUniform(
-			"u_mvpTrans",
-			{ tempM4.set(cam.combined).mul(renderable.worldTransform) },
-			ShaderProgram::setUniformMatrix
-		)
-	}
-
-	private inline fun <reified T: Any> ShaderProgram.setIfHasUniform(
-		name: String,
-		valueGetter: () -> T,
-		setter: ShaderProgram.(String, T) -> Unit
-	) {
-		if (hasUniform(name)) setter(name, valueGetter())
+		if (hasUniform("u_worldTrans")) setUniformMatrix("u_worldTrans", renderable.worldTransform)
+		if (hasUniform("u_normalTrans")) {
+			setUniformMatrix("u_normalTrans", tmpM3.set(renderable.worldTransform).inv().transpose())
+		}
+		if (hasUniform("u_mvpTrans")) {
+			setUniformMatrix("u_mvpTrans", tempM4.set(cam.combined).mul(renderable.worldTransform))
+		}
 	}
 
 	private val tmpM3 = Matrix3()

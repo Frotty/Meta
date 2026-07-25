@@ -13,9 +13,6 @@ import de.fatox.meta.ui.components.MetaTextButton
 import de.fatox.meta.ui.components.MetaValidTextField
 import de.fatox.meta.ui.windows.MetaDialog
 
-/**
- * Created by Frotty on 29.06.2016.
- */
 class ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 	private val metaShaderComposer: MetaShaderComposer by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
@@ -35,10 +32,6 @@ class ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 			override fun onResult(any: Any?) {
 				if (any == true) {
 					metaShaderComposer.newShaderComposition(compNameTF.textField.text)
-//                      ShaderComposerWindow window = uiManager.getWindow(ShaderComposerWindow.class);
-//                      if(window != null) {
-//                          window.addComposition(shaderComposition);
-//                      }
 				}
 				close()
 			}

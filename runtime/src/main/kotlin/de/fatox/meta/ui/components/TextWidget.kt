@@ -9,9 +9,6 @@ import de.fatox.meta.api.graphics.physicalPixelsPerUnit
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
-/**
- * Created by Frotty on 05.06.2016.
- */
 class TextWidget(private val text: String) : Widget() {
 	private val fontProvider: FontProvider by lazyInject()
 

@@ -22,9 +22,6 @@ import de.fatox.meta.ui.windows.MetaDialog
 import de.fatox.meta.ui.windows.MetaDialog.DialogListener
 import de.fatox.meta.util.truncate
 
-/**
- * Created by Frotty on 05.06.2016.
- */
 class OpenProjectDialog : MetaDialog("Open Project", true) {
 	private val languageBundle: LanguageBundle by lazyInject()
 	private val fileChooser: MetaFileChooser by lazyInject("open")

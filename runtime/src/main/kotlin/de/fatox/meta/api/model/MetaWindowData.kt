@@ -3,9 +3,6 @@ package de.fatox.meta.api.model
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import de.fatox.meta.ui.windows.MetaDialog
 
-/**
- * Created by Frotty on 28.06.2016.
- */
 data class MetaWindowData(
 	var name: String? = null,
 	var x: Float = 0f,

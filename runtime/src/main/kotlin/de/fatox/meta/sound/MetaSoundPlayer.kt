@@ -211,13 +211,12 @@ class MetaSoundPlayer {
 	/**
 	 * Debug-renders all dynamic sound instances.
 	 */
-	@Suppress("GDXKotlinUnsafeIterator")
 	fun debugRender() {
 		shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
 		shapeRenderer.projectionMatrix = spriteBatch.projectionMatrix
 		shapeRenderer.transformMatrix = spriteBatch.transformMatrix
-		for (soundHandle in dynamicHandles) {
-			soundHandle.debugRender()
+		for (index in 0 until dynamicHandles.size) {
+			dynamicHandles[index].debugRender()
 		}
 		shapeRenderer.end()
 	}
@@ -241,10 +240,11 @@ class MetaSoundPlayer {
 	/**
 	 * Stops all currently active sounds, optionally fading them out.
 	 */
-	@Suppress("GDXKotlinUnsafeIterator")
 	fun stopAllSounds() {
 		stopAllSoundSources()
-		for (soundHandles in playingHandles.values()) {
+		val handleGroups = playingHandles.values()
+		while (handleGroups.hasNext()) {
+			val soundHandles = handleGroups.next()
 			for (i in soundHandles.size - 1 downTo 0) {
 				stopSound(soundHandles[i], false)
 			}

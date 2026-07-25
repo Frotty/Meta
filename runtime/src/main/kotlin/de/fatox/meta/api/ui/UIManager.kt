@@ -32,8 +32,9 @@ class WindowConfig {
 	internal val singletons: MutableMap<String, () -> Window> = mutableMapOf()
 	internal val singletonCache: MutableMap<String, Window> = mutableMapOf()
 
-	internal inline fun nameOf(windowClass: KClass<out Window>): String = classToName.getValue(windowClass)
+	internal fun nameOf(windowClass: KClass<out Window>): String = classToName.getValue(windowClass)
 
+	@Suppress("UNCHECKED_CAST")
 	internal fun <T : Window> create(name: String): T =
 		singletonCache[name] as T?
 			?: singletons[name]?.invoke()?.also { singletonCache[name] = it } as T?
@@ -59,11 +60,11 @@ class WindowConfig {
 	internal fun <T : MetaWindow> registerSingleton(windowClass: KClass<T>, name: String, creator: () -> T) =
 		registerInternal(windowClass, name, singletons, creator)
 
-	private inline fun <T : MetaWindow> registerInternal(
+	private fun <T : MetaWindow> registerInternal(
 		windowClass: KClass<T>,
 		name: String,
 		map: MutableMap<String, () -> Window>,
-		noinline creator: () -> T
+		creator: () -> T
 	) {
 		require(nameToClass[name] == null) { "Name already registered: $name" }
 
@@ -102,9 +103,6 @@ inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
 	}
 }
 
-/**
- * Created by Frotty on 20.05.2016.
- */
 interface UIManager : Disposable {
 	companion object {
 		const val DEFAULT_TOAST_SECONDS = 3.5f

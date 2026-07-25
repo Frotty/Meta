@@ -14,9 +14,6 @@ import de.fatox.meta.ui.MetaEditorUI
 import de.fatox.meta.ui.components.MetaIconTextButton
 import de.fatox.meta.ui.tabs.SceneTab
 
-/**
- * Created by Frotty on 20.05.2016.
- */
 class PrimitivesWindow : MetaWindow("Primitives", true, true) {
 	private val boxButton: MetaIconTextButton
 

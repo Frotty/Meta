@@ -30,7 +30,8 @@ class MetaListView<ItemT>(private val adapter: MetaArrayAdapter<ItemT, out Actor
 	fun rebuildView() {
 		mainTable.clearChildren()
 		val selectedItem = selectedItemValue.peek()
-		for (item in adapter.items) {
+		for (index in 0 until adapter.items.size) {
+			val item = adapter.items[index]
 			val view = adapter.createView(item)
 			view.addListener(object : ClickListener() {
 				override fun clicked(event: InputEvent, x: Float, y: Float) {

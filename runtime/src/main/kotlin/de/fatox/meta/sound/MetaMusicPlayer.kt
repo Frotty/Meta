@@ -2,8 +2,11 @@ package de.fatox.meta.sound
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Music
-import com.badlogic.gdx.utils.*
 import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.Disposable
+import com.badlogic.gdx.utils.GdxRuntimeException
+import com.badlogic.gdx.utils.ObjectMap
+import com.badlogic.gdx.utils.Timer
 import com.badlogic.gdx.utils.Timer.Task
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.MetaLoggerFactory
@@ -42,36 +45,27 @@ object UninitializedMusic : Music {
 }
 
 private val log: Logger = MetaLoggerFactory.logger {}
-private const val MAX_RESTART_TIMES = 10
+private const val MAX_CONSECUTIVE_FAILURES = 10
 
-/**
- * Created by Frotty on 09.11.2016.
- */
 class MetaMusicPlayer : Disposable {
 	private val assetProvider: AssetProvider by lazyInject()
-	private var restartCount = 0
+	private var consecutiveFailureCount = 0
 
 	private val task: Task = object : Task() {
 		override fun run() {
 			Gdx.app.postRunnable {
 				try {
 					updateMusic()
+					consecutiveFailureCount = 0
 				} catch (e: GdxRuntimeException) {
-					// TODO what to do to prevent restarting every time?
-					if (++restartCount > MAX_RESTART_TIMES) cancel()
-
-					log.error { "Failed to update music $restartCount time(s)!" }
-
-					// Dispose and reload current music. The call to updateMusic is skipped, as it is called on a timer.
-					if (currentMusic !== UninitializedMusic) {
-						val currentKey = musicCache.findKey(currentMusic, true)
-						log.error { "Failed to play: $currentKey" }
-						val newMusic = musicCache.put(currentKey, assetProvider[currentKey])
-						allPool.removeValue(currentMusic, true)
-						allPool.add(newMusic)
-						activePool.clear()
-						currentMusic.dispose()
-						currentMusic = UninitializedMusic
+					consecutiveFailureCount++
+					val currentKey = musicCache.findKey(currentMusic, true)
+					log.error(e) {
+						"Failed to update music '$currentKey' " +
+							"($consecutiveFailureCount/$MAX_CONSECUTIVE_FAILURES)"
+					}
+					if (consecutiveFailureCount >= MAX_CONSECUTIVE_FAILURES) {
+						cancel()
 					}
 				}
 			}
@@ -88,8 +82,10 @@ class MetaMusicPlayer : Disposable {
 	var random = false
 
 	fun start() {
-		// Start Timer to update music
-		timer.scheduleTask(task, 0f, 0.1f)
+		if (!task.isScheduled) {
+			consecutiveFailureCount = 0
+			timer.scheduleTask(task, 0f, 0.1f)
+		}
 	}
 
 	private fun updateMusic() {
@@ -121,7 +117,6 @@ class MetaMusicPlayer : Disposable {
 
 	private fun finishMusic() {
 		currentMusic.stop()
-		// Check if there is a track queued
 		if (nextMusic !== UninitializedMusic) {
 			currentMusic = nextMusic
 			nextMusic = UninitializedMusic
@@ -206,9 +201,7 @@ class MetaMusicPlayer : Disposable {
 		if (currentMusic !== UninitializedMusic) {
 			if (musicEnabled) {
 				currentMusic.volume = vol
-				if (!task.isScheduled) {
-					timer.scheduleTask(task, 0f, 0.1f)
-				}
+				start()
 			} else {
 				vol = currentMusic.volume
 				currentMusic.volume = 0f

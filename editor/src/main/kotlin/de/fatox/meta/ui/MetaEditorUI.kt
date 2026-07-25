@@ -13,9 +13,6 @@ import de.fatox.meta.ui.tabs.WelcomeTab
 
 private val log = MetaLoggerFactory.logger {}
 
-/**
- * Created by Frotty on 04.06.2016.
- */
 class MetaEditorUI {
 	private val uiManager: UIManager by lazyInject()
 
@@ -62,7 +59,7 @@ class MetaEditorUI {
 	}
 
 	private fun getTab(name: String): MetaTab? =
-		tabbedPane.tabs.firstOrNull { it.tabTitle.equals(name, ignoreCase = true) } as? MetaTab
+		tabbedPane.tabs.firstOrNull { it.tabTitle.equals(name, ignoreCase = true) }
 
 	val currentTab: MetaTab? get() = tabbedPane.activeMetaTab
 

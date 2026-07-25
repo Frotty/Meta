@@ -19,7 +19,20 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.prefs.Preferences
-import javax.swing.*
+import javax.swing.BorderFactory
+import javax.swing.ImageIcon
+import javax.swing.JButton
+import javax.swing.JCheckBox
+import javax.swing.JFrame
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.JScrollPane
+import javax.swing.JTextArea
+import javax.swing.SwingUtilities
+import javax.swing.Timer
+import javax.swing.UIManager
+import javax.swing.UnsupportedLookAndFeelException
+import javax.swing.WindowConstants
 import kotlin.system.exitProcess
 
 private val log = MetaLoggerFactory.logger {}
