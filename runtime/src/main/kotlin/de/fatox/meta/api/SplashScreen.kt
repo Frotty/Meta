@@ -38,7 +38,7 @@ class SplashScreen private constructor(
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
-	private var dotTexture: Texture? = null
+	private var ringTexture: Texture? = null
 	private var pixelTexture: Texture? = null
 	private var elapsed = 0f
 	private var phaseElapsed = 0f
@@ -54,8 +54,8 @@ class SplashScreen private constructor(
 	}
 
 	override fun dispose() {
-		dotTexture?.dispose()
-		dotTexture = null
+		ringTexture?.dispose()
+		ringTexture = null
 		pixelTexture?.dispose()
 		pixelTexture = null
 	}
@@ -94,27 +94,28 @@ class SplashScreen private constructor(
 		val spinnerAngle = -elapsed * ROTATION_DEGREES_PER_SECOND
 
 		spriteBatch.use {
-			for (i in 0 until SEGMENT_COUNT) {
-				val progress = i.toFloat() / (SEGMENT_COUNT - 1)
-				val segmentAngle = spinnerAngle + i * SEGMENT_ANGLE
-				val segmentSize = MIN_DOT_SIZE + progress * (MAX_DOT_SIZE - MIN_DOT_SIZE)
-				spriteBatch.color.set(
-					MetaColor.ACCENT.r,
-					MetaColor.ACCENT.g,
-					MetaColor.ACCENT.b,
-					(MIN_ALPHA + progress * (1f - MIN_ALPHA)) * visualAlpha,
-				)
-				spriteBatch.draw(
-					dotTexture!!,
-					centerX + MathUtils.cosDeg(segmentAngle) * SPINNER_RADIUS - segmentSize * 0.5f,
-					centerY + MathUtils.sinDeg(segmentAngle) * SPINNER_RADIUS - segmentSize * 0.5f,
-					segmentSize,
-					segmentSize,
-				)
-			}
+			spriteBatch.color.set(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
+			spriteBatch.draw(
+				ringTexture!!,
+				centerX - SPINNER_SIZE * 0.5f,
+				centerY - SPINNER_SIZE * 0.5f,
+				SPINNER_SIZE * 0.5f,
+				SPINNER_SIZE * 0.5f,
+				SPINNER_SIZE,
+				SPINNER_SIZE,
+				1f,
+				1f,
+				spinnerAngle,
+				0,
+				0,
+				RING_TEXTURE_SIZE,
+				RING_TEXTURE_SIZE,
+				false,
+				false,
+			)
 
 			val barX = centerX - BAR_WIDTH * 0.5f
-			val barY = centerY - SPINNER_RADIUS - BAR_GAP
+			val barY = centerY - SPINNER_SIZE * 0.5f - BAR_GAP
 			spriteBatch.color.set(MetaColor.BORDER.r, MetaColor.BORDER.g, MetaColor.BORDER.b, TRACK_ALPHA * visualAlpha)
 			spriteBatch.draw(pixelTexture!!, barX, barY, BAR_WIDTH, BAR_HEIGHT)
 			spriteBatch.color.set(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
@@ -198,12 +199,24 @@ class SplashScreen private constructor(
 	}
 
 	private fun createTextures() {
-		if (dotTexture == null) {
-			val dotPixmap = Pixmap(DOT_TEXTURE_SIZE, DOT_TEXTURE_SIZE, Pixmap.Format.RGBA8888)
-			dotPixmap.setColor(Color.WHITE)
-			dotPixmap.fillCircle(DOT_TEXTURE_SIZE / 2, DOT_TEXTURE_SIZE / 2, DOT_TEXTURE_SIZE / 2 - 1)
-			dotTexture = Texture(dotPixmap)
-			dotPixmap.dispose()
+		if (ringTexture == null) {
+			val ringPixmap = Pixmap(RING_TEXTURE_SIZE, RING_TEXTURE_SIZE, Pixmap.Format.RGBA8888)
+			ringPixmap.setBlending(Pixmap.Blending.None)
+			ringPixmap.setColor(0f, 0f, 0f, 0f)
+			ringPixmap.fill()
+			ringPixmap.setBlending(Pixmap.Blending.SourceOver)
+			val center = RING_TEXTURE_SIZE / 2
+			ringPixmap.setColor(1f, 1f, 1f, 0.22f)
+			ringPixmap.fillCircle(center, center, 23)
+			ringPixmap.setColor(1f, 1f, 1f, 0.62f)
+			ringPixmap.fillTriangle(center, center, center - 15, RING_TEXTURE_SIZE, center + 15, RING_TEXTURE_SIZE)
+			ringPixmap.setColor(0f, 0f, 0f, 0f)
+			ringPixmap.setBlending(Pixmap.Blending.None)
+			ringPixmap.fillCircle(center, center, 17)
+			ringTexture = Texture(ringPixmap).apply {
+				setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+			}
+			ringPixmap.dispose()
 		}
 		if (pixelTexture == null) {
 			val pixelPixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
@@ -220,14 +233,9 @@ class SplashScreen private constructor(
 
 	private companion object {
 		const val PREPARATION_THREAD_NAME = "meta-asset-preparation"
-		const val DOT_TEXTURE_SIZE = 16
-		const val SEGMENT_COUNT = 12
-		const val SEGMENT_ANGLE = 360f / SEGMENT_COUNT
-		const val SPINNER_RADIUS = 25f
-		const val MIN_DOT_SIZE = 4f
-		const val MAX_DOT_SIZE = 8f
+		const val RING_TEXTURE_SIZE = 64
+		const val SPINNER_SIZE = 54f
 		const val ROTATION_DEGREES_PER_SECOND = 240f
-		const val MIN_ALPHA = 0.12f
 		const val MAX_DELTA = 0.1f
 		const val INDICATOR_Y_OFFSET = 14f
 		const val BAR_WIDTH = 180f
@@ -247,7 +255,7 @@ class SplashScreen private constructor(
 
 internal object SplashLoadingPolicy {
 	private const val TARGET_FRAME_SECONDS = 1f / 60f
-	private const val MAX_UPDATE_BUDGET_MS = 6
+	private const val MAX_UPDATE_BUDGET_MS = 2
 
 	fun updateBudgetMillis(frameDelta: Float): Int {
 		if (!frameDelta.isFinite() || frameDelta <= 0f) return MAX_UPDATE_BUDGET_MS

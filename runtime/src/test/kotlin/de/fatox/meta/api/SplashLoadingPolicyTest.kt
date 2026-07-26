@@ -6,8 +6,8 @@ import kotlin.test.assertEquals
 class SplashLoadingPolicyTest {
 	@Test
 	fun `fast frames receive bounded loading time`() {
-		assertEquals(6, SplashLoadingPolicy.updateBudgetMillis(1f / 120f))
-		assertEquals(6, SplashLoadingPolicy.updateBudgetMillis(0f))
+		assertEquals(2, SplashLoadingPolicy.updateBudgetMillis(1f / 120f))
+		assertEquals(2, SplashLoadingPolicy.updateBudgetMillis(0f))
 	}
 
 	@Test
