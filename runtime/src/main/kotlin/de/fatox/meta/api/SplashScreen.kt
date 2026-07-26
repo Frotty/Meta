@@ -14,6 +14,9 @@ import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.MetaColor
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.sqrt
 
 /**
  * Lightweight startup screen which only uses Meta's shared [SpriteBatch].
@@ -204,15 +207,15 @@ class SplashScreen private constructor(
 			ringPixmap.setBlending(Pixmap.Blending.None)
 			ringPixmap.setColor(0f, 0f, 0f, 0f)
 			ringPixmap.fill()
-			ringPixmap.setBlending(Pixmap.Blending.SourceOver)
-			val center = RING_TEXTURE_SIZE / 2
-			ringPixmap.setColor(1f, 1f, 1f, 0.22f)
-			ringPixmap.fillCircle(center, center, 23)
-			ringPixmap.setColor(1f, 1f, 1f, 0.62f)
-			ringPixmap.fillTriangle(center, center, center - 15, RING_TEXTURE_SIZE, center + 15, RING_TEXTURE_SIZE)
-			ringPixmap.setColor(0f, 0f, 0f, 0f)
-			ringPixmap.setBlending(Pixmap.Blending.None)
-			ringPixmap.fillCircle(center, center, 17)
+			for (y in 0 until RING_TEXTURE_SIZE) {
+				for (x in 0 until RING_TEXTURE_SIZE) {
+					val alpha = SplashRingTexturePainter.alphaAt(x, y, RING_TEXTURE_SIZE)
+					if (alpha > 0f) {
+						ringPixmap.setColor(1f, 1f, 1f, alpha)
+						ringPixmap.drawPixel(x, y)
+					}
+				}
+			}
 			ringTexture = Texture(ringPixmap).apply {
 				setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
 			}
@@ -251,6 +254,40 @@ class SplashScreen private constructor(
 	private class AssetQueue(val task: () -> Unit)
 	private class AssetPreparation(val task: () -> Unit)
 	private enum class Phase { FADE_IN, PREPARING, QUEUEING, LOADING, HOLD, FADE_OUT, COMPLETE }
+}
+
+internal object SplashRingTexturePainter {
+	private const val INNER_RADIUS = 17f
+	private const val OUTER_RADIUS = 24f
+	private const val EDGE_SOFTNESS = 1.25f
+	private const val BASE_ALPHA = 0.24f
+	private const val HIGHLIGHT_ALPHA = 0.48f
+	private const val HIGHLIGHT_ANGLE_DEGREES = 105f
+	private const val HIGHLIGHT_INNER_DEGREES = 42f
+	private const val HIGHLIGHT_OUTER_DEGREES = 64f
+
+	fun alphaAt(x: Int, y: Int, size: Int): Float {
+		val center = (size - 1) * 0.5f
+		val dx = x - center
+		val dy = center - y
+		val distance = sqrt(dx * dx + dy * dy)
+		val ringMask = smoothStep(INNER_RADIUS - EDGE_SOFTNESS, INNER_RADIUS + EDGE_SOFTNESS, distance) *
+			(1f - smoothStep(OUTER_RADIUS - EDGE_SOFTNESS, OUTER_RADIUS + EDGE_SOFTNESS, distance))
+		if (ringMask <= 0f) return 0f
+
+		val angle = (atan2(dy, dx) * MathUtils.radiansToDegrees + 360f) % 360f
+		val angleDistance = shortestAngleDistance(angle, HIGHLIGHT_ANGLE_DEGREES)
+		val highlightMask = 1f - smoothStep(HIGHLIGHT_INNER_DEGREES, HIGHLIGHT_OUTER_DEGREES, angleDistance)
+		return ((BASE_ALPHA + HIGHLIGHT_ALPHA * highlightMask) * ringMask).coerceIn(0f, 1f)
+	}
+
+	private fun shortestAngleDistance(a: Float, b: Float): Float =
+		abs(((a - b + 540f) % 360f) - 180f)
+
+	private fun smoothStep(edge0: Float, edge1: Float, value: Float): Float {
+		val progress = ((value - edge0) / (edge1 - edge0)).coerceIn(0f, 1f)
+		return progress * progress * (3f - 2f * progress)
+	}
 }
 
 internal object SplashLoadingPolicy {
