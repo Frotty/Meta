@@ -17,6 +17,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
+import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.TimeUtils
 
 /**
  * Runtime-generated Meta skin resources. These are deliberately created from code instead of bundled UI textures so
@@ -65,7 +67,11 @@ object MetaSkin {
 	private const val ICON_PIXMAP_SCALE = 3
 	private const val ICON_PIXMAP_SIZE = ICON_SIZE * ICON_PIXMAP_SCALE
 	private const val LOADING_RING_PIXMAP_SIZE = 64
+	private const val NANOS_PER_MILLI = 1_000_000L
 	private var activeSkin: Skin? = null
+	private var installActions: Array<() -> Unit>? = null
+	private var installCursor = 0
+	private var collectingInstallActions = false
 
 	fun skin(): Skin = activeSkin ?: error("MetaSkin has not been initialized")
 
@@ -85,19 +91,74 @@ object MetaSkin {
 	}
 
 	fun dispose() {
+		installActions?.clear()
+		installActions = null
+		installCursor = 0
+		collectingInstallActions = false
 		activeSkin?.dispose()
 		activeSkin = null
 	}
 
 	fun install(skin: Skin) {
 		if (skin.has(INSTALLED_COLOR, Color::class.java)) return
+		beginInstall(skin)
+		while (!updateInstall(Int.MAX_VALUE)) {
+			// Int.MAX_VALUE is intentionally synchronous for the compatibility API.
+		}
+	}
 
-		addPalette(skin)
+	/**
+	 * Starts generating the default skin without doing raster or GL work yet. SplashScreen advances it through
+	 * [updateIncrementalInitialize], keeping dozens of generated drawables out of one transition frame.
+	 */
+	internal fun beginIncrementalInitialize(skin: Skin = Skin()) {
+		activeSkin = skin
+		beginInstall(skin)
+	}
+
+	/** Advances generated skin resources for a soft time budget. Zero is a poll and performs no work. */
+	internal fun updateIncrementalInitialize(millis: Int): Boolean = updateInstall(millis)
+
+	internal val pendingInstallSteps: Int
+		get() = (installActions?.size ?: 0) - installCursor
+
+	private fun beginInstall(skin: Skin) {
+		if (skin.has(INSTALLED_COLOR, Color::class.java) || installActions != null) return
+		val actions = Array<() -> Unit>()
+		installActions = actions
+		installCursor = 0
+		collectingInstallActions = true
+
+		actions.add { addPalette(skin) }
 		addPanelDrawables(skin)
 		addControlDrawables(skin)
-		addStyles(skin)
+		actions.add {
+			addStyles(skin)
+			skin.add(INSTALLED_COLOR, Color.WHITE.cpy())
+		}
+		collectingInstallActions = false
+	}
 
-		skin.add(INSTALLED_COLOR, Color.WHITE.cpy())
+	private fun updateInstall(millis: Int): Boolean {
+		val actions = installActions ?: return true
+		if (millis <= 0) return false
+		val deadline = TimeUtils.nanoTime() + millis.toLong() * NANOS_PER_MILLI
+		do {
+			actions[installCursor++].invoke()
+			if (installCursor >= actions.size) {
+				actions.clear()
+				installActions = null
+				installCursor = 0
+				return true
+			}
+		} while (TimeUtils.nanoTime() < deadline)
+		return false
+	}
+
+	private fun deferInstall(action: () -> Unit): Boolean {
+		if (!collectingInstallActions) return false
+		installActions!!.add(action)
+		return true
 	}
 
 	private fun addPalette(skin: Skin) {
@@ -136,6 +197,7 @@ object MetaSkin {
 	}
 
 	private fun loadingRing(skin: Skin) {
+		if (deferInstall { loadingRing(skin) }) return
 		val pixmap = Pixmap(LOADING_RING_PIXMAP_SIZE, LOADING_RING_PIXMAP_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		val center = LOADING_RING_PIXMAP_SIZE / 2
@@ -205,15 +267,11 @@ object MetaSkin {
 		rounded(skin, "meta.menu.bar.open", TRANSPARENT, null, radius = 5, border = 0, padding = 0f)
 		rounded(skin, "meta.menu.bar.over", MetaColor.TERTIARY_HOVER, null, radius = 5, border = 0, padding = 0f)
 		rounded(skin, "meta.menu.bar.selected", MetaColor.SELECTION_FILL, MetaColor.ACCENT, radius = 5, border = 1, padding = 0f)
-		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.open"))
-		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.over"))
-		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.selected"))
+		deferOrConfigureToolbarDrawables(skin)
 		rounded(skin, "meta.menu.item", TRANSPARENT, null, radius = 4, border = 0, padding = 0f)
 		rounded(skin, "meta.menu.item.over", MetaColor.TERTIARY_HOVER, null, radius = 4, border = 0, padding = 0f)
 		rounded(skin, "meta.menu.item.selected", MetaColor.SELECTION_FILL, null, radius = 4, border = 0, padding = 0f)
-		configureMenuItemDrawable(skin.getDrawable("meta.menu.item"))
-		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.over"))
-		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.selected"))
+		deferOrConfigureMenuItemDrawables(skin)
 		solid(skin, "meta.cursor", MetaColor.TEXT, minWidth = 2f, minHeight = 20f)
 
 		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 3, border = 0, padding = 0f, minWidth = 6f, minHeight = 6f)
@@ -460,6 +518,9 @@ object MetaSkin {
 		minHeight: Float = 24f,
 		depth: MetaDepth = MetaDepth.NONE,
 	) {
+		if (deferInstall {
+				rounded(skin, name, fill, stroke, radius, border, padding, minWidth, minHeight, depth)
+			}) return
 		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		val innerRadius = (radius - border).coerceAtLeast(0)
@@ -522,6 +583,7 @@ object MetaSkin {
 		roundLeft: Boolean = false,
 		roundRight: Boolean = false,
 	) {
+		if (deferInstall { segmentedRounded(skin, name, fill, stroke, roundLeft, roundRight) }) return
 		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		val radius = 6f
@@ -572,6 +634,7 @@ object MetaSkin {
 		border: Int,
 		padding: Float,
 	) {
+		if (deferInstall { chamfered(skin, name, fill, stroke, cut, border, padding) }) return
 		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		for (y in 0 until PATCH_SIZE) {
@@ -619,6 +682,13 @@ object MetaSkin {
 		drawable.minHeight = 24f
 	}
 
+	private fun deferOrConfigureToolbarDrawables(skin: Skin) {
+		if (deferInstall { deferOrConfigureToolbarDrawables(skin) }) return
+		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.open"))
+		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.over"))
+		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.selected"))
+	}
+
 	private fun configureMenuItemDrawable(drawable: Drawable) {
 		drawable.leftWidth = 8f
 		drawable.rightWidth = 8f
@@ -628,7 +698,15 @@ object MetaSkin {
 		drawable.minHeight = 28f
 	}
 
+	private fun deferOrConfigureMenuItemDrawables(skin: Skin) {
+		if (deferInstall { deferOrConfigureMenuItemDrawables(skin) }) return
+		configureMenuItemDrawable(skin.getDrawable("meta.menu.item"))
+		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.over"))
+		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.selected"))
+	}
+
 	private fun solid(skin: Skin, name: String, color: Color, minWidth: Float, minHeight: Float) {
+		if (deferInstall { solid(skin, name, color, minWidth, minHeight) }) return
 		val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		pixmap.drawPixel(0, 0, Color.rgba8888(color))
@@ -744,6 +822,7 @@ object MetaSkin {
 		border: Int,
 		padding: Float,
 	) {
+		if (deferInstall { topRounded(skin, name, fill, stroke, radius, border, padding) }) return
 		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		val innerRadius = (radius - border).coerceAtLeast(0)
@@ -793,6 +872,7 @@ object MetaSkin {
 		disabled: Boolean = false,
 		focused: Boolean = false,
 	) {
+		if (deferInstall { checkbox(skin, name, checked, over, down, disabled, focused) }) return
 		val scale = ICON_PIXMAP_SCALE
 		val pixmap = Pixmap(ICON_PIXMAP_SIZE, ICON_PIXMAP_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
@@ -822,6 +902,7 @@ object MetaSkin {
 
 	/** Supersampled solid circle rendered at [ICON_PIXMAP_SCALE], for knobs that must never nine-patch-stretch. */
 	private fun circle(skin: Skin, name: String, fill: Color, stroke: Color, border: Int, diameter: Int) {
+		if (deferInstall { circle(skin, name, fill, stroke, border, diameter) }) return
 		val size = diameter * ICON_PIXMAP_SCALE
 		val pixmap = Pixmap(size, size, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)

@@ -8,6 +8,23 @@ import de.fatox.meta.ui.MetaToastManager
 
 interface UIRenderer : Disposable {
 	fun load()
+
+	/**
+	 * Advances startup-only UI resource creation. Implementations may spread expensive generated textures across
+	 * calls; the default preserves compatibility by loading everything on the first permitted call.
+	 */
+	fun updateLoad(millis: Int): Boolean {
+		if (millis <= 0) return false
+		load()
+		return true
+	}
+
+	/**
+	 * Re-evaluates display-dependent startup state after the application's loaded callback may have restored its
+	 * monitor or display mode.
+	 */
+	fun refreshStartupDisplay() = Unit
+
 	fun addActor(actor: Actor)
 	fun update()
 	fun draw()

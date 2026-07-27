@@ -47,6 +47,7 @@ class SplashScreen private constructor(
 	private var phaseElapsed = 0f
 	private var phase = Phase.FADE_IN
 	private var transitionStarted = false
+	private var skippedLoadingFrames = 0
 	@Volatile private var preparationComplete = false
 	@Volatile private var preparationFailure: Throwable? = null
 
@@ -141,16 +142,20 @@ class SplashScreen private constructor(
 			Phase.PREPARING -> {
 				preparationFailure?.let { throw it }
 				if (preparationComplete) {
-					if (assetQueue == null) enterPhase(Phase.HOLD) else enterPhase(Phase.LOADING)
+					if (assetQueue == null) enterPhase(Phase.UI_LOADING) else enterPhase(Phase.LOADING)
 				}
 			}
 			Phase.QUEUEING -> {
 				assetQueue?.task?.invoke()
-				if (assetQueue == null) enterPhase(Phase.HOLD) else enterPhase(Phase.LOADING)
+				if (assetQueue == null) enterPhase(Phase.UI_LOADING) else enterPhase(Phase.LOADING)
 			}
 			Phase.LOADING -> {
-				val budgetMillis = SplashLoadingPolicy.updateBudgetMillis(frameDelta)
-				if (assetProvider.update(budgetMillis)) enterPhase(Phase.HOLD)
+				val budgetMillis = loadingBudgetMillis(frameDelta)
+				if (assetProvider.update(budgetMillis)) enterPhase(Phase.UI_LOADING)
+			}
+			Phase.UI_LOADING -> {
+				val budgetMillis = loadingBudgetMillis(frameDelta)
+				if (uiRenderer.updateLoad(budgetMillis)) enterPhase(Phase.HOLD)
 			}
 			Phase.HOLD -> if (phaseElapsed >= MINIMUM_HOLD_DURATION) enterPhase(Phase.FADE_OUT)
 			Phase.FADE_OUT -> if (phaseElapsed >= FADE_DURATION) {
@@ -183,6 +188,19 @@ class SplashScreen private constructor(
 	private fun enterPhase(next: Phase) {
 		phase = next
 		phaseElapsed = 0f
+		skippedLoadingFrames = 0
+	}
+
+	private fun loadingBudgetMillis(frameDelta: Float): Int {
+		val budget = SplashLoadingPolicy.updateBudgetMillis(frameDelta)
+		if (budget > 0) {
+			skippedLoadingFrames = 0
+			return budget
+		}
+		skippedLoadingFrames++
+		if (skippedLoadingFrames < MAX_SKIPPED_LOADING_FRAMES) return 0
+		skippedLoadingFrames = 0
+		return MINIMUM_PROGRESS_BUDGET_MS
 	}
 
 	private fun visualAlpha(): Float {
@@ -198,7 +216,7 @@ class SplashScreen private constructor(
 		if (transitionStarted) return
 		transitionStarted = true
 		onLoaded.invoke()
-		uiRenderer.load()
+		uiRenderer.refreshStartupDisplay()
 	}
 
 	private fun createTextures() {
@@ -249,11 +267,13 @@ class SplashScreen private constructor(
 		const val TRACK_ALPHA = 0.5f
 		const val FADE_DURATION = 0.28f
 		const val MINIMUM_HOLD_DURATION = 0.12f
+		const val MAX_SKIPPED_LOADING_FRAMES = 4
+		const val MINIMUM_PROGRESS_BUDGET_MS = 1
 	}
 
 	private class AssetQueue(val task: () -> Unit)
 	private class AssetPreparation(val task: () -> Unit)
-	private enum class Phase { FADE_IN, PREPARING, QUEUEING, LOADING, HOLD, FADE_OUT, COMPLETE }
+	private enum class Phase { FADE_IN, PREPARING, QUEUEING, LOADING, UI_LOADING, HOLD, FADE_OUT, COMPLETE }
 }
 
 internal object SplashRingTexturePainter {
@@ -291,13 +311,12 @@ internal object SplashRingTexturePainter {
 }
 
 internal object SplashLoadingPolicy {
-	private const val TARGET_FRAME_SECONDS = 1f / 60f
-	private const val MAX_UPDATE_BUDGET_MS = 2
+	private const val SLOW_FRAME_SECONDS = 1f / 55f
+	private const val UPDATE_BUDGET_MS = 1
 
 	fun updateBudgetMillis(frameDelta: Float): Int {
-		if (!frameDelta.isFinite() || frameDelta <= 0f) return MAX_UPDATE_BUDGET_MS
-		val spareMillis = ((TARGET_FRAME_SECONDS - frameDelta) * 1000f).toInt()
-		return spareMillis.coerceIn(0, MAX_UPDATE_BUDGET_MS)
+		if (!frameDelta.isFinite() || frameDelta <= 0f) return UPDATE_BUDGET_MS
+		return if (frameDelta <= SLOW_FRAME_SECONDS) UPDATE_BUDGET_MS else 0
 	}
 
 	fun smoothStep(progress: Float): Float {

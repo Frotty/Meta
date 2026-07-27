@@ -80,6 +80,8 @@ class MetaUIRenderer : UIRenderer {
 	private val toastManager = MetaToastManager(stage)
 	private val reactiveScope = ReactiveScope()
 	private var loaded = false
+	private var loadStarted = false
+	private var loadingWithUI = false
 	private var disposed = false
 	private var lastScrollHoverTarget: Actor? = null
 	private var lastScrollHoverPane: Actor? = null
@@ -104,11 +106,39 @@ class MetaUIRenderer : UIRenderer {
 	override fun load() {
 		check(!disposed) { "A disposed UI renderer cannot be loaded again" }
 		if (loaded) return
+		beginLoad()
+		if (loadingWithUI) {
+			while (!MetaSkin.updateIncrementalInitialize(Int.MAX_VALUE)) {
+				// Synchronous compatibility path.
+			}
+		}
+		completeLoad()
+	}
+
+	override fun updateLoad(millis: Int): Boolean {
+		check(!disposed) { "A disposed UI renderer cannot be loaded again" }
+		if (loaded) return true
+		if (millis <= 0) return false
+		beginLoad()
+		if (loadingWithUI && !MetaSkin.updateIncrementalInitialize(millis)) return false
+		completeLoad()
+		return true
+	}
+
+	private fun beginLoad() {
+		if (loadStarted) return
+		loadStarted = true
+		loadingWithUI = MetaAudioVideoState.state.value.runWithUI
+		log.trace { "load with UI enabled = $loadingWithUI" }
+		if (loadingWithUI) MetaSkin.beginIncrementalInitialize()
+	}
+
+	private fun completeLoad() {
+		if (loaded) return
 		loaded = true
-		val runWithUI = MetaAudioVideoState.state.value.runWithUI
-		log.trace { "load with UI enabled = $runWithUI" }
-		if (runWithUI) {
-			loadMetaUI()
+		if (loadingWithUI) {
+			MetaFileChooser.setDefaultPrefsName("de.fatox.meta")
+			log.debug { "Loaded Meta UI." }
 		}
 
 		stage.root.addCaptureListener(object : InputListener() {
@@ -178,6 +208,12 @@ class MetaUIRenderer : UIRenderer {
 		}
 	}
 
+	override fun refreshStartupDisplay() {
+		if (!loaded || disposed) return
+		uiScale.value = suggestedUiScale()
+		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
+	}
+
 	private inline fun <reified T : Actor> Actor?.isInside(): Boolean {
 		var current = this
 		while (current != null) {
@@ -188,12 +224,6 @@ class MetaUIRenderer : UIRenderer {
 	}
 
 	override fun cancelTouchFocus() = stage.cancelTouchFocus()
-
-	private fun loadMetaUI() {
-		MetaSkin.initialize()
-		MetaFileChooser.setDefaultPrefsName("de.fatox.meta")
-		log.debug { "Loaded Meta UI." }
-	}
 
 	override fun addActor(actor: Actor) {
 		try {

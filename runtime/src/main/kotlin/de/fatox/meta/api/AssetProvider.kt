@@ -19,7 +19,10 @@ interface AssetProvider {
 	fun <T : Any> load(key: AssetKey<T>, type: Class<T>): Unit = load(key.name, type)
 
 	/**
-	 * Advances queued asynchronous loads for at most [millis] milliseconds. Call from the GL/render thread.
+	 * Advances queued asynchronous loads when [millis] is positive. Call from the GL/render thread. Implementations
+	 * should keep each call to one cooperative loading step: an individual GL upload can exceed the requested soft
+	 * budget, so callers may pass zero after a slow frame to poll without starting more work.
+	 *
 	 * Returns true when the queue is empty. The default keeps custom providers source-compatible.
 	 */
 	fun update(millis: Int = 16): Boolean = true

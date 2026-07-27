@@ -21,10 +21,12 @@ import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.ObjectMap
+import com.badlogic.gdx.utils.TimeUtils
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.trace
+import de.fatox.meta.api.extensions.warn
 import de.fatox.meta.assets.XPKLoader.getList
 
 private val log = MetaLoggerFactory.logger {}
@@ -60,11 +62,14 @@ class MetaAssetProvider : AssetProvider {
 		}
 	}
 
-	private val assetManager = AssetManager(MetaFileHandleResolver())
 	private val atlasCache = Array<TextureAtlas>()
 	private val animCache = IntMap<Array<out TextureRegion>>()
 	private val fileCache = ObjectMap<String, FileHandle>()
 	private val pendingFinalization = Array<AssetDescriptor<*>>()
+	private val resolver = MetaFileHandleResolver()
+	private val assetManager = AssetManager(resolver).apply {
+		setLoader(TextureAtlas::class.java, MetaTextureAtlasLoader(resolver))
+	}
 	private var finalizationCursor = 0
 
 	override val progress: Float get() = assetManager.progress
@@ -202,8 +207,24 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun update(millis: Int): Boolean {
-		val complete = assetManager.update(millis.coerceAtLeast(0))
-		finalizeLoadedAssets(MAX_FINALIZATIONS_PER_FRAME)
+		if (millis <= 0) {
+			return assetManager.queuedAssets == 0 && pendingFinalization.size == 0
+		}
+
+		// AssetManager.update(millis) always executes at least one task and may execute many more before checking its
+		// soft deadline. One task can itself contain an unbounded texture upload. Advancing exactly one task gives the
+		// splash scheduler a predictable recovery frame between expensive GL operations.
+		val startedAt = TimeUtils.nanoTime()
+		val complete = assetManager.update()
+		finalizeLoadedAssets(MAX_FINALIZATIONS_PER_UPDATE)
+		val elapsedMillis = (TimeUtils.nanoTime() - startedAt) / NANOS_PER_MILLI
+		if (elapsedMillis >= SLOW_UPDATE_WARNING_MS) {
+			log.warn {
+				"Asset loading step took ${elapsedMillis}ms (requested budget ${millis}ms, " +
+					"${assetManager.queuedAssets} queued). ${assetManager.diagnostics}"
+			}
+		}
+		if (!complete) Thread.yield()
 		return complete && pendingFinalization.size == 0
 	}
 
@@ -287,7 +308,9 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	private companion object {
-		const val MAX_FINALIZATIONS_PER_FRAME = 2
+		const val MAX_FINALIZATIONS_PER_UPDATE = 1
 		const val FILES_PER_YIELD = 64
+		const val NANOS_PER_MILLI = 1_000_000L
+		const val SLOW_UPDATE_WARNING_MS = 8L
 	}
 }
