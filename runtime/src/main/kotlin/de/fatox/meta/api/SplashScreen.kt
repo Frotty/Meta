@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.MathUtils
 import de.fatox.meta.Meta
@@ -18,6 +19,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.MetaColor
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
@@ -73,7 +75,9 @@ class SplashScreen private constructor(
 	private val assetProvider: AssetProvider by lazyInject()
 	private var ringTexture: Texture? = null
 	private var pixelTexture: Texture? = null
-	private var bitmapFont: BitmapFont? = null
+	private var titleFont: BitmapFont? = null
+	private var bodyFont: BitmapFont? = null
+	private var detailFont: BitmapFont? = null
 	private var markText: SplashText? = null
 	private var titleText: SplashText? = null
 	private var subtitleText: SplashText? = null
@@ -104,8 +108,12 @@ class SplashScreen private constructor(
 		ringTexture = null
 		pixelTexture?.dispose()
 		pixelTexture = null
-		bitmapFont?.dispose()
-		bitmapFont = null
+		titleFont?.dispose()
+		titleFont = null
+		bodyFont?.dispose()
+		bodyFont = null
+		detailFont?.dispose()
+		detailFont = null
 		markText = null
 		titleText = null
 		subtitleText = null
@@ -151,15 +159,7 @@ class SplashScreen private constructor(
 		val barWidth = panelWidth - PANEL_PADDING * 2f
 
 		spriteBatch.use {
-			spriteBatch.color.set(0f, 0f, 0f, SHADOW_ALPHA * visualAlpha)
-			spriteBatch.draw(
-				pixelTexture!!,
-				panelX + SHADOW_OFFSET,
-				panelY - SHADOW_OFFSET,
-				panelWidth,
-				panelHeight,
-			)
-			spriteBatch.color.set(
+			spriteBatch.setColor(
 				MetaColor.SURFACE.r,
 				MetaColor.SURFACE.g,
 				MetaColor.SURFACE.b,
@@ -167,15 +167,15 @@ class SplashScreen private constructor(
 			)
 			spriteBatch.draw(pixelTexture!!, panelX, panelY, panelWidth, panelHeight)
 			drawPanelBorder(visualAlpha)
-			spriteBatch.color.set(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
+			spriteBatch.setColor(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
 			spriteBatch.draw(pixelTexture!!, panelX, panelY + panelHeight - ACCENT_HEIGHT, panelWidth, ACCENT_HEIGHT)
 
 			val markX = panelX + PANEL_PADDING
 			val markY = panelY + panelHeight - PANEL_PADDING - MARK_SIZE
-			spriteBatch.color.set(MetaColor.PRIMARY.r, MetaColor.PRIMARY.g, MetaColor.PRIMARY.b, visualAlpha)
+			spriteBatch.setColor(MetaColor.PRIMARY.r, MetaColor.PRIMARY.g, MetaColor.PRIMARY.b, visualAlpha)
 			spriteBatch.draw(pixelTexture!!, markX, markY, MARK_SIZE, MARK_SIZE)
 
-			spriteBatch.color.set(
+			spriteBatch.setColor(
 				MetaColor.BORDER.r,
 				MetaColor.BORDER.g,
 				MetaColor.BORDER.b,
@@ -189,7 +189,7 @@ class SplashScreen private constructor(
 				1f,
 			)
 
-			spriteBatch.color.set(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
+			spriteBatch.setColor(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
 			spriteBatch.draw(
 				ringTexture!!,
 				spinnerCenterX - SPINNER_SIZE * 0.5f,
@@ -209,9 +209,9 @@ class SplashScreen private constructor(
 				false,
 			)
 
-			spriteBatch.color.set(MetaColor.BORDER.r, MetaColor.BORDER.g, MetaColor.BORDER.b, TRACK_ALPHA * visualAlpha)
+			spriteBatch.setColor(MetaColor.BORDER.r, MetaColor.BORDER.g, MetaColor.BORDER.b, TRACK_ALPHA * visualAlpha)
 			spriteBatch.draw(pixelTexture!!, barX, barY, barWidth, BAR_HEIGHT)
-			spriteBatch.color.set(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
+			spriteBatch.setColor(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
 			if (assetQueue != null && phase == SplashPhase.LOADING) {
 				spriteBatch.draw(
 					pixelTexture!!,
@@ -236,7 +236,7 @@ class SplashScreen private constructor(
 	}
 
 	private fun drawPanelBorder(visualAlpha: Float) {
-		spriteBatch.color.set(
+		spriteBatch.setColor(
 			MetaColor.BORDER_STRONG.r,
 			MetaColor.BORDER_STRONG.g,
 			MetaColor.BORDER_STRONG.b,
@@ -364,21 +364,43 @@ class SplashScreen private constructor(
 	}
 
 	private fun createText() {
-		if (bitmapFont != null) return
-		val font = BitmapFont().apply {
-			region.texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
-			setUseIntegerPositions(true)
+		if (titleFont != null) return
+		val pixelScale = (
+			Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1)
+			).coerceAtLeast(1f)
+		val regularGenerator = FreeTypeFontGenerator(Gdx.files.internal(REGULAR_FONT_PATH))
+		val boldGenerator = FreeTypeFontGenerator(Gdx.files.internal(BOLD_FONT_PATH))
+		try {
+			titleFont = generateFont(boldGenerator, TITLE_FONT_SIZE, pixelScale)
+			bodyFont = generateFont(regularGenerator, BODY_FONT_SIZE, pixelScale)
+			detailFont = generateFont(regularGenerator, DETAIL_FONT_SIZE, pixelScale)
+		} finally {
+			regularGenerator.dispose()
+			boldGenerator.dispose()
 		}
-		bitmapFont = font
-		markText = createText(font, presentation.mark, MARK_TEXT_SCALE, MetaColor.TEXT)
-		titleText = createText(font, presentation.title, TITLE_TEXT_SCALE, MetaColor.TEXT)
-		subtitleText = createText(font, presentation.subtitle, NORMAL_TEXT_SCALE, MetaColor.TEXT_MUTED)
-		messageText = createText(font, presentation.message, NORMAL_TEXT_SCALE, MetaColor.TEXT)
+
+		markText = createText(titleFont!!, presentation.mark, MetaColor.TEXT)
+		titleText = createText(titleFont!!, presentation.title, MetaColor.TEXT)
+		subtitleText = createText(detailFont!!, presentation.subtitle, MetaColor.TEXT_MUTED)
+		messageText = createText(bodyFont!!, presentation.message, MetaColor.TEXT)
 		updateStatusText()
 	}
 
-	private fun createText(font: BitmapFont, value: String, scale: Float, color: Color): SplashText {
-		font.data.setScale(scale)
+	private fun generateFont(generator: FreeTypeFontGenerator, logicalSize: Int, pixelScale: Float): BitmapFont {
+		val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
+			size = (logicalSize * pixelScale).roundToInt().coerceAtLeast(logicalSize)
+			minFilter = Texture.TextureFilter.Linear
+			magFilter = Texture.TextureFilter.Linear
+			hinting = FreeTypeFontGenerator.Hinting.Slight
+			kerning = true
+		}
+		return generator.generateFont(parameter).apply {
+			data.setScale(1f / pixelScale)
+			setUseIntegerPositions(true)
+		}
+	}
+
+	private fun createText(font: BitmapFont, value: String, color: Color): SplashText {
 		val cache = BitmapFontCache(font, true)
 		cache.color = color
 		val layout = cache.setText(value, 0f, 0f)
@@ -386,27 +408,25 @@ class SplashScreen private constructor(
 	}
 
 	private fun updateStatusText() {
-		val font = bitmapFont ?: return
+		val font = detailFont ?: return
 		val status = presentation.statusFor(phase)
 		if (displayedStatus == status) return
 		displayedStatus = status
-		statusText = createText(font, status, NORMAL_TEXT_SCALE, MetaColor.TEXT_MUTED)
+		statusText = createText(font, status, MetaColor.TEXT_MUTED)
 		layoutText()
 	}
 
 	private fun updateProjection() {
 		spriteBatch.projectionMatrix.setToOrtho2D(0f, 0f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-		val availableWidth = (Gdx.graphics.width - VIEWPORT_MARGIN * 2f).coerceAtLeast(1f)
-		val availableHeight = (Gdx.graphics.height - VIEWPORT_MARGIN * 2f).coerceAtLeast(1f)
-		panelWidth = minOf(PANEL_WIDTH, availableWidth)
-		panelHeight = minOf(PANEL_HEIGHT, availableHeight)
-		panelX = (Gdx.graphics.width - panelWidth) * 0.5f
-		panelY = (Gdx.graphics.height - panelHeight) * 0.5f
+		panelX = 0f
+		panelY = 0f
+		panelWidth = Gdx.graphics.width.toFloat()
+		panelHeight = Gdx.graphics.height.toFloat()
 		layoutText()
 	}
 
 	private fun layoutText() {
-		if (bitmapFont == null) return
+		if (titleFont == null) return
 		val markX = panelX + PANEL_PADDING
 		val markY = panelY + panelHeight - PANEL_PADDING - MARK_SIZE
 		markText?.let {
@@ -418,7 +438,7 @@ class SplashScreen private constructor(
 		val headingX = markX + MARK_SIZE + HEADING_GAP
 		titleText?.cache?.setPosition(headingX, panelY + panelHeight - TITLE_TOP)
 		subtitleText?.cache?.setPosition(headingX, panelY + panelHeight - SUBTITLE_TOP)
-		messageText?.cache?.setPosition(panelX + PANEL_PADDING, panelY + MESSAGE_BOTTOM)
+		messageText?.cache?.setPosition(panelX + PANEL_PADDING, panelY + panelHeight * MESSAGE_HEIGHT_RATIO)
 		statusText?.cache?.setPosition(panelX + PANEL_PADDING, panelY + STATUS_BOTTOM)
 	}
 
@@ -428,12 +448,7 @@ class SplashScreen private constructor(
 		const val SPINNER_SIZE = 42f
 		const val ROTATION_DEGREES_PER_SECOND = 240f
 		const val MAX_DELTA = 0.1f
-		const val VIEWPORT_MARGIN = 24f
-		const val PANEL_WIDTH = 520f
-		const val PANEL_HEIGHT = 270f
 		const val PANEL_PADDING = 30f
-		const val SHADOW_OFFSET = 10f
-		const val SHADOW_ALPHA = 0.35f
 		const val BORDER_WIDTH = 1f
 		const val BORDER_ALPHA = 0.72f
 		const val ACCENT_HEIGHT = 3f
@@ -441,7 +456,7 @@ class SplashScreen private constructor(
 		const val HEADING_GAP = 18f
 		const val TITLE_TOP = 42f
 		const val SUBTITLE_TOP = 71f
-		const val MESSAGE_BOTTOM = 113f
+		const val MESSAGE_HEIGHT_RATIO = 0.48f
 		const val DIVIDER_BOTTOM = 84f
 		const val STATUS_BOTTOM = 59f
 		const val PROGRESS_BOTTOM = 27f
@@ -450,9 +465,11 @@ class SplashScreen private constructor(
 		const val BAR_SPEED = 2.8f
 		const val TRACK_ALPHA = 0.65f
 		const val DIVIDER_ALPHA = 0.65f
-		const val MARK_TEXT_SCALE = 1.15f
-		const val TITLE_TEXT_SCALE = 1.55f
-		const val NORMAL_TEXT_SCALE = 0.85f
+		const val REGULAR_FONT_PATH = "fonts/Montserrat.ttf"
+		const val BOLD_FONT_PATH = "fonts/Montserrat-Bold.ttf"
+		const val TITLE_FONT_SIZE = 25
+		const val BODY_FONT_SIZE = 15
+		const val DETAIL_FONT_SIZE = 12
 		const val FADE_DURATION = 0.28f
 		const val MINIMUM_HOLD_DURATION = 0.12f
 		const val MAX_SKIPPED_LOADING_FRAMES = 4
