@@ -66,8 +66,10 @@ class MetaAssetProvider : AssetProvider {
 	private val animCache = IntMap<Array<out TextureRegion>>()
 	private val fileCache = ObjectMap<String, FileHandle>()
 	private val pendingFinalization = Array<AssetDescriptor<*>>()
+	private val stagedTextureUploads = StagedTextureUploads()
 	private val resolver = MetaFileHandleResolver()
 	private val assetManager = AssetManager(resolver).apply {
+		setLoader(Texture::class.java, MetaTextureLoader(resolver, stagedTextureUploads))
 		setLoader(TextureAtlas::class.java, MetaTextureAtlasLoader(resolver))
 	}
 	private var finalizationCursor = 0
@@ -208,7 +210,16 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun update(millis: Int): Boolean {
 		if (millis <= 0) {
-			return assetManager.queuedAssets == 0 && pendingFinalization.size == 0
+			return assetManager.queuedAssets == 0 &&
+				pendingFinalization.size == 0 &&
+				stagedTextureUploads.isEmpty
+		}
+
+		if (!stagedTextureUploads.isEmpty) {
+			val startedAt = TimeUtils.nanoTime()
+			stagedTextureUploads.update()
+			warnIfSlowStep("Staged texture upload", millis, startedAt)
+			return false
 		}
 
 		// AssetManager.update(millis) always executes at least one task and may execute many more before checking its
@@ -217,15 +228,19 @@ class MetaAssetProvider : AssetProvider {
 		val startedAt = TimeUtils.nanoTime()
 		val complete = assetManager.update()
 		finalizeLoadedAssets(MAX_FINALIZATIONS_PER_UPDATE)
-		val elapsedMillis = (TimeUtils.nanoTime() - startedAt) / NANOS_PER_MILLI
-		if (elapsedMillis >= SLOW_UPDATE_WARNING_MS) {
-			log.warn {
-				"Asset loading step took ${elapsedMillis}ms (requested budget ${millis}ms, " +
-					"${assetManager.queuedAssets} queued). ${assetManager.diagnostics}"
-			}
-		}
+		warnIfSlowStep("Asset loading step", millis, startedAt)
 		if (!complete) Thread.yield()
-		return complete && pendingFinalization.size == 0
+		return complete && pendingFinalization.size == 0 && stagedTextureUploads.isEmpty
+	}
+
+	private fun warnIfSlowStep(label: String, requestedMillis: Int, startedAt: Long) {
+		val elapsedMillis = (TimeUtils.nanoTime() - startedAt) / NANOS_PER_MILLI
+		if (elapsedMillis < SLOW_UPDATE_WARNING_MS) return
+		log.warn {
+			"$label took ${elapsedMillis}ms (requested budget ${requestedMillis}ms, " +
+				"${assetManager.queuedAssets} queued, ${stagedTextureUploads.size} texture uploads). " +
+				assetManager.diagnostics
+		}
 	}
 
 	override fun <T : Any> getResource(fileName: String, type: Class<T>, index: Int): T {
@@ -251,12 +266,14 @@ class MetaAssetProvider : AssetProvider {
 				load(fileName, type)
 				val resolvedName = fileCache[fileName].path()
 				assetManager.finishLoadingAsset<Any>(resolvedName)
+				stagedTextureUploads.finish()
 				finalizeLoadedAsset(resolvedName)
 				getResource(fileName, type)
 			}
 			else -> {
 				load(fileName, type)
 				assetManager.finishLoadingAsset<Any>(fileName)
+				stagedTextureUploads.finish()
 				finalizeLoadedAsset(fileName)
 				getResource(fileName, type)
 			}
@@ -269,10 +286,12 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun finish() {
 		assetManager.finishLoading()
+		stagedTextureUploads.finish()
 		finalizeLoadedAssets(Int.MAX_VALUE)
 	}
 
 	override fun dispose() {
+		stagedTextureUploads.dispose()
 		pendingFinalization.clear()
 		atlasCache.clear()
 		animCache.clear()

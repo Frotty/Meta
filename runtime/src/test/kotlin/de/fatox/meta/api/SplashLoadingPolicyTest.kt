@@ -39,4 +39,24 @@ class SplashLoadingPolicyTest {
 		assertTrue(topArc > sideRing)
 		assertTrue(sideRing > 0f)
 	}
+
+	@Test
+	fun `presentation reports meaningful work throughout startup`() {
+		val presentation = SplashPresentation(
+			startingStatus = "start",
+			preparationStatus = "content",
+			queueStatus = "queue",
+			assetStatus = "assets",
+			interfaceStatus = "interface",
+			readyStatus = "ready",
+		)
+
+		assertEquals("start", presentation.statusFor(SplashPhase.FADE_IN))
+		assertEquals("content", presentation.statusFor(SplashPhase.PREPARING))
+		assertEquals("queue", presentation.statusFor(SplashPhase.QUEUEING))
+		assertEquals("assets", presentation.statusFor(SplashPhase.LOADING))
+		assertEquals("interface", presentation.statusFor(SplashPhase.UI_LOADING))
+		assertEquals("ready", presentation.statusFor(SplashPhase.HOLD))
+		assertEquals("ready", presentation.statusFor(SplashPhase.FADE_OUT))
+	}
 }

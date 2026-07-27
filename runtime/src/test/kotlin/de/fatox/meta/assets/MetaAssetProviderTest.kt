@@ -15,6 +15,10 @@ class MetaAssetProviderTest {
 			AsynchronousAssetLoader::class.java.isAssignableFrom(MetaTextureAtlasLoader::class.java),
 			"Atlas parsing and XPK decompression must not run in AssetManager.update on the render thread",
 		)
+		assertTrue(
+			AsynchronousAssetLoader::class.java.isAssignableFrom(MetaTextureLoader::class.java),
+			"Texture decoding and mip generation must stay on AssetManager's worker",
+		)
 	}
 
 	@Test
