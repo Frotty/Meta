@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.MathUtils
 import de.fatox.meta.Meta
@@ -123,6 +124,7 @@ class SplashScreen private constructor(
 	private var titleFont: BitmapFont? = null
 	private var bodyFont: BitmapFont? = null
 	private var detailFont: BitmapFont? = null
+	private var textPixelScale = 1f
 	private var markText: SplashText? = null
 	private var titleText: SplashText? = null
 	private var subtitleText: SplashText? = null
@@ -413,6 +415,7 @@ class SplashScreen private constructor(
 		val pixelScale = (
 			Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1)
 			).coerceAtLeast(1f)
+		textPixelScale = pixelScale
 		val fonts = configuredFonts(pixelScale)
 		titleFont = fonts.title
 		bodyFont = fonts.body
@@ -492,14 +495,17 @@ class SplashScreen private constructor(
 	private fun generateFont(generator: FreeTypeFontGenerator, logicalSize: Int, pixelScale: Float): BitmapFont {
 		val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
 			size = (logicalSize * pixelScale).roundToInt().coerceAtLeast(logicalSize)
-			minFilter = Texture.TextureFilter.Linear
-			magFilter = Texture.TextureFilter.Linear
+			minFilter = Texture.TextureFilter.Nearest
+			magFilter = Texture.TextureFilter.Nearest
 			hinting = FreeTypeFontGenerator.Hinting.Slight
 			kerning = true
 		}
 		return generator.generateFont(parameter).apply {
+			for (i in 0 until regions.size) {
+				regions[i].texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+			}
 			data.setScale(1f / pixelScale)
-			setUseIntegerPositions(true)
+			setUseIntegerPositions(pixelScale == 1f)
 		}
 	}
 
@@ -534,15 +540,27 @@ class SplashScreen private constructor(
 		val markY = panelY + panelHeight - PANEL_PADDING - MARK_SIZE
 		markText?.let {
 			it.cache.setPosition(
-				markX + (MARK_SIZE - it.width) * 0.5f,
-				markY + (MARK_SIZE + it.height) * 0.5f,
+				snapToPhysicalPixel(markX + (MARK_SIZE - it.width) * 0.5f, textPixelScale),
+				snapToPhysicalPixel(markY + (MARK_SIZE + it.height) * 0.5f, textPixelScale),
 			)
 		}
 		val headingX = markX + MARK_SIZE + HEADING_GAP
-		titleText?.cache?.setPosition(headingX, panelY + panelHeight - TITLE_TOP)
-		subtitleText?.cache?.setPosition(headingX, panelY + panelHeight - SUBTITLE_TOP)
-		messageText?.cache?.setPosition(panelX + PANEL_PADDING, panelY + panelHeight * MESSAGE_HEIGHT_RATIO)
-		statusText?.cache?.setPosition(panelX + PANEL_PADDING, panelY + STATUS_BOTTOM)
+		titleText?.cache?.setPosition(
+			snapToPhysicalPixel(headingX, textPixelScale),
+			snapToPhysicalPixel(panelY + panelHeight - TITLE_TOP, textPixelScale),
+		)
+		subtitleText?.cache?.setPosition(
+			snapToPhysicalPixel(headingX, textPixelScale),
+			snapToPhysicalPixel(panelY + panelHeight - SUBTITLE_TOP, textPixelScale),
+		)
+		messageText?.cache?.setPosition(
+			snapToPhysicalPixel(panelX + PANEL_PADDING, textPixelScale),
+			snapToPhysicalPixel(panelY + panelHeight * MESSAGE_HEIGHT_RATIO, textPixelScale),
+		)
+		statusText?.cache?.setPosition(
+			snapToPhysicalPixel(panelX + PANEL_PADDING, textPixelScale),
+			snapToPhysicalPixel(panelY + STATUS_BOTTOM, textPixelScale),
+		)
 	}
 
 	private companion object {

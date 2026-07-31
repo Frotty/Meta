@@ -15,6 +15,7 @@ import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.api.graphics.drawPixelSnapped
 import de.fatox.meta.api.graphics.physicalPixelsPerUnit
+import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
@@ -132,7 +133,13 @@ open class MetaTextArea @JvmOverloads constructor(
 		if (message.isNullOrEmpty()) return
 		val color = style.messageFontColor ?: font.color
 		placeholderLayout.setText(font, message, 0, message.length, color, maxWidth, Align.left, true, null)
-		font.draw(batch, placeholderLayout, x, y)
+		val pixelsPerUnit = font.physicalPixelsPerUnit()
+		font.draw(
+			batch,
+			placeholderLayout,
+			snapToPhysicalPixel(x, pixelsPerUnit),
+			snapToPhysicalPixel(y, pixelsPerUnit),
+		)
 	}
 
 	private companion object {

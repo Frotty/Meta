@@ -148,6 +148,9 @@ class MetaFontProvider : FontProvider {
 		if (scale != 1f) {
 			font.data.setScale(1f / scale)
 		}
+		for (i in 0 until font.regions.size) {
+			font.regions[i].texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+		}
 		// Integer positions round glyph positions to whole *UI units*. At scale 1 that IS the physical pixel grid,
 		// so keep it for crisp, stable text. At any other scale a whole UI unit is a fractional (125%/150%) or
 		// coarser (200%) number of physical pixels, so rounding would blur or mis-space glyphs; disable it there —
@@ -173,8 +176,11 @@ class MetaFontProvider : FontProvider {
 	): FreeTypeFontGenerator.FreeTypeFontParameter {
 		return FreeTypeFontGenerator.FreeTypeFontParameter().apply {
 			incremental = true
-			minFilter = Texture.TextureFilter.Linear
-			magFilter = Texture.TextureFilter.Linear
+			// FreeType already rasterizes anti-aliased coverage into the atlas. Keep glyph texels discrete at
+			// draw time; linear filtering blends adjacent coverage/atlas texels whenever a layout lands fractionally.
+			// That is the source of the characteristic soft halo around otherwise correctly-sized UI text.
+			minFilter = Texture.TextureFilter.Nearest
+			magFilter = Texture.TextureFilter.Nearest
 			hinting = if (type == FontType.ICON) {
 				FreeTypeFontGenerator.Hinting.Slight
 			} else {
