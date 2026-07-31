@@ -1,5 +1,6 @@
 package de.fatox.meta.api
 
+import com.badlogic.gdx.Files
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.graphics.Color
@@ -23,8 +24,8 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * Static, allocation-free copy for the startup panel. The splash deliberately uses libGDX's bundled bitmap font so
- * none of the application's fonts, skin, scene2d widgets, or atlases need to exist before it can explain its work.
+ * Static copy for the startup panel. Font files must be available before application assets are prepared, so keep
+ * custom splash fonts as loose or classpath bootstrap resources rather than relying on a later-mounted asset archive.
  */
 data class SplashPresentation(
 	val mark: String = "M",
@@ -37,6 +38,21 @@ data class SplashPresentation(
 	val assetStatus: String = "LOADING ASSETS",
 	val interfaceStatus: String = "BUILDING INTERFACE",
 	val readyStatus: String = "READY",
+)
+
+/** A font resource which is available during the application's bootstrap phase. */
+data class SplashFont(
+	val path: String,
+	val fileType: Files.FileType = Files.FileType.Internal,
+)
+
+/**
+ * Optional font choices for splash headings and supporting copy.
+ * A null face uses libGDX's bundled bitmap font and needs no application asset.
+ */
+data class SplashFontConfiguration(
+	val title: SplashFont? = null,
+	val body: SplashFont? = null,
 )
 
 /**
@@ -54,21 +70,50 @@ class SplashScreen private constructor(
 	private val assetQueue: AssetQueue?,
 	private val assetPreparation: AssetPreparation?,
 	private val presentation: SplashPresentation,
+	private val fontConfiguration: SplashFontConfiguration,
 ) : ScreenAdapter() {
-	constructor(onLoaded: () -> Unit) : this(onLoaded, null, null, SplashPresentation())
-	constructor(presentation: SplashPresentation, onLoaded: () -> Unit) : this(onLoaded, null, null, presentation)
+	constructor(onLoaded: () -> Unit) : this(onLoaded, null, null, SplashPresentation(), SplashFontConfiguration())
+	constructor(presentation: SplashPresentation, onLoaded: () -> Unit) :
+		this(onLoaded, null, null, presentation, SplashFontConfiguration())
+	constructor(presentation: SplashPresentation, fonts: SplashFontConfiguration, onLoaded: () -> Unit) :
+		this(onLoaded, null, null, presentation, fonts)
 	constructor(queueAssets: () -> Unit, onLoaded: () -> Unit) :
-		this(onLoaded, AssetQueue(queueAssets), null, SplashPresentation())
+		this(onLoaded, AssetQueue(queueAssets), null, SplashPresentation(), SplashFontConfiguration())
 	constructor(presentation: SplashPresentation, queueAssets: () -> Unit, onLoaded: () -> Unit) :
-		this(onLoaded, AssetQueue(queueAssets), null, presentation)
+		this(onLoaded, AssetQueue(queueAssets), null, presentation, SplashFontConfiguration())
+	constructor(
+		presentation: SplashPresentation,
+		fonts: SplashFontConfiguration,
+		queueAssets: () -> Unit,
+		onLoaded: () -> Unit,
+	) : this(onLoaded, AssetQueue(queueAssets), null, presentation, fonts)
 	constructor(prepareAssets: () -> Unit, queueAssets: () -> Unit, onLoaded: () -> Unit) :
-		this(onLoaded, AssetQueue(queueAssets), AssetPreparation(prepareAssets), SplashPresentation())
+		this(
+			onLoaded,
+			AssetQueue(queueAssets),
+			AssetPreparation(prepareAssets),
+			SplashPresentation(),
+			SplashFontConfiguration(),
+		)
 	constructor(
 		presentation: SplashPresentation,
 		prepareAssets: () -> Unit,
 		queueAssets: () -> Unit,
 		onLoaded: () -> Unit,
-	) : this(onLoaded, AssetQueue(queueAssets), AssetPreparation(prepareAssets), presentation)
+	) : this(
+		onLoaded,
+		AssetQueue(queueAssets),
+		AssetPreparation(prepareAssets),
+		presentation,
+		SplashFontConfiguration(),
+	)
+	constructor(
+		presentation: SplashPresentation,
+		fonts: SplashFontConfiguration,
+		prepareAssets: () -> Unit,
+		queueAssets: () -> Unit,
+		onLoaded: () -> Unit,
+	) : this(onLoaded, AssetQueue(queueAssets), AssetPreparation(prepareAssets), presentation, fonts)
 
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val uiRenderer: UIRenderer by lazyInject()
@@ -368,22 +413,80 @@ class SplashScreen private constructor(
 		val pixelScale = (
 			Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1)
 			).coerceAtLeast(1f)
-		val regularGenerator = FreeTypeFontGenerator(Gdx.files.internal(REGULAR_FONT_PATH))
-		val boldGenerator = FreeTypeFontGenerator(Gdx.files.internal(BOLD_FONT_PATH))
-		try {
-			titleFont = generateFont(boldGenerator, TITLE_FONT_SIZE, pixelScale)
-			bodyFont = generateFont(regularGenerator, BODY_FONT_SIZE, pixelScale)
-			detailFont = generateFont(regularGenerator, DETAIL_FONT_SIZE, pixelScale)
-		} finally {
-			regularGenerator.dispose()
-			boldGenerator.dispose()
-		}
+		val fonts = configuredFonts(pixelScale)
+		titleFont = fonts.title
+		bodyFont = fonts.body
+		detailFont = fonts.detail
 
 		markText = createText(titleFont!!, presentation.mark, MetaColor.TEXT)
 		titleText = createText(titleFont!!, presentation.title, MetaColor.TEXT)
 		subtitleText = createText(detailFont!!, presentation.subtitle, MetaColor.TEXT_MUTED)
 		messageText = createText(bodyFont!!, presentation.message, MetaColor.TEXT)
 		updateStatusText()
+	}
+
+	private fun configuredFonts(pixelScale: Float): SplashFonts {
+		val configuredTitle = configuredFont(fontConfiguration.title, TITLE_FONT_SIZE, pixelScale, "title")
+		val configuredBody = configuredBodyFonts(fontConfiguration.body, pixelScale)
+		return SplashFonts(configuredTitle, configuredBody.first, configuredBody.second)
+	}
+
+	private fun configuredFont(
+		source: SplashFont?,
+		logicalSize: Int,
+		pixelScale: Float,
+		role: String,
+	): BitmapFont {
+		if (source == null) return fallbackFont(logicalSize)
+		val generator = try {
+			FreeTypeFontGenerator(source.fileHandle())
+		} catch (error: Exception) {
+			logFontFallback(source, role, error)
+			return fallbackFont(logicalSize)
+		}
+		try {
+			return generateFont(generator, logicalSize, pixelScale)
+		} catch (error: Exception) {
+			logFontFallback(source, role, error)
+			return fallbackFont(logicalSize)
+		} finally {
+			generator.dispose()
+		}
+	}
+
+	private fun configuredBodyFonts(source: SplashFont?, pixelScale: Float): Pair<BitmapFont, BitmapFont> {
+		if (source == null) return fallbackFont(BODY_FONT_SIZE) to fallbackFont(DETAIL_FONT_SIZE)
+		val generator = try {
+			FreeTypeFontGenerator(source.fileHandle())
+		} catch (error: Exception) {
+			logFontFallback(source, "body", error)
+			return fallbackFont(BODY_FONT_SIZE) to fallbackFont(DETAIL_FONT_SIZE)
+		}
+		var generatedBody: BitmapFont? = null
+		try {
+			generatedBody = generateFont(generator, BODY_FONT_SIZE, pixelScale)
+			val generatedDetail = generateFont(generator, DETAIL_FONT_SIZE, pixelScale)
+			return generatedBody to generatedDetail
+		} catch (error: Exception) {
+			generatedBody?.dispose()
+			logFontFallback(source, "body", error)
+			return fallbackFont(BODY_FONT_SIZE) to fallbackFont(DETAIL_FONT_SIZE)
+		} finally {
+			generator.dispose()
+		}
+	}
+
+	private fun logFontFallback(source: SplashFont, role: String, error: Exception) {
+		Gdx.app.error(
+			"SplashScreen",
+			"Could not load configured $role splash font '${source.path}'; using the bundled bitmap font.",
+			error,
+		)
+	}
+
+	private fun fallbackFont(logicalSize: Int): BitmapFont = BitmapFont().apply {
+		data.setScale(logicalSize / data.lineHeight)
+		setUseIntegerPositions(true)
 	}
 
 	private fun generateFont(generator: FreeTypeFontGenerator, logicalSize: Int, pixelScale: Float): BitmapFont {
@@ -465,8 +568,6 @@ class SplashScreen private constructor(
 		const val BAR_SPEED = 2.8f
 		const val TRACK_ALPHA = 0.65f
 		const val DIVIDER_ALPHA = 0.65f
-		const val REGULAR_FONT_PATH = "fonts/Montserrat.ttf"
-		const val BOLD_FONT_PATH = "fonts/Montserrat-Bold.ttf"
 		const val TITLE_FONT_SIZE = 25
 		const val BODY_FONT_SIZE = 15
 		const val DETAIL_FONT_SIZE = 12
@@ -478,8 +579,11 @@ class SplashScreen private constructor(
 
 	private class AssetQueue(val task: () -> Unit)
 	private class AssetPreparation(val task: () -> Unit)
+	private class SplashFonts(val title: BitmapFont, val body: BitmapFont, val detail: BitmapFont)
 	private class SplashText(val cache: BitmapFontCache, val width: Float, val height: Float)
 }
+
+internal fun SplashFont.fileHandle() = Gdx.files.getFileHandle(path, fileType)
 
 internal enum class SplashPhase { FADE_IN, PREPARING, QUEUEING, LOADING, UI_LOADING, HOLD, FADE_OUT, COMPLETE }
 

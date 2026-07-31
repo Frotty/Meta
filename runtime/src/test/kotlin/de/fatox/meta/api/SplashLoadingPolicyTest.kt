@@ -1,5 +1,6 @@
 package de.fatox.meta.api
 
+import com.badlogic.gdx.Files
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -58,5 +59,26 @@ class SplashLoadingPolicyTest {
 		assertEquals("interface", presentation.statusFor(SplashPhase.UI_LOADING))
 		assertEquals("ready", presentation.statusFor(SplashPhase.HOLD))
 		assertEquals("ready", presentation.statusFor(SplashPhase.FADE_OUT))
+	}
+
+	@Test
+	fun `splash fonts can be configured independently`() {
+		val fonts = SplashFontConfiguration(
+			title = SplashFont("branding/title.ttf", Files.FileType.Classpath),
+			body = SplashFont("branding/body.ttf", Files.FileType.Local),
+		)
+
+		assertEquals("branding/title.ttf", fonts.title?.path)
+		assertEquals(Files.FileType.Classpath, fonts.title?.fileType)
+		assertEquals("branding/body.ttf", fonts.body?.path)
+		assertEquals(Files.FileType.Local, fonts.body?.fileType)
+	}
+
+	@Test
+	fun `splash fonts default to bundled bitmap fonts`() {
+		val fonts = SplashFontConfiguration()
+
+		assertEquals(null, fonts.title)
+		assertEquals(null, fonts.body)
 	}
 }
