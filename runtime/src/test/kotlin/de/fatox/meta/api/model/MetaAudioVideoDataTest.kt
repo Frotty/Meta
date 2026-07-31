@@ -7,8 +7,8 @@ import kotlin.test.assertTrue
 
 internal class MetaAudioVideoDataTest {
 	@Test
-	fun `fullscreen uses borderless windowed presentation`() {
-		assertTrue(MetaAudioVideoData(fullscreen = true).usesBorderlessPresentation())
+	fun `fullscreen does not use borderless windowed presentation`() {
+		assertFalse(MetaAudioVideoData(fullscreen = true).usesBorderlessPresentation())
 	}
 
 	@Test
