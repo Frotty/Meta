@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
+import de.fatox.meta.api.model.MetaAudioVideoState
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.MathUtils
 import de.fatox.meta.Meta
@@ -146,6 +147,7 @@ class SplashScreen private constructor(
 	override fun show() {
 		createTextures()
 		createText()
+		fitBootstrapWindow()
 		updateProjection()
 		Meta.instance.windowHandler.focus()
 	}
@@ -410,6 +412,16 @@ class SplashScreen private constructor(
 		}
 	}
 
+	/** Keep the bootstrap presentation from rendering a small card against a large black window. The normal saved
+	 * display state is restored by the application callback once startup has completed. */
+	private fun fitBootstrapWindow() {
+		if (Gdx.graphics.isFullscreen || MetaAudioVideoState.state.value.borderless) return
+		Gdx.graphics.setWindowedMode(
+			(PANEL_MAX_WIDTH + PANEL_SCREEN_MARGIN * 2f).toInt(),
+			(PANEL_MAX_HEIGHT + PANEL_SCREEN_MARGIN * 2f).toInt(),
+		)
+	}
+
 	private fun createText() {
 		if (titleFont != null) return
 		val pixelScale = (
@@ -495,14 +507,14 @@ class SplashScreen private constructor(
 	private fun generateFont(generator: FreeTypeFontGenerator, logicalSize: Int, pixelScale: Float): BitmapFont {
 		val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
 			size = (logicalSize * pixelScale).roundToInt().coerceAtLeast(logicalSize)
-			minFilter = Texture.TextureFilter.Nearest
-			magFilter = Texture.TextureFilter.Nearest
+			minFilter = Texture.TextureFilter.Linear
+			magFilter = Texture.TextureFilter.Linear
 			hinting = FreeTypeFontGenerator.Hinting.Slight
 			kerning = true
 		}
 		return generator.generateFont(parameter).apply {
 			for (i in 0 until regions.size) {
-				regions[i].texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+				regions[i].texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
 			}
 			data.setScale(1f / pixelScale)
 			setUseIntegerPositions(pixelScale == 1f)
@@ -527,10 +539,10 @@ class SplashScreen private constructor(
 
 	private fun updateProjection() {
 		spriteBatch.projectionMatrix.setToOrtho2D(0f, 0f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-		panelX = 0f
-		panelY = 0f
-		panelWidth = Gdx.graphics.width.toFloat()
-		panelHeight = Gdx.graphics.height.toFloat()
+		panelWidth = minOf(PANEL_MAX_WIDTH, (Gdx.graphics.width - PANEL_SCREEN_MARGIN * 2f).coerceAtLeast(1f))
+		panelHeight = minOf(PANEL_MAX_HEIGHT, (Gdx.graphics.height - PANEL_SCREEN_MARGIN * 2f).coerceAtLeast(1f))
+		panelX = (Gdx.graphics.width - panelWidth) * 0.5f
+		panelY = (Gdx.graphics.height - panelHeight) * 0.5f
 		layoutText()
 	}
 
@@ -589,8 +601,11 @@ class SplashScreen private constructor(
 		const val TITLE_FONT_SIZE = 25
 		const val BODY_FONT_SIZE = 15
 		const val DETAIL_FONT_SIZE = 12
-		const val FADE_DURATION = 0.28f
-		const val MINIMUM_HOLD_DURATION = 0.12f
+		const val PANEL_MAX_WIDTH = 860f
+		const val PANEL_MAX_HEIGHT = 320f
+		const val PANEL_SCREEN_MARGIN = 32f
+		const val FADE_DURATION = 0.5f
+		const val MINIMUM_HOLD_DURATION = 0.2f
 		const val MAX_SKIPPED_LOADING_FRAMES = 4
 		const val MINIMUM_PROGRESS_BUDGET_MS = 1
 	}
@@ -650,7 +665,7 @@ internal object SplashRingTexturePainter {
 
 internal object SplashLoadingPolicy {
 	private const val SLOW_FRAME_SECONDS = 1f / 55f
-	private const val UPDATE_BUDGET_MS = 1
+	private const val UPDATE_BUDGET_MS = 8
 
 	fun updateBudgetMillis(frameDelta: Float): Int {
 		if (!frameDelta.isFinite() || frameDelta <= 0f) return UPDATE_BUDGET_MS
