@@ -7,6 +7,8 @@ import de.fatox.meta.injection.MetaInject
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Desktop
+import java.awt.FlowLayout
+import java.awt.Font
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.awt.Frame
@@ -49,7 +51,7 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 		}
 	}
 	private val textArea: JTextArea by lazy {
-		JTextArea(30, ERROR_HEADER.length + 50).apply { isEditable = false }
+		JTextArea(16, 88).apply { isEditable = false }
 	}
 	private val scrollPane: JScrollPane by lazy { JScrollPane(textArea) }
 
@@ -83,19 +85,29 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 			append(stackTrace)
 		}
 		writeCrashLog(crashFile, crashText)
-		textArea.text = crashText
-		textArea.caretPosition = 0
-		if (autoSendEnabled() && crashReportUrl().isNotBlank()) {
-			sendCrashReport(report, null)
+		val reportUrlConfigured = crashReportUrl().isNotBlank()
+		val autoSend = autoSendEnabled() && reportUrlConfigured
+
+		if (GraphicsEnvironment.isHeadless()) {
+			if (autoSend) sendCrashReport(report, null)
+			return
 		}
 
-		if (GraphicsEnvironment.isHeadless()) return
-
 		SwingUtilities.invokeLater {
+			textArea.text = crashText
+			textArea.caretPosition = 0
 			lateinit var frame: JFrame
-			val statusLabel = JLabel(if (crashReportUrl().isBlank()) "Crash upload is not configured." else "Diagnostic report not sent.")
+			val statusLabel = JLabel(
+				when {
+					!reportUrlConfigured -> "Crash upload is not configured."
+					autoSend -> "Sending diagnostic report..."
+					else -> "Diagnostic report not sent."
+				},
+			)
 			val sendButton = JButton("Send Report").apply {
-				isEnabled = crashReportUrl().isNotBlank()
+				font = font.deriveFont(Font.BOLD, 16f)
+				preferredSize = Dimension(190, 48)
+				isEnabled = reportUrlConfigured && !autoSend
 				addActionListener {
 					isEnabled = false
 					statusLabel.text = "Sending diagnostic report..."
@@ -126,7 +138,7 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 			}
 			val autoSendCheckbox = JCheckBox("Always send crash diagnostics automatically").apply {
 				isSelected = autoSendEnabled()
-				isEnabled = crashReportUrl().isNotBlank()
+				isEnabled = reportUrlConfigured
 				addActionListener {
 					setAutoSendEnabled(isSelected)
 				}
@@ -134,22 +146,24 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 			val okButton = JButton("OK").apply {
 				addActionListener { frame.dispose() }
 			}
-			val actions = JPanel().apply {
-				add(sendButton)
+			val secondaryActions = JPanel(FlowLayout(FlowLayout.LEFT, 6, 0)).apply {
+				add(autoSendCheckbox)
 				add(copyButton)
 				add(openFolderButton)
-				add(autoSendCheckbox)
 				add(okButton)
+			}
+			val reportAction = JPanel(FlowLayout(FlowLayout.CENTER, 0, 0)).apply { add(sendButton) }
+			val actions = JPanel(BorderLayout(6, 6)).apply {
+				add(statusLabel, BorderLayout.NORTH)
+				add(reportAction, BorderLayout.CENTER)
+				add(secondaryActions, BorderLayout.SOUTH)
 			}
 			val content = JPanel(BorderLayout(8, 8)).apply {
 				border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
 				icon?.let { add(JLabel(it), BorderLayout.WEST) }
-				scrollPane.preferredSize = Dimension(820, 560)
+				scrollPane.preferredSize = Dimension(760, 300)
 				add(scrollPane, BorderLayout.CENTER)
-				add(JPanel(BorderLayout()).apply {
-					add(statusLabel, BorderLayout.NORTH)
-					add(actions, BorderLayout.SOUTH)
-				}, BorderLayout.SOUTH)
+				add(actions, BorderLayout.SOUTH)
 			}
 			frame = JFrame("Uncaught Exception").apply {
 				defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
@@ -164,6 +178,7 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 				icon?.image?.let { iconImage = it }
 				contentPane = content
 				pack()
+				rootPane.defaultButton = sendButton
 				setLocationRelativeTo(null)
 				extendedState = extendedState and Frame.ICONIFIED.inv()
 				state = Frame.NORMAL
@@ -171,10 +186,18 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 				isVisible = true
 				toFront()
 				requestFocus()
-				okButton.requestFocusInWindow()
+				if (sendButton.isEnabled) sendButton.requestFocusInWindow() else okButton.requestFocusInWindow()
 				SwingUtilities.invokeLater {
 					toFront()
 					requestFocus()
+				}
+			}
+			if (autoSend) {
+				sendCrashReport(report) { ok, message ->
+					SwingUtilities.invokeLater {
+						statusLabel.text = message
+						sendButton.isEnabled = !ok
+					}
 				}
 			}
 		}
