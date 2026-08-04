@@ -22,6 +22,8 @@ import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.roundToInt
 
+internal const val FONT_ATLAS_OVERSAMPLE = 2f
+
 class MetaFontProvider : FontProvider {
 	private val assetProvider: AssetProvider by lazyInject()
 	private val spriteBatch: SpriteBatch by lazyInject()
@@ -132,7 +134,8 @@ class MetaFontProvider : FontProvider {
 		// Rasterize at physical pixels (Meta UI scale x OS/backbuffer scale) so the glyph atlas is native-resolution,
 		// then scale the font down by the same factor so it still measures/lays out in logical UI units.
 		val scale = generationScale.coerceAtLeast(0.01f)
-		val physicalSize = (size * scale).roundToInt().coerceAtLeast(1)
+		val rasterScale = scale * FONT_ATLAS_OVERSAMPLE
+		val physicalSize = (size * rasterScale).roundToInt().coerceAtLeast(1)
 		val generator = when(type) {
 			FontType.REGULAR -> normalGenerator
 			FontType.BOLD -> boldGenerator
@@ -145,18 +148,15 @@ class MetaFontProvider : FontProvider {
 		} else {
 			generator.generateFont(params)
 		}
-		if (scale != 1f) {
-			font.data.setScale(1f / scale)
+		if (rasterScale != 1f) {
+			font.data.setScale(1f / rasterScale)
 		}
 		for (i in 0 until font.regions.size) {
-			font.regions[i].texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+			font.regions[i].texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
 		}
-		// Integer positions round glyph positions to whole *UI units*. At scale 1 that IS the physical pixel grid,
-		// so keep it for crisp, stable text. At any other scale a whole UI unit is a fractional (125%/150%) or
-		// coarser (200%) number of physical pixels, so rounding would blur or mis-space glyphs; disable it there —
-		// glyph advances derive from physically-integer FreeType metrics scaled by 1/scale, and MetaLabel snaps the
-		// draw origin to the physical pixel grid, so unrounded positions land on physical pixels naturally.
-		font.setUseIntegerPositions(scale == 1f)
+		// The atlas is intentionally oversampled, so a whole logical unit is not one atlas texel. Let the
+		// physical-pixel snap helpers control the draw origin instead of rounding glyph positions to logical units.
+		font.setUseIntegerPositions(false)
 		return font
 	}
 
@@ -176,11 +176,10 @@ class MetaFontProvider : FontProvider {
 	): FreeTypeFontGenerator.FreeTypeFontParameter {
 		return FreeTypeFontGenerator.FreeTypeFontParameter().apply {
 			incremental = true
-			// FreeType already rasterizes anti-aliased coverage into the atlas. Keep glyph texels discrete at
-			// draw time; linear filtering blends adjacent coverage/atlas texels whenever a layout lands fractionally.
-			// That is the source of the characteristic soft halo around otherwise correctly-sized UI text.
-			minFilter = Texture.TextureFilter.Nearest
-			magFilter = Texture.TextureFilter.Nearest
+			// FreeType rasterizes anti-aliased coverage into the oversampled atlas. Linear filtering preserves that
+			// coverage when the atlas is reduced back to logical size or enlarged by the world camera.
+			minFilter = Texture.TextureFilter.Linear
+			magFilter = Texture.TextureFilter.Linear
 			hinting = if (type == FontType.ICON) {
 				FreeTypeFontGenerator.Hinting.Slight
 			} else {

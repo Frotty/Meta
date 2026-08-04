@@ -417,8 +417,8 @@ class SplashScreen private constructor(
 	private fun fitBootstrapWindow() {
 		if (Gdx.graphics.isFullscreen || MetaAudioVideoState.state.value.borderless) return
 		Gdx.graphics.setWindowedMode(
-			(PANEL_MAX_WIDTH + PANEL_SCREEN_MARGIN * 2f).toInt(),
-			(PANEL_MAX_HEIGHT + PANEL_SCREEN_MARGIN * 2f).toInt(),
+			PANEL_MAX_WIDTH.toInt(),
+			PANEL_MAX_HEIGHT.toInt(),
 		)
 	}
 
@@ -505,8 +505,9 @@ class SplashScreen private constructor(
 	}
 
 	private fun generateFont(generator: FreeTypeFontGenerator, logicalSize: Int, pixelScale: Float): BitmapFont {
+		val rasterScale = pixelScale * SPLASH_FONT_OVERSAMPLE
 		val parameter = FreeTypeFontGenerator.FreeTypeFontParameter().apply {
-			size = (logicalSize * pixelScale).roundToInt().coerceAtLeast(logicalSize)
+			size = (logicalSize * rasterScale).roundToInt().coerceAtLeast(logicalSize)
 			minFilter = Texture.TextureFilter.Linear
 			magFilter = Texture.TextureFilter.Linear
 			hinting = FreeTypeFontGenerator.Hinting.Slight
@@ -516,8 +517,8 @@ class SplashScreen private constructor(
 			for (i in 0 until regions.size) {
 				regions[i].texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
 			}
-			data.setScale(1f / pixelScale)
-			setUseIntegerPositions(pixelScale == 1f)
+			data.setScale(1f / rasterScale)
+			setUseIntegerPositions(false)
 		}
 	}
 
@@ -539,10 +540,10 @@ class SplashScreen private constructor(
 
 	private fun updateProjection() {
 		spriteBatch.projectionMatrix.setToOrtho2D(0f, 0f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-		panelWidth = minOf(PANEL_MAX_WIDTH, (Gdx.graphics.width - PANEL_SCREEN_MARGIN * 2f).coerceAtLeast(1f))
-		panelHeight = minOf(PANEL_MAX_HEIGHT, (Gdx.graphics.height - PANEL_SCREEN_MARGIN * 2f).coerceAtLeast(1f))
-		panelX = (Gdx.graphics.width - panelWidth) * 0.5f
-		panelY = (Gdx.graphics.height - panelHeight) * 0.5f
+		panelWidth = Gdx.graphics.width.toFloat().coerceAtLeast(1f)
+		panelHeight = Gdx.graphics.height.toFloat().coerceAtLeast(1f)
+		panelX = 0f
+		panelY = 0f
 		layoutText()
 	}
 
@@ -603,7 +604,7 @@ class SplashScreen private constructor(
 		const val DETAIL_FONT_SIZE = 12
 		const val PANEL_MAX_WIDTH = 860f
 		const val PANEL_MAX_HEIGHT = 320f
-		const val PANEL_SCREEN_MARGIN = 32f
+		const val SPLASH_FONT_OVERSAMPLE = 2f
 		const val FADE_DURATION = 0.5f
 		const val MINIMUM_HOLD_DURATION = 0.2f
 		const val MAX_SKIPPED_LOADING_FRAMES = 4
