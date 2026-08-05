@@ -50,12 +50,14 @@ data class SplashTransitionConfiguration(
 	val fadeOutDuration: Float = 0.5f,
 	val minimumHoldDuration: Float = 0.2f,
 	val uiFadeInDuration: Float = 0.35f,
+	val uiFadeInDelayFrames: Int = 2,
 ) {
 	init {
 		require(bootstrapWidth > 0 && bootstrapHeight > 0) { "Splash bootstrap dimensions must be positive" }
 		require(fadeInDuration > 0f && fadeOutDuration > 0f && minimumHoldDuration >= 0f && uiFadeInDuration >= 0f) {
 			"Splash transition durations must be non-negative, with non-zero fade durations"
 		}
+		require(uiFadeInDelayFrames >= 0) { "Splash UI fade delay must not be negative" }
 	}
 }
 
@@ -90,6 +92,7 @@ class SplashScreen private constructor(
 	private val assetPreparation: AssetPreparation?,
 	private val presentation: SplashPresentation,
 	private val fontConfiguration: SplashFontConfiguration,
+	private val beforeFadeOut: (() -> Unit)? = null,
 ) : ScreenAdapter() {
 	constructor(onLoaded: () -> Unit) : this(onLoaded, null, null, SplashPresentation(), SplashFontConfiguration())
 	constructor(presentation: SplashPresentation, onLoaded: () -> Unit) :
@@ -133,6 +136,14 @@ class SplashScreen private constructor(
 		queueAssets: () -> Unit,
 		onLoaded: () -> Unit,
 	) : this(onLoaded, AssetQueue(queueAssets), AssetPreparation(prepareAssets), presentation, fonts)
+	constructor(
+		presentation: SplashPresentation,
+		fonts: SplashFontConfiguration,
+		prepareAssets: () -> Unit,
+		queueAssets: () -> Unit,
+		beforeFadeOut: () -> Unit,
+		onLoaded: () -> Unit,
+	) : this(onLoaded, AssetQueue(queueAssets), AssetPreparation(prepareAssets), presentation, fonts, beforeFadeOut)
 
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val uiRenderer: UIRenderer by lazyInject()
@@ -157,6 +168,7 @@ class SplashScreen private constructor(
 	private var phaseElapsed = 0f
 	private var phase = SplashPhase.FADE_IN
 	private var transitionStarted = false
+	private var transitionPreparationStarted = false
 	private var skippedLoadingFrames = 0
 	@Volatile private var preparationComplete = false
 	@Volatile private var preparationFailure: Throwable? = null
@@ -336,7 +348,14 @@ class SplashScreen private constructor(
 				val budgetMillis = loadingBudgetMillis(frameDelta)
 				if (uiRenderer.updateLoad(budgetMillis)) enterPhase(SplashPhase.HOLD)
 			}
-			SplashPhase.HOLD -> if (phaseElapsed >= presentation.transition.minimumHoldDuration) enterPhase(SplashPhase.FADE_OUT)
+			SplashPhase.HOLD -> if (phaseElapsed >= presentation.transition.minimumHoldDuration) {
+				if (!transitionPreparationStarted) {
+					transitionPreparationStarted = true
+					beforeFadeOut?.invoke()
+				} else {
+					enterPhase(SplashPhase.FADE_OUT)
+				}
+			}
 			SplashPhase.FADE_OUT -> if (phaseElapsed >= presentation.transition.fadeOutDuration) {
 				enterPhase(SplashPhase.COMPLETE)
 				completeLoading()
@@ -401,7 +420,10 @@ class SplashScreen private constructor(
 	private fun completeLoading() {
 		if (transitionStarted) return
 		transitionStarted = true
-		uiRenderer.armStartupTransition(presentation.transition.uiFadeInDuration)
+		uiRenderer.armStartupTransition(
+			presentation.transition.uiFadeInDuration,
+			presentation.transition.uiFadeInDelayFrames,
+		)
 		onLoaded.invoke()
 		uiRenderer.refreshStartupDisplay()
 	}

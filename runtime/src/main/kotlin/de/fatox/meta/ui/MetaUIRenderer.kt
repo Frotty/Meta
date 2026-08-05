@@ -90,6 +90,7 @@ class MetaUIRenderer : UIRenderer {
 	private var startupTransitionActive = false
 	private var startupTransitionElapsed = 0f
 	private var startupTransitionDuration = 0f
+	private var startupTransitionDelayFrames = 0
 	private var startupTransitionPixel: Texture? = null
 	private val startupTransitionColor = Color(0f, 0f, 0f, 1f)
 	private var lastScrollHoverTarget: Actor? = null
@@ -223,12 +224,14 @@ class MetaUIRenderer : UIRenderer {
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
 	}
 
-	override fun armStartupTransition(durationSeconds: Float) {
+	override fun armStartupTransition(durationSeconds: Float, delayFrames: Int) {
 		if (durationSeconds <= 0f) return
 		startupTransitionDuration = durationSeconds
 		startupTransitionElapsed = 0f
+		startupTransitionDelayFrames = delayFrames.coerceAtLeast(0)
 		startupTransitionPending = true
 		startupTransitionActive = false
+		createStartupTransitionPixel()
 	}
 
 	private inline fun <reified T : Actor> Actor?.isInside(): Boolean {
@@ -282,18 +285,34 @@ class MetaUIRenderer : UIRenderer {
 
 	private fun drawStartupTransition(deltaTime: Float) {
 		if (!startupTransitionActive) return
+		if (startupTransitionDelayFrames > 0) {
+			startupTransitionDelayFrames--
+			startupTransitionColor.a = 1f
+			drawStartupTransitionCover()
+			return
+		}
 		val progress = (startupTransitionElapsed / startupTransitionDuration).coerceIn(0f, 1f)
 		val eased = progress * progress * (3f - 2f * progress)
 		startupTransitionColor.a = 1f - eased
-		startupTransitionPixel ?: createStartupTransitionPixel()
+		drawStartupTransitionCover()
+		// The first frame after a native display change can report either zero or the whole resize stall as its
+		// delta. Do not let either value freeze the cover forever or skip most of the fade in one frame.
+		val fadeDelta = if (deltaTime.isFinite() && deltaTime > 0f) {
+			deltaTime.coerceAtMost(1f / 30f)
+		} else {
+			1f / 60f
+		}
+		startupTransitionElapsed += fadeDelta
+		if (startupTransitionElapsed >= startupTransitionDuration) startupTransitionActive = false
+	}
+
+	private fun drawStartupTransitionCover() {
 		spriteBatch.projectionMatrix.set(stage.camera.combined)
 		spriteBatch.begin()
 		spriteBatch.setColor(startupTransitionColor)
 		spriteBatch.draw(startupTransitionPixel!!, 0f, 0f, uiWidth, uiHeight)
 		spriteBatch.color = Color.WHITE
 		spriteBatch.end()
-		startupTransitionElapsed += deltaTime.coerceAtLeast(0f)
-		if (startupTransitionElapsed >= startupTransitionDuration) startupTransitionActive = false
 	}
 
 	private fun createStartupTransitionPixel() {
