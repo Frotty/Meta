@@ -25,6 +25,9 @@ interface UIRenderer : Disposable {
 	 */
 	fun refreshStartupDisplay() = Unit
 
+	/** Arms a black-to-transparent startup cover. It begins on the first UI frame after startup work has completed. */
+	fun armStartupTransition(durationSeconds: Float) = Unit
+
 	fun addActor(actor: Actor)
 	fun update()
 	fun draw()

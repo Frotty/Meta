@@ -3,6 +3,7 @@ package de.fatox.meta.api
 import com.badlogic.gdx.Files
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class SplashLoadingPolicyTest {
@@ -80,5 +81,16 @@ class SplashLoadingPolicyTest {
 
 		assertEquals(null, fonts.title)
 		assertEquals(null, fonts.body)
+	}
+
+	@Test
+	fun `splash transition exposes stable bootstrap defaults and validates geometry`() {
+		val transition = SplashTransitionConfiguration()
+
+		assertEquals(860, transition.bootstrapWidth)
+		assertEquals(320, transition.bootstrapHeight)
+		assertFailsWith<IllegalArgumentException> {
+			SplashTransitionConfiguration(bootstrapWidth = 0)
+		}
 	}
 }

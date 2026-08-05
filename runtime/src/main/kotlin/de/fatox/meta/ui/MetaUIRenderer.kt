@@ -2,7 +2,10 @@ package de.fatox.meta.ui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Camera
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
@@ -83,6 +86,12 @@ class MetaUIRenderer : UIRenderer {
 	private var loadStarted = false
 	private var loadingWithUI = false
 	private var disposed = false
+	private var startupTransitionPending = false
+	private var startupTransitionActive = false
+	private var startupTransitionElapsed = 0f
+	private var startupTransitionDuration = 0f
+	private var startupTransitionPixel: Texture? = null
+	private val startupTransitionColor = Color(0f, 0f, 0f, 1f)
 	private var lastScrollHoverTarget: Actor? = null
 	private var lastScrollHoverPane: Actor? = null
 	private var lastReportedScrollFocus: Actor? = null
@@ -214,6 +223,14 @@ class MetaUIRenderer : UIRenderer {
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
 	}
 
+	override fun armStartupTransition(durationSeconds: Float) {
+		if (durationSeconds <= 0f) return
+		startupTransitionDuration = durationSeconds
+		startupTransitionElapsed = 0f
+		startupTransitionPending = true
+		startupTransitionActive = false
+	}
+
 	private inline fun <reified T : Actor> Actor?.isInside(): Boolean {
 		var current = this
 		while (current != null) {
@@ -242,6 +259,11 @@ class MetaUIRenderer : UIRenderer {
 
 	override fun draw() {
 		if (!MetaAudioVideoState.state.value.runWithUI) return
+		if (startupTransitionPending) {
+			startupTransitionPending = false
+			startupTransitionActive = true
+			startupTransitionElapsed = 0f
+		}
 
 		stage.batch.setBlendFunction(-1, -1)
 		Gdx.gl.glBlendFuncSeparate(
@@ -255,6 +277,32 @@ class MetaUIRenderer : UIRenderer {
 		MetaTooltip.bringVisibleToFront()
 		stage.draw()
 		focusRenderer.draw(stage, focusedActor, deltaTime)
+		drawStartupTransition(deltaTime)
+	}
+
+	private fun drawStartupTransition(deltaTime: Float) {
+		if (!startupTransitionActive) return
+		val progress = (startupTransitionElapsed / startupTransitionDuration).coerceIn(0f, 1f)
+		val eased = progress * progress * (3f - 2f * progress)
+		startupTransitionColor.a = 1f - eased
+		startupTransitionPixel ?: createStartupTransitionPixel()
+		spriteBatch.projectionMatrix.set(stage.camera.combined)
+		spriteBatch.begin()
+		spriteBatch.setColor(startupTransitionColor)
+		spriteBatch.draw(startupTransitionPixel!!, 0f, 0f, uiWidth, uiHeight)
+		spriteBatch.color = Color.WHITE
+		spriteBatch.end()
+		startupTransitionElapsed += deltaTime.coerceAtLeast(0f)
+		if (startupTransitionElapsed >= startupTransitionDuration) startupTransitionActive = false
+	}
+
+	private fun createStartupTransitionPixel() {
+		if (startupTransitionPixel != null) return
+		val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
+		pixmap.setColor(Color.WHITE)
+		pixmap.fill()
+		startupTransitionPixel = Texture(pixmap)
+		pixmap.dispose()
 	}
 
 	override fun resize(width: Int, height: Int) {
@@ -284,5 +332,7 @@ class MetaUIRenderer : UIRenderer {
 		stage.dispose()
 		fontProvider.dispose()
 		MetaSkin.dispose()
+		startupTransitionPixel?.dispose()
+		startupTransitionPixel = null
 	}
 }

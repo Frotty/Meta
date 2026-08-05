@@ -12,7 +12,6 @@ import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
-import de.fatox.meta.api.model.MetaAudioVideoState
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.MathUtils
 import de.fatox.meta.Meta
@@ -40,7 +39,25 @@ data class SplashPresentation(
 	val assetStatus: String = "LOADING ASSETS",
 	val interfaceStatus: String = "BUILDING INTERFACE",
 	val readyStatus: String = "READY",
+	val transition: SplashTransitionConfiguration = SplashTransitionConfiguration(),
 )
+
+/** Native bootstrap geometry and transition timings shared by launchers and [SplashScreen]. */
+data class SplashTransitionConfiguration(
+	val bootstrapWidth: Int = 860,
+	val bootstrapHeight: Int = 320,
+	val fadeInDuration: Float = 0.5f,
+	val fadeOutDuration: Float = 0.5f,
+	val minimumHoldDuration: Float = 0.2f,
+	val uiFadeInDuration: Float = 0.35f,
+) {
+	init {
+		require(bootstrapWidth > 0 && bootstrapHeight > 0) { "Splash bootstrap dimensions must be positive" }
+		require(fadeInDuration > 0f && fadeOutDuration > 0f && minimumHoldDuration >= 0f && uiFadeInDuration >= 0f) {
+			"Splash transition durations must be non-negative, with non-zero fade durations"
+		}
+	}
+}
 
 /** A font resource which is available during the application's bootstrap phase. */
 data class SplashFont(
@@ -147,7 +164,6 @@ class SplashScreen private constructor(
 	override fun show() {
 		createTextures()
 		createText()
-		fitBootstrapWindow()
 		updateProjection()
 		Meta.instance.windowHandler.focus()
 	}
@@ -299,7 +315,7 @@ class SplashScreen private constructor(
 
 	private fun advanceLoading(frameDelta: Float) {
 		when (phase) {
-			SplashPhase.FADE_IN -> if (phaseElapsed >= FADE_DURATION && Meta.canChangeScreen()) {
+			SplashPhase.FADE_IN -> if (phaseElapsed >= presentation.transition.fadeInDuration && Meta.canChangeScreen()) {
 				if (assetPreparation == null) enterPhase(SplashPhase.QUEUEING) else startPreparation()
 			}
 			SplashPhase.PREPARING -> {
@@ -320,8 +336,8 @@ class SplashScreen private constructor(
 				val budgetMillis = loadingBudgetMillis(frameDelta)
 				if (uiRenderer.updateLoad(budgetMillis)) enterPhase(SplashPhase.HOLD)
 			}
-			SplashPhase.HOLD -> if (phaseElapsed >= MINIMUM_HOLD_DURATION) enterPhase(SplashPhase.FADE_OUT)
-			SplashPhase.FADE_OUT -> if (phaseElapsed >= FADE_DURATION) {
+			SplashPhase.HOLD -> if (phaseElapsed >= presentation.transition.minimumHoldDuration) enterPhase(SplashPhase.FADE_OUT)
+			SplashPhase.FADE_OUT -> if (phaseElapsed >= presentation.transition.fadeOutDuration) {
 				enterPhase(SplashPhase.COMPLETE)
 				completeLoading()
 			}
@@ -368,10 +384,16 @@ class SplashScreen private constructor(
 	}
 
 	private fun visualAlpha(): Float {
-		val progress = (phaseElapsed / FADE_DURATION).coerceIn(0f, 1f)
+		val fadeDuration = when (phase) {
+			SplashPhase.FADE_IN -> presentation.transition.fadeInDuration
+			SplashPhase.FADE_OUT -> presentation.transition.fadeOutDuration
+			else -> 1f
+		}
+		val progress = (phaseElapsed / fadeDuration).coerceIn(0f, 1f)
 		return when (phase) {
 			SplashPhase.FADE_IN -> SplashLoadingPolicy.smoothStep(progress)
-			SplashPhase.FADE_OUT, SplashPhase.COMPLETE -> 1f - SplashLoadingPolicy.smoothStep(progress)
+			SplashPhase.FADE_OUT -> 1f - SplashLoadingPolicy.smoothStep(progress)
+			SplashPhase.COMPLETE -> 0f
 			else -> 1f
 		}
 	}
@@ -379,6 +401,7 @@ class SplashScreen private constructor(
 	private fun completeLoading() {
 		if (transitionStarted) return
 		transitionStarted = true
+		uiRenderer.armStartupTransition(presentation.transition.uiFadeInDuration)
 		onLoaded.invoke()
 		uiRenderer.refreshStartupDisplay()
 	}
@@ -410,16 +433,6 @@ class SplashScreen private constructor(
 			pixelTexture = Texture(pixelPixmap)
 			pixelPixmap.dispose()
 		}
-	}
-
-	/** Keep the bootstrap presentation from rendering a small card against a large black window. The normal saved
-	 * display state is restored by the application callback once startup has completed. */
-	private fun fitBootstrapWindow() {
-		if (Gdx.graphics.isFullscreen || MetaAudioVideoState.state.value.borderless) return
-		Gdx.graphics.setWindowedMode(
-			PANEL_MAX_WIDTH.toInt(),
-			PANEL_MAX_HEIGHT.toInt(),
-		)
 	}
 
 	private fun createText() {
@@ -602,11 +615,7 @@ class SplashScreen private constructor(
 		const val TITLE_FONT_SIZE = 25
 		const val BODY_FONT_SIZE = 15
 		const val DETAIL_FONT_SIZE = 12
-		const val PANEL_MAX_WIDTH = 860f
-		const val PANEL_MAX_HEIGHT = 320f
 		const val SPLASH_FONT_OVERSAMPLE = 2f
-		const val FADE_DURATION = 0.5f
-		const val MINIMUM_HOLD_DURATION = 0.2f
 		const val MAX_SKIPPED_LOADING_FRAMES = 4
 		const val MINIMUM_PROGRESS_BUDGET_MS = 1
 	}
