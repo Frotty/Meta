@@ -8,8 +8,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.extensions.cursorPointer
-import de.fatox.meta.reactive.Signal
-import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaFocusable
@@ -18,6 +16,10 @@ import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 
+/**
+ * TTF text action paired with an icon. Horizontal composition is the default; [vertical] is intended for explicit
+ * tile controls. Text, checked, and disabled state are exposed through bidirectional signals.
+ */
 class MetaIconTextButton private constructor(
 	text: String,
 	iconActor: Actor,
@@ -33,15 +35,12 @@ class MetaIconTextButton private constructor(
 	}
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
 	private val disabledTint = MetaDisabledTint(this)
-	val textValue: Signal<CharSequence> = signal(text)
-	val checkedValue: Signal<Boolean> = signal(isChecked)
-	val disabledValue: Signal<Boolean> = signal(isDisabled)
+	private val buttonModel = MetaButtonModel(this, disabledTint)
+	val textValue = signal<CharSequence>(text)
+	val checkedValue = buttonModel.checkedValue
+	val disabledValue = buttonModel.disabledValue
 	@Suppress("unused")
 	private val textBinding = textValue.subscribe { this@MetaIconTextButton.text = textValue.peek() }
-	@Suppress("unused")
-	private val checkedBinding = checkedValue.subscribe { setChecked(checkedValue.peek()) }
-	@Suppress("unused")
-	private val disabledBinding = disabledValue.subscribe { setDisabled(disabledValue.peek()) }
 	var text: CharSequence
 		get() = label.text
 		set(value) {
@@ -87,7 +86,7 @@ class MetaIconTextButton private constructor(
 		cursorPointer()
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
-				checkedValue.value = isChecked
+				buttonModel.syncChecked()
 			}
 		})
 	}
@@ -98,15 +97,11 @@ class MetaIconTextButton private constructor(
 
 	override fun setDisabled(isDisabled: Boolean) {
 		super.setDisabled(isDisabled)
-		touchable = if (isDisabled) Touchable.disabled else Touchable.enabled
-		batch {
-			disabledValue.value = isDisabled
-			disabledTint.apply(isDisabled)
-		}
+		buttonModel.syncDisabled()
 	}
 
 	override fun setChecked(isChecked: Boolean) {
 		super.setChecked(isChecked)
-		checkedValue.value = this.isChecked
+		buttonModel.syncChecked()
 	}
 }

@@ -2,6 +2,7 @@ package de.fatox.meta.ui.components
 
 import de.fatox.meta.ui.MetaType
 
+@Suppress("DEPRECATION")
 class MetaValidTextField(description: String, private val errorLabel: MetaLabel) {
 	val description: MetaLabel = MetaLabel(description, MetaType.CAPTION)
 

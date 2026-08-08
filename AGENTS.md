@@ -1,300 +1,144 @@
 # AGENTS.md
 
-## Purpose
+## Project and scope
 
-Meta is a Kotlin/libGDX engine layer used by downstream games (including OxRox).
-Changes here affect multiple projects, so compatibility and runtime behavior stability are critical.
+Meta is a shared Kotlin/libGDX engine layer used by games including OxRox. Compatibility and runtime stability take
+priority over local convenience.
 
-## Scope discipline
+- Default to `runtime/` and `runtime-desktop/`; the editor is an optional consumer unless explicitly in scope.
+- Put generic, reusable engine behavior in Meta. Keep levels, gameplay, online services, art conventions, and other
+  game-specific behavior in the consuming game.
+- Preserve unrelated working-tree changes. Do not patch generated outputs when an authoritative source exists.
 
-- Default to `runtime/` and `runtime-desktop/` work. Treat the editor as an optional consumer unless the request
-  explicitly targets editor functionality.
-- Do not move game-specific OxRox behavior into Meta. Promote only generic code that another game could reuse.
-- Preserve unrelated working-tree changes. This repository is often used while the UI playground is running.
+| Module | Ownership |
+| --- | --- |
+| `runtime` | Core runtime: UI, assets, DI, input, audio, persistence, reactive state. |
+| `runtime-desktop` | LWJGL3 platform bindings. |
+| `editor` | Optional scene/shader/editor features built on runtime. |
+| `editor-desktop` | Optional editor launcher and UI playground. |
 
-## Module map
+Key entry points below are relative to `runtime/src/main/kotlin/de/fatox/meta/`:
 
-- `runtime/`: core engine runtime (UI manager, assets, DI, input, audio, data).
-- `runtime-desktop/`: desktop platform bindings for runtime.
-- `editor/`: scene/shader/editor logic built on runtime.
-- `editor-desktop/`: desktop launcher/package for editor.
+- Framework and defaults: `Meta.kt`, `MetaModule.kt`
+- DI: `injection/MetaInject.kt`
+- UI contracts: `api/ui/UIManager.kt`, `ui/MetaUiManager.kt`, `ui/MetaUIRenderer.kt`
+- UI tokens and layout: `ui/MetaUi.kt`, `ui/layout/MetaLayout.kt`, `ui/components/`
+- Reactive state and bindings: `reactive/Reactive.kt`, `ui/MetaBind.kt`, `api/ReactiveScreenAdapter.kt`
+- Loading and assets: `api/SplashScreen.kt`, `api/AssetProvider.kt`, `assets/MetaAssetProvider.kt`
+- Persistence and history: `assets/MetaData.kt`, `task/MetaTaskManager.kt`
 
-## Core architecture
+## UI contracts
 
-- App framework entrypoint/base: `runtime/src/main/kotlin/de/fatox/meta/Meta.kt`
-- Dependency injection container: `runtime/src/main/kotlin/de/fatox/meta/injection/MetaInject.kt`
-- UI/window registry APIs: `runtime/src/main/kotlin/de/fatox/meta/api/ui/UIManager.kt`
-- Data persistence/metadata: `runtime/src/main/kotlin/de/fatox/meta/assets/MetaData.kt`
-- Reactive state core: `runtime/src/main/kotlin/de/fatox/meta/reactive/Reactive.kt`; widget bindings: `ui/MetaBind.kt`
-- Reactive screen lifecycle: `runtime/src/main/kotlin/de/fatox/meta/api/ReactiveScreenAdapter.kt`
-- Startup loading: `runtime/src/main/kotlin/de/fatox/meta/api/SplashScreen.kt`; asset API: `api/AssetProvider.kt`
-- Undo/redo state: `runtime/src/main/kotlin/de/fatox/meta/task/MetaTaskManager.kt`
-- UI toolkit: `runtime/src/main/kotlin/de/fatox/meta/ui/components/` (TTF widgets), `ui/MetaUi.kt` (design tokens),
-  `ui/layout/MetaLayout.kt` (layout checks)
+Meta is the scene2d UI layer; VisUI and libktx must not be introduced.
 
-## UI toolkit — batteries included, TTF everywhere
+- Visible text uses TTF-backed Meta widgets: `MetaLabel`, `MetaTextButton`, `MetaIconTextButton`, `MetaSelectBox`,
+  `MetaTextField`, `MetaTextArea`, and `MetaCheckBox`. A new text widget must clone its skin style before replacing
+  the font; never mutate a shared style.
+- Use `MetaIconButton` for full action affordance and `MetaImageButton` for a lighter icon-only action. Choose
+  `MetaButtonTier.PRIMARY`, `SECONDARY`, or `TERTIARY` by semantic emphasis instead of local colors.
+- Routine glyphs come from the bundled Remix catalog (`assets/ui/icons/remixicon.tsv`). Bitmap assets are for art,
+  logos, previews, screenshots, atlases, or visuals that cannot be expressed by the icon font.
+- Meta buttons own pointer cursors. Use `cursorPointer()` only for custom clickable actors. Construction-time
+  tooltips remain registered while actors are detached; remove them only for explicit early cleanup.
+- Tool palettes use `MetaIconButtonGroup` and `selected`, not checked state or keyboard focus.
+- Prefer `MetaFlexBox` for rows, columns, forms, toolbars, and wrapping; `MetaGrid` for shared equal tracks;
+  `MetaStack` for overlays. Keep `MetaTable` for genuine scene2d cell/row-span semantics. Layout measurement must be
+  allocation-free and must not rebuild rows from `sizeChanged()`.
+- Use tokens from `MetaUi.kt`: `MetaType`, `MetaSpacing`, `MetaColor`, and `MetaButtonTier`. Treat shared colors as
+  read-only and call `.cpy()` for variants.
+- Prefer composed controls: `MetaInputLayout`, `MetaIconTextButton`, `SliderWithButtons`, `MetaActionList`,
+  `MetaActionRow`, and `MetaBottomBar`.
+- Use `MetaScrollPane`; it owns scrollbar styling, content gutter, wheel step, and nested hover focus.
+- `MetaWindow`/`MetaDialog` own chrome, sticky controls/actions, responsive overflow, and constrained scrolling.
+  Consumers must not wrap the whole window in another scroll pane. `MetaUiManager` alone owns docking layout and
+  persistence.
+- Test geometry with `MetaLayout.problems(root)` or `assertValid(root)` using `GdxTestEnvironment.ensure()`.
 
-Meta is a batteries-included UI layer built directly on libGDX scene2d. VisUI is EOL and must not be reintroduced.
-Follow these so screens share one look:
-- **Use the TTF Meta widgets, not raw scene2d text widgets.** All text must render through the Meta font provider:
-  `MetaLabel`, `MetaTextButton`, `MetaIconTextButton`, `MetaSelectBox`, `MetaTextField`, `MetaTextArea`,
-  `MetaCheckBox`. Do NOT use
-  raw `Label`/`TextButton`/`TextField` for visible text. If a needed widget still uses a baked font, add a
-  `Meta*` wrapper that swaps in `fontProvider.getFont(size, type)` (see `MetaTextField` for the pattern: clone the
-  style once, never mutate the shared skin style).
-- **Use icon-style controls intentionally.** `MetaIconButton` is the full action icon button (same visual family as
-  normal buttons). For a plain icon that is clickable but should stay visually lighter/subtle, use `MetaImageButton`.
-- **Choose button emphasis semantically.** `MetaTextButton`, `MetaIconTextButton`, `MetaIconButton`, and
-  `MetaButtonContainer` accept `MetaButtonTier`: use `PRIMARY` for the single preferred action in a decision area,
-  `SECONDARY` (the default) for normal alternatives, and `TERTIARY` for low-emphasis utilities. `MetaImageButton`
-  remains the compact tertiary icon treatment. Do not create one-off button background colors in consumers.
-- **Use Remix font icons for UI glyphs.** Prefer `MetaIcon("ri-information-line")`,
-  `MetaImageButton("ri-add-line")`, and `MetaIconTextButton("Open", "ri-folder-open-line")` over one-off PNG
-  toolbar icons. The bundled catalog is `assets/ui/icons/remixicon.tsv` (also shipped in runtime resources as
-  `ui/icons/remixicon.tsv`); search it for supported names/categories instead of adding a giant enum. Do not add
-  singular texture assets for ordinary UI glyphs. Bitmap textures are for actual game/editor art, logos, previews,
-  screenshots, skin atlases, or generated drawables that cannot be expressed as a Remix icon.
-- **Pointer cursors are automatic on Meta buttons.** The shared `cursorPointer()` behavior resolves the nearest
-  enabled pointer actor, so nested controls do not fight over Hand/Arrow. Use it for custom clickable actors instead
-  of installing raw cursor enter/exit listeners.
-- **Tooltips may be attached at construction time.** `actor.tooltip("...")` remains registered while an actor is
-  off-stage or temporarily detached in a cached window, and works again after re-attachment. Registrations use weak
-  actor ownership, so abandoned actors remain collectible; call `removeTooltip()` only for explicit early removal.
-- **Use `MetaIconButtonGroup` for icon tool palettes.** Brush/tool pickers should mark the active tool with
-  `MetaIconButton.selected` / `MetaIconButtonGroup`, not scene2d checked state or Meta keyboard focus. Regular
-  icon buttons stay momentary by default; the selected border is a visual-only active marker. For brush palettes,
-  stay 100% Remix: use names like `ri-brush-line`, `ri-pencil-line`, `ri-paint-line`, `ri-magic-line`,
-  `ri-eraser-line`, `ri-square-fill`/`ri-square-line`, and `ri-circle-fill`/`ri-circle-line` instead of custom
-  drawn glyphs.
-- **Responsive layout containers are first-class UI primitives.** Default to nested `MetaFlexBox` containers for
-  ordinary rows, columns, forms, toolbars, and wrapping item bags; use `MetaGrid` when siblings need shared,
-  auto-fitting equal tracks, and `MetaStack` for backgrounds, overlays, and badges. Prefer the `metaFlexRow`,
-  `metaFlexColumn`, `metaGrid`, and `metaStack` builders for concise composition. These containers remeasure nested
-  `Layout` children at their assigned width and must remain allocation-free during steady-state measurement/layout.
-  Do not rebuild manual table rows in `sizeChanged()` to imitate wrapping. Keep `MetaTable` for compatibility and
-  layouts that genuinely need scene2d cell/row-span semantics, not as the default composition tool.
-- **Design tokens live in `ui/MetaUi.kt`** — `MetaType` (typographic scale in px: CAPTION…DISPLAY), `MetaSpacing`
-  (padding rhythm), `MetaColor` (dark palette). Prefer these over magic numbers/colors. Helpers include
-  `metaLabel(...)`, `metaButton(...)`, `metaFlexRow { ... }`, `metaFlexColumn { ... }`, `metaGrid(...)`,
-  `metaStack { ... }`, and `Table.metaDefaults()`. Default text controls use
-  `MetaType.BODY`; pass a different token only when the hierarchy calls for it. When cell semantics are appropriate,
-  use `MetaTable(defaultSpacing = true)` rather than repeating cell gaps manually. `MetaColor` values are shared
-  mutable `Color`s — treat read-only,
-  use `.cpy()` for variants.
-- **Take the composed-control path first.** For forms use `MetaInputLayout.field(...)` / `.area(...)`; these provide
-  label, field sizing, helper/error presentation, and collapse unused feedback space. `MetaIconTextButton` lays out a
-  normal horizontal icon + label action by default; use `vertical = true` only for deliberate tile/grid controls.
-  `SliderWithButtons` already supplies consistently sized step actions. Extend these reusable defaults when a common
-  composition is missing instead of rebuilding it in each screen.
-- **Use `MetaScrollPane`, not raw `ScrollPane`.** It owns Meta's thin generated scrollbar style,
-  mouse-wheel step, right-side content gutter, and automatic hover-based scroll focus. Nested panes claim focus on
-  mouse enter and restore the containing pane on exit, so consumers must not add their own scroll-focus listeners. If
-  you need a scrollable list, wrap it in `MetaScrollPane` and let the component enforce the behavior and padding.
-- **Use `MetaActionList` / `MetaActionRow` for tool-style entry lists.** They centralize compact row density,
-  reactive selection/items, leading and trailing metadata, and the standard overflow action menu. Consumers provide
-  domain content and callbacks; do not rebuild the clickable-row-plus-burger-menu pattern in each window.
-- **Use `MetaBottomBar` for bottom prompt/status strips.** It is a generic, content-width container with rounded top
-  corners and reactive visibility/content binding helpers; keep game-specific glyph/font lookup in the consuming game
-  and pass the resulting actor as content.
-- **Window chrome and dialog actions are automatic.** `MetaWindow` has a title header and separator by default.
-  Untitled `MetaDialog`/`MetaConfirmDialog` presentations collapse that header completely. Add dialog actions through
-  `addButton`; the shared action row owns its border padding, so consumers must not compensate with one-off edge pads.
-- **Window overflow is a framework contract.** Dialogs and non-resizable windows auto-fit their content up to Meta's
-  responsive viewport cap; resizable windows retain the user's chosen size. In both cases `contentTable` owns an
-  automatic two-axis overflow viewport: responsive content is assigned the available width until its minimum width
-  no longer fits, then horizontal scrolling activates; vertical scrolling activates only for real height overflow.
-  Put persistent filters, breadcrumbs, selectors, and primary actions in `controlTable` so they remain sticky above
-  the scrolling body. Dialog status and action rows are already sticky below it. Do not wrap the entire window in a
-  second consumer-owned scroll pane.
-- **Docking is owned by `MetaUiManager`.** Keep order normalization, width resolution, height compression, edge hints,
-  and persistence centralized there. Docked windows may be shorter than content minima; `MetaWindow` provides the
-  constrained scroll viewport. Do not add parallel dock-layout state in windows or consumers.
-- **Verify layouts with `ui/layout/MetaLayout`** instead of only eyeballing the running game. `MetaLayout.problems(root)`
-  / `assertValid(root)` find overflow (child outside parent) and clipping (actor smaller than its preferred size).
-  It is pure geometry (no GL), so it runs in plain unit tests: bootstrap with `GdxTestEnvironment.ensure()` (test
-  helper; `Table`/`Cell` need `Gdx.files`), build the layout with fixed-size stand-in widgets, `pack()`, assert.
-  See `runtime/src/test/.../ui/layout/MetaLayoutTest.kt`.
-- **Performance:** UI widgets run every frame — no per-frame allocations (no `String.format`, no new lambdas/lists
-  in `draw`/`act`/`layout`). Cache and rebuild only on change (see `FPSGraph` for the reused-`StringBuilder` pattern).
+UI code runs every frame: `draw`, `act`, `layout`, and other hot paths must not allocate.
 
-## Input & modal-dialog contracts — always clean up global grabs
+## Global input and lifecycle cleanup
 
-A whole class of "the dialog opens but its buttons are dead (no visible cause) and it stays broken" bugs comes from
-**leaked global input state**. Anything that grabs input globally is a contract you MUST release on EVERY exit path.
-- **`MetaInputProcessor.exclusiveProcessor` is a stack.** While non-null it routes ALL input to the top owner and
-  bypasses the scene2d stage — so a leaked one makes every later button silently unresponsive. Use
-  `pushExclusiveProcessor(p)` / `popExclusiveProcessor(p)` (the `var` setter is a convenience: non-null = push,
-  null = pop top). Popping restores the previous owner, so nested grabs work.
-- **Release in `MetaDialog.onHidden()`, not just your success handler.** `onHidden()` runs whenever the dialog
-  leaves the stage by ANY path (button, ESC, click-away, screen change, programmatic). Clearing an exclusive grab
-  (or a global/controller listener, or a focus override) only inside your keyDown/onClick handler leaks it whenever
-  the dialog closes some other way. See `MetaKeyRebindDialog` for the pattern.
-- A lingering `exclusiveProcessor` at the moment a normal modal is shown is itself a **bug signal** (missing pop):
-  `UIManager.showDialog` logs a warning and resets it so input survives — but fix the leak at its source.
-- Same rule for any other global contract you set when showing UI (stage capture listeners, controller listeners,
-  `UiControlHelper` flags, `Gdx.input.inputProcessor`): set it on show, undo it on hide. Don't rely on the happy path.
-- `UIManager.showDialog` cancels existing scene2d touch focus before the modal takes over, preventing a press/drag
-  begun behind the dialog from completing through it. Normal clicks outside text inputs also clear stale keyboard
-  focus automatically; do not duplicate either behavior in consumers.
-- Scene2d keyboard focus is authoritative while a `TextField`/`TextArea` is being edited. `UiControlHelper` must not
-  reinterpret arrows, Enter, Escape, or custom-bound typing keys as spatial navigation/actions during that time.
-- For viewfinders/capture overlays, use `UIManager.temporarilyHideOtherWindows(owner)` and dispose its lease on every
-  exit path. It suppresses draw/hit without toggling window visibility or disturbing title/layout state; do not loop
-  through windows and set `isVisible` yourself.
+Any global input or visibility grab must be released on every exit path.
 
-## Reactive state — USE THIS, don't reinvent it
+- `MetaInputProcessor.exclusiveProcessor` is a stack. Use `pushExclusiveProcessor`/`popExclusiveProcessor`; a leaked
+  owner bypasses the stage and makes later UI unresponsive.
+- Release grabs, capture listeners, controller listeners, focus overrides, and helper flags in
+  `MetaDialog.onHidden()`, not only in success/cancel handlers.
+- Use `UIManager.temporarilyHideOtherWindows(owner)` and dispose its lease. Do not toggle every window manually.
+- Scene2d keyboard focus is authoritative while editing a `TextField`/`TextArea`; navigation helpers must not consume
+  editing keys.
+- Route input through `MetaInputProcessor`. Do not replace `Gdx.input.inputProcessor`.
 
-Meta has ONE ground-truth reactivity system (`de.fatox.meta.reactive`). Prefer it over ad-hoc
-observer lists, manual "re-query and rebuild" code, or bespoke listener interfaces.
-- **Primitives:** `signal(initial)` (writable cell), `computed { }` (lazy/memoized derived value),
-  `effect { }` (auto-tracked side effect), `batch { }` (coalesce writes), `untracked { }`,
-  `value.subscribe { }` (listener shape), `onCleanup { }`.
-- **Do NOT** add new `MetaNotifier`-style classes or hand-rolled `addListener/notifyListeners`
-  pairs. That pattern was removed; model the state as a `signal`/`computed` and let consumers
-  `effect`/`subscribe`. UI that mirrors state should bind via `ui/MetaBind.kt` — these work with the Meta TTF
-  widgets (`metaLabel.bindText { }`, `metaButton.bindText { }`) as well as generic scene2d (`actor.bindVisible { }`,
-  `actor.bindColor { }`, `disableable.bindDisabled { }`). Own each binding in a `ReactiveScope` (scope-owned
-  overloads like `scope.bindText(label) { }`) and dispose the scope on teardown. Use a binding when one widget
-  property tracks one piece of state; use `signal.subscribe { rebuildSection() }` for coarse "rebuild on change".
-- **Lifecycle: prefer the auto-disposing window scope.** Every `MetaWindow`/`MetaDialog` exposes a
-  `reactiveScope` that is opened on show and disposed on hide. Create per-presentation bindings inside the
-  `onShown()` hook (e.g. `reactiveScope.bindText(label) { someSignal() }`) and they tear down automatically on
-  `onRemovedFromStage()` — the window can be shown/hidden/re-shown without leaking. Do NOT bind in `init`.
-  Screens should extend `ReactiveScreenAdapter` and create presentation bindings in `onShown()`; it renews the scope
-  on re-show and disposes it on hide. For other transient non-window views, own a `ReactiveScope` and dispose it on
-  teardown. App-lifetime effects on a DI singleton may simply never be disposed. An undisposed `effect` keeps the
-  actors it captured alive — scene2d has no GC-driven "removed" callback, so disposal is on you.
-- **Widget model signals are bidirectional.** Public `textValue`, `checkedValue`, `disabledValue`, and
-  `selectedValue` signals update the widget when written and reflect user/widget changes back into the signal. Do not
-  add a second listener-backed mirror. Bind an external model when the widget should not own the state.
-- **Task history is already reactive.** Bind undo/redo availability to `MetaTaskManager.canUndo` and `canRedo`; do not
-  duplicate the task cursor in consumers.
-- **Threading:** drive it from the GL/render thread only (it is not thread-safe). Dispatch async
-  callbacks onto that thread before writing signals.
-- **Cycle safety:** a feedback loop between effects is capped per flush
-  (`maxEffectRunsPerFlush`) and throws `ReactiveCycleException` instead of freezing — name your
-  effects (`effect("myThing") { }`) so the culprit is identifiable. Catch it at your top-level loop
-  to recover gracefully.
-- Tests/spec live in `runtime/src/test/kotlin/de/fatox/meta/reactive/ReactiveTest.kt` — read them
-  for exact semantics, and add cases when you extend the core.
+`UIManager.showDialog` already cancels stale touch focus, clears leaked exclusive input as a recovery measure, and
+normal clicks clear stale keyboard focus. Fix leaks at their source instead of duplicating these safeguards.
 
-## Performance posture (game-engine focused)
+## Reactive state
 
-This is a **garbage-collected (JVM)** runtime rendering every frame. The dominant, *controllable* performance lever
-here is **allocation rate** — minimize GC churn; most other micro-optimizations are not worth it (see below).
-- **No per-frame allocation in hot paths** (`render`/`act`/`draw`/`layout`/input handlers, and UI redraw). That means:
-  no `String.format`/string concatenation, no `+`/`map`/`filter`/`forEach` that boxes or allocates iterators/lambdas,
-  no `new` temp objects. Build strings into a reused `StringBuilder` and rebuild only when a displayed value changes
-  (see `FPSGraph`). Reuse mutable temps (`Vector2`, `Color`, layout scratch) — keep them as fields, not locals.
-- **Use libGDX-native collections** (`Array`, `ObjectMap`, `IntMap`, `Pool`, `CharArray`) over the Kotlin/Java stdlib
-  in hot code: they avoid boxing and let you control growth. `Pool` mutable objects you'd otherwise allocate per frame.
-- **libGDX collection iterator quirk:** never iterate a libGDX `Array` with `for (value in array)`, `forEach`, or an
-  explicit iterator. libGDX reuses its `Array` iterators, so nested iteration over the same array can invalidate the
-  outer iterator and fail at runtime. Use an indexed loop (`for (i in 0 until array.size) array[i]`) whenever random
-  access is available; it is nesting-safe and avoids iterator overhead. `Array.forEachValue` and
-  `forEachIndexedValue` are inline indexed conveniences. Lifecycle/setup traversal of `ObjectMap`, `IntMap`, or
-  `LongMap` can use `forEachEntryReentrant`, which allocates a fresh iterator; hot paths need an indexed data layout.
-  Do not suppress `GDXKotlinUnsafeIterator` to permit iterator-based loops. The `verifyKotlinIterationSafety` Gradle
-  task enforces these production-source rules and runs automatically before `compileKotlin` and `check`.
-- **Beware hidden allocations:** Kotlin lambdas that capture, autoboxing of `Int`/`Float` into generic collections,
-  varargs, and iterator-based loops over other collection types.
-- **Don't chase what the JVM hides from you.** Cache-line layout, struct packing, manual SIMD, branch-elimination etc.
-  are largely out of reach on the JVM (objects are boxed/scattered, the JIT decides) — spending effort there is mostly
-  wasted. Spend it on: fewer allocations, fewer draw calls / batches, fewer scene2d invalidations, and algorithmic wins.
-- The reactive core is allocation-light by design (effects re-run only on real change); still, don't create signals/
-  effects per frame — wire them once.
+`de.fatox.meta.reactive` is the only application state mechanism. Use `signal`, `computed`, `effect`, `batch`,
+`untracked`, `subscribe`, and `onCleanup`; do not add observer lists or notifier classes.
 
-## Platform & dependency notes (libGDX / LWJGL3 / Kotlin)
+- Bind individual widget properties through `MetaBind.kt`; use a subscription for coarse section rebuilds.
+- `MetaWindow`/`MetaDialog` bindings are created in `onShown()` with their renewable `reactiveScope`. Screens extend
+  `ReactiveScreenAdapter`. Other transient views own and dispose a `ReactiveScope` explicitly.
+- Widget `textValue`, `checkedValue`, `disabledValue`, and `selectedValue` signals are bidirectional; do not mirror
+  them with another listener-backed state object.
+- Bind undo/redo UI to `MetaTaskManager.canUndo` and `canRedo`.
+- Reactive writes are GL-thread-only. Dispatch worker callbacks before changing UI-driving state.
+- Name effects where practical. Cycles throw `ReactiveCycleException`; handle it at the top-level loop.
 
-- **Desktop backend is LWJGL3** and carries real quirks — prefer Meta wrappers over poking GLFW directly, and when you
-  must, document the workaround:
-  - **Borderless / fullscreen:** use libGDX `Graphics` APIs (`setFullscreenMode`/`setWindowedMode`); borderless is a
-    windowed mode sized to the monitor, not true exclusive fullscreen. Mode switches can drop the GL context — reload
-    GL-resident resources (textures/FBOs/fonts) and re-layout on resize. Persist window size/pos and restore on launch.
-  - **Multi-monitor / DPI:** monitor coordinates are virtual-desktop relative and HiDPI scaling differs per OS — never
-    hardcode pixel sizes; drive layout off `Graphics` viewport values (the `ScreenViewport` already does).
-  - **HiDPI UI scaling is automatic.** `UIRenderer` seeds a global `uiScale` from the display (`suggestedUiScale()`)
-    so controls aren't tiny on 4K/Retina — every consumer gets it for free. It's a reactive `Signal<Float>`: a game's
-    settings slider can bind to `uiRenderer.uiScale` (persist the user's choice and set it on boot). Because changing
-    scale re-lays out the active stage, subscribe a `SliderWithButtons` to `committedValue`, not its live `valueValue`,
-    so the dragged control does not move underneath its own pointer gesture. Size widgets in UI units (not raw pixels)
-    and never read `Gdx.graphics` pixels for layout.
-  - **Startup:** a separate splash/loading window before the GL window can race the main window/context — gate UI work
-    on the GL thread and on assets actually being loaded. Heavy work off the GL thread must hop back via
-    `Gdx.app.postRunnable` before touching GL/scene2d.
-  - **Input:** route through `MetaInputProcessor` (exclusive-grab stack, key/scroll listeners); don't set
-    `Gdx.input.inputProcessor` directly or you'll bypass Meta's contracts.
-- **Kotlin / libktx stance:** Meta is an *alternative* to libktx, not a companion — don't add the libktx dependency.
-  Its modules overlap Meta's own opinionated layer (ktx-scene2d vs the Meta widgets/`MetaBind`, ktx-async vs the
-  reactive core, KTX DI vs `MetaInject`), and pulling it in gives agents two ways to do everything (worse
-  digestibility) plus a dependency we don't control. If a specific, stable libktx utility is genuinely missing here,
-  port the small piece into the right `de.fatox.meta.*` package rather than taking the whole library.
+## Performance and collections
 
-## Startup loading and packaged dependency boundaries
+Allocation rate is the primary controllable JVM game-runtime cost.
 
-- Prefer the three-callback `SplashScreen(prepareAssets, queueAssets, onLoaded)` for non-trivial startup. The first two
-  callbacks run sequentially on a low-priority worker and must remain CPU/file/queue-only. `onLoaded`, scene2d, GL
-  resource creation, and signal writes that drive UI belong on the GL thread.
-- The two-callback splash form queues on the GL thread for compatibility and must remain small. Never hide new
-  blocking discovery, hashing, decryption, archive indexing, or screen construction inside it.
-- Use `AssetProvider.load` plus frame-budgeted `update`; avoid `finish()` and unqueued `getResource()` on animated
-  loading paths. XPK read/hash/extract loops must stay bounded and cooperative. `Thread.yield()` is a scheduling hint,
-  not a substitute for moving heavy work off the GL thread.
-- Keep implementation libraries out of public signatures. In particular, Apache Commons Compress is an XPK runtime
-  implementation dependency, not part of Meta's consumer API. Prefer `XPKLoader.listEntryNames` for inspection and
-  preserve `getList` for consumers needing lazy libGDX handles.
-- Runtime resources must be generic and used by runtime code. Do not ship editor-only textures, fonts, screenshots,
-  models, or sample content in `runtime/src/main/resources`. When changing bundled Remix data, keep the authoring
-  copies under `assets/` and runtime copies under `runtime/src/main/resources/` byte-for-byte synchronized.
-- Do not build new work on deprecated placeholders (`AssetPromise`, `MetaShortcut`, `MetaTaskQueue`, `TaskListener`,
-  `BufferRenderer`). Use reactive state, `MetaInputProcessor`, and concrete runtime-owned services instead.
+- No per-frame strings, temporary objects, captured lambdas, boxing collections, varargs, or iterator allocation.
+  Reuse `StringBuilder`, vectors, colors, arrays, and other scratch state; rebuild only when values change.
+- Prefer libGDX collections in hot code. Never iterate a libGDX `Array` with `for (value in array)`, `forEach`, or an
+  iterator: its reusable iterators are not nesting-safe. Use indexed loops or the indexed `forEachValue` helpers.
+- Lifecycle/setup traversal of `ObjectMap`, `IntMap`, or `LongMap` may use `forEachEntryReentrant`; it allocates and
+  does not belong in hot paths.
+- Prioritize allocation reduction, algorithmic wins, fewer draw calls, and fewer scene2d invalidations over JVM
+  memory-layout or branch micro-optimizations.
 
-## What belongs here vs. in a consuming game
+`verifyKotlinIterationSafety` enforces production-source collection rules and runs before compilation/checks.
 
-Goal: consumer repos (e.g. OxRox) hold *game* code; anything generic and reusable across games lives in Meta.
-- **Belongs in Meta:** generic scene2d widgets, input/key utilities, deterministic RNG, generic
-  data structures, serialization/encoding helpers, reusable dialogs, reactive bindings — anything with no
-  game-specific logic. A strong tell: it already sits in a `de.fatox.meta.*` package, or depends only on
-  Meta + libGDX scene2d.
-- **Stays in the game:** levels, entities, gameplay rules, game-specific screens/content, Steam/online
-  integration, art/asset conventions.
-- When promoting code from a consumer into Meta: parameterize game-specific bits (e.g. asset paths via
-  `AssetProvider`), add it under the right `de.fatox.meta.*` package, then remove it downstream and bump the
-  consumer's `metaVersion`. Check for an existing Meta equivalent first (e.g. `api/encoding`, `api/crypto`)
-  to avoid duplicates.
+## Platform, startup, and resources
 
-## Compatibility policy
+- Desktop uses LWJGL3. Use libGDX graphics APIs for display changes and Meta platform wrappers elsewhere. Display
+  changes can recreate GL resources; monitor coordinates and DPI are platform-dependent.
+- UI scaling comes from `UIRenderer.uiScale`. Size in UI units. Commit dragged scale sliders through
+  `SliderWithButtons.committedValue` so relayout does not move the active gesture.
+- Prefer `SplashScreen(prepareAssets, queueAssets, onLoaded)` for non-trivial startup. The first two callbacks run
+  sequentially on a worker and may do CPU/file/queue work only. `onLoaded`, scene2d, GL resources, and reactive UI
+  writes run on the GL thread.
+- Use `AssetProvider.load` with frame-budgeted updates. Avoid `finish()` and unqueued `getResource()` on animated
+  loading paths.
+- Commons Compress is an XPK implementation detail. Public APIs expose Meta/libGDX types; use
+  `XPKLoader.listEntryNames` or `getList`.
+- Runtime resources must be generic and runtime-used. Keep the authoring and runtime copies of Remix font/catalog
+  data byte-identical. Do not ship editor/sample content in `runtime/src/main/resources`.
+- Do not build new code on deprecated placeholders such as `AssetPromise`, `MetaShortcut`, `MetaTaskQueue`,
+  `TaskListener`, or `BufferRenderer`.
 
-- `runtime` is a shared dependency for client projects; avoid breaking public APIs without clear migration updates.
-- Prefer additive APIs and deprecation before removal. Verify the actual OxRox call sites when changing a shared type.
-- Serialization/data key changes require backward compatibility checks.
-- Keep desktop/editor launchers aligned with Gradle plugin API changes.
-- Prefer the reactive core (see above) for new shared state instead of one-off observer mechanisms.
+## Compatibility and verification
 
-## Build/toolchain notes
+- Prefer additive APIs and deprecation before removal. Check downstream call sites for shared API changes.
+- Preserve serialization keys and persisted-data compatibility. Keep desktop/editor launchers aligned with Gradle
+  changes.
+- Upgrade Meta and verify it before bumping a consumer's pinned `metaVersion`/commit.
+- Baseline: Java 17, libGDX 1.14.2, Kotlin 2.4.0, Gradle 9.1.0. The wrapper is authoritative.
 
-- Gradle wrapper is authoritative for this repo.
-- Toolchain auto-download is enabled; daemon JVM criteria file is tracked in `gradle/gradle-daemon-jvm.properties`.
-- Current baseline in this repo:
-  - libGDX `1.14.2`
-  - Kotlin `2.4.0`
-  - Gradle `9.1.0`
+Minimum runtime gates:
 
-## Testing expectations
+```powershell
+.\gradlew.bat :runtime:compileKotlin
+.\gradlew.bat :runtime:test
+```
 
-- At minimum, run:
-  - `.\gradlew.bat :runtime:compileKotlin`
-  - `.\gradlew.bat :runtime:test`
-- For cross-module or public API changes, run:
-  - `.\gradlew.bat :runtime-desktop:compileKotlin :editor:compileKotlin :editor-desktop:compileKotlin`
-- For UI changes, exercise the playground with `.\gradlew.bat :editor-desktop:runMetaUiPlayground`; still add geometry
-  or behavior tests because visual inspection alone is not regression coverage.
-- Do not merge API/perf-sensitive changes without compile+test verification.
+For shared/public API changes:
 
-## Upgrade workflow
+```powershell
+.\gradlew.bat :runtime-desktop:compileKotlin :editor:compileKotlin :editor-desktop:compileKotlin
+```
 
-- Upgrade Meta first (this repo), verify modules/tests, then bump consumers (e.g. OxRox `metaVersion`).
-- When upgrading libGDX/Kotlin/Gradle:
-  - expect API shifts (especially utility classes and build DSL)
-  - patch engine code first
-  - only then propagate to downstream projects
+For UI changes, also run `:editor-desktop:runMetaUiPlayground` when practical and add deterministic geometry or
+behavior tests. Do not hand off API- or performance-sensitive changes without compile and test evidence.

@@ -12,7 +12,11 @@ import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
 
-/** Scene2d-native validatable input field using Meta's generated field states and TTF font. */
+/**
+ * Scene2d-native validatable input field using Meta's generated field states and TTF font. Validators run after user
+ * edits and programmatic text changes; [inputValidValue] exposes the result while the inherited `textValue` and
+ * `disabledValue` signals remain bidirectional.
+ */
 open class MetaInputField @JvmOverloads constructor(
 	text: String = "",
 	size: Int = MetaType.BODY,

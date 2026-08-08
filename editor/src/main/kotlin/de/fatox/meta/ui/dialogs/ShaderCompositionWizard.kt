@@ -1,11 +1,10 @@
 package de.fatox.meta.ui.dialogs
 
 import com.badlogic.gdx.utils.Align
-import de.fatox.meta.error.MetaError
-import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderComposer
+import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.bindDisabled
 import de.fatox.meta.ui.components.MetaInputValidator
 import de.fatox.meta.ui.components.MetaTable
@@ -17,35 +16,28 @@ class ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 	private val metaShaderComposer: MetaShaderComposer by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
 
-	private val cancelBtn: MetaTextButton = addButton(MetaTextButton("Cancel"), Align.left, false)
-	private val createBtn: MetaTextButton = addButton(MetaTextButton("Create"), Align.right, true)
+	private val createBtn: MetaTextButton
 	private val compNameTF: MetaValidTextField = MetaValidTextField("Composition name:", statusLabel)
 
 	private fun setupTable() {
 		val visTable = MetaTable()
-		visTable.defaults().pad(4f)
+		visTable.defaults().pad(MetaSpacing.XS)
 		visTable.add(compNameTF.description).growX()
 		visTable.add(compNameTF.textField).growX()
 		visTable.row()
 		contentTable.add(visTable).top().growX()
-		dialogListener = object : DialogListener {
-			override fun onResult(any: Any?) {
-				if (any == true) {
-					metaShaderComposer.newShaderComposition(compNameTF.textField.text)
-				}
-				close()
+		dialogListener = DialogListener { any ->
+			if (any == true) {
+				metaShaderComposer.newShaderComposition(compNameTF.textField.text)
 			}
+			close()
 		}
 	}
 
 	init {
-		compNameTF.addValidator(object : MetaInputValidator() {
-			override fun validateInput(input: String, errors: MetaErrorHandler) {
-				if (input.isBlank()) {
-					errors.add(MetaError("Invalid composition name", ""))
-				}
-			}
-		})
+		addButton<MetaTextButton>(MetaTextButton("Cancel"), Align.left, false)
+		createBtn = addButton(MetaTextButton("Create"), Align.right, true)
+		compNameTF.addValidator(MetaInputValidator.required("Invalid composition name"))
 		setDefaultSize(400f, 120f)
 		setupTable()
 	}

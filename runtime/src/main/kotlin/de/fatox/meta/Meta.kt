@@ -1,10 +1,22 @@
 package de.fatox.meta
 
-import com.badlogic.gdx.*
+import com.badlogic.gdx.Game
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
+import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.glutils.ShaderProgram.prependFragmentCode
 import com.badlogic.gdx.graphics.glutils.ShaderProgram.prependVertexCode
 import com.badlogic.gdx.utils.TimeUtils
-import de.fatox.meta.api.*
+import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.GraphicsHandler
+import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.MonitorHandler
+import de.fatox.meta.api.NoGraphicsHandler
+import de.fatox.meta.api.NoMonitorHandler
+import de.fatox.meta.api.NoSoundHandler
+import de.fatox.meta.api.NoWindowHandler
+import de.fatox.meta.api.SoundHandler
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.WindowConfig
@@ -86,10 +98,10 @@ abstract class Meta(
 	abstract fun ScreenConfig.screens()
 	abstract fun WindowConfig.windows()
 
-	open fun iconified(isIconified: Boolean): Unit = Unit
-	open fun maximized(isMaximized: Boolean): Unit = Unit
-	open fun onFocusLost(): Unit = Unit
-	open fun onFocusGained(): Unit = Unit
+	open fun iconified(isIconified: Boolean) = Unit
+	open fun maximized(isMaximized: Boolean) = Unit
+	open fun onFocusLost() = Unit
+	open fun onFocusGained() = Unit
 
 	final override fun create() {
 		instance = this
@@ -115,7 +127,6 @@ abstract class Meta(
 			}
 		})
 		changeScreen(firstScreen)
-
 	}
 
 	override fun dispose() {

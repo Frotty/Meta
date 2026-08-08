@@ -6,7 +6,9 @@ import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
-import com.badlogic.gdx.graphics.glutils.ShaderProgram.*
+import com.badlogic.gdx.graphics.glutils.ShaderProgram.COLOR_ATTRIBUTE
+import com.badlogic.gdx.graphics.glutils.ShaderProgram.POSITION_ATTRIBUTE
+import com.badlogic.gdx.graphics.glutils.ShaderProgram.TEXCOORD_ATTRIBUTE
 import com.badlogic.gdx.utils.Json
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.entity.EntityManager

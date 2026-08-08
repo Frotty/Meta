@@ -8,8 +8,6 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.lang.LanguageBundle
 import de.fatox.meta.api.model.MetaProjectData
-import de.fatox.meta.error.MetaError
-import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.signal
@@ -53,7 +51,6 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 		folderButton.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
 				fileChooser.selectionMode = MetaFileChooser.SELECT_DIRECTORIES
-				fileChooser.fadeIn()
 				fileChooser.setListener(object : MetaFileChooserAdapter() {
 					override fun selected(file: Array<FileHandle>) {
 						if (file.size == 1) {
@@ -74,12 +71,8 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 
 	private fun createProjectNameTF() {
 		projectNameTF = MetaValidTextField(languageBundle["newproj.dia.name.tf"], statusLabel)
-		projectNameTF.addValidator(object : MetaInputValidator() {
-			override fun validateInput(input: String, errors: MetaErrorHandler) {
-				if (!input.isValidFolderName()) {
-					errors.add(MetaError(languageBundle["newproj.dia.invalid.name"], "Name can only contain alphanumeric characters"))
-				}
-			}
+		projectNameTF.addValidator(MetaInputValidator.fromPredicate(languageBundle["newproj.dia.invalid.name"]) {
+			it.isValidFolderName()
 		})
 		MetaTooltip.attach(projectNameTF.description, languageBundle["newproj.dia.tooltip.name"])
 	}

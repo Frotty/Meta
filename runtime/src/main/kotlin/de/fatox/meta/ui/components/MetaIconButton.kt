@@ -10,8 +10,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Scaling
 import de.fatox.meta.api.extensions.cursorPointer
-import de.fatox.meta.reactive.Signal
-import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaFocusable
@@ -69,14 +67,11 @@ open class MetaIconButton private constructor(
 	private val selectedStyleFactory =
 		if (style == MetaSkin.IMAGE_BUTTON) MetaSkin::selectedImageButtonStyle else MetaSkin::selectedButtonStyle
 	private val disabledTint = MetaDisabledTint(this)
+	private val buttonModel = MetaButtonModel(this, disabledTint)
 
-	val checkedValue: Signal<Boolean> = signal(isChecked)
-	val disabledValue: Signal<Boolean> = signal(isDisabled)
-	val selectedValue: Signal<Boolean> = signal(false)
-	@Suppress("unused")
-	private val checkedBinding = checkedValue.subscribe { setChecked(checkedValue.peek()) }
-	@Suppress("unused")
-	private val disabledBinding = disabledValue.subscribe { setDisabled(disabledValue.peek()) }
+	val checkedValue = buttonModel.checkedValue
+	val disabledValue = buttonModel.disabledValue
+	val selectedValue = signal(false)
 	@Suppress("unused")
 	private val selectedBinding = selectedValue.subscribe { selected = selectedValue.peek() }
 	var momentary: Boolean = true
@@ -103,7 +98,7 @@ open class MetaIconButton private constructor(
 					setChecked(false)
 					return
 				}
-				checkedValue.value = isChecked
+				buttonModel.syncChecked()
 			}
 		})
 	}
@@ -114,16 +109,12 @@ open class MetaIconButton private constructor(
 
 	override fun setDisabled(isDisabled: Boolean) {
 		super.setDisabled(isDisabled)
-		touchable = if (isDisabled) Touchable.disabled else Touchable.enabled
-		batch {
-			disabledValue.value = isDisabled
-			disabledTint.apply(isDisabled)
-		}
+		buttonModel.syncDisabled()
 	}
 
 	override fun setChecked(isChecked: Boolean) {
 		super.setChecked(isChecked)
-		checkedValue.value = this.isChecked
+		buttonModel.syncChecked()
 	}
 
 	fun setIcon(drawable: Drawable?, scaling: Scaling = Scaling.fit, size: Float = DEFAULT_ICON_SIZE) {
@@ -151,6 +142,7 @@ open class MetaIconButton private constructor(
 		actor.touchable = Touchable.disabled
 		iconContainer.actor = actor
 		iconCell.size(size)
+		buttonModel.refreshDisabledAppearance()
 		invalidateHierarchy()
 	}
 

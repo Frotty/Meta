@@ -326,6 +326,27 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
+	fun `button container installs nested button isolation only once`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON_SECONDARY, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val parent = MetaButtonContainer()
+		val nestedButton = Button(Button.ButtonStyle())
+		parent.add(nestedButton)
+		parent.setSize(200f, 40f)
+
+		parent.validate()
+		val listenerCount = nestedButton.listeners.size
+		repeat(5) {
+			parent.invalidate()
+			parent.validate()
+		}
+
+		assertEquals(listenerCount, nestedButton.listeners.size)
+	}
+
+	@Test
 	fun `action row long title does not increase responsive preferred width`() {
 		val skin = MetaSkin.skin()
 		skin.add(MetaSkin.BUTTON_TERTIARY, Button.ButtonStyle())
@@ -375,6 +396,19 @@ internal class MetaInputComponentsTest {
 
 		assertEquals("long enough", area.textValue.value)
 		assertTrue(area.inputValidValue.value)
+	}
+
+	@Test
+	fun `validator factories cover required and domain-specific input`() {
+		val required = MetaInputValidator.required("Required")
+		val lowercase = MetaInputValidator.fromPredicate("Lowercase only") { input ->
+			input.isNotEmpty() && input.all { it.isLowerCase() }
+		}
+
+		assertFalse(required.validateInput("  "))
+		assertTrue(required.validateInput("value"))
+		assertTrue(lowercase.validateInput("meta"))
+		assertFalse(lowercase.validateInput("Meta"))
 	}
 
 	@Test
@@ -438,6 +472,7 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
+	@Suppress("DEPRECATION")
 	fun `legacy validatable field survives TextField constructor callback`() {
 		val field = MetaValidatableTextField("initial", fontProvider = fontProvider)
 		field.addValidator(object : MetaInputValidator() {
@@ -452,6 +487,53 @@ internal class MetaInputComponentsTest {
 		field.setText("")
 
 		assertFalse(field.isInputValid)
+	}
+
+	@Test
+	fun `button model signals remain bidirectional after shared state refactor`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON_SECONDARY, Button.ButtonStyle())
+		skin.add(MetaSkin.ICON_BUTTON, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val textButton = MetaTextButton("Save")
+		val iconButton = MetaIconButton(BaseDrawable())
+
+		textButton.checkedValue.value = true
+		textButton.disabledValue.value = true
+		iconButton.checkedValue.value = true
+
+		assertTrue(textButton.isChecked)
+		assertTrue(textButton.isDisabled)
+		assertEquals(Touchable.disabled, textButton.touchable)
+		assertTrue(iconButton.isChecked)
+
+		textButton.isChecked = false
+		textButton.isDisabled = false
+		iconButton.isChecked = false
+
+		assertFalse(textButton.checkedValue.value)
+		assertFalse(textButton.disabledValue.value)
+		assertFalse(iconButton.checkedValue.value)
+	}
+
+	@Test
+	fun `disabled button presentation includes children added or replaced later`() {
+		val skin = MetaSkin.skin()
+		skin.add(MetaSkin.BUTTON_SECONDARY, Button.ButtonStyle())
+		skin.add(MetaSkin.ICON_BUTTON, Button.ButtonStyle())
+		skin.add("meta.button.focus", BaseDrawable(), Drawable::class.java)
+		skin.add("meta.button.focusOver", BaseDrawable(), Drawable::class.java)
+		val container = MetaButtonContainer().apply { isDisabled = true }
+		val lateChild = Actor().apply { color.set(Color.WHITE) }
+		val iconButton = MetaIconButton(BaseDrawable()).apply { isDisabled = true }
+
+		container.add(lateChild)
+		iconButton.setIcon(BaseDrawable())
+
+		assertEquals(MetaColor.TEXT_DISABLED, lateChild.color)
+		val iconContainer = iconButton.children.first() as com.badlogic.gdx.scenes.scene2d.ui.Container<*>
+		assertEquals(MetaColor.TEXT_DISABLED, iconContainer.actor.color)
 	}
 
 	@Test

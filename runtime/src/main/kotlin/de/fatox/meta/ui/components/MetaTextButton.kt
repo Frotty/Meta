@@ -2,7 +2,6 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -10,8 +9,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.api.graphics.FontType
-import de.fatox.meta.reactive.Signal
-import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaFocusable
@@ -24,6 +21,7 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+/** TTF text action with tier styling and bidirectional [textValue], [checkedValue], and [disabledValue] state. */
 open class MetaTextButton @JvmOverloads constructor(
 	text: String = "",
 	size: Int = MetaType.BODY,
@@ -39,16 +37,13 @@ open class MetaTextButton @JvmOverloads constructor(
 	}
 	private val focusStyle = MetaButtonFocusStyle(this, style, MetaSkin::focusedButtonStyle)
 	private val disabledTint = MetaDisabledTint(this)
+	private val buttonModel = MetaButtonModel(this, disabledTint)
 
-	val textValue: Signal<String> = signal(text)
-	val checkedValue: Signal<Boolean> = signal(isChecked)
-	val disabledValue: Signal<Boolean> = signal(isDisabled)
+	val textValue = signal(text)
+	val checkedValue = buttonModel.checkedValue
+	val disabledValue = buttonModel.disabledValue
 	@Suppress("unused")
 	private val textBinding = textValue.subscribe { setText(textValue.peek()) }
-	@Suppress("unused")
-	private val checkedBinding = checkedValue.subscribe { setChecked(checkedValue.peek()) }
-	@Suppress("unused")
-	private val disabledBinding = disabledValue.subscribe { setDisabled(disabledValue.peek()) }
 
 	fun setText(text: String = "") {
 		label.setText(text)
@@ -66,7 +61,7 @@ open class MetaTextButton @JvmOverloads constructor(
 		installPressSquish()
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
-				checkedValue.value = isChecked
+				buttonModel.syncChecked()
 			}
 		})
 	}
@@ -81,16 +76,12 @@ open class MetaTextButton @JvmOverloads constructor(
 
 	override fun setDisabled(isDisabled: Boolean) {
 		super.setDisabled(isDisabled)
-		touchable = if (isDisabled) Touchable.disabled else Touchable.enabled
-		batch {
-			disabledValue.value = isDisabled
-			disabledTint.apply(isDisabled)
-		}
+		buttonModel.syncDisabled()
 	}
 
 	override fun setChecked(isChecked: Boolean) {
 		super.setChecked(isChecked)
-		checkedValue.value = this.isChecked
+		buttonModel.syncChecked()
 	}
 
 	fun centerText() {

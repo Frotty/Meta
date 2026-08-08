@@ -4,11 +4,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.api.ui.getWindow
-import de.fatox.meta.error.MetaError
-import de.fatox.meta.error.MetaErrorHandler
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderLibrary
+import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.bindDisabled
 import de.fatox.meta.ui.components.AssetSelectButton
 import de.fatox.meta.ui.components.MetaInputValidator
@@ -25,8 +24,7 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
 	private val projectManager: ProjectManager by lazyInject()
 
-	private val cancelBtn: MetaTextButton = addButton(MetaTextButton("Cancel"), Align.left, false)
-	private val createBtn: MetaTextButton = addButton(MetaTextButton("Create"), Align.right, true)
+	private val createBtn: MetaTextButton
 	private val shaderNameTF: MetaValidTextField = MetaValidTextField("Shader name:", statusLabel)
 	private val renderTargetGroup = ButtonGroup<MetaToggleButton>()
 	private lateinit var vertexSelect: AssetSelectButton
@@ -34,13 +32,13 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 
 	private fun setupTable() {
 		val visTable = MetaTable()
-		visTable.defaults().pad(4f)
+		visTable.defaults().pad(MetaSpacing.XS)
 		visTable.add(shaderNameTF.description).growX()
 		visTable.add(shaderNameTF.textField).growX()
 		visTable.row()
 		val visLabel = MetaLabel("Render Target:", 14)
 		visLabel.setAlignment(Align.center)
-		visTable.add(visLabel).colspan(2).pad(4f)
+		visTable.add(visLabel).colspan(2).pad(MetaSpacing.XS)
 		visTable.row()
 		val geometryButton = MetaToggleButton("Geometry", true)
 		val fullscreenButton = MetaToggleButton("Fullscreen", false)
@@ -49,7 +47,7 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 		visTable.row()
 		val visLabel2 = MetaLabel("Shader Files:", 14)
 		visLabel2.setAlignment(Align.center)
-		visTable.add(visLabel2).colspan(2).pad(4f)
+		visTable.add(visLabel2).colspan(2).pad(MetaSpacing.XS)
 		visTable.row()
 		vertexSelect = AssetSelectButton("Vertex Shader")
 		visTable.add(vertexSelect.table).colspan(2).growX()
@@ -63,13 +61,9 @@ class ShaderWizardDialog : MetaDialog("Shader Wizard", true) {
 	}
 
 	init {
-		shaderNameTF.addValidator(object : MetaInputValidator() {
-			override fun validateInput(input: String, errors: MetaErrorHandler) {
-				if (input.isBlank()) {
-					errors.add(MetaError("Invalid Shader name", ""))
-				}
-			}
-		})
+		addButton<MetaTextButton>(MetaTextButton("Cancel"), Align.left, false)
+		createBtn = addButton(MetaTextButton("Create"), Align.right, true)
+		shaderNameTF.addValidator(MetaInputValidator.required("Invalid Shader name"))
 		renderTargetGroup.setMaxCheckCount(1)
 		renderTargetGroup.setMinCheckCount(1)
 		setDefaultSize(300f, 450f)
