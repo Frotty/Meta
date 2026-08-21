@@ -38,6 +38,8 @@ class MetaFontProvider : FontProvider {
 	private val monoFontMap = IntMap<BitmapFont>()
 	private val boldFontMap = IntMap<BitmapFont>()
 	private val iconFontMap = IntMap<BitmapFont>()
+	/** Failed sources may still back live incremental fonts, so they cannot be disposed until all font caches are. */
+	private val retiredGenerators = Array<FreeTypeFontGenerator>()
 	private var normalGenerator = createGenerator(
 		fontInfo.normalFontPath,
 		FontInfo.DEFAULT_REGULAR_FONT_PATH,
@@ -125,6 +127,8 @@ class MetaFontProvider : FontProvider {
 		boldGenerator?.generator?.dispose()
 		monoGenerator?.generator?.dispose()
 		iconGenerator?.generator?.dispose()
+		for (i in 0 until retiredGenerators.size) retiredGenerators.get(i).dispose()
+		retiredGenerators.clear()
 		normalGenerator = null
 		boldGenerator = null
 		monoGenerator = null
@@ -223,7 +227,9 @@ class MetaFontProvider : FontProvider {
 	}
 
 	private fun disableGenerator(type: FontType, source: FontGeneratorSource) {
-		source.generator.dispose()
+		// Generated fonts are incremental and retain this generator for glyphs first encountered during later draws.
+		// Keep it alive until dispose(), which releases every cached font before the retired generator list.
+		retiredGenerators.add(source.generator)
 		setGenerator(type, null)
 	}
 
