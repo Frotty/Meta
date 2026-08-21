@@ -3,12 +3,13 @@ apply plugin: 'application'
 sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
 eclipse.project.name = appName + '-editor-desktop'
 java {
-	sourceCompatibility = JavaVersion.VERSION_17
-	targetCompatibility = JavaVersion.VERSION_17
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
 }
 
 application {
 	mainClass = 'de.fatox.meta.desktop.DesktopLauncherEditorKt'
+	applicationDefaultJvmArgs = rootProject.ext.metaJava25JvmArgs
 }
 
 dependencies {
@@ -47,6 +48,7 @@ tasks.register('runMetaUiPlayground', JavaExec) {
 	mainClass = 'de.fatox.meta.desktop.DesktopLauncherPlaygroundKt'
 	workingDir = rootProject.file('assets').path
 	setIgnoreExitValue(true)
+	jvmArgs rootProject.ext.metaJava25JvmArgs
 
 	if (OperatingSystem.current() == OperatingSystem.MAC_OS) {
 		jvmArgs += "-XstartOnFirstThread"

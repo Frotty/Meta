@@ -15,8 +15,10 @@ import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.extensions.tooltip
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.reactive.ReactiveValue
+import de.fatox.meta.reactive.FloatSignal
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
+import de.fatox.meta.reactive.floatSignal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
@@ -43,10 +45,10 @@ open class MetaColorPicker @JvmOverloads constructor(
 	internal val hueField = MetaHueField(state, ::publishUserChange)
 	internal val preview = MetaColorSwatch()
 	internal val brightnessSlider = MetaColorRampSlider(0f, 1f, 0.01f) { position, out ->
-		MetaHsv.toColor(state.hue.peek(), state.saturation.peek(), position, 1f, out)
+		MetaHsv.toColor(state.hue.peekFloat(), state.saturation.peekFloat(), position, 1f, out)
 	}
 	internal val alphaSlider = MetaColorRampSlider(0f, 1f, 0.01f, checkerboard = true) { position, out ->
-		MetaHsv.toColor(state.hue.peek(), state.saturation.peek(), state.value.peek(), position, out)
+		MetaHsv.toColor(state.hue.peekFloat(), state.saturation.peekFloat(), state.value.peekFloat(), position, out)
 	}
 	private val inputModeValue: Signal<ColorInputMode> = signal(ColorInputMode.HEX)
 	private val inputModeButton = MetaTextButton("HEX", MetaType.CAPTION, tier = de.fatox.meta.ui.MetaButtonTier.TERTIARY)
@@ -127,21 +129,21 @@ open class MetaColorPicker @JvmOverloads constructor(
 			}
 		})
 
-		scope.subscribe(brightnessSlider.valueValue) {
+		scope.subscribe(brightnessSlider.valueSignal) {
 			if (syncingPresentation) return@subscribe
-			state.value.value = brightnessSlider.valueValue.peek()
+			state.value.floatValue = brightnessSlider.valueSignal.peekFloat()
 			publishUserChange()
 		}
-		scope.subscribe(alphaSlider.valueValue) {
+		scope.subscribe(alphaSlider.valueSignal) {
 			if (syncingPresentation || !isAllowAlphaEdit) return@subscribe
-			state.alpha.value = alphaSlider.valueValue.peek()
+			state.alpha.floatValue = alphaSlider.valueSignal.peekFloat()
 			publishUserChange()
 		}
 		scope.effect("MetaColorPicker.presentation") {
-			state.hue()
-			state.saturation()
-			state.value()
-			state.alpha()
+			state.hue.floatValue
+			state.saturation.floatValue
+			state.value.floatValue
+			state.alpha.floatValue
 			inputModeValue()
 			syncPresentation()
 		}
@@ -169,8 +171,8 @@ open class MetaColorPicker @JvmOverloads constructor(
 	private fun syncPresentation() {
 		state.toColor(working)
 		syncingPresentation = true
-		brightnessSlider.valueValue.value = state.value.peek()
-		if (isAllowAlphaEdit) alphaSlider.valueValue.value = state.alpha.peek()
+		brightnessSlider.valueSignal.floatValue = state.value.peekFloat()
+		if (isAllowAlphaEdit) alphaSlider.valueSignal.floatValue = state.alpha.peekFloat()
 		colorInput.setText(formatInput())
 		colorInput.setInputValid(true)
 		inputModeButton.setText(
@@ -195,10 +197,10 @@ open class MetaColorPicker @JvmOverloads constructor(
 	private fun sliderRow(
 		label: String,
 		slider: Actor,
-		value: Signal<Float>,
+		value: FloatSignal,
 	): MetaFlexBox {
 		val valueLabel = MetaLabel("", MetaType.CAPTION)
-		scope.bindText(valueLabel) { "${(value() * 100f + 0.5f).toInt()}%" }
+		scope.bindText(valueLabel) { "${(value.floatValue * 100f + 0.5f).toInt()}%" }
 		return MetaFlexBox(mainGap = MetaSpacing.SM, align = MetaFlexAlign.CENTER).apply {
 			addItem(MetaLabel(label, MetaType.CAPTION), basisWidth = SLIDER_LABEL_WIDTH, shrink = 0f)
 			addItem(slider, grow = 1f, minWidth = 0f)
@@ -253,31 +255,31 @@ private enum class ColorInputMode { HEX, RGB }
 
 /** Reactive HSV(A) source of truth shared by the pointer field, sliders and text representation. */
 internal class MetaColorState {
-	val hue: Signal<Float> = signal(0f)
-	val saturation: Signal<Float> = signal(0f)
-	val value: Signal<Float> = signal(1f)
-	val alpha: Signal<Float> = signal(1f)
+	val hue: FloatSignal = floatSignal(0f)
+	val saturation: FloatSignal = floatSignal(0f)
+	val value: FloatSignal = floatSignal(1f)
+	val alpha: FloatSignal = floatSignal(1f)
 	private val converted = FloatArray(3)
 
 	fun setColor(color: Color, allowAlpha: Boolean) {
 		MetaHsv.fromColor(color, converted)
 		batch {
-			hue.value = converted[0]
-			saturation.value = converted[1]
-			value.value = converted[2]
-			alpha.value = if (allowAlpha) color.a.coerceIn(0f, 1f) else 1f
+			hue.floatValue = converted[0]
+			saturation.floatValue = converted[1]
+			value.floatValue = converted[2]
+			alpha.floatValue = if (allowAlpha) color.a.coerceIn(0f, 1f) else 1f
 		}
 	}
 
 	fun setSaturationValue(saturation: Float, value: Float) {
 		batch {
-			this.saturation.value = saturation.coerceIn(0f, 1f)
-			this.value.value = value.coerceIn(0f, 1f)
+			this.saturation.floatValue = saturation.coerceIn(0f, 1f)
+			this.value.floatValue = value.coerceIn(0f, 1f)
 		}
 	}
 
 	fun toColor(out: Color): Color =
-		MetaHsv.toColor(hue.peek(), saturation.peek(), value.peek(), alpha.peek(), out)
+		MetaHsv.toColor(hue.peekFloat(), saturation.peekFloat(), value.peekFloat(), alpha.peekFloat(), out)
 }
 
 /** Saturation/value field drawn directly as interpolated shape geometry. */
@@ -331,9 +333,9 @@ internal class MetaColorField(
 		val drawWidth = oppositeCorner.x - origin.x
 		val drawHeight = oppositeCorner.y - origin.y
 		val alpha = color.a * parentAlpha
-		val hue = state.hue.peek()
-		val saturation = state.saturation.peek()
-		val value = state.value.peek()
+		val hue = state.hue.peekFloat()
+		val saturation = state.saturation.peekFloat()
+		val value = state.value.peekFloat()
 		MetaHsv.toColor(hue, 1f, 1f, 1f, hueColor)
 		hueColor.a = alpha
 		blackDraw.a = alpha
@@ -439,7 +441,7 @@ internal class MetaHueField(
 				hueColors[index + 1],
 			)
 		}
-		val markerY = markerY(origin.y, origin.y + drawHeight, state.hue.peek())
+		val markerY = markerY(origin.y, origin.y + drawHeight, state.hue.peekFloat())
 		shapeRenderer.color = Color.WHITE
 		shapeRenderer.rect(origin.x - 2f, markerY - 2f, drawWidth + 4f, 4f)
 		shapeRenderer.color = Color.BLACK
@@ -449,7 +451,7 @@ internal class MetaHueField(
 	}
 
 	private fun updateFromPointer(y: Float) {
-		state.hue.value = (y / height).coerceIn(0f, 1f) * 360f
+		state.hue.floatValue = (y / height).coerceIn(0f, 1f) * 360f
 		changed()
 	}
 

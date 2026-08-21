@@ -72,6 +72,107 @@ internal class ReactiveTest {
 		assertEquals(2, runs)
 	}
 
+	@Test
+	fun `float signal tracks primitive reads and suppresses equal writes`() {
+		val position = floatSignal(1f)
+		var observed = 0f
+		var runs = 0
+		effect {
+			observed = position.floatValue
+			runs++
+		}
+
+		assertEquals(1f, observed)
+		position.floatValue = 1f
+		assertEquals(1, runs)
+
+		position.floatValue = 2.5f
+		assertEquals(2.5f, observed)
+		assertEquals(2, runs)
+	}
+
+	@Test
+	fun `float signal custom equality and primitive update avoid generic operations`() {
+		val position = floatSignal(1f, FloatEquality { current, next ->
+			kotlin.math.abs(current - next) < 0.1f
+		})
+		var runs = 0
+		effect { position.floatValue; runs++ }
+
+		position.floatValue = 1.05f
+		assertEquals(1, runs)
+
+		position.updateFloat(FloatTransform { it + 0.2f })
+		assertEquals(1.2f, position.peekFloat(), 0.0001f)
+		assertEquals(2, runs)
+	}
+
+	@Test
+	fun `float signal preserves generic signal compatibility`() {
+		val primitive = floatSignal(3f)
+		val generic: Signal<Float> = primitive
+
+		generic.value = 4f
+		assertEquals(4f, primitive.peekFloat())
+		assertEquals(4f, generic.peek())
+	}
+
+	@Test
+	fun `float signal batches effects and specialized subscriptions`() {
+		val first = floatSignal(0f)
+		val second = floatSignal(0f)
+		var effectRuns = 0
+		var subscriptionRuns = 0
+		effect { first.floatValue + second.floatValue; effectRuns++ }
+		val subscription = first.subscribe { subscriptionRuns++ }
+
+		batch {
+			first.floatValue = 1f
+			second.floatValue = 2f
+		}
+		assertEquals(2, effectRuns)
+		assertEquals(1, subscriptionRuns)
+
+		subscription.dispose()
+		first.floatValue = 3f
+		assertEquals(3, effectRuns)
+		assertEquals(1, subscriptionRuns)
+	}
+
+	@Test
+	fun `float signal primitive transform failure leaves state unchanged`() {
+		val value = floatSignal(2f)
+		assertFailsWith<IllegalStateException> {
+			value.updateFloat(FloatTransform { error("failed transform") })
+		}
+		assertEquals(2f, value.peekFloat())
+	}
+
+	@Test
+	fun `float signal specialized contract and storage are primitive`() {
+		val primitiveType = Float::class.javaPrimitiveType
+		assertSame(primitiveType, FloatSignal::class.java.getMethod("getFloatValue").returnType)
+		assertSame(primitiveType, FloatSignal::class.java.getMethod("setFloatValue", primitiveType).parameterTypes[0])
+		assertSame(primitiveType, FloatEquality::class.java.getMethod("areEqual", primitiveType, primitiveType).parameterTypes[0])
+
+		val implementationField = floatSignal(0f).javaClass.getDeclaredField("current")
+		assertSame(primitiveType, implementationField.type)
+	}
+
+	@Test
+	fun `float signal exact equality handles NaN and signed zero consistently`() {
+		val value = floatSignal(Float.NaN)
+		var runs = 0
+		effect { value.floatValue; runs++ }
+
+		value.floatValue = Float.NaN
+		assertEquals(1, runs)
+
+		value.floatValue = -0f
+		value.floatValue = 0f
+		assertEquals(3, runs, "Signed zeroes have distinct Float value representations")
+	}
+
 	// ----------------------------------------------------------------------------------------- effect
 
 	@Test

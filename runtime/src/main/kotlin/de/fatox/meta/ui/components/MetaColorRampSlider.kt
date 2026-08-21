@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.utils.Disposable
+import de.fatox.meta.reactive.FloatSignal
 import de.fatox.meta.reactive.Signal
 
 /**
@@ -22,6 +23,8 @@ class MetaColorRampSlider(
 	private val colorAt: (position: Float, out: Color) -> Unit,
 ) : MetaStack(), Disposable {
 	val slider = MetaSlider(min, max, stepSize, showTrack = false)
+	val valueSignal: FloatSignal get() = slider.valueSignal
+	val committedSignal: FloatSignal get() = slider.committedSignal
 	val valueValue: Signal<Float> get() = slider.valueValue
 	val committedValue: Signal<Float> get() = slider.committedValue
 	private val ramp = MetaColorRamp(checkerboard, colorAt)

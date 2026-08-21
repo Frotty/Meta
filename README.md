@@ -17,7 +17,7 @@ consumer; game-specific behavior stays outside this repository.
 | `editor` | Optional scene and shader editor built on the runtime. |
 | `editor-desktop` | Optional desktop editor launcher and UI playground. |
 
-The runtime targets Java 17 and currently builds against Kotlin 2.4.0 and libGDX 1.14.2. The Gradle wrapper is the
+The runtime targets Java 25 and currently builds against Kotlin 2.4.10 and libGDX 1.14.2. The Gradle wrapper is the
 authoritative build entry point.
 
 ## Use from a game
@@ -35,6 +35,22 @@ dependencies {
 }
 ```
 
+Desktop distributions must use a Java 25 runtime. Enable compact object headers in every packaged launcher; JVM
+startup options cannot be enabled by a library after the process has started:
+
+```groovy
+application {
+    applicationDefaultJvmArgs = [
+        '-XX:+UseCompactObjectHeaders',
+        '--enable-native-access=ALL-UNNAMED', // LWJGL/native loading on Java 25
+    ]
+}
+```
+
+Meta's editor and playground launchers already apply this option. Custom launch scripts should pass the same
+arguments to `java`. A trained Java 25 AOT cache is application- and classpath-specific, so create and ship it from
+the final game's packaging pipeline rather than Meta's library build.
+
 Meta is a [multi-module JitPack project](https://docs.jitpack.io/building/#multi-module-projects), so the repository
 name is part of the group ID. Upgrade and verify Meta before changing a released game's pinned commit; avoid floating
 branch versions.
@@ -48,6 +64,8 @@ branch versions.
   [`assets/ui/icons/remixicon.tsv`](assets/ui/icons/remixicon.tsv) for supported names.
 - Use `signal`, `computed`, `effect`, `batch`, and scope-owned bindings from `de.fatox.meta.reactive`. Runtime state and
   scene2d updates belong on the GL thread.
+- Use `floatSignal` plus `floatValue`, `peekFloat`, and `updateFloat` when a reactive float is written frequently.
+  Its `Signal<Float>` surface remains available for generic interoperability but necessarily boxes on the JVM.
 - Create `MetaWindow`/`MetaDialog` bindings in `onShown()` using their `reactiveScope`; it is disposed on hide.
 - Queue startup assets through `AssetProvider.load`. Use the three-callback `SplashScreen` when discovery or queueing
   does meaningful work off the GL thread.

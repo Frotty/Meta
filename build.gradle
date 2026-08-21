@@ -7,6 +7,8 @@ buildscript {
 	}
 }
 
+ext.metaJava25JvmArgs = ['-XX:+UseCompactObjectHeaders', '--enable-native-access=ALL-UNNAMED']
+
 apply from: "$rootDir/gradle/iteration-safety.gradle"
 
 allprojects {
@@ -25,15 +27,15 @@ configure(subprojects) {
 	apply plugin: 'kotlin'
 
 	java {
-		sourceCompatibility = JavaVersion.VERSION_17
-		targetCompatibility = JavaVersion.VERSION_17
+		sourceCompatibility = JavaVersion.VERSION_25
+		targetCompatibility = JavaVersion.VERSION_25
 		toolchain {
-			languageVersion = JavaLanguageVersion.of(17)
+			languageVersion = JavaLanguageVersion.of(25)
 		}
 	}
 
 	kotlin {
-		jvmToolchain(17)
+		jvmToolchain(25)
 	}
 
 	publishing {
@@ -83,11 +85,15 @@ subprojects {
 
 	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
 		kotlinOptions {
-			jvmTarget = "17"
+			jvmTarget = "25"
 			freeCompilerArgs += "-progressive"
 			freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
 			freeCompilerArgs += "-jvm-default=no-compatibility"
 		}
+	}
+
+	tasks.withType(Test).configureEach {
+		jvmArgs rootProject.ext.metaJava25JvmArgs
 	}
 }
 

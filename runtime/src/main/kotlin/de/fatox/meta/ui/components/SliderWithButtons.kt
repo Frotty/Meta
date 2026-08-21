@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.injection.MetaInject.Companion.inject
+import de.fatox.meta.reactive.FloatSignal
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
@@ -34,6 +35,8 @@ class SliderWithButtons(
 
 	val decrementButton: MetaIconButton = MetaIconButton("ri-subtract-line")
 	val incrementButton: MetaIconButton = MetaIconButton("ri-add-line")
+	val valueSignal: FloatSignal get() = metaSlider.valueSignal
+	val committedSignal: FloatSignal get() = metaSlider.committedSignal
 	val valueValue: Signal<Float> get() = metaSlider.valueValue
 	/**
 	 * Stable value for expensive or geometry-changing reactions. Unlike [valueValue], slider drags publish here only
@@ -45,7 +48,7 @@ class SliderWithButtons(
 	var value: Float
 		get() = slider.value
 		set(value) {
-			valueValue.value = value
+			valueSignal.floatValue = value
 		}
 
 	init {

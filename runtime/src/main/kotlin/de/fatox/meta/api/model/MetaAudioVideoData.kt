@@ -8,6 +8,7 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.reactive.ReactiveValue
+import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import org.slf4j.Logger
 
@@ -15,8 +16,8 @@ private val log: Logger = MetaLoggerFactory.logger {}
 
 /** Application-lifetime source of truth for audio/video settings. Persisted data is a snapshot, never live state. */
 object MetaAudioVideoState {
-	private val stateSignal = signal(MetaAudioVideoData())
-	val state: ReactiveValue<MetaAudioVideoData> = stateSignal
+	val state: ReactiveValue<MetaAudioVideoData>
+		field: Signal<MetaAudioVideoData> = signal(MetaAudioVideoData())
 
 	fun initialize(value: MetaAudioVideoData) {
 		val initial = value.copy()
@@ -25,15 +26,15 @@ object MetaAudioVideoState {
 		if (!initial.windowedBoundsInitialized && !initial.usesBorderlessPresentation()) {
 			initial.windowedBoundsInitialized = true
 		}
-		stateSignal.value = initial
+		state.value = initial
 	}
 
-	fun current(): MetaAudioVideoData = stateSignal.peek().copy()
+	fun current(): MetaAudioVideoData = state.peek().copy()
 
 	fun replace(value: MetaAudioVideoData, applyDisplay: Boolean = false, persist: Boolean = true) {
 		val next = value.copy()
 		if (applyDisplay) next.apply()
-		stateSignal.value = next.copy()
+		state.value = next.copy()
 		if (persist) inject<MetaData>().save(audioVideoDataKey, next)
 	}
 

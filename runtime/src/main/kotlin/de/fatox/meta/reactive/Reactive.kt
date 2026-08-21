@@ -52,6 +52,44 @@ interface Signal<T> : ReactiveValue<T> {
 	}
 }
 
+/** Primitive equality used by [FloatSignal], avoiding the boxing of `(Float, Float) -> Boolean`. */
+fun interface FloatEquality {
+	fun areEqual(current: Float, next: Float): Boolean
+}
+
+/** Primitive transform used by [FloatSignal.updateFloat], avoiding a boxed `Function1<Float, Float>` call. */
+fun interface FloatTransform {
+	fun apply(value: Float): Float
+}
+
+/**
+ * A float-specialized [Signal]. Use [floatValue], [peekFloat], and [updateFloat] in allocation-sensitive code.
+ *
+ * The inherited [value] and [peek] members preserve interoperability with APIs accepting `Signal<Float>`, but that
+ * generic route necessarily boxes on the JVM. The specialized members keep storage, comparison, reads, and writes
+ * primitive while retaining the same dependency tracking, batching, cycle detection, and effect semantics.
+ */
+interface FloatSignal : Signal<Float> {
+	var floatValue: Float
+
+	override var value: Float
+		get() = floatValue
+		set(value) {
+			floatValue = value
+		}
+
+	override operator fun invoke(): Float = floatValue
+	override fun peek(): Float = peekFloat()
+
+	/** Read the current primitive value without subscribing the running observer. */
+	fun peekFloat(): Float
+
+	/** Atomically update through a primitive SAM. */
+	fun updateFloat(transform: FloatTransform) {
+		floatValue = transform.apply(peekFloat())
+	}
+}
+
 /** Handle returned by [effect]; call [dispose] to stop it and release its subscriptions. */
 fun interface Disposable {
 	fun dispose()
@@ -59,6 +97,12 @@ fun interface Disposable {
 
 /** Creates a writable [Signal] with the given [initial] value. [equals] decides whether a write is a real change. */
 fun <T> signal(initial: T, equals: (T, T) -> Boolean = { a, b -> a == b }): Signal<T> = SignalNode(initial, equals)
+
+/** Creates a float-specialized writable signal with exact primitive equality. */
+fun floatSignal(initial: Float): FloatSignal = FloatSignalNode(initial, EXACT_FLOAT_EQUALITY)
+
+/** Creates a float-specialized writable signal using the supplied allocation-free primitive equality. */
+fun floatSignal(initial: Float, equals: FloatEquality): FloatSignal = FloatSignalNode(initial, equals)
 
 /** Creates a lazily-evaluated, memoized derived value from [compute]. */
 fun <T> computed(equals: (T, T) -> Boolean = { a, b -> a == b }, compute: () -> T): ReactiveValue<T> =
@@ -138,6 +182,15 @@ fun ReactiveValue<*>.subscribe(block: () -> Unit): Disposable {
 	}
 }
 
+/** Primitive [FloatSignal] subscription that tracks [FloatSignal.floatValue] without boxing the observed read. */
+fun FloatSignal.subscribe(block: () -> Unit): Disposable {
+	var primed = false
+	return effect {
+		floatValue
+		if (primed) untracked(block) else primed = true
+	}
+}
+
 /**
  * Thrown by a signal write (from inside [flushEffects]) when a single effect runs more than [maxEffectRunsPerFlush]
  * times during one synchronous flush - the signature of a feedback loop between effects. It is a normal exception,
@@ -178,6 +231,9 @@ class ReactiveScope : Disposable {
 
 	/** [subscribe]s to [value] within this scope. */
 	fun subscribe(value: ReactiveValue<*>, block: () -> Unit): Disposable = register(value.subscribe(block))
+
+	/** Primitive [FloatSignal] subscription owned by this scope. */
+	fun subscribe(value: FloatSignal, block: () -> Unit): Disposable = register(value.subscribe(block))
 
 	override fun dispose() {
 		if (disposed) return
@@ -298,6 +354,27 @@ private class SignalNode<T>(initial: T, private val equals: (T, T) -> Boolean) :
 		}
 
 	override fun peek(): T = current
+}
+
+private val EXACT_FLOAT_EQUALITY = FloatEquality { current, next -> current.toBits() == next.toBits() }
+
+private class FloatSignalNode(initial: Float, private val equals: FloatEquality) : ReactiveNode(), FloatSignal {
+	private var current = initial
+
+	override var floatValue: Float
+		get() {
+			trackRead()
+			return current
+		}
+		set(newValue) {
+			if (equals.areEqual(current, newValue)) return
+			current = newValue
+			version++
+			notifyObservers(NodeState.DIRTY)
+			if (batchDepth == 0) flushEffects()
+		}
+
+	override fun peekFloat(): Float = current
 }
 
 private val UNSET = Any()
