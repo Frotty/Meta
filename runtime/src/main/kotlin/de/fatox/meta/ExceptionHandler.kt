@@ -40,6 +40,7 @@ import kotlin.system.exitProcess
 
 private val log = MetaLoggerFactory.logger {}
 
+@PublishedApi
 internal fun canonicalAppStorageName(appName: String): String =
 	appName.replace(Regex("[^A-Za-z0-9._-]"), "_").lowercase(Locale.ROOT)
 
