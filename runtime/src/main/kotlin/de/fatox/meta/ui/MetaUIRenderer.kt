@@ -148,6 +148,7 @@ class MetaUIRenderer : UIRenderer {
 		loaded = true
 		if (loadingWithUI) {
 			MetaFileChooser.setDefaultPrefsName("de.fatox.meta")
+			toastManager.flushPending()
 			log.debug { "Loaded Meta UI." }
 		}
 

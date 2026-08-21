@@ -6,8 +6,14 @@ import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.utils.viewport.Viewport
+import com.badlogic.gdx.utils.GdxRuntimeException
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.injection.MetaInject.Companion.global
 import de.fatox.meta.test.GdxTestEnvironment
+import de.fatox.meta.ui.MetaSkin
 import java.lang.reflect.Proxy
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,6 +22,12 @@ import kotlin.test.assertTrue
 internal class MetaToastManagerTest {
 	@BeforeTest
 	fun setUp() = GdxTestEnvironment.ensure()
+
+	@AfterTest
+	fun tearDown() {
+		MetaSkin.dispose()
+		global(clear = true) {}
+	}
 
 	@Test
 	fun `toast layer anchors children at top center`() {
@@ -62,6 +74,27 @@ internal class MetaToastManagerTest {
 			stage.act(0.1f)
 			elapsed += 0.1f
 		}
+		assertEquals(0, manager.rootForLayoutTest.children.size)
+	}
+
+	@Test
+	fun `startup toast before skin initialization cannot crash the application`() {
+		global(clear = true) {
+			singleton<FontProvider> {
+				object : FontProvider {
+					override fun getFont(size: Int, type: FontType): com.badlogic.gdx.graphics.g2d.BitmapFont =
+						throw GdxRuntimeException("File not found: Oxanium-SemiBold.ttf (Internal)")
+					override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) = Unit
+				}
+			}
+		}
+		val stage = Stage(TestViewport(), noopBatch())
+		val manager = MetaToastManager(stage)
+
+		val result = runCatching {
+			manager.show("Some keyboard controls are double-bound. Check Settings > Controls.", 7f)
+		}
+		assertTrue(result.isSuccess, result.exceptionOrNull()?.stackTraceToString())
 		assertEquals(0, manager.rootForLayoutTest.children.size)
 	}
 

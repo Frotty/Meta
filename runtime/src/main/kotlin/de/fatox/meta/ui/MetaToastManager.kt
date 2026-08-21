@@ -5,6 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.TimeUtils
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.api.ui.MetaToastSpec
 import de.fatox.meta.api.ui.MetaToastType
@@ -14,9 +16,12 @@ import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.MetaTextButton
 
+private val log = MetaLoggerFactory.logger {}
+
 class MetaToastManager(private val stage: Stage) {
 	private val root = Table()
 	private val activeToasts = com.badlogic.gdx.utils.Array<Table>(4)
+	private val pendingToasts = com.badlogic.gdx.utils.Array<MetaToastSpec>(4)
 	internal val rootForLayoutTest: Table
 		get() = root
 	private var lastText = ""
@@ -41,9 +46,18 @@ class MetaToastManager(private val stage: Stage) {
 		val duplicateKey = "${spec.type}:${spec.message}"
 		val now = TimeUtils.millis()
 		if (duplicateKey == lastText && now - lastTextMs < DUPLICATE_SUPPRESSION_MS) return
+		val toast = try {
+			buildToast(spec)
+		} catch (failure: RuntimeException) {
+			// Toasts are diagnostic/UI feedback and must never turn a recoverable asset/font problem into an
+			// application crash (notably during startup, before all application fonts are available).
+			log.error(failure) { "Could not build toast; suppressing it to keep the UI alive" }
+			pendingToasts.add(spec)
+			return
+		}
 		lastText = duplicateKey
 		lastTextMs = now
-		present(buildToast(spec), spec.autoDismissSeconds)
+		present(toast, spec.autoDismissSeconds)
 	}
 
 	fun show(table: Table, fadeOutDelay: Float) {
@@ -86,7 +100,17 @@ class MetaToastManager(private val stage: Stage) {
 
 	fun clear() {
 		activeToasts.clear()
+		pendingToasts.clear()
 		root.clearChildren()
+	}
+
+	/** Retries notifications that arrived before the UI skin and fonts finished loading. */
+	internal fun flushPending() {
+		if (pendingToasts.size == 0) return
+		val queued = ArrayList<MetaToastSpec>(pendingToasts.size)
+		for (i in 0 until pendingToasts.size) queued.add(pendingToasts[i])
+		pendingToasts.clear()
+		for (i in queued.indices) show(queued[i])
 	}
 
 	/**
