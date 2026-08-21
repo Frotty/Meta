@@ -171,15 +171,35 @@ open class MetaFlexBox(
 	 * Repeated calls replace the previous responsive configuration.
 	 */
 	fun responsive(init: MetaFlexResponsive.() -> Unit): MetaFlexBox = apply {
-		responsiveScope?.dispose()
-		responsiveConfiguration?.restore()
-		val configuration = MetaFlexResponsive(this).apply(init)
-		responsiveConfiguration = configuration
-		responsiveScope = ReactiveScope().also { scope ->
+		val previousConfiguration = responsiveConfiguration
+		val previousScope = responsiveScope
+		previousConfiguration?.restore()
+		var configuration: MetaFlexResponsive? = null
+		try {
+			configuration = MetaFlexResponsive(this).apply(init)
+			configuration.apply(responsiveState.trackedWidth(), responsiveState.trackedHeight())
+			val nextScope = responsiveScope(configuration)
+			previousScope?.dispose()
+			responsiveConfiguration = configuration
+			responsiveScope = nextScope
+		} catch (failure: Throwable) {
+			configuration?.restore()
+			previousConfiguration?.apply(responsiveState.trackedWidth(), responsiveState.trackedHeight())
+			throw failure
+		}
+	}
+
+	private fun responsiveScope(configuration: MetaFlexResponsive): ReactiveScope {
+		val scope = ReactiveScope()
+		try {
 			scope.effect("MetaFlexBox.responsive") {
 				configuration.apply(responsiveState.trackedWidth(), responsiveState.trackedHeight())
 			}
+		} catch (failure: Throwable) {
+			scope.dispose()
+			throw failure
 		}
+		return scope
 	}
 
 	override fun removeActor(actor: Actor, unfocus: Boolean): Boolean {

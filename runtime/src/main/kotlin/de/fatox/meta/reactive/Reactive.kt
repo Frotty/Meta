@@ -70,7 +70,20 @@ fun <T> computed(equals: (T, T) -> Boolean = { a, b -> a == b }, compute: () -> 
  *
  * @param name optional label used only in diagnostics (e.g. the [ReactiveCycleException] message). Free to omit.
  */
-fun effect(name: String? = null, run: () -> Unit): Disposable = EffectNode(run, name).also { it.runInitial() }
+fun effect(name: String? = null, run: () -> Unit): Disposable {
+	val node = EffectNode(run, name)
+	try {
+		node.runInitial()
+	} catch (failure: Throwable) {
+		try {
+			node.dispose()
+		} catch (disposeFailure: Throwable) {
+			failure.addSuppressed(disposeFailure)
+		}
+		throw failure
+	}
+	return node
+}
 
 /** Registers a callback to run before the current [effect] re-runs and when it is disposed. No-op outside an effect. */
 fun onCleanup(block: () -> Unit) {
@@ -417,11 +430,14 @@ private class EffectNode(private val run: () -> Unit, private val name: String?)
 	override fun dispose() {
 		if (disposed) return
 		disposed = true
-		runCleanups()
-		clearSources()
-		if (queued) {
-			queued = false
-			pendingEffects.remove(this)
+		try {
+			runCleanups()
+		} finally {
+			clearSources()
+			if (queued) {
+				queued = false
+				pendingEffects.remove(this)
+			}
 		}
 	}
 }

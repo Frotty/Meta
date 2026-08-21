@@ -129,6 +129,27 @@ internal class ReactiveTest {
 	}
 
 	@Test
+	fun `effect that throws during initial run releases subscriptions`() {
+		val count = signal(0)
+		var runs = 0
+		var cleanups = 0
+
+		assertFailsWith<IllegalStateException> {
+			effect("failingInitialEffect") {
+				runs++
+				count()
+				onCleanup { cleanups++ }
+				error("initial failure")
+			}
+		}
+		assertEquals(1, runs)
+		assertEquals(1, cleanups)
+
+		count.value = 1
+		assertEquals(1, runs, "A failed initial effect must not remain subscribed")
+	}
+
+	@Test
 	fun `effect re-subscribes to its dynamic dependencies`() {
 		val useX = signal(true)
 		val x = signal(1)
