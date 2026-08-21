@@ -8,6 +8,11 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 import de.fatox.meta.graphics.font.FONT_ATLAS_OVERSAMPLE
 
+/** Font whose logical scaling is unrelated to the resolution of its glyph atlas. */
+internal interface PhysicalPixelDensityFont {
+	val physicalPixelDensity: Float
+}
+
 /**
  * Rounds [value] (in the caller's coordinate space) to the nearest whole physical device pixel.
  *
@@ -30,7 +35,13 @@ fun snapToPhysicalPixel(value: Float, physicalPixelsPerUnit: Float): Float {
  * `data.setScale(1 / scale)` so it still lays out in logical units - see [FontProvider]). Self-contained: needs no
  * `Stage`/`Gdx.graphics` lookup, so it stays correct even for a style/cache that isn't currently attached to a stage.
  */
-fun BitmapFont.physicalPixelsPerUnit(): Float = ((1f / scaleX) / FONT_ATLAS_OVERSAMPLE).coerceAtLeast(0.01f)
+fun BitmapFont.physicalPixelsPerUnit(): Float {
+	return if (this is PhysicalPixelDensityFont) {
+		physicalPixelDensity.coerceAtLeast(0.01f)
+	} else {
+		((1f / scaleX) / FONT_ATLAS_OVERSAMPLE).coerceAtLeast(0.01f)
+	}
+}
 
 /** Physical device pixels per stage/UI unit, from the live backbuffer-to-logical-size ratio. */
 fun physicalPixelsPerStageUnit(stageWidthInUnits: Float): Float {

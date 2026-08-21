@@ -10,9 +10,12 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.IntMap
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.api.extensions.use
+import de.fatox.meta.api.extensions.warn
 import de.fatox.meta.api.get
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
@@ -23,6 +26,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.roundToInt
 
 internal const val FONT_ATLAS_OVERSAMPLE = 2f
+private val log = MetaLoggerFactory.logger {}
 
 class MetaFontProvider : FontProvider {
 	private val assetProvider: AssetProvider by lazyInject()
@@ -34,10 +38,28 @@ class MetaFontProvider : FontProvider {
 	private val monoFontMap = IntMap<BitmapFont>()
 	private val boldFontMap = IntMap<BitmapFont>()
 	private val iconFontMap = IntMap<BitmapFont>()
-	private val normalGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.normalFontPath])
-	private val boldGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.boldFontPath])
-	private val monoGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.monoFontPath])
-	private val iconGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.iconFontPath])
+	/** Failed sources may still back live incremental fonts, so they cannot be disposed until all font caches are. */
+	private val retiredGenerators = Array<FreeTypeFontGenerator>()
+	private var normalGenerator = createGenerator(
+		fontInfo.normalFontPath,
+		FontInfo.DEFAULT_REGULAR_FONT_PATH,
+		"regular",
+	)
+	private var boldGenerator = createGenerator(
+		fontInfo.boldFontPath,
+		FontInfo.DEFAULT_BOLD_FONT_PATH,
+		"bold",
+	)
+	private var monoGenerator = createGenerator(
+		fontInfo.monoFontPath,
+		FontInfo.DEFAULT_MONO_FONT_PATH,
+		"monospace",
+	)
+	private var iconGenerator = createGenerator(
+		fontInfo.iconFontPath,
+		FontInfo.DEFAULT_ICON_FONT_PATH,
+		"icon",
+	)
 
 	/** The UI scale the currently-cached fonts were rasterized for; if it changes, fonts are regenerated crisply. */
 	private var generationScale = 1f
@@ -101,10 +123,16 @@ class MetaFontProvider : FontProvider {
 		disposeAll(iconFontMap)
 		for (i in 0 until orphanedFonts.size) disposeFont(orphanedFonts.get(i))
 		orphanedFonts.clear()
-		normalGenerator.dispose()
-		boldGenerator.dispose()
-		monoGenerator.dispose()
-		iconGenerator.dispose()
+		normalGenerator?.generator?.dispose()
+		boldGenerator?.generator?.dispose()
+		monoGenerator?.generator?.dispose()
+		iconGenerator?.generator?.dispose()
+		for (i in 0 until retiredGenerators.size) retiredGenerators.get(i).dispose()
+		retiredGenerators.clear()
+		normalGenerator = null
+		boldGenerator = null
+		monoGenerator = null
+		iconGenerator = null
 	}
 
 	private fun disposeAll(fontMap: IntMap<BitmapFont>) {
@@ -136,18 +164,50 @@ class MetaFontProvider : FontProvider {
 		val scale = generationScale.coerceAtLeast(0.01f)
 		val rasterScale = scale * FONT_ATLAS_OVERSAMPLE
 		val physicalSize = (size * rasterScale).roundToInt().coerceAtLeast(1)
-		val generator = when(type) {
+		val source = when(type) {
 			FontType.REGULAR -> normalGenerator
 			FontType.BOLD -> boldGenerator
 			FontType.MONO -> monoGenerator
 			FontType.ICON -> iconGenerator
 		}
+		if (source == null) return generateBitmapFallback(size, type)
 		val params = defaultFontParam(physicalSize, type)
-		val font = if (type == FontType.ICON) {
-			generator.generateFont(params, iconFontData())
-		} else {
-			generator.generateFont(params)
+		val font = generateFreeTypeFont(type, source, params)
+			?: return generateBitmapFallback(size, type)
+		configureGeneratedFont(font, rasterScale)
+		return font
+	}
+
+	private fun generateFreeTypeFont(
+		type: FontType,
+		source: FontGeneratorSource,
+		params: FreeTypeFontGenerator.FreeTypeFontParameter,
+	): BitmapFont? {
+		try {
+			return if (type == FontType.ICON) {
+				source.generator.generateFont(params, iconFontData())
+			} else {
+				source.generator.generateFont(params)
+			}
+		} catch (failure: RuntimeException) {
+			disableGenerator(type, source)
+			if (!source.isBundledFallback) {
+				log.warn {
+					"Could not rasterize configured ${type.name.lowercase()} font; retrying Meta's bundled face"
+				}
+				val fallback = createBundledGenerator(type)
+				setGenerator(type, fallback)
+				if (fallback != null) return generateFreeTypeFont(type, fallback, params)
+			}
+			log.error(failure) {
+				"Could not generate the ${type.name.lowercase()} font; " +
+					"using Meta's code-embedded emergency font for this session"
+			}
+			return null
 		}
+	}
+
+	private fun configureGeneratedFont(font: BitmapFont, rasterScale: Float) {
 		if (rasterScale != 1f) {
 			font.data.setScale(1f / rasterScale)
 		}
@@ -157,7 +217,68 @@ class MetaFontProvider : FontProvider {
 		// The atlas is intentionally oversampled, so a whole logical unit is not one atlas texel. Let the
 		// physical-pixel snap helpers control the draw origin instead of rounding glyph positions to logical units.
 		font.setUseIntegerPositions(false)
-		return font
+	}
+
+	private fun generateBitmapFallback(size: Int, type: FontType): BitmapFont {
+		if (type == FontType.ICON) {
+			log.warn { "The icon font is unavailable; icons may render as missing glyphs" }
+		}
+		return createEmergencyBitmapFont(size, physicalUiScale())
+	}
+
+	private fun disableGenerator(type: FontType, source: FontGeneratorSource) {
+		// Generated fonts are incremental and retain this generator for glyphs first encountered during later draws.
+		// Keep it alive until dispose(), which releases every cached font before the retired generator list.
+		retiredGenerators.add(source.generator)
+		setGenerator(type, null)
+	}
+
+	private fun setGenerator(type: FontType, source: FontGeneratorSource?) {
+		when(type) {
+			FontType.REGULAR -> normalGenerator = source
+			FontType.BOLD -> boldGenerator = source
+			FontType.MONO -> monoGenerator = source
+			FontType.ICON -> iconGenerator = source
+		}
+	}
+
+	private fun createGenerator(
+		configuredPath: String,
+		fallbackPath: String,
+		role: String,
+	): FontGeneratorSource? {
+		tryCreateGenerator(configuredPath)?.let {
+			return FontGeneratorSource(it, configuredPath == fallbackPath)
+		}
+		if (configuredPath != fallbackPath) {
+			log.warn {
+				"Could not load configured $role font '$configuredPath'; using Meta fallback '$fallbackPath'"
+			}
+			tryCreateGenerator(fallbackPath)?.let { return FontGeneratorSource(it, true) }
+		}
+		log.error {
+			"Could not load $role font '$configuredPath' or Meta fallback '$fallbackPath'; " +
+				"using Meta's code-embedded emergency font"
+		}
+		return null
+	}
+
+	private fun createBundledGenerator(type: FontType): FontGeneratorSource? {
+		val path = when(type) {
+			FontType.REGULAR -> FontInfo.DEFAULT_REGULAR_FONT_PATH
+			FontType.BOLD -> FontInfo.DEFAULT_BOLD_FONT_PATH
+			FontType.MONO -> FontInfo.DEFAULT_MONO_FONT_PATH
+			FontType.ICON -> FontInfo.DEFAULT_ICON_FONT_PATH
+		}
+		return tryCreateGenerator(path)?.let { FontGeneratorSource(it, true) }
+	}
+
+	private fun tryCreateGenerator(path: String): FreeTypeFontGenerator? {
+		return try {
+			FreeTypeFontGenerator(assetProvider[path])
+		} catch (_: RuntimeException) {
+			null
+		}
 	}
 
 	private fun physicalUiScale(): Float {
@@ -205,3 +326,8 @@ class MetaFontProvider : FontProvider {
 		private val ICON_MEASURE_STRING = String(ICON_MEASURE_CHARS)
 	}
 }
+
+private class FontGeneratorSource(
+	val generator: FreeTypeFontGenerator,
+	val isBundledFallback: Boolean,
+)
