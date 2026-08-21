@@ -1,6 +1,7 @@
 package de.fatox.meta.assets
 
 import com.badlogic.gdx.assets.loaders.AsynchronousAssetLoader
+import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Pixmap
 import de.fatox.meta.test.GdxTestEnvironment
 import org.junit.jupiter.api.BeforeAll
@@ -51,6 +52,22 @@ class MetaAssetProviderTest {
 		provider.getResource("meta-icon-error.png", Pixmap::class.java)
 		assertEquals(1f, provider.progress)
 		provider.dispose()
+	}
+
+	@Test
+	fun `raw asset lookup ignores filename case and separator style`() {
+		val root = FileHandle.tempDirectory("meta-case-assets")
+		val font = root.child("Fonts").child("Oxanium-SemiBold.TTF")
+		font.parent().mkdirs()
+		font.writeString("test", false)
+		val provider = MetaAssetProvider()
+		try {
+			assertTrue(provider.loadRawAssetsFromFolder(root))
+			assertTrue(provider.getResource("fonts\\oxanium-semibold.ttf", FileHandle::class.java).exists())
+		} finally {
+			provider.dispose()
+			root.deleteDirectory()
+		}
 	}
 
 	companion object {

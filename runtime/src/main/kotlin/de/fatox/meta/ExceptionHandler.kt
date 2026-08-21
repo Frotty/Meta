@@ -20,6 +20,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.time.Instant
+import java.util.Locale
 import java.util.prefs.Preferences
 import javax.swing.BorderFactory
 import javax.swing.ImageIcon
@@ -38,6 +39,10 @@ import javax.swing.WindowConstants
 import kotlin.system.exitProcess
 
 private val log = MetaLoggerFactory.logger {}
+
+@PublishedApi
+internal fun canonicalAppStorageName(appName: String): String =
+	appName.replace(Regex("[^A-Za-z0-9._-]"), "_").lowercase(Locale.ROOT)
 
 private const val ERROR_HEADER = "Please report this crash with the following info:\n"
 private const val AUTO_SEND_PREF = "autoSendCrashReports"
@@ -281,7 +286,7 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 
 	private fun crashLogFile(): File? {
 		val appName = appName()
-		val safeAppName = appName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+			val safeAppName = canonicalAppStorageName(appName)
 		val localAppData = System.getenv("LOCALAPPDATA")
 		if (!localAppData.isNullOrBlank()) return File(localAppData, "$safeAppName/logs/crash.log")
 		val userHome = System.getProperty("user.home")
@@ -301,7 +306,7 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 	private fun crashReportUrl(): String = System.getProperty("meta.crashReportUrl", "")
 
 	private fun preferences(): Preferences =
-		Preferences.userRoot().node("de/fatox/meta/ExceptionHandler/${appName()}")
+		Preferences.userRoot().node("de/fatox/meta/ExceptionHandler/${canonicalAppStorageName(appName())}")
 
 	private fun autoSendEnabled(): Boolean =
 		preferences().getBoolean(AUTO_SEND_PREF, false)

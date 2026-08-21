@@ -49,7 +49,7 @@ inline fun <reified T : Screen> ScreenConfig.register(
 	name: String = T::class.qualifiedName ?: "",
 	noinline creator: () -> T,
 ) {
-	val gameName: String = MetaInject.inject("gameName")
+	val gameName: String = canonicalAppStorageName(MetaInject.inject("gameName"))
 	val screenFolders = Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list()
 	for (index in screenFolders.indices) {
 		val screenId = screenFolders[index]

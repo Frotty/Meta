@@ -15,6 +15,7 @@ import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.canonicalAppStorageName
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.reactive.ReactiveValue
@@ -95,7 +96,7 @@ inline fun <reified T : MetaWindow> WindowConfig.registerSingleton(
 val logger = MetaLoggerFactory.logger {}
 
 inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
-	val gameName: String = MetaInject.inject("gameName")
+	val gameName: String = canonicalAppStorageName(MetaInject.inject("gameName"))
 	val screenFolders = Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list()
 	for (screenIndex in screenFolders.indices) {
 		val screenId = screenFolders[screenIndex]

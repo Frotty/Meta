@@ -12,6 +12,7 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.extensions.trace
+import de.fatox.meta.canonicalAppStorageName
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import java.io.File
 import kotlin.reflect.KClass
@@ -26,7 +27,7 @@ private val log = MetaLoggerFactory.logger {}
 class MetaData {
 	internal class CacheObj<T : Any>(var obj: T, var created: Long = TimeUtils.millis())
 
-	private val gameName: String = inject("gameName")
+	private val gameName: String = canonicalAppStorageName(inject("gameName"))
 	private val fileHandleCache = ObjectMap<String, FileHandle>()
 	private val fileCache = ObjectMap<String, File>()
 	private val jsonCache = ObjectMap<String, CacheObj<Any>>()
