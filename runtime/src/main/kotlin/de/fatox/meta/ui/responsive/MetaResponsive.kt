@@ -102,11 +102,15 @@ data class MetaResponsiveQuery(
  *
  * The usual progressive form is `responsive(base).from(MetaBreakpoints.FULL_HD, expanded)`.
  */
-class MetaResponsiveValue<T> internal constructor(private val base: T) {
+class MetaResponsiveValue<T> internal constructor(private val base: T, private val validate: (T) -> Unit) {
 	private data class Override<T>(val query: MetaResponsiveQuery, val value: T)
 
 	private val overrides = ArrayList<Override<T>>(2)
 	private val revision = signal(0)
+
+	init {
+		validate(base)
+	}
 
 	fun from(breakpoint: MetaBreakpoint, value: T): MetaResponsiveValue<T> =
 		whenMatches(MetaResponsiveQuery.from(breakpoint), value)
@@ -118,6 +122,7 @@ class MetaResponsiveValue<T> internal constructor(private val base: T) {
 		whenMatches(MetaResponsiveQuery.between(start, end), value)
 
 	fun whenMatches(query: MetaResponsiveQuery, value: T): MetaResponsiveValue<T> = apply {
+		validate(value)
 		overrides.add(Override(query, value))
 		revision.update { it + 1 }
 	}
@@ -135,7 +140,10 @@ class MetaResponsiveValue<T> internal constructor(private val base: T) {
 	}
 }
 
-fun <T> responsive(base: T): MetaResponsiveValue<T> = MetaResponsiveValue(base)
+fun <T> responsive(base: T): MetaResponsiveValue<T> = MetaResponsiveValue(base) { }
+
+internal fun <T> validatedResponsive(base: T, validate: (T) -> Unit): MetaResponsiveValue<T> =
+	MetaResponsiveValue(base, validate)
 
 /**
  * Reactive size and breakpoint state for a screen or arbitrary container. [resize] is the only write point;

@@ -375,12 +375,26 @@ internal class MetaFlexBoxTest {
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), shrink = -1f) }
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), minWidth = -1f) }
 		val responsive = MetaFlexBox().responsive { direction(MetaFlexDirection.COLUMN) }
-		assertFailsWith<IllegalArgumentException> { responsive.responsive { gap(-1f) } }
+		assertFailsWith<IllegalArgumentException> {
+			responsive.responsive { gap(8f).from(MetaBreakpoints.HD, -1f) }
+		}
 		assertEquals(MetaFlexDirection.COLUMN, responsive.direction)
 		responsive.setSize(200f, 100f) // A failed initial effect must not throw again on later resize.
 		val item = Actor()
 		assertFailsWith<IllegalArgumentException> {
-			MetaFlexBox().addItem(item).responsive { item(item) { grow(-1f) } }
+			MetaFlexBox().addItem(item).responsive {
+				item(item) { grow(1f).from(MetaBreakpoints.HD, -1f) }
+			}
+		}
+		assertFailsWith<IllegalArgumentException> {
+			MetaFlexBox().addItem(item).responsive {
+				item(item) { width(20f).from(MetaBreakpoints.HD, -1f) }
+			}
+		}
+		assertFailsWith<IllegalArgumentException> {
+			MetaFlexBox().addItem(item).responsive {
+				item(item) { minHeight(10f).whenMatches(MetaResponsiveQuery.heightFrom(800f), -1f) }
+			}
 		}
 	}
 

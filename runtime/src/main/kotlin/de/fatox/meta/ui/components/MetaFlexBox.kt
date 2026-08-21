@@ -10,6 +10,7 @@ import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.responsive.MetaResponsiveState
 import de.fatox.meta.ui.responsive.MetaResponsiveValue
 import de.fatox.meta.ui.responsive.responsive
+import de.fatox.meta.ui.responsive.validatedResponsive
 import kotlin.math.max
 
 enum class MetaFlexDirection { ROW, COLUMN }
@@ -525,11 +526,14 @@ open class MetaFlexBox(
 
 		fun wrap(base: Boolean): MetaResponsiveValue<Boolean> = responsive(base).also { wrap = it }
 
-		fun mainGap(base: Float): MetaResponsiveValue<Float> = responsive(base).also { mainGap = it }
+		fun mainGap(base: Float): MetaResponsiveValue<Float> =
+			validatedResponsive(base) { checkedNonNegative(it, "Flex main gap") }.also { mainGap = it }
 
-		fun crossGap(base: Float): MetaResponsiveValue<Float> = responsive(base).also { crossGap = it }
+		fun crossGap(base: Float): MetaResponsiveValue<Float> =
+			validatedResponsive(base) { checkedNonNegative(it, "Flex cross gap") }.also { crossGap = it }
 
-		fun gap(base: Float): MetaResponsiveValue<Float> = responsive(base).also {
+		fun gap(base: Float): MetaResponsiveValue<Float> =
+			validatedResponsive(base) { checkedNonNegative(it, "Flex gap") }.also {
 			mainGap = it
 			crossGap = it
 		}
@@ -591,12 +595,27 @@ open class MetaFlexBox(
 		private var minHeight: MetaResponsiveValue<Float?>? = null
 
 		fun visible(base: Boolean): MetaResponsiveValue<Boolean> = responsive(base).also { visible = it }
-		fun basisWidth(base: Float?): MetaResponsiveValue<Float?> = responsive(base).also { basisWidth = it }
-		fun basisHeight(base: Float?): MetaResponsiveValue<Float?> = responsive(base).also { basisHeight = it }
-		fun grow(base: Float): MetaResponsiveValue<Float> = responsive(base).also { grow = it }
-		fun shrink(base: Float): MetaResponsiveValue<Float> = responsive(base).also { shrink = it }
-		fun minWidth(base: Float?): MetaResponsiveValue<Float?> = responsive(base).also { minWidth = it }
-		fun minHeight(base: Float?): MetaResponsiveValue<Float?> = responsive(base).also { minHeight = it }
+		fun basisWidth(base: Float?): MetaResponsiveValue<Float?> =
+			validatedResponsive(base) { it?.let { value -> checkedNonNegative(value, "Flex item width") } }
+				.also { basisWidth = it }
+
+		fun basisHeight(base: Float?): MetaResponsiveValue<Float?> =
+			validatedResponsive(base) { it?.let { value -> checkedNonNegative(value, "Flex item height") } }
+				.also { basisHeight = it }
+
+		fun grow(base: Float): MetaResponsiveValue<Float> =
+			validatedResponsive(base) { checkedNonNegative(it, "Flex grow") }.also { grow = it }
+
+		fun shrink(base: Float): MetaResponsiveValue<Float> =
+			validatedResponsive(base) { checkedNonNegative(it, "Flex shrink") }.also { shrink = it }
+
+		fun minWidth(base: Float?): MetaResponsiveValue<Float?> =
+			validatedResponsive(base) { it?.let { value -> checkedNonNegative(value, "Flex item minimum width") } }
+				.also { minWidth = it }
+
+		fun minHeight(base: Float?): MetaResponsiveValue<Float?> =
+			validatedResponsive(base) { it?.let { value -> checkedNonNegative(value, "Flex item minimum height") } }
+				.also { minHeight = it }
 
 		fun width(base: Float?): MetaResponsiveValue<Float?> = basisWidth(base)
 		fun height(base: Float?): MetaResponsiveValue<Float?> = basisHeight(base)
