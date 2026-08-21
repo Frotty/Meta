@@ -78,6 +78,7 @@ object MetaLayout {
 
 		for (index in 0 until actor.children.size) {
 			val child = actor.children[index]
+			if (!child.isVisible) continue
 			val childPath = "$path>${child.javaClass.simpleName.ifEmpty { "<anon>" }}"
 			if (child.x < -tolerance) {
 				out += Problem(Kind.OVERFLOW, child, childPath, "x=${child.x.r()} < 0 (left edge)")

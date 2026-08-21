@@ -73,6 +73,38 @@ class CounterWindow : MetaWindow("Counter") {
 Window chrome, dialog actions, scrolling, docking, pointer cursors, and nested scroll focus have runtime-owned
 defaults. Extend those primitives when a reusable behavior is missing instead of rebuilding them in a consumer.
 
+### Responsive layouts
+
+`MetaFlexBox` supports reactive container breakpoints. The base declaration is the narrow-window fallback; larger
+values cascade with `from`, and width ranges or height constraints use `MetaResponsiveQuery`. Resizing only the root
+is enough: assigned bounds propagate through nested flex boxes and update their `responsiveState` signals.
+
+```kotlin
+val content = metaFlexRow {
+    addItem(sidebar, basisWidth = 280f)
+    addItem(page, grow = 1f)
+
+    responsive {
+        direction(MetaFlexDirection.COLUMN)
+            .from(MetaBreakpoints.FULL_HD, MetaFlexDirection.ROW)
+        gap(MetaSpacing.SM)
+            .from(MetaBreakpoints.QHD, MetaSpacing.LG)
+        item(sidebar) {
+            visible(false).from(MetaBreakpoints.HD, true)
+            width(220f).from(MetaBreakpoints.FULL_HD, 280f)
+        }
+    }
+}
+```
+
+The sparse desktop scale is `NARROW`, `HD` (1280), `FULL_HD` (1920), `QHD` (2560), and `UHD` (3840), measured in
+the container's logical Meta UI units. `NARROW` also covers phone-sized or heavily constrained windows. Use custom
+`MetaBreakpoint` values when a component's content calls for a different transition; use
+`MetaResponsiveQuery.heightBelow(...)` for short-window variants such as compact navigation at 720p-like heights.
+
+For responsive state outside a flex box, create `MetaResponsiveState`, call `resize` from the owner's resize path,
+and consume `breakpoint`, `matches(query)`, or `resolve(responsiveValue)` through normal `computed`/`effect` bindings.
+
 ## Develop and verify
 
 Run the same compile and test gates as CI:

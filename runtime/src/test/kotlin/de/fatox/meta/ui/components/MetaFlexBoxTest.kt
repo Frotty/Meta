@@ -1,11 +1,16 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import de.fatox.meta.ui.layout.MetaLayout
+import de.fatox.meta.ui.responsive.MetaBreakpoints
+import de.fatox.meta.ui.responsive.MetaResponsiveQuery
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 internal class MetaFlexBoxTest {
 	@Test
@@ -178,6 +183,188 @@ internal class MetaFlexBoxTest {
 	}
 
 	@Test
+	fun `responsive layout and item styles cascade across desktop breakpoints`() {
+		val primary = Actor()
+		val secondary = Actor()
+		val flex = MetaFlexBox()
+			.addItem(primary, basisWidth = 100f, basisHeight = 40f)
+			.addItem(secondary, basisWidth = 80f, basisHeight = 40f)
+			.responsive {
+				direction(MetaFlexDirection.COLUMN).from(MetaBreakpoints.FULL_HD, MetaFlexDirection.ROW)
+				gap(8f).from(MetaBreakpoints.FULL_HD, 20f)
+				item(secondary) {
+					visible(false).from(MetaBreakpoints.HD, true)
+					width(80f).from(MetaBreakpoints.FULL_HD, 200f)
+				}
+			}
+
+		flex.setSize(1000f, 200f)
+		flex.layout()
+		assertEquals(MetaFlexDirection.COLUMN, flex.direction)
+		assertEquals(40f, flex.prefHeight)
+		assertFalse(secondary.isVisible)
+
+		flex.setSize(1500f, 200f)
+		flex.layout()
+		assertTrue(secondary.isVisible)
+		assertEquals(88f, flex.prefHeight)
+		assertEquals(80f, secondary.width)
+
+		flex.setSize(2000f, 200f)
+		flex.layout()
+		assertEquals(MetaFlexDirection.ROW, flex.direction)
+		assertEquals(20f, flex.mainGap)
+		assertEquals(120f, secondary.x)
+		assertEquals(200f, secondary.width)
+	}
+
+	@Test
+	fun `height query updates compact spacing without a layout rebuild`() {
+		val first = Actor()
+		val second = Actor()
+		val flex = MetaFlexBox()
+			.addItem(first, basisWidth = 20f, basisHeight = 20f)
+			.addItem(second, basisWidth = 20f, basisHeight = 20f)
+			.responsive {
+				gap(16f).whenMatches(MetaResponsiveQuery.heightBelow(800f), 4f)
+			}
+
+		flex.setSize(100f, 900f)
+		flex.layout()
+		assertEquals(36f, second.x)
+
+		flex.setSize(100f, 720f)
+		flex.layout()
+		assertEquals(24f, second.x)
+	}
+
+	@Test
+	fun `responsive parent bounds cascade into nested flex state`() {
+		val first = Actor()
+		val second = Actor()
+		val inner = MetaFlexBox()
+			.addItem(first, basisWidth = 40f, basisHeight = 20f)
+			.addItem(second, basisWidth = 40f, basisHeight = 20f)
+			.responsive {
+				direction(MetaFlexDirection.COLUMN).from(MetaBreakpoints.HD, MetaFlexDirection.ROW)
+			}
+		val outer = MetaFlexBox().addItem(inner, basisHeight = 100f, grow = 1f)
+
+		outer.setSize(1000f, 100f)
+		outer.layout()
+		assertEquals(MetaFlexDirection.COLUMN, inner.direction)
+
+		outer.setSize(1400f, 100f)
+		outer.layout()
+		assertEquals(MetaFlexDirection.ROW, inner.direction)
+		assertEquals(44f, second.x)
+	}
+
+	@Test
+	fun `responsive hidden flex items do not reserve size or gaps`() {
+		val visible = Actor()
+		val hidden = Actor()
+		val flex = MetaFlexBox(mainGap = 20f)
+			.addItem(visible, basisWidth = 30f, basisHeight = 10f, minWidth = 30f)
+			.addItem(hidden, basisWidth = 100f, basisHeight = 100f, minWidth = 100f)
+			.responsive { item(hidden) { visible(false) } }
+
+		assertEquals(30f, flex.prefWidth)
+		assertEquals(30f, flex.minWidth)
+		assertEquals(10f, flex.prefHeight)
+	}
+
+	@Test
+	fun `ordinary scene2d visibility keeps its existing layout participation`() {
+		val hidden = Actor().apply { isVisible = false }
+		val flex = MetaFlexBox(mainGap = 20f)
+			.addItem(Actor(), basisWidth = 30f, basisHeight = 10f)
+			.addItem(hidden, basisWidth = 100f, basisHeight = 100f)
+
+		assertEquals(150f, flex.prefWidth)
+		assertEquals(100f, flex.prefHeight)
+	}
+
+	@Test
+	fun `replacing responsive configuration restores prior layout and item state`() {
+		val item = Actor()
+		val flex = MetaFlexBox(direction = MetaFlexDirection.ROW)
+			.addItem(item, basisWidth = 100f, basisHeight = 20f)
+			.responsive {
+				direction(MetaFlexDirection.COLUMN)
+				item(item) {
+					visible(false)
+					width(40f)
+				}
+			}
+
+		assertEquals(MetaFlexDirection.COLUMN, flex.direction)
+		assertFalse(item.isVisible)
+		flex.responsive { gap(12f) }
+
+		assertEquals(MetaFlexDirection.ROW, flex.direction)
+		assertTrue(item.isVisible)
+		assertEquals(100f, flex.prefWidth)
+	}
+
+	@Test
+	fun `reparenting through actor remove drops old responsive rules`() {
+		val item = Actor()
+		val flex = MetaFlexBox()
+			.addItem(item, basisWidth = 40f, basisHeight = 20f)
+			.responsive { item(item) { visible(false).from(MetaBreakpoints.HD, true) } }
+		flex.setSize(1000f, 100f)
+		assertFalse(item.isVisible)
+
+		val newParent = Group()
+		newParent.addActor(item)
+		assertTrue(item.isVisible, "Removal should restore the actor's original visibility")
+
+		flex.setSize(1400f, 100f)
+		flex.setSize(1000f, 100f)
+		assertTrue(item.isVisible, "The old flex must no longer apply responsive rules to a reparented actor")
+	}
+
+	@Test
+	fun `indexed removal and clear overloads clean responsive item state`() {
+		val indexed = Actor()
+		val cleared = Actor()
+		val flex = MetaFlexBox()
+			.addItem(indexed, basisWidth = 20f, basisHeight = 20f)
+			.addItem(cleared, basisWidth = 20f, basisHeight = 20f)
+			.responsive {
+				item(indexed) { visible(false) }
+				item(cleared) { visible(false) }
+			}
+
+		assertEquals(indexed, flex.removeActorAt(0, false))
+		assertTrue(indexed.isVisible)
+		flex.clearChildren(false)
+		assertTrue(cleared.isVisible)
+		assertEquals(0, flex.children.size)
+	}
+
+	@Test
+	fun `visibility-only rules preserve dynamic sizing for actors added directly`() {
+		val item = Actor()
+		val flex = MetaFlexBox()
+		flex.addActor(item)
+		flex.responsive { item(item) { visible(true) } }
+
+		item.setSize(30f, 20f)
+		assertEquals(30f, flex.prefWidth)
+		assertEquals(20f, flex.prefHeight)
+
+		item.setSize(70f, 25f)
+		assertEquals(70f, flex.prefWidth)
+		assertEquals(25f, flex.prefHeight)
+
+		flex.responsive { }
+		item.setSize(90f, 30f)
+		assertEquals(90f, flex.prefWidth, "Replacing the rules must restore the absence of an item spec")
+	}
+
+	@Test
 	fun `invalid flex geometry is rejected`() {
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox(mainGap = -1f) }
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox(crossGap = Float.NaN) }
@@ -187,6 +374,28 @@ internal class MetaFlexBoxTest {
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), grow = -1f) }
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), shrink = -1f) }
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), minWidth = -1f) }
+		val responsive = MetaFlexBox().responsive { direction(MetaFlexDirection.COLUMN) }
+		assertFailsWith<IllegalArgumentException> {
+			responsive.responsive { gap(8f).from(MetaBreakpoints.HD, -1f) }
+		}
+		assertEquals(MetaFlexDirection.COLUMN, responsive.direction)
+		responsive.setSize(200f, 100f) // A failed initial effect must not throw again on later resize.
+		val item = Actor()
+		assertFailsWith<IllegalArgumentException> {
+			MetaFlexBox().addItem(item).responsive {
+				item(item) { grow(1f).from(MetaBreakpoints.HD, -1f) }
+			}
+		}
+		assertFailsWith<IllegalArgumentException> {
+			MetaFlexBox().addItem(item).responsive {
+				item(item) { width(20f).from(MetaBreakpoints.HD, -1f) }
+			}
+		}
+		assertFailsWith<IllegalArgumentException> {
+			MetaFlexBox().addItem(item).responsive {
+				item(item) { minHeight(10f).whenMatches(MetaResponsiveQuery.heightFrom(800f), -1f) }
+			}
+		}
 	}
 
 	private class WidthResponsiveWidget : Widget() {
