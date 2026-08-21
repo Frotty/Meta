@@ -103,7 +103,7 @@ internal class MetaFontProviderTest {
 	}
 
 	@Test
-	fun `bundled fallback faces are packaged and readable`() {
+	fun `bundled fallback faces are packaged and loadable through internal files`() {
 		val paths = arrayOf(
 			FontInfo.DEFAULT_REGULAR_FONT_PATH,
 			FontInfo.DEFAULT_BOLD_FONT_PATH,
@@ -115,6 +115,7 @@ internal class MetaFontProviderTest {
 			val handle = Gdx.files.internal(path)
 			assertTrue(handle.exists(), "Missing bundled fallback font: $path")
 			assertTrue(handle.length() > 0L, "Empty bundled fallback font: $path")
+			FreeTypeFontGenerator(handle).dispose()
 		}
 	}
 
