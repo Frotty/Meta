@@ -19,7 +19,6 @@ import de.fatox.meta.api.extensions.warn
 import de.fatox.meta.api.get
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
-import de.fatox.meta.api.graphics.PhysicalPixelDensityFont
 import de.fatox.meta.api.graphics.physicalPixelsPerUnit
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.api.ui.UIRenderer
@@ -198,7 +197,7 @@ class MetaFontProvider : FontProvider {
 			}
 			log.error(failure) {
 				"Could not generate the ${type.name.lowercase()} font; " +
-					"using libGDX's built-in bitmap font for this session"
+					"using Meta's code-embedded emergency font for this session"
 			}
 			return null
 		}
@@ -217,17 +216,10 @@ class MetaFontProvider : FontProvider {
 	}
 
 	private fun generateBitmapFallback(size: Int, type: FontType): BitmapFont {
-		val font = BitmapFallbackFont(physicalUiScale())
-		val capHeight = font.capHeight
-		if (capHeight > 0f) font.data.setScale(size / capHeight)
-		for (i in 0 until font.regions.size) {
-			font.regions[i].texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		}
-		font.setUseIntegerPositions(false)
 		if (type == FontType.ICON) {
 			log.warn { "The icon font is unavailable; icons may render as missing glyphs" }
 		}
-		return font
+		return createEmergencyBitmapFont(size, physicalUiScale())
 	}
 
 	private fun disableGenerator(type: FontType, source: FontGeneratorSource) {
@@ -260,7 +252,7 @@ class MetaFontProvider : FontProvider {
 		}
 		log.error {
 			"Could not load $role font '$configuredPath' or Meta fallback '$fallbackPath'; " +
-				"using libGDX's built-in bitmap font"
+				"using Meta's code-embedded emergency font"
 		}
 		return null
 	}
@@ -333,7 +325,3 @@ private class FontGeneratorSource(
 	val generator: FreeTypeFontGenerator,
 	val isBundledFallback: Boolean,
 )
-
-private class BitmapFallbackFont(
-	override val physicalPixelDensity: Float,
-) : BitmapFont(), PhysicalPixelDensityFont

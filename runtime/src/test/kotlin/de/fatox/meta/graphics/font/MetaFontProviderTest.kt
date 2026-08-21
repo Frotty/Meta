@@ -15,6 +15,8 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 internal class MetaFontProviderTest {
@@ -117,6 +119,19 @@ internal class MetaFontProviderTest {
 			assertTrue(handle.length() > 0L, "Empty bundled fallback font: $path")
 			FreeTypeFontGenerator(handle).dispose()
 		}
+	}
+
+	@Test
+	fun `emergency font data covers alphanumerics and uses tofu for unsupported text`() {
+		val data = createEmergencyBitmapFontData()
+
+		for (character in 'A'..'Z') {
+			assertNotNull(data.getGlyph(character))
+			assertNotNull(data.getGlyph(character.lowercaseChar()))
+		}
+		for (character in '0'..'9') assertNotNull(data.getGlyph(character))
+		assertNotNull(data.getGlyph(' '))
+		assertSame(data.missingGlyph, data.getGlyph('\uFFFD'))
 	}
 
 	private fun createProvider(fontInfo: FontInfo): MetaFontProvider {

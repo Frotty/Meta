@@ -2,7 +2,7 @@ package de.fatox.meta.graphics.font
 
 /**
  * Application font choices. Every configured face is optional at runtime: [MetaFontProvider] falls back to the
- * corresponding font packaged by Meta, then to libGDX's built-in bitmap font if neither TrueType face is usable.
+ * corresponding font packaged by Meta, then to Meta's code-embedded emergency font if neither face is usable.
  */
 class FontInfo(
 	val normalFontPath: String = DEFAULT_REGULAR_FONT_PATH,
