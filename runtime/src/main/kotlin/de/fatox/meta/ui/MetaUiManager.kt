@@ -52,8 +52,9 @@ import de.fatox.meta.assets.MetaDataKey
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.Disposable
 import de.fatox.meta.reactive.ReactiveValue
+import de.fatox.meta.reactive.booleanSignal
 import de.fatox.meta.reactive.effect
-import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.intSignal
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.components.MetaMenuBar
 import de.fatox.meta.ui.components.MetaTooltip
@@ -130,7 +131,7 @@ class MetaUiManager : UIManager {
 	 * disposed through an unusual path. [MetaDialog.setStage] keeps it accurate via [onDialogRemoved].
 	 */
 	private val modalDialogs = ArrayList<MetaDialog>()
-	private val modalRevision = signal(0)
+	private val modalRevision = intSignal(0)
 	private var topDialog: MetaDialog? = null
 
 	/**
@@ -138,7 +139,7 @@ class MetaUiManager : UIManager {
 	 * keyboard/scroll focus to whichever dialog is now on top. Re-runs automatically whenever [modalRevision] bumps.
 	 */
 	private val backdropEffect: Disposable = effect {
-		modalRevision() // subscribe
+		modalRevision.intValue // subscribe
 		// Only a dialog that is actually on stage AND visible should hold the input-blocking backdrop up. A dialog
 		// being hidden (isVisible=false during a close fade, or hidden by other windows) must not keep the shield
 		// over whatever is beneath it.
@@ -171,12 +172,12 @@ class MetaUiManager : UIManager {
 		uiRenderer.getToastManager().toFront()
 		MetaTooltip.bringVisibleToFront()
 	}
-	private val preventShowWindowSignal = signal(false)
+	private val preventShowWindowSignal = booleanSignal(false)
 	override val preventShowWindowState: ReactiveValue<Boolean> get() = preventShowWindowSignal
 	override var preventShowWindow: Boolean
-		get() = preventShowWindowSignal.value
+		get() = preventShowWindowSignal.booleanValue
 		private set(value) {
-			preventShowWindowSignal.value = value
+			preventShowWindowSignal.booleanValue = value
 		}
 
 	@Deprecated("Bind to preventShowWindowState instead, e.g. actor.bindDisabled { uiManager.preventShowWindowState() }.")
@@ -197,11 +198,11 @@ class MetaUiManager : UIManager {
 	override fun setBottomOverlay(overlay: Actor?) {
 		if (screenBottomOverlay === overlay) return
 		screenBottomOverlay = overlay
-		modalRevision.update { it + 1 }
+		modalRevision.updateInt { it + 1 }
 	}
 
 	override fun onDialogBottomOverlayChanged(dialog: MetaDialog) {
-		if (modalDialogs.contains(dialog)) modalRevision.update { it + 1 }
+		if (modalDialogs.contains(dialog)) modalRevision.updateInt { it + 1 }
 	}
 
 	private fun updateBottomOverlay(overlay: Actor?) {
@@ -393,7 +394,7 @@ class MetaUiManager : UIManager {
 		val lease = WindowIsolationLease(concealedByLease)
 		activeIsolations.add(lease)
 		preventShowWindow = true
-		modalRevision.update { it + 1 }
+		modalRevision.updateInt { it + 1 }
 		return lease
 	}
 
@@ -425,7 +426,7 @@ class MetaUiManager : UIManager {
 			}
 		}
 		preventShowWindow = activeIsolations.size > 0
-		modalRevision.update { it + 1 }
+		modalRevision.updateInt { it + 1 }
 	}
 
 	private fun releaseAllWindowIsolations() {
@@ -463,7 +464,7 @@ class MetaUiManager : UIManager {
 					// beneath it and gives it focus. Re-add (remove first) so re-showing pushes it back to the top.
 					modalDialogs.remove(this)
 					modalDialogs.add(this)
-					modalRevision.update { it + 1 }
+					modalRevision.updateInt { it + 1 }
 				} else {
 					toFront()
 				}
@@ -1059,7 +1060,7 @@ class MetaUiManager : UIManager {
 	override fun bringWindowsToFront() {
 		for (index in 0 until displayedWindows.size) displayedWindows[index].toFront()
 		mainMenuBar?.table?.toFront()
-		modalRevision.update { it + 1 }
+		modalRevision.updateInt { it + 1 }
 		uiRenderer.getToastManager().toFront()
 		MetaTooltip.bringVisibleToFront()
 	}
@@ -1114,7 +1115,7 @@ class MetaUiManager : UIManager {
 		// Called by MetaDialog the instant it leaves the stage, by ANY path. Drop it from the modal stack and let
 		// backdropEffect re-derive the backdrop's position/presence and move focus to the next dialog down (if any).
 		if (modalDialogs.remove(dialog)) {
-			modalRevision.update { it + 1 }
+		modalRevision.updateInt { it + 1 }
 		}
 	}
 

@@ -1,10 +1,10 @@
 package de.fatox.meta.task
 
 import com.badlogic.gdx.utils.Array
+import de.fatox.meta.reactive.BooleanSignal
 import de.fatox.meta.reactive.ReactiveValue
-import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
-import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.booleanSignal
 
 class MetaTaskManager {
 	private val taskHistoryStack = Array<MetaTask>()
@@ -12,9 +12,9 @@ class MetaTaskManager {
 
 	/** Reactive history availability for menus, toolbar buttons, and keyboard action state. */
 	val canUndo: ReactiveValue<Boolean>
-		field: Signal<Boolean> = signal(false)
+		field: BooleanSignal = booleanSignal(false)
 	val canRedo: ReactiveValue<Boolean>
-		field: Signal<Boolean> = signal(false)
+		field: BooleanSignal = booleanSignal(false)
 
 	fun runTask(metaTask: MetaTask) {
 		metaTask.run()
@@ -50,8 +50,8 @@ class MetaTaskManager {
 
 	private fun updateAvailability() {
 		batch {
-			canUndo.value = currentIndex >= 0
-			canRedo.value = currentIndex < taskHistoryStack.size - 1
+			canUndo.booleanValue = currentIndex >= 0
+			canRedo.booleanValue = currentIndex < taskHistoryStack.size - 1
 		}
 	}
 }

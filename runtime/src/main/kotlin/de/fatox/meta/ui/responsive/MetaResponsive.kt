@@ -1,8 +1,9 @@
 package de.fatox.meta.ui.responsive
 
 import de.fatox.meta.reactive.ReactiveValue
+import de.fatox.meta.reactive.booleanSignal
 import de.fatox.meta.reactive.computed
-import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.intSignal
 
 /**
  * A named, inclusive minimum-width breakpoint measured in Meta UI units.
@@ -106,7 +107,7 @@ class MetaResponsiveValue<T> internal constructor(private val base: T, private v
 	private data class Override<T>(val query: MetaResponsiveQuery, val value: T)
 
 	private val overrides = ArrayList<Override<T>>(2)
-	private val revision = signal(0)
+	private val revision = intSignal(0)
 
 	init {
 		validate(base)
@@ -124,13 +125,13 @@ class MetaResponsiveValue<T> internal constructor(private val base: T, private v
 	fun whenMatches(query: MetaResponsiveQuery, value: T): MetaResponsiveValue<T> = apply {
 		validate(value)
 		overrides.add(Override(query, value))
-		revision.update { it + 1 }
+		revision.updateInt { it + 1 }
 	}
 
 	fun resolve(size: MetaResponsiveSize): T = resolve(size.width, size.height)
 
 	fun resolve(width: Float, height: Float): T {
-		revision.value // Makes late fluent additions observable when resolve runs inside a computed/effect.
+		revision.intValue // Makes late fluent additions observable when resolve runs inside a computed/effect.
 		var result = base
 		for (index in overrides.indices) {
 			val override = overrides[index]
@@ -152,7 +153,7 @@ internal fun <T> validatedResponsive(base: T, validate: (T) -> Unit): MetaRespon
 class MetaResponsiveState(val breakpoints: MetaBreakpointSet = MetaBreakpoints.DEFAULT) {
 	private var currentWidth = 0f
 	private var currentHeight = 0f
-	private val sizeRevision = signal(false)
+	private val sizeRevision = booleanSignal(false)
 
 	/** Immutable snapshots are allocated only when this value is actually observed. */
 	val size: ReactiveValue<MetaResponsiveSize> = computed { MetaResponsiveSize(trackedWidth(), trackedHeight()) }
@@ -168,7 +169,7 @@ class MetaResponsiveState(val breakpoints: MetaBreakpointSet = MetaBreakpoints.D
 		if (currentWidth == width && currentHeight == height) return false
 		currentWidth = width
 		currentHeight = height
-		sizeRevision.value = !sizeRevision.peek()
+		sizeRevision.booleanValue = !sizeRevision.peekBoolean()
 		return true
 	}
 
@@ -179,12 +180,12 @@ class MetaResponsiveState(val breakpoints: MetaBreakpointSet = MetaBreakpoints.D
 		computed { value.resolve(trackedWidth(), trackedHeight()) }
 
 	internal fun trackedWidth(): Float {
-		sizeRevision.value
+		sizeRevision.booleanValue
 		return currentWidth
 	}
 
 	internal fun trackedHeight(): Float {
-		sizeRevision.value
+		sizeRevision.booleanValue
 		return currentHeight
 	}
 }

@@ -10,7 +10,7 @@ import de.fatox.meta.api.model.GLShaderData
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveValue
-import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.intSignal
 
 private const val META_SHADER_SUFFIX = ".msh"
 private const val INTERNAL_SHADER_PATH = "meta/shaders"
@@ -23,10 +23,10 @@ class MetaShaderLibrary {
 	private val metaShaders = Array<GLShaderHandle>()
 
 	/** Bumped whenever the set of loaded shaders changes; observe via `changes.subscribe { ... }`. */
-	private val _changes = signal(0)
+	private val _changes = intSignal(0)
 	val changes: ReactiveValue<Int> get() = _changes
 
-	private fun notifyChanged() = _changes.update { it + 1 }
+	private fun notifyChanged() = _changes.updateInt { it + 1 }
 
 	val defaultShaderPath: String
 		get() = projectManager.relativize(metaShaders.first().shaderHandle)

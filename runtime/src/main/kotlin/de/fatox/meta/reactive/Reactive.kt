@@ -52,6 +52,78 @@ interface Signal<T> : ReactiveValue<T> {
 	}
 }
 
+/** Primitive equality policy for [BooleanSignal]. */
+fun interface BooleanEquality {
+	fun areEqual(current: Boolean, next: Boolean): Boolean
+}
+
+/** Primitive update operation for [BooleanSignal]. */
+fun interface BooleanTransform {
+	fun apply(value: Boolean): Boolean
+}
+
+/** Boolean-specialized [Signal]. Use its specialized members outside generic compatibility boundaries. */
+interface BooleanSignal : Signal<Boolean> {
+	var booleanValue: Boolean
+	override var value: Boolean
+		get() = booleanValue
+		set(value) { booleanValue = value }
+	override operator fun invoke(): Boolean = booleanValue
+	override fun peek(): Boolean = peekBoolean()
+	fun peekBoolean(): Boolean
+	fun updateBoolean(transform: BooleanTransform) {
+		booleanValue = transform.apply(peekBoolean())
+	}
+}
+
+/** Primitive equality policy for [IntSignal]. */
+fun interface IntEquality {
+	fun areEqual(current: Int, next: Int): Boolean
+}
+
+/** Primitive update operation for [IntSignal]. */
+fun interface IntTransform {
+	fun apply(value: Int): Int
+}
+
+/** Int-specialized [Signal]. Use its specialized members outside generic compatibility boundaries. */
+interface IntSignal : Signal<Int> {
+	var intValue: Int
+	override var value: Int
+		get() = intValue
+		set(value) { intValue = value }
+	override operator fun invoke(): Int = intValue
+	override fun peek(): Int = peekInt()
+	fun peekInt(): Int
+	fun updateInt(transform: IntTransform) {
+		intValue = transform.apply(peekInt())
+	}
+}
+
+/** Primitive equality policy for [LongSignal]. */
+fun interface LongEquality {
+	fun areEqual(current: Long, next: Long): Boolean
+}
+
+/** Primitive update operation for [LongSignal]. */
+fun interface LongTransform {
+	fun apply(value: Long): Long
+}
+
+/** Long-specialized [Signal]. Use its specialized members outside generic compatibility boundaries. */
+interface LongSignal : Signal<Long> {
+	var longValue: Long
+	override var value: Long
+		get() = longValue
+		set(value) { longValue = value }
+	override operator fun invoke(): Long = longValue
+	override fun peek(): Long = peekLong()
+	fun peekLong(): Long
+	fun updateLong(transform: LongTransform) {
+		longValue = transform.apply(peekLong())
+	}
+}
+
 /** Primitive equality used by [FloatSignal], avoiding the boxing of `(Float, Float) -> Boolean`. */
 fun interface FloatEquality {
 	fun areEqual(current: Float, next: Float): Boolean
@@ -90,6 +162,30 @@ interface FloatSignal : Signal<Float> {
 	}
 }
 
+/** Primitive equality policy for [DoubleSignal]. */
+fun interface DoubleEquality {
+	fun areEqual(current: Double, next: Double): Boolean
+}
+
+/** Primitive update operation for [DoubleSignal]. */
+fun interface DoubleTransform {
+	fun apply(value: Double): Double
+}
+
+/** Double-specialized [Signal]. Use its specialized members outside generic compatibility boundaries. */
+interface DoubleSignal : Signal<Double> {
+	var doubleValue: Double
+	override var value: Double
+		get() = doubleValue
+		set(value) { doubleValue = value }
+	override operator fun invoke(): Double = doubleValue
+	override fun peek(): Double = peekDouble()
+	fun peekDouble(): Double
+	fun updateDouble(transform: DoubleTransform) {
+		doubleValue = transform.apply(peekDouble())
+	}
+}
+
 /** Handle returned by [effect]; call [dispose] to stop it and release its subscriptions. */
 fun interface Disposable {
 	fun dispose()
@@ -98,11 +194,31 @@ fun interface Disposable {
 /** Creates a writable [Signal] with the given [initial] value. [equals] decides whether a write is a real change. */
 fun <T> signal(initial: T, equals: (T, T) -> Boolean = { a, b -> a == b }): Signal<T> = SignalNode(initial, equals)
 
+/** Creates a boolean-specialized writable signal with exact equality. */
+fun booleanSignal(initial: Boolean): BooleanSignal = BooleanSignalNode(initial, EXACT_BOOLEAN_EQUALITY)
+/** Creates a boolean-specialized writable signal with custom primitive equality. */
+fun booleanSignal(initial: Boolean, equals: BooleanEquality): BooleanSignal = BooleanSignalNode(initial, equals)
+
+/** Creates an int-specialized writable signal with exact equality. */
+fun intSignal(initial: Int): IntSignal = IntSignalNode(initial, EXACT_INT_EQUALITY)
+/** Creates an int-specialized writable signal with custom primitive equality. */
+fun intSignal(initial: Int, equals: IntEquality): IntSignal = IntSignalNode(initial, equals)
+
+/** Creates a long-specialized writable signal with exact equality. */
+fun longSignal(initial: Long): LongSignal = LongSignalNode(initial, EXACT_LONG_EQUALITY)
+/** Creates a long-specialized writable signal with custom primitive equality. */
+fun longSignal(initial: Long, equals: LongEquality): LongSignal = LongSignalNode(initial, equals)
+
 /** Creates a float-specialized writable signal with exact primitive equality. */
 fun floatSignal(initial: Float): FloatSignal = FloatSignalNode(initial, EXACT_FLOAT_EQUALITY)
 
 /** Creates a float-specialized writable signal using the supplied allocation-free primitive equality. */
 fun floatSignal(initial: Float, equals: FloatEquality): FloatSignal = FloatSignalNode(initial, equals)
+
+/** Creates a double-specialized writable signal with exact bit equality. */
+fun doubleSignal(initial: Double): DoubleSignal = DoubleSignalNode(initial, EXACT_DOUBLE_EQUALITY)
+/** Creates a double-specialized writable signal with custom primitive equality. */
+fun doubleSignal(initial: Double, equals: DoubleEquality): DoubleSignal = DoubleSignalNode(initial, equals)
 
 /** Creates a lazily-evaluated, memoized derived value from [compute]. */
 fun <T> computed(equals: (T, T) -> Boolean = { a, b -> a == b }, compute: () -> T): ReactiveValue<T> =
@@ -182,11 +298,43 @@ fun ReactiveValue<*>.subscribe(block: () -> Unit): Disposable {
 	}
 }
 
+fun BooleanSignal.subscribe(block: () -> Unit): Disposable {
+	var primed = false
+	return effect {
+		booleanValue
+		if (primed) untracked(block) else primed = true
+	}
+}
+
+fun IntSignal.subscribe(block: () -> Unit): Disposable {
+	var primed = false
+	return effect {
+		intValue
+		if (primed) untracked(block) else primed = true
+	}
+}
+
+fun LongSignal.subscribe(block: () -> Unit): Disposable {
+	var primed = false
+	return effect {
+		longValue
+		if (primed) untracked(block) else primed = true
+	}
+}
+
 /** Primitive [FloatSignal] subscription that tracks [FloatSignal.floatValue] without boxing the observed read. */
 fun FloatSignal.subscribe(block: () -> Unit): Disposable {
 	var primed = false
 	return effect {
 		floatValue
+		if (primed) untracked(block) else primed = true
+	}
+}
+
+fun DoubleSignal.subscribe(block: () -> Unit): Disposable {
+	var primed = false
+	return effect {
+		doubleValue
 		if (primed) untracked(block) else primed = true
 	}
 }
@@ -232,8 +380,12 @@ class ReactiveScope : Disposable {
 	/** [subscribe]s to [value] within this scope. */
 	fun subscribe(value: ReactiveValue<*>, block: () -> Unit): Disposable = register(value.subscribe(block))
 
+	fun subscribe(value: BooleanSignal, block: () -> Unit): Disposable = register(value.subscribe(block))
+	fun subscribe(value: IntSignal, block: () -> Unit): Disposable = register(value.subscribe(block))
+	fun subscribe(value: LongSignal, block: () -> Unit): Disposable = register(value.subscribe(block))
 	/** Primitive [FloatSignal] subscription owned by this scope. */
 	fun subscribe(value: FloatSignal, block: () -> Unit): Disposable = register(value.subscribe(block))
+	fun subscribe(value: DoubleSignal, block: () -> Unit): Disposable = register(value.subscribe(block))
 
 	override fun dispose() {
 		if (disposed) return
@@ -302,6 +454,12 @@ private abstract class ReactiveNode {
 		}
 	}
 
+	protected fun publishPrimitiveChange() {
+		version++
+		notifyObservers(NodeState.DIRTY)
+		if (batchDepth == 0) flushEffects()
+	}
+
 	private fun markStale(newState: NodeState) {
 		val wasClean = state == NodeState.CLEAN
 		if (state.ordinal < newState.ordinal) state = newState
@@ -356,6 +514,57 @@ private class SignalNode<T>(initial: T, private val equals: (T, T) -> Boolean) :
 	override fun peek(): T = current
 }
 
+private val EXACT_BOOLEAN_EQUALITY = BooleanEquality { current, next -> current == next }
+
+private class BooleanSignalNode(initial: Boolean, private val equals: BooleanEquality) : ReactiveNode(), BooleanSignal {
+	private var current = initial
+	override var booleanValue: Boolean
+		get() {
+			trackRead()
+			return current
+		}
+		set(newValue) {
+			if (equals.areEqual(current, newValue)) return
+			current = newValue
+			publishPrimitiveChange()
+		}
+	override fun peekBoolean(): Boolean = current
+}
+
+private val EXACT_INT_EQUALITY = IntEquality { current, next -> current == next }
+
+private class IntSignalNode(initial: Int, private val equals: IntEquality) : ReactiveNode(), IntSignal {
+	private var current = initial
+	override var intValue: Int
+		get() {
+			trackRead()
+			return current
+		}
+		set(newValue) {
+			if (equals.areEqual(current, newValue)) return
+			current = newValue
+			publishPrimitiveChange()
+		}
+	override fun peekInt(): Int = current
+}
+
+private val EXACT_LONG_EQUALITY = LongEquality { current, next -> current == next }
+
+private class LongSignalNode(initial: Long, private val equals: LongEquality) : ReactiveNode(), LongSignal {
+	private var current = initial
+	override var longValue: Long
+		get() {
+			trackRead()
+			return current
+		}
+		set(newValue) {
+			if (equals.areEqual(current, newValue)) return
+			current = newValue
+			publishPrimitiveChange()
+		}
+	override fun peekLong(): Long = current
+}
+
 private val EXACT_FLOAT_EQUALITY = FloatEquality { current, next -> current.toBits() == next.toBits() }
 
 private class FloatSignalNode(initial: Float, private val equals: FloatEquality) : ReactiveNode(), FloatSignal {
@@ -369,12 +578,27 @@ private class FloatSignalNode(initial: Float, private val equals: FloatEquality)
 		set(newValue) {
 			if (equals.areEqual(current, newValue)) return
 			current = newValue
-			version++
-			notifyObservers(NodeState.DIRTY)
-			if (batchDepth == 0) flushEffects()
+			publishPrimitiveChange()
 		}
 
 	override fun peekFloat(): Float = current
+}
+
+private val EXACT_DOUBLE_EQUALITY = DoubleEquality { current, next -> current.toBits() == next.toBits() }
+
+private class DoubleSignalNode(initial: Double, private val equals: DoubleEquality) : ReactiveNode(), DoubleSignal {
+	private var current = initial
+	override var doubleValue: Double
+		get() {
+			trackRead()
+			return current
+		}
+		set(newValue) {
+			if (equals.areEqual(current, newValue)) return
+			current = newValue
+			publishPrimitiveChange()
+		}
+	override fun peekDouble(): Double = current
 }
 
 private val UNSET = Any()

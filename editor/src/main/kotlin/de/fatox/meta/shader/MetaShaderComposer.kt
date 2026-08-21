@@ -13,7 +13,7 @@ import de.fatox.meta.api.ui.getWindow
 import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.ReactiveValue
-import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.intSignal
 import de.fatox.meta.ui.windows.ShaderComposerWindow
 
 const val META_COMP_SUFFIX = ".mco"
@@ -28,10 +28,10 @@ class MetaShaderComposer {
 	val compositions = Array<ShaderComposition>(2)
 
 	/** Bumped on every composition mutation; observe via `changes.subscribe { ... }`. */
-	private val _changes = signal(0)
+	private val _changes = intSignal(0)
 	val changes: ReactiveValue<Int> get() = _changes
 
-	private fun notifyChanged() = _changes.update { it + 1 }
+	private fun notifyChanged() = _changes.updateInt { it + 1 }
 
 	var currentComposition: ShaderComposition? = null
 		set(value) {

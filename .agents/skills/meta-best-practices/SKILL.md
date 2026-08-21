@@ -43,7 +43,7 @@ Do not drive render, physics, animation, or other measured per-frame inner loops
 
 This exception is narrow. It does not justify custom observables, manual UI polling, duplicated state, or callback fan-out outside a demonstrated hot path. Require profiling evidence or a clearly per-frame call site.
 
-Treat generic primitive signals such as `Signal<Float>` as unsuitable for high-frequency writes because JVM generic storage boxes primitives. Prefer primitive fields in hot loops. When reactive float propagation is required, use `floatSignal`/`FloatSignal` and its `floatValue`, `peekFloat`, `updateFloat`, and specialized `subscribe` paths. Use its inherited `Signal<Float>` members only at generic compatibility boundaries because those members box.
+Treat generic primitive signals as unsuitable for high-frequency writes because JVM generic storage boxes primitives. Prefer primitive fields in hot loops. When reactive primitive propagation is required, use Meta's `BooleanSignal`, `IntSignal`, `LongSignal`, `FloatSignal`, or `DoubleSignal` and their specialized value, peek, update, and subscribe paths. Use inherited `Signal<T>` members only at generic compatibility boundaries because those members box.
 
 ## Meta UI and responsive layout
 

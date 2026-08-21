@@ -64,8 +64,9 @@ branch versions.
   [`assets/ui/icons/remixicon.tsv`](assets/ui/icons/remixicon.tsv) for supported names.
 - Use `signal`, `computed`, `effect`, `batch`, and scope-owned bindings from `de.fatox.meta.reactive`. Runtime state and
   scene2d updates belong on the GL thread.
-- Use `floatSignal` plus `floatValue`, `peekFloat`, and `updateFloat` when a reactive float is written frequently.
-  Its `Signal<Float>` surface remains available for generic interoperability but necessarily boxes on the JVM.
+- Use `booleanSignal`, `intSignal`, `longSignal`, `floatSignal`, or `doubleSignal` when primitive reactive state is
+  written frequently. Their specialized value/peek/update/subscribe paths avoid generic JVM boxing; each retains a
+  `Signal<T>` surface for compatibility boundaries.
 - Create `MetaWindow`/`MetaDialog` bindings in `onShown()` using their `reactiveScope`; it is disposed on hide.
 - Queue startup assets through `AssetProvider.load`. Use the three-callback `SplashScreen` when discovery or queueing
   does meaningful work off the GL thread.
