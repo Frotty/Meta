@@ -125,7 +125,7 @@ Allocation rate is the primary controllable JVM game-runtime cost.
 - Preserve serialization keys and persisted-data compatibility. Keep desktop/editor launchers aligned with Gradle
   changes.
 - Upgrade Meta and verify it before bumping a consumer's pinned `metaVersion`/commit.
-- Baseline: Java 17, libGDX 1.14.2, Kotlin 2.4.0, Gradle 9.1.0. The wrapper is authoritative.
+- Baseline: Java 25, libGDX 1.14.2, Kotlin 2.4.10, Gradle 9.1.0. The wrapper is authoritative.
 
 Minimum runtime gates:
 

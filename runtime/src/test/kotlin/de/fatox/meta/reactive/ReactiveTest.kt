@@ -72,6 +72,265 @@ internal class ReactiveTest {
 		assertEquals(2, runs)
 	}
 
+	@Test
+	fun `basic primitive signals track reads suppress equals and batch`() {
+		val enabled = booleanSignal(false)
+		val count = intSignal(1)
+		val timestamp = longSignal(2L)
+		val ratio = doubleSignal(3.0)
+		var runs = 0
+		effect {
+			enabled.booleanValue
+			count.intValue
+			timestamp.longValue
+			ratio.doubleValue
+			runs++
+		}
+
+		enabled.booleanValue = false
+		count.intValue = 1
+		timestamp.longValue = 2L
+		ratio.doubleValue = 3.0
+		assertEquals(1, runs)
+
+		batch {
+			enabled.booleanValue = true
+			count.intValue = 4
+			timestamp.longValue = 5L
+			ratio.doubleValue = 6.0
+		}
+		assertEquals(2, runs)
+		assertTrue(enabled.peekBoolean())
+		assertEquals(4, count.peekInt())
+		assertEquals(5L, timestamp.peekLong())
+		assertEquals(6.0, ratio.peekDouble())
+	}
+
+	@Test
+	fun `basic primitive signals support primitive equality and transforms`() {
+		val enabled = booleanSignal(false, BooleanEquality { _, _ -> true })
+		val toggle = booleanSignal(false)
+		val count = intSignal(12, IntEquality { current, next -> current / 10 == next / 10 })
+		val timestamp = longSignal(120L, LongEquality { current, next -> current / 100L == next / 100L })
+		val ratio = doubleSignal(1.0, DoubleEquality { current, next -> kotlin.math.abs(current - next) < 0.1 })
+
+		enabled.booleanValue = true
+		toggle.updateBoolean { !it }
+		count.intValue = 19
+		timestamp.longValue = 199L
+		ratio.doubleValue = 1.05
+		assertEquals(false, enabled.peekBoolean())
+		assertTrue(toggle.peekBoolean())
+		assertEquals(12, count.peekInt())
+		assertEquals(120L, timestamp.peekLong())
+		assertEquals(1.0, ratio.peekDouble())
+
+		count.updateInt { it + 10 }
+		timestamp.updateLong { it + 100L }
+		ratio.updateDouble { it + 0.2 }
+		assertEquals(22, count.peekInt())
+		assertEquals(220L, timestamp.peekLong())
+		assertEquals(1.2, ratio.peekDouble(), 0.0001)
+	}
+
+	@Test
+	fun `basic primitive signals preserve generic compatibility`() {
+		val enabled = booleanSignal(false)
+		val count = intSignal(1)
+		val timestamp = longSignal(2L)
+		val ratio = doubleSignal(3.0)
+		val genericEnabled: Signal<Boolean> = enabled
+		val genericCount: Signal<Int> = count
+		val genericTimestamp: Signal<Long> = timestamp
+		val genericRatio: Signal<Double> = ratio
+
+		genericEnabled.value = true
+		genericCount.value = 4
+		genericTimestamp.value = 5L
+		genericRatio.value = 6.0
+		assertTrue(enabled.peekBoolean())
+		assertEquals(4, count.peekInt())
+		assertEquals(5L, timestamp.peekLong())
+		assertEquals(6.0, ratio.peekDouble())
+	}
+
+	@Test
+	fun `reactive scope owns every specialized primitive subscription`() {
+		val enabled = booleanSignal(false)
+		val count = intSignal(0)
+		val timestamp = longSignal(0L)
+		val position = floatSignal(0f)
+		val ratio = doubleSignal(0.0)
+		val scope = ReactiveScope()
+		var callbacks = 0
+		scope.subscribe(enabled) { callbacks++ }
+		scope.subscribe(count) { callbacks++ }
+		scope.subscribe(timestamp) { callbacks++ }
+		scope.subscribe(position) { callbacks++ }
+		scope.subscribe(ratio) { callbacks++ }
+
+		enabled.booleanValue = true
+		count.intValue = 1
+		timestamp.longValue = 1L
+		position.floatValue = 1f
+		ratio.doubleValue = 1.0
+		assertEquals(5, callbacks)
+
+		scope.dispose()
+		enabled.booleanValue = false
+		count.intValue = 2
+		timestamp.longValue = 2L
+		position.floatValue = 2f
+		ratio.doubleValue = 2.0
+		assertEquals(5, callbacks)
+	}
+
+	@Test
+	fun `basic primitive signal contracts and storage use JVM primitives`() {
+		assertPrimitiveSignal(
+			booleanSignal(false), BooleanSignal::class.java, "Boolean", Boolean::class.javaPrimitiveType,
+			BooleanEquality::class.java, BooleanTransform::class.java,
+		)
+		assertPrimitiveSignal(
+			intSignal(0), IntSignal::class.java, "Int", Int::class.javaPrimitiveType,
+			IntEquality::class.java, IntTransform::class.java,
+		)
+		assertPrimitiveSignal(
+			longSignal(0L), LongSignal::class.java, "Long", Long::class.javaPrimitiveType,
+			LongEquality::class.java, LongTransform::class.java,
+		)
+		assertPrimitiveSignal(
+			floatSignal(0f), FloatSignal::class.java, "Float", Float::class.javaPrimitiveType,
+			FloatEquality::class.java, FloatTransform::class.java,
+		)
+		assertPrimitiveSignal(
+			doubleSignal(0.0), DoubleSignal::class.java, "Double", Double::class.javaPrimitiveType,
+			DoubleEquality::class.java, DoubleTransform::class.java,
+		)
+	}
+
+	@Test
+	fun `double signal exact equality handles NaN and signed zero consistently`() {
+		val value = doubleSignal(Double.NaN)
+		var runs = 0
+		effect { value.doubleValue; runs++ }
+
+		value.doubleValue = Double.NaN
+		assertEquals(1, runs)
+		value.doubleValue = -0.0
+		value.doubleValue = 0.0
+		assertEquals(3, runs)
+	}
+
+	@Test
+	fun `float signal tracks primitive reads and suppresses equal writes`() {
+		val position = floatSignal(1f)
+		var observed = 0f
+		var runs = 0
+		effect {
+			observed = position.floatValue
+			runs++
+		}
+
+		assertEquals(1f, observed)
+		position.floatValue = 1f
+		assertEquals(1, runs)
+
+		position.floatValue = 2.5f
+		assertEquals(2.5f, observed)
+		assertEquals(2, runs)
+	}
+
+	@Test
+	fun `float signal custom equality and primitive update avoid generic operations`() {
+		val position = floatSignal(1f, FloatEquality { current, next ->
+			kotlin.math.abs(current - next) < 0.1f
+		})
+		var runs = 0
+		effect { position.floatValue; runs++ }
+
+		position.floatValue = 1.05f
+		assertEquals(1, runs)
+
+		position.updateFloat(FloatTransform { it + 0.2f })
+		assertEquals(1.2f, position.peekFloat(), 0.0001f)
+		assertEquals(2, runs)
+	}
+
+	@Test
+	fun `float signal preserves generic signal compatibility`() {
+		val primitive = floatSignal(3f)
+		val generic: Signal<Float> = primitive
+
+		generic.value = 4f
+		assertEquals(4f, primitive.peekFloat())
+		assertEquals(4f, generic.peek())
+	}
+
+	@Test
+	fun `float signal batches effects and specialized subscriptions`() {
+		val first = floatSignal(0f)
+		val second = floatSignal(0f)
+		var effectRuns = 0
+		var subscriptionRuns = 0
+		effect { first.floatValue + second.floatValue; effectRuns++ }
+		val subscription = first.subscribe { subscriptionRuns++ }
+
+		batch {
+			first.floatValue = 1f
+			second.floatValue = 2f
+		}
+		assertEquals(2, effectRuns)
+		assertEquals(1, subscriptionRuns)
+
+		subscription.dispose()
+		first.floatValue = 3f
+		assertEquals(3, effectRuns)
+		assertEquals(1, subscriptionRuns)
+	}
+
+	@Test
+	fun `float signal primitive transform failure leaves state unchanged`() {
+		val value = floatSignal(2f)
+		assertFailsWith<IllegalStateException> {
+			value.updateFloat(FloatTransform { error("failed transform") })
+		}
+		assertEquals(2f, value.peekFloat())
+	}
+
+	@Test
+	fun `float signal exact equality handles NaN and signed zero consistently`() {
+		val value = floatSignal(Float.NaN)
+		var runs = 0
+		effect { value.floatValue; runs++ }
+
+		value.floatValue = Float.NaN
+		assertEquals(1, runs)
+
+		value.floatValue = -0f
+		value.floatValue = 0f
+		assertEquals(3, runs, "Signed zeroes have distinct Float value representations")
+	}
+
+	private fun assertPrimitiveSignal(
+		signal: Any,
+		contract: Class<*>,
+		suffix: String,
+		primitiveType: Class<*>?,
+		equality: Class<*>,
+		transform: Class<*>,
+	) {
+		assertSame(primitiveType, contract.getMethod("get${suffix}Value").returnType)
+		assertSame(primitiveType, contract.getMethod("set${suffix}Value", primitiveType).parameterTypes[0])
+		assertSame(primitiveType, signal.javaClass.getDeclaredField("current").type)
+		val equalityMethod = equality.getMethod("areEqual", primitiveType, primitiveType)
+		assertSame(Boolean::class.javaPrimitiveType, equalityMethod.returnType)
+		assertTrue(equalityMethod.parameterTypes.all { it == primitiveType })
+		val transformMethod = transform.getMethod("apply", primitiveType)
+		assertSame(primitiveType, transformMethod.returnType)
+		assertSame(primitiveType, transformMethod.parameterTypes[0])
+	}
+
 	// ----------------------------------------------------------------------------------------- effect
 
 	@Test

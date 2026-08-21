@@ -8,8 +8,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import de.fatox.meta.api.extensions.cursorPointer
 import de.fatox.meta.input.MetaUiAction
+import de.fatox.meta.reactive.FloatEquality
+import de.fatox.meta.reactive.FloatSignal
 import de.fatox.meta.reactive.Signal
-import de.fatox.meta.reactive.signal
+import de.fatox.meta.reactive.floatSignal
 import de.fatox.meta.reactive.subscribe
 import de.fatox.meta.ui.MetaFocusable
 import de.fatox.meta.ui.MetaSkin
@@ -28,18 +30,24 @@ class MetaSlider(
 	private val focusedStyle = SliderStyle(style).apply {
 		knob = normalStyle.knobOver ?: normalStyle.knob
 	}
-	val valueValue: Signal<Float> = signal(value) { a, b -> abs(a - b) < EPSILON }
-	val committedValue: Signal<Float> = signal(value) { a, b -> abs(a - b) < EPSILON }
+	/** Primitive live value for allocation-sensitive bindings. */
+	val valueSignal: FloatSignal = floatSignal(value, EPSILON_EQUALITY)
+	/** Primitive committed value for allocation-sensitive bindings. */
+	val committedSignal: FloatSignal = floatSignal(value, EPSILON_EQUALITY)
+	/** Generic compatibility view. Prefer [valueSignal] for primitive reads and writes. */
+	val valueValue: Signal<Float> get() = valueSignal
+	/** Generic compatibility view. Prefer [committedSignal] for primitive reads and writes. */
+	val committedValue: Signal<Float> get() = committedSignal
 	private var pointerGestureActive = false
 	private var syncingFromSignal = false
 	@Suppress("unused")
-	private val valueBinding = valueValue.subscribe {
+	private val valueBinding = valueSignal.subscribe {
 		if (syncingFromSignal) return@subscribe
 		syncingFromSignal = true
-		value = valueValue.peek()
+		value = valueSignal.peekFloat()
 		val actual = value
-		if (abs(valueValue.peek() - actual) >= EPSILON) valueValue.value = actual
-		if (!pointerGestureActive && !isDragging) committedValue.value = actual
+		if (abs(valueSignal.peekFloat() - actual) >= EPSILON) valueSignal.floatValue = actual
+		if (!pointerGestureActive && !isDragging) committedSignal.floatValue = actual
 		syncingFromSignal = false
 	}
 
@@ -47,8 +55,8 @@ class MetaSlider(
 		cursorPointer()
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
-				if (!syncingFromSignal) valueValue.value = value
-				if (!pointerGestureActive && !isDragging) committedValue.value = value
+				if (!syncingFromSignal) valueSignal.floatValue = value
+				if (!pointerGestureActive && !isDragging) committedSignal.floatValue = value
 			}
 		})
 		addListener(object : InputListener() {
@@ -61,7 +69,7 @@ class MetaSlider(
 			override fun touchUp(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int) {
 				if (pointer != 0 || !pointerGestureActive) return
 				pointerGestureActive = false
-				committedValue.value = value
+				committedSignal.floatValue = value
 			}
 		})
 	}
@@ -85,6 +93,7 @@ class MetaSlider(
 
 	private companion object {
 		const val EPSILON = 0.0001f
+		val EPSILON_EQUALITY = FloatEquality { current, next -> abs(current - next) < EPSILON }
 
 		fun sliderStyle(vertical: Boolean, showTrack: Boolean): SliderStyle {
 			val skin = MetaSkin.skin()
