@@ -10,9 +10,12 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.IntMap
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.extensions.MetaLoggerFactory
+import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.api.extensions.getOrPut
 import de.fatox.meta.api.extensions.use
+import de.fatox.meta.api.extensions.warn
 import de.fatox.meta.api.get
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
@@ -23,6 +26,7 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.roundToInt
 
 internal const val FONT_ATLAS_OVERSAMPLE = 2f
+private val log = MetaLoggerFactory.logger {}
 
 class MetaFontProvider : FontProvider {
 	private val assetProvider: AssetProvider by lazyInject()
@@ -34,10 +38,26 @@ class MetaFontProvider : FontProvider {
 	private val monoFontMap = IntMap<BitmapFont>()
 	private val boldFontMap = IntMap<BitmapFont>()
 	private val iconFontMap = IntMap<BitmapFont>()
-	private val normalGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.normalFontPath])
-	private val boldGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.boldFontPath])
-	private val monoGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.monoFontPath])
-	private val iconGenerator: FreeTypeFontGenerator = FreeTypeFontGenerator(assetProvider[fontInfo.iconFontPath])
+	private var normalGenerator = createGenerator(
+		fontInfo.normalFontPath,
+		FontInfo.DEFAULT_REGULAR_FONT_PATH,
+		"regular",
+	)
+	private var boldGenerator = createGenerator(
+		fontInfo.boldFontPath,
+		FontInfo.DEFAULT_BOLD_FONT_PATH,
+		"bold",
+	)
+	private var monoGenerator = createGenerator(
+		fontInfo.monoFontPath,
+		FontInfo.DEFAULT_MONO_FONT_PATH,
+		"monospace",
+	)
+	private var iconGenerator = createGenerator(
+		fontInfo.iconFontPath,
+		FontInfo.DEFAULT_ICON_FONT_PATH,
+		"icon",
+	)
 
 	/** The UI scale the currently-cached fonts were rasterized for; if it changes, fonts are regenerated crisply. */
 	private var generationScale = 1f
@@ -101,10 +121,14 @@ class MetaFontProvider : FontProvider {
 		disposeAll(iconFontMap)
 		for (i in 0 until orphanedFonts.size) disposeFont(orphanedFonts.get(i))
 		orphanedFonts.clear()
-		normalGenerator.dispose()
-		boldGenerator.dispose()
-		monoGenerator.dispose()
-		iconGenerator.dispose()
+		normalGenerator?.dispose()
+		boldGenerator?.dispose()
+		monoGenerator?.dispose()
+		iconGenerator?.dispose()
+		normalGenerator = null
+		boldGenerator = null
+		monoGenerator = null
+		iconGenerator = null
 	}
 
 	private fun disposeAll(fontMap: IntMap<BitmapFont>) {
@@ -142,12 +166,27 @@ class MetaFontProvider : FontProvider {
 			FontType.MONO -> monoGenerator
 			FontType.ICON -> iconGenerator
 		}
+		if (generator == null) return generateBitmapFallback(size, type)
 		val params = defaultFontParam(physicalSize, type)
-		val font = if (type == FontType.ICON) {
-			generator.generateFont(params, iconFontData())
-		} else {
-			generator.generateFont(params)
+		val font = try {
+			if (type == FontType.ICON) {
+				generator.generateFont(params, iconFontData())
+			} else {
+				generator.generateFont(params)
+			}
+		} catch (failure: RuntimeException) {
+			disableGenerator(type, generator)
+			log.error(failure) {
+				"Could not generate the configured ${type.name.lowercase()} font; " +
+					"using libGDX's built-in bitmap font for this session"
+			}
+			return generateBitmapFallback(size, type)
 		}
+		configureGeneratedFont(font, rasterScale)
+		return font
+	}
+
+	private fun configureGeneratedFont(font: BitmapFont, rasterScale: Float) {
 		if (rasterScale != 1f) {
 			font.data.setScale(1f / rasterScale)
 		}
@@ -157,7 +196,57 @@ class MetaFontProvider : FontProvider {
 		// The atlas is intentionally oversampled, so a whole logical unit is not one atlas texel. Let the
 		// physical-pixel snap helpers control the draw origin instead of rounding glyph positions to logical units.
 		font.setUseIntegerPositions(false)
+	}
+
+	private fun generateBitmapFallback(size: Int, type: FontType): BitmapFont {
+		val font = BitmapFont()
+		val capHeight = font.capHeight
+		if (capHeight > 0f) font.data.setScale(size / capHeight)
+		for (i in 0 until font.regions.size) {
+			font.regions[i].texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+		}
+		font.setUseIntegerPositions(false)
+		if (type == FontType.ICON) {
+			log.warn { "The icon font is unavailable; icons may render as missing glyphs" }
+		}
 		return font
+	}
+
+	private fun disableGenerator(type: FontType, generator: FreeTypeFontGenerator) {
+		generator.dispose()
+		when(type) {
+			FontType.REGULAR -> normalGenerator = null
+			FontType.BOLD -> boldGenerator = null
+			FontType.MONO -> monoGenerator = null
+			FontType.ICON -> iconGenerator = null
+		}
+	}
+
+	private fun createGenerator(
+		configuredPath: String,
+		fallbackPath: String,
+		role: String,
+	): FreeTypeFontGenerator? {
+		tryCreateGenerator(configuredPath)?.let { return it }
+		if (configuredPath != fallbackPath) {
+			log.warn {
+				"Could not load configured $role font '$configuredPath'; using Meta fallback '$fallbackPath'"
+			}
+			tryCreateGenerator(fallbackPath)?.let { return it }
+		}
+		log.error {
+			"Could not load $role font '$configuredPath' or Meta fallback '$fallbackPath'; " +
+				"using libGDX's built-in bitmap font"
+		}
+		return null
+	}
+
+	private fun tryCreateGenerator(path: String): FreeTypeFontGenerator? {
+		return try {
+			FreeTypeFontGenerator(assetProvider[path])
+		} catch (_: RuntimeException) {
+			null
+		}
 	}
 
 	private fun physicalUiScale(): Float {
