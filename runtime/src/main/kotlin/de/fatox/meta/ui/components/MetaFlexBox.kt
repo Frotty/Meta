@@ -141,9 +141,13 @@ open class MetaFlexBox(
 		if (minHeight != null) checkedNonNegative(minHeight, "Flex item minimum height")
 		val resolvedWidth = basisWidth ?: if (actor is Layout) null else actor.width
 		val resolvedHeight = basisHeight ?: if (actor is Layout) null else actor.height
-		val next = ItemSpec(resolvedWidth, resolvedHeight, grow, shrink, minWidth, minHeight)
-		if (itemSpecs[actor] == next) return@apply
-		itemSpecs.put(actor, next)
+		val current = itemSpecs[actor]
+		if (current != null &&
+			current.basisWidth == resolvedWidth && current.basisHeight == resolvedHeight &&
+			current.grow == grow && current.shrink == shrink &&
+			current.minWidth == minWidth && current.minHeight == minHeight
+		) return@apply
+		itemSpecs.put(actor, ItemSpec(resolvedWidth, resolvedHeight, grow, shrink, minWidth, minHeight))
 		invalidateHierarchy()
 	}
 
@@ -163,22 +167,25 @@ open class MetaFlexBox(
 		}
 	}
 
-	override fun removeActor(actor: Actor): Boolean {
-		val removed = super.removeActor(actor)
+	override fun removeActor(actor: Actor, unfocus: Boolean): Boolean {
+		val removed = super.removeActor(actor, unfocus)
 		if (removed) {
-			itemSpecs.remove(actor)
-			responsiveExcludedItems?.remove(actor)
-			responsiveConfiguration?.removeActor(actor)
-			invalidateHierarchy()
+			cleanupRemovedActor(actor)
 		}
 		return removed
 	}
 
-	override fun clearChildren() {
+	override fun removeActorAt(index: Int, unfocus: Boolean): Actor {
+		val actor = super.removeActorAt(index, unfocus)
+		cleanupRemovedActor(actor)
+		return actor
+	}
+
+	override fun clearChildren(unfocus: Boolean) {
 		responsiveConfiguration?.clearItems()
 		itemSpecs.clear()
 		responsiveExcludedItems?.clear()
-		super.clearChildren()
+		super.clearChildren(unfocus)
 		invalidateHierarchy()
 	}
 
@@ -634,6 +641,13 @@ open class MetaFlexBox(
 		val visibilityChanged = actor.isVisible != visible
 		if (!participationChanged && !visibilityChanged) return
 		actor.isVisible = visible
+		invalidateHierarchy()
+	}
+
+	private fun cleanupRemovedActor(actor: Actor) {
+		itemSpecs.remove(actor)
+		responsiveExcludedItems?.remove(actor)
+		responsiveConfiguration?.removeActor(actor)
 		invalidateHierarchy()
 	}
 

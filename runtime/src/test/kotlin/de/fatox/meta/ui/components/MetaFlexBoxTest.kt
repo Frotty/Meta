@@ -1,6 +1,7 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import de.fatox.meta.ui.layout.MetaLayout
 import de.fatox.meta.ui.responsive.MetaBreakpoints
@@ -304,6 +305,43 @@ internal class MetaFlexBoxTest {
 		assertEquals(MetaFlexDirection.ROW, flex.direction)
 		assertTrue(item.isVisible)
 		assertEquals(100f, flex.prefWidth)
+	}
+
+	@Test
+	fun `reparenting through actor remove drops old responsive rules`() {
+		val item = Actor()
+		val flex = MetaFlexBox()
+			.addItem(item, basisWidth = 40f, basisHeight = 20f)
+			.responsive { item(item) { visible(false).from(MetaBreakpoints.HD, true) } }
+		flex.setSize(1000f, 100f)
+		assertFalse(item.isVisible)
+
+		val newParent = Group()
+		newParent.addActor(item)
+		assertTrue(item.isVisible, "Removal should restore the actor's original visibility")
+
+		flex.setSize(1400f, 100f)
+		flex.setSize(1000f, 100f)
+		assertTrue(item.isVisible, "The old flex must no longer apply responsive rules to a reparented actor")
+	}
+
+	@Test
+	fun `indexed removal and clear overloads clean responsive item state`() {
+		val indexed = Actor()
+		val cleared = Actor()
+		val flex = MetaFlexBox()
+			.addItem(indexed, basisWidth = 20f, basisHeight = 20f)
+			.addItem(cleared, basisWidth = 20f, basisHeight = 20f)
+			.responsive {
+				item(indexed) { visible(false) }
+				item(cleared) { visible(false) }
+			}
+
+		assertEquals(indexed, flex.removeActorAt(0, false))
+		assertTrue(indexed.isVisible)
+		flex.clearChildren(false)
+		assertTrue(cleared.isVisible)
+		assertEquals(0, flex.children.size)
 	}
 
 	@Test
