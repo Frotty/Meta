@@ -78,8 +78,10 @@ data class MetaResponsiveQuery(
 		require(maxHeight > minHeight && !maxHeight.isNaN()) { "Maximum height must be greater than minimum height" }
 	}
 
-	fun matches(size: MetaResponsiveSize): Boolean =
-		size.width >= minWidth && size.width < maxWidth && size.height >= minHeight && size.height < maxHeight
+	fun matches(size: MetaResponsiveSize): Boolean = matches(size.width, size.height)
+
+	fun matches(width: Float, height: Float): Boolean =
+		width >= minWidth && width < maxWidth && height >= minHeight && height < maxHeight
 
 	companion object {
 		fun from(breakpoint: MetaBreakpoint): MetaResponsiveQuery = MetaResponsiveQuery(minWidth = breakpoint.minWidth)
@@ -120,12 +122,14 @@ class MetaResponsiveValue<T> internal constructor(private val base: T) {
 		revision.update { it + 1 }
 	}
 
-	fun resolve(size: MetaResponsiveSize): T {
+	fun resolve(size: MetaResponsiveSize): T = resolve(size.width, size.height)
+
+	fun resolve(width: Float, height: Float): T {
 		revision.value // Makes late fluent additions observable when resolve runs inside a computed/effect.
 		var result = base
 		for (index in overrides.indices) {
 			val override = overrides[index]
-			if (override.query.matches(size)) result = override.value
+			if (override.query.matches(width, height)) result = override.value
 		}
 		return result
 	}
@@ -138,25 +142,41 @@ fun <T> responsive(base: T): MetaResponsiveValue<T> = MetaResponsiveValue(base)
  * consumers derive values through Meta's regular `computed`/`effect` APIs.
  */
 class MetaResponsiveState(val breakpoints: MetaBreakpointSet = MetaBreakpoints.DEFAULT) {
-	private val sizeSignal = signal(MetaResponsiveSize(0f, 0f))
+	private var currentWidth = 0f
+	private var currentHeight = 0f
+	private val sizeRevision = signal(false)
 
-	val size: ReactiveValue<MetaResponsiveSize> = sizeSignal
-	val width: ReactiveValue<Float> = computed { sizeSignal.value.width }
-	val height: ReactiveValue<Float> = computed { sizeSignal.value.height }
-	val breakpoint: ReactiveValue<MetaBreakpoint> = computed { breakpoints.active(sizeSignal.value.width) }
-	val portrait: ReactiveValue<Boolean> = computed { sizeSignal.value.height > sizeSignal.value.width }
+	/** Immutable snapshots are allocated only when this value is actually observed. */
+	val size: ReactiveValue<MetaResponsiveSize> = computed { MetaResponsiveSize(trackedWidth(), trackedHeight()) }
+	val width: ReactiveValue<Float> = computed { trackedWidth() }
+	val height: ReactiveValue<Float> = computed { trackedHeight() }
+	val breakpoint: ReactiveValue<MetaBreakpoint> = computed { breakpoints.active(trackedWidth()) }
+	val portrait: ReactiveValue<Boolean> = computed { trackedHeight() > trackedWidth() }
 
 	/** Returns true only when a new size was published. */
 	fun resize(width: Float, height: Float): Boolean {
 		require(width.isFinite() && width >= 0f) { "Responsive width must be finite and not negative" }
 		require(height.isFinite() && height >= 0f) { "Responsive height must be finite and not negative" }
-		val next = MetaResponsiveSize(width, height)
-		if (sizeSignal.peek() == next) return false
-		sizeSignal.value = next
+		if (currentWidth == width && currentHeight == height) return false
+		currentWidth = width
+		currentHeight = height
+		sizeRevision.value = !sizeRevision.peek()
 		return true
 	}
 
-	fun matches(query: MetaResponsiveQuery): ReactiveValue<Boolean> = computed { query.matches(sizeSignal.value) }
+	fun matches(query: MetaResponsiveQuery): ReactiveValue<Boolean> =
+		computed { query.matches(trackedWidth(), trackedHeight()) }
 
-	fun <T> resolve(value: MetaResponsiveValue<T>): ReactiveValue<T> = computed { value.resolve(sizeSignal.value) }
+	fun <T> resolve(value: MetaResponsiveValue<T>): ReactiveValue<T> =
+		computed { value.resolve(trackedWidth(), trackedHeight()) }
+
+	internal fun trackedWidth(): Float {
+		sizeRevision.value
+		return currentWidth
+	}
+
+	internal fun trackedHeight(): Float {
+		sizeRevision.value
+		return currentHeight
+	}
 }

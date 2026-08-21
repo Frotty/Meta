@@ -7,7 +7,6 @@ import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.ObjectSet
 import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.ui.MetaSpacing
-import de.fatox.meta.ui.responsive.MetaResponsiveSize
 import de.fatox.meta.ui.responsive.MetaResponsiveState
 import de.fatox.meta.ui.responsive.MetaResponsiveValue
 import de.fatox.meta.ui.responsive.responsive
@@ -133,22 +132,38 @@ open class MetaFlexBox(
 		minWidth: Float? = null,
 		minHeight: Float? = null,
 	): MetaFlexBox = apply {
+		val resolvedWidth = basisWidth ?: if (actor is Layout) null else actor.width
+		val resolvedHeight = basisHeight ?: if (actor is Layout) null else actor.height
+		configureResolved(actor, resolvedWidth, resolvedHeight, grow, shrink, minWidth, minHeight)
+	}
+
+	private fun configureResolved(
+		actor: Actor,
+		basisWidth: Float?,
+		basisHeight: Float?,
+		grow: Float,
+		shrink: Float,
+		minWidth: Float?,
+		minHeight: Float?,
+	) {
 		if (basisWidth != null) checkedNonNegative(basisWidth, "Flex item width")
 		if (basisHeight != null) checkedNonNegative(basisHeight, "Flex item height")
 		checkedNonNegative(grow, "Flex grow")
 		checkedNonNegative(shrink, "Flex shrink")
 		if (minWidth != null) checkedNonNegative(minWidth, "Flex item minimum width")
 		if (minHeight != null) checkedNonNegative(minHeight, "Flex item minimum height")
-		val resolvedWidth = basisWidth ?: if (actor is Layout) null else actor.width
-		val resolvedHeight = basisHeight ?: if (actor is Layout) null else actor.height
 		val current = itemSpecs[actor]
 		if (current != null &&
-			current.basisWidth == resolvedWidth && current.basisHeight == resolvedHeight &&
+			current.basisWidth == basisWidth && current.basisHeight == basisHeight &&
 			current.grow == grow && current.shrink == shrink &&
 			current.minWidth == minWidth && current.minHeight == minHeight
-		) return@apply
-		itemSpecs.put(actor, ItemSpec(resolvedWidth, resolvedHeight, grow, shrink, minWidth, minHeight))
+		) return
+		itemSpecs.put(actor, ItemSpec(basisWidth, basisHeight, grow, shrink, minWidth, minHeight))
 		invalidateHierarchy()
+	}
+
+	private fun clearItemConfiguration(actor: Actor) {
+		if (itemSpecs.remove(actor) != null) invalidateHierarchy()
 	}
 
 	/**
@@ -162,7 +177,7 @@ open class MetaFlexBox(
 		responsiveConfiguration = configuration
 		responsiveScope = ReactiveScope().also { scope ->
 			scope.effect("MetaFlexBox.responsive") {
-				configuration.apply(responsiveState.size.value)
+				configuration.apply(responsiveState.trackedWidth(), responsiveState.trackedHeight())
 			}
 		}
 	}
@@ -533,27 +548,20 @@ open class MetaFlexBox(
 			for (index in items.indices) items[index].restore()
 		}
 
-		internal fun apply(size: MetaResponsiveSize) {
-			direction?.let { flex.direction = it.resolve(size) }
-			wrap?.let { flex.wrap = it.resolve(size) }
-			mainGap?.let { flex.mainGap = it.resolve(size) }
-			crossGap?.let { flex.crossGap = it.resolve(size) }
-			justify?.let { flex.justify = it.resolve(size) }
-			align?.let { flex.align = it.resolve(size) }
-			for (index in items.indices) items[index].apply(size)
+		internal fun apply(width: Float, height: Float) {
+			direction?.let { flex.direction = it.resolve(width, height) }
+			wrap?.let { flex.wrap = it.resolve(width, height) }
+			mainGap?.let { flex.mainGap = it.resolve(width, height) }
+			crossGap?.let { flex.crossGap = it.resolve(width, height) }
+			justify?.let { flex.justify = it.resolve(width, height) }
+			align?.let { flex.align = it.resolve(width, height) }
+			for (index in items.indices) items[index].apply(width, height)
 		}
 	}
 
 	class ResponsiveItem internal constructor(private val flex: MetaFlexBox, internal val actor: Actor) {
 		private val originalVisible = actor.isVisible
-		private val original = flex.itemSpecs[actor] ?: ItemSpec(
-			if (actor is Layout) null else actor.width,
-			if (actor is Layout) null else actor.height,
-			0f,
-			1f,
-			null,
-			null,
-		)
+		private val original = flex.itemSpecs[actor]
 		private var visible: MetaResponsiveValue<Boolean>? = null
 		private var basisWidth: MetaResponsiveValue<Float?>? = null
 		private var basisHeight: MetaResponsiveValue<Float?>? = null
@@ -573,20 +581,21 @@ open class MetaFlexBox(
 		fun width(base: Float?): MetaResponsiveValue<Float?> = basisWidth(base)
 		fun height(base: Float?): MetaResponsiveValue<Float?> = basisHeight(base)
 
-		internal fun apply(size: MetaResponsiveSize) {
-			visible?.resolve(size)?.let { flex.setResponsiveVisible(actor, it) }
+		internal fun apply(width: Float, height: Float) {
+			visible?.resolve(width, height)?.let { flex.setResponsiveVisible(actor, it) }
+			if (!hasSizingRules()) return
 			val responsiveWidth = basisWidth
 			val responsiveHeight = basisHeight
 			val responsiveMinWidth = minWidth
 			val responsiveMinHeight = minHeight
-			flex.configure(
+			flex.configureResolved(
 				actor = actor,
-				basisWidth = if (responsiveWidth == null) original.basisWidth else responsiveWidth.resolve(size),
-				basisHeight = if (responsiveHeight == null) original.basisHeight else responsiveHeight.resolve(size),
-				grow = grow?.resolve(size) ?: original.grow,
-				shrink = shrink?.resolve(size) ?: original.shrink,
-				minWidth = if (responsiveMinWidth == null) original.minWidth else responsiveMinWidth.resolve(size),
-				minHeight = if (responsiveMinHeight == null) original.minHeight else responsiveMinHeight.resolve(size),
+				basisWidth = if (responsiveWidth == null) original?.basisWidth else responsiveWidth.resolve(width, height),
+				basisHeight = if (responsiveHeight == null) original?.basisHeight else responsiveHeight.resolve(width, height),
+				grow = grow?.resolve(width, height) ?: original?.grow ?: 0f,
+				shrink = shrink?.resolve(width, height) ?: original?.shrink ?: 1f,
+				minWidth = if (responsiveMinWidth == null) original?.minWidth else responsiveMinWidth.resolve(width, height),
+				minHeight = if (responsiveMinHeight == null) original?.minHeight else responsiveMinHeight.resolve(width, height),
 			)
 		}
 
@@ -596,16 +605,24 @@ open class MetaFlexBox(
 
 		internal fun restore() {
 			restoreVisibility()
-			flex.configure(
-				actor,
-				original.basisWidth,
-				original.basisHeight,
-				original.grow,
-				original.shrink,
-				original.minWidth,
-				original.minHeight,
-			)
+			val originalSpec = original
+			if (originalSpec == null) {
+				if (hasSizingRules()) flex.clearItemConfiguration(actor)
+			} else {
+				flex.configureResolved(
+					actor,
+					originalSpec.basisWidth,
+					originalSpec.basisHeight,
+					originalSpec.grow,
+					originalSpec.shrink,
+					originalSpec.minWidth,
+					originalSpec.minHeight,
+				)
+			}
 		}
+
+		private fun hasSizingRules(): Boolean = basisWidth != null || basisHeight != null || grow != null ||
+			shrink != null || minWidth != null || minHeight != null
 	}
 
 	private fun ensureLineCapacity(required: Int) {

@@ -345,6 +345,26 @@ internal class MetaFlexBoxTest {
 	}
 
 	@Test
+	fun `visibility-only rules preserve dynamic sizing for actors added directly`() {
+		val item = Actor()
+		val flex = MetaFlexBox()
+		flex.addActor(item)
+		flex.responsive { item(item) { visible(true) } }
+
+		item.setSize(30f, 20f)
+		assertEquals(30f, flex.prefWidth)
+		assertEquals(20f, flex.prefHeight)
+
+		item.setSize(70f, 25f)
+		assertEquals(70f, flex.prefWidth)
+		assertEquals(25f, flex.prefHeight)
+
+		flex.responsive { }
+		item.setSize(90f, 30f)
+		assertEquals(90f, flex.prefWidth, "Replacing the rules must restore the absence of an item spec")
+	}
+
+	@Test
 	fun `invalid flex geometry is rejected`() {
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox(mainGap = -1f) }
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox(crossGap = Float.NaN) }
@@ -354,6 +374,11 @@ internal class MetaFlexBoxTest {
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), grow = -1f) }
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), shrink = -1f) }
 		assertFailsWith<IllegalArgumentException> { MetaFlexBox().addItem(Actor(), minWidth = -1f) }
+		assertFailsWith<IllegalArgumentException> { MetaFlexBox().responsive { gap(-1f) } }
+		val item = Actor()
+		assertFailsWith<IllegalArgumentException> {
+			MetaFlexBox().addItem(item).responsive { item(item) { grow(-1f) } }
+		}
 	}
 
 	private class WidthResponsiveWidget : Widget() {
