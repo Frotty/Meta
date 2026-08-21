@@ -68,6 +68,17 @@ internal class MetaLayoutTest {
 	}
 
 	@Test
+	fun `hidden responsive content is excluded from geometry diagnostics`() {
+		val group = Group().apply { setSize(50f, 50f) }
+		group.addActor(Actor().apply {
+			setBounds(40f, 40f, 30f, 30f)
+			isVisible = false
+		})
+
+		MetaLayout.assertValid(group)
+	}
+
+	@Test
 	fun `content squeezed below its preferred size is reported as clipped`() {
 		val table = Table().apply {
 			add(FixedWidget(100f, 20f, shrinkable = true))

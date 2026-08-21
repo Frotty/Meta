@@ -3,9 +3,13 @@ package de.fatox.meta.ui.components
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import de.fatox.meta.ui.layout.MetaLayout
+import de.fatox.meta.ui.responsive.MetaBreakpoints
+import de.fatox.meta.ui.responsive.MetaResponsiveQuery
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 internal class MetaFlexBoxTest {
 	@Test
@@ -175,6 +179,130 @@ internal class MetaFlexBoxTest {
 		assertEquals(20f, flex.prefWidth)
 		flex.clearChildren()
 		assertEquals(0f, flex.prefHeight)
+	}
+
+	@Test
+	fun `responsive layout and item styles cascade across desktop breakpoints`() {
+		val primary = Actor()
+		val secondary = Actor()
+		val flex = MetaFlexBox()
+			.addItem(primary, basisWidth = 100f, basisHeight = 40f)
+			.addItem(secondary, basisWidth = 80f, basisHeight = 40f)
+			.responsive {
+				direction(MetaFlexDirection.COLUMN).from(MetaBreakpoints.FULL_HD, MetaFlexDirection.ROW)
+				gap(8f).from(MetaBreakpoints.FULL_HD, 20f)
+				item(secondary) {
+					visible(false).from(MetaBreakpoints.HD, true)
+					width(80f).from(MetaBreakpoints.FULL_HD, 200f)
+				}
+			}
+
+		flex.setSize(1000f, 200f)
+		flex.layout()
+		assertEquals(MetaFlexDirection.COLUMN, flex.direction)
+		assertEquals(40f, flex.prefHeight)
+		assertFalse(secondary.isVisible)
+
+		flex.setSize(1500f, 200f)
+		flex.layout()
+		assertTrue(secondary.isVisible)
+		assertEquals(88f, flex.prefHeight)
+		assertEquals(80f, secondary.width)
+
+		flex.setSize(2000f, 200f)
+		flex.layout()
+		assertEquals(MetaFlexDirection.ROW, flex.direction)
+		assertEquals(20f, flex.mainGap)
+		assertEquals(120f, secondary.x)
+		assertEquals(200f, secondary.width)
+	}
+
+	@Test
+	fun `height query updates compact spacing without a layout rebuild`() {
+		val first = Actor()
+		val second = Actor()
+		val flex = MetaFlexBox()
+			.addItem(first, basisWidth = 20f, basisHeight = 20f)
+			.addItem(second, basisWidth = 20f, basisHeight = 20f)
+			.responsive {
+				gap(16f).whenMatches(MetaResponsiveQuery.heightBelow(800f), 4f)
+			}
+
+		flex.setSize(100f, 900f)
+		flex.layout()
+		assertEquals(36f, second.x)
+
+		flex.setSize(100f, 720f)
+		flex.layout()
+		assertEquals(24f, second.x)
+	}
+
+	@Test
+	fun `responsive parent bounds cascade into nested flex state`() {
+		val first = Actor()
+		val second = Actor()
+		val inner = MetaFlexBox()
+			.addItem(first, basisWidth = 40f, basisHeight = 20f)
+			.addItem(second, basisWidth = 40f, basisHeight = 20f)
+			.responsive {
+				direction(MetaFlexDirection.COLUMN).from(MetaBreakpoints.HD, MetaFlexDirection.ROW)
+			}
+		val outer = MetaFlexBox().addItem(inner, basisHeight = 100f, grow = 1f)
+
+		outer.setSize(1000f, 100f)
+		outer.layout()
+		assertEquals(MetaFlexDirection.COLUMN, inner.direction)
+
+		outer.setSize(1400f, 100f)
+		outer.layout()
+		assertEquals(MetaFlexDirection.ROW, inner.direction)
+		assertEquals(44f, second.x)
+	}
+
+	@Test
+	fun `responsive hidden flex items do not reserve size or gaps`() {
+		val visible = Actor()
+		val hidden = Actor()
+		val flex = MetaFlexBox(mainGap = 20f)
+			.addItem(visible, basisWidth = 30f, basisHeight = 10f)
+			.addItem(hidden, basisWidth = 100f, basisHeight = 100f)
+			.responsive { item(hidden) { visible(false) } }
+
+		assertEquals(30f, flex.prefWidth)
+		assertEquals(10f, flex.prefHeight)
+	}
+
+	@Test
+	fun `ordinary scene2d visibility keeps its existing layout participation`() {
+		val hidden = Actor().apply { isVisible = false }
+		val flex = MetaFlexBox(mainGap = 20f)
+			.addItem(Actor(), basisWidth = 30f, basisHeight = 10f)
+			.addItem(hidden, basisWidth = 100f, basisHeight = 100f)
+
+		assertEquals(150f, flex.prefWidth)
+		assertEquals(100f, flex.prefHeight)
+	}
+
+	@Test
+	fun `replacing responsive configuration restores prior layout and item state`() {
+		val item = Actor()
+		val flex = MetaFlexBox(direction = MetaFlexDirection.ROW)
+			.addItem(item, basisWidth = 100f, basisHeight = 20f)
+			.responsive {
+				direction(MetaFlexDirection.COLUMN)
+				item(item) {
+					visible(false)
+					width(40f)
+				}
+			}
+
+		assertEquals(MetaFlexDirection.COLUMN, flex.direction)
+		assertFalse(item.isVisible)
+		flex.responsive { gap(12f) }
+
+		assertEquals(MetaFlexDirection.ROW, flex.direction)
+		assertTrue(item.isVisible)
+		assertEquals(100f, flex.prefWidth)
 	}
 
 	@Test
