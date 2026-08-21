@@ -431,7 +431,7 @@ open class MetaFlexBox(
 		val mainAxis = horizontal == (direction == MetaFlexDirection.ROW)
 		if (!mainAxis) return axisMaximum(horizontal, useMinimum = true)
 		if (wrap) return axisMaximum(horizontal, useMinimum = true)
-		return axisTotalMinimum(horizontal) + mainGap * max(0, children.size - 1)
+		return axisTotalMinimum(horizontal) + mainGap * max(0, measuredItemCount - 1)
 	}
 
 	private fun axisTotalMinimum(horizontal: Boolean): Float {

@@ -264,11 +264,12 @@ internal class MetaFlexBoxTest {
 		val visible = Actor()
 		val hidden = Actor()
 		val flex = MetaFlexBox(mainGap = 20f)
-			.addItem(visible, basisWidth = 30f, basisHeight = 10f)
-			.addItem(hidden, basisWidth = 100f, basisHeight = 100f)
+			.addItem(visible, basisWidth = 30f, basisHeight = 10f, minWidth = 30f)
+			.addItem(hidden, basisWidth = 100f, basisHeight = 100f, minWidth = 100f)
 			.responsive { item(hidden) { visible(false) } }
 
 		assertEquals(30f, flex.prefWidth)
+		assertEquals(30f, flex.minWidth)
 		assertEquals(10f, flex.prefHeight)
 	}
 
