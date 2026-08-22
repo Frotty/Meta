@@ -137,6 +137,21 @@ internal class MetaHeadlessUiTest {
 	}
 
 	@Test
+	fun `teardown still restores the globals when the graph was pulled out from under it`() {
+		// A setup that fails part way leaves the harness in some intermediate state,
+		// and the one thing teardown must still manage is handing the process-wide
+		// globals back. Emptying the graph is the closest an outside test can get to
+		// that shape without a fault-injection seam in the fixture.
+		de.fatox.meta.injection.MetaInject.global(clear = true) {}
+
+		MetaHeadlessUi.dispose()
+		assertEquals(null, com.badlogic.gdx.Gdx.gl, "a partial teardown left the GL stub installed")
+
+		MetaHeadlessUi.install()
+		assertTrue(MetaLabel("Play", 18).prefWidth > 0f, "the harness could not come back up afterwards")
+	}
+
+	@Test
 	fun `an install and dispose cycle can be repeated`() {
 		// The documented usage is per test, so the cycle has to be re-entrant: fonts
 		// disposed, graph emptied, GL restored, and all of it able to start again.

@@ -3,6 +3,7 @@ package de.fatox.meta.test
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIRenderer
@@ -43,9 +44,13 @@ import de.fatox.meta.ui.MetaToastManager
  * ### Scope
  *
  * Everything up to and including layout is real: real TTF faces through [MetaFontProvider], real generated skin
- * chrome, real text measurement, real flex and table arithmetic, and [de.fatox.meta.ui.layout.MetaLayout] over the
- * result. Drawing is not, and neither is anything needing a `Stage` — see [HeadlessGL20] for why that is a refusal
- * rather than an omission.
+ * chrome, real text measurement, real flex and table arithmetic, a real `SpriteBatch` and `Stage`, and
+ * [de.fatox.meta.ui.layout.MetaLayout] over the result. A screen that owns its stage can therefore be tested as
+ * itself instead of rebuilt inside the test.
+ *
+ * **Measurements are real, pixels are not.** Every draw call is discarded, so a test may lay out, measure and
+ * validate a tree, and must never assert on what was rendered. [HeadlessGL20] says which calls it reports as
+ * succeeding and why.
  *
  * [uiScale] is writable so a test can check that a scale change re-measures, which is the one piece of responsive
  * behaviour that otherwise only shows up on someone's monitor.
@@ -72,19 +77,35 @@ object MetaHeadlessUi {
 	fun install(installSkinDefaults: Boolean = true) {
 		GdxTestEnvironment.ensure()
 		HeadlessGL20.install()
-
-		// Cleared first: a leftover graph from a previous test would keep that test's
-		// font provider, and therefore its cached faces at its scale.
-		MetaInject.global(clear = true) {
-			singleton<AssetProvider> { MetaAssetProvider() }
-			singleton("default") { FontInfo() }
-			singleton<FontProvider>("default") { MetaFontProvider() }
-			singleton<UIRenderer> { LayoutOnlyRenderer(uiScale) }
-		}
-
-		MetaSkin.dispose()
-		if (installSkinDefaults) MetaSkin.initialize() else MetaSkin.initialize(com.badlogic.gdx.scenes.scene2d.ui.Skin(), installDefaults = false)
+		// Set before anything that can throw, not after everything succeeded. The
+		// first global is already acquired, so from here on teardown has work to do —
+		// and if `dispose()` bailed out because a later step failed, the stub and the
+		// graph would outlive the test that installed them and change every test
+		// after it in the JVM. A failed setup must poison one test, not the run.
 		installed = true
+
+		try {
+			// Cleared first: a leftover graph from a previous test would keep that
+			// test's font provider, and therefore its cached faces at its scale.
+			MetaInject.global(clear = true) {
+				singleton<AssetProvider> { MetaAssetProvider() }
+				singleton("default") { FontInfo() }
+				singleton<FontProvider>("default") { MetaFontProvider() }
+				singleton<UIRenderer> { LayoutOnlyRenderer(uiScale) }
+			}
+
+			MetaSkin.dispose()
+			if (installSkinDefaults) {
+				MetaSkin.initialize()
+			} else {
+				MetaSkin.initialize(Skin(), installDefaults = false)
+			}
+		} catch (failure: Throwable) {
+			// Roll back rather than leave half a harness standing, and still fail the
+			// test that asked for it.
+			runCatching { dispose() }
+			throw failure
+		}
 	}
 
 	/**
@@ -112,9 +133,10 @@ object MetaHeadlessUi {
 /**
  * A [UIRenderer] that owns a UI scale and refuses everything else.
  *
- * Meta's widgets reach the renderer for exactly one thing during layout — the scale their font is rasterized at — and
- * the real one owns a stage, a toast manager and a focus renderer that all need a graphics device. Refusing the rest
- * loudly is deliberate: a test that has wandered into drawing should say so, not quietly get a no-op.
+ * Meta's widgets reach the renderer for exactly one thing during layout — the scale their font is rasterized at — so
+ * that is all this provides. A test that wants a stage can build one; what it does not get is Meta's own UI layer,
+ * whose toast manager and focus renderer exist to draw. Refusing loudly is deliberate: a test that has wandered into
+ * drawing should say so rather than quietly get a no-op and then assert against nothing.
  */
 private class LayoutOnlyRenderer(override val uiScale: Signal<Float>) : UIRenderer {
 	override val uiWidth: Float get() = 1920f
@@ -129,5 +151,8 @@ private class LayoutOnlyRenderer(override val uiScale: Signal<Float>) : UIRender
 	override fun setFocusedActor(actor: Actor?) = Unit
 
 	override fun getToastManager(): MetaToastManager =
-		throw UnsupportedOperationException("MetaHeadlessUi has no stage, so no toast manager; see HeadlessGL20")
+		throw UnsupportedOperationException(
+			"MetaHeadlessUi provides no UI layer of its own, so there is no toast manager. Build a Stage if a test " +
+				"needs one; see HeadlessGL20 for what drawing does and does not do here.",
+		)
 }
