@@ -52,10 +52,14 @@ Meta is the scene2d UI layer; VisUI and libktx must not be introduced.
 - `MetaWindow`/`MetaDialog` own chrome, sticky controls/actions, responsive overflow, and constrained scrolling.
   Consumers must not wrap the whole window in another scroll pane. `MetaUiManager` alone owns docking layout and
   persistence.
-- Test geometry with `MetaLayout.problems(root)` or `assertValid(root)` using `GdxTestEnvironment.ensure()`. A
-  consuming game gets the same pair through
-  `testImplementation testFixtures("com.github.Frotty.Meta:runtime:<version>")`; the fixture carries the headless
-  backend and its natives, so nothing else is needed to write layout tests downstream.
+- Test geometry with `MetaLayout.problems(root)` or `assertValid(root)`. `GdxTestEnvironment.ensure()` is enough for
+  plain actors; `MetaHeadlessUi.install()` additionally stubs GL and registers the object graph, so **real** widget
+  trees — `MetaLabel`, flex rows, whole screens — construct and measure with no graphics device. Prefer it: a layout
+  measured with stand-ins where the labels go is not measuring the part most likely to be the wrong size. Drawing and
+  anything needing a `Stage` remain out of reach by design; see `HeadlessGL20`.
+- A consuming game gets both through
+  `testImplementation testFixtures("com.github.Frotty.Meta:runtime:<version>")`. The fixture carries the headless
+  backend and its natives, so nothing else is wired up downstream.
 
 UI code runs every frame: `draw`, `act`, `layout`, and other hot paths must not allocate.
 
