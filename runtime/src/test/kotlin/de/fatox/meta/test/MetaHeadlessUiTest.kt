@@ -105,6 +105,25 @@ internal class MetaHeadlessUiTest {
 	}
 
 	@Test
+	fun `widgets that resolve dependencies in their constructor can be built`() {
+		// Most Meta widgets fetch their font lazily; a few resolve eagerly, and a
+		// missing eager dependency is not a degraded widget — it is a
+		// GdxRuntimeException before the tree can be measured. MetaSelectBox takes a
+		// UiControlHelper that way, so a screen containing one used to fail outright.
+		val box = de.fatox.meta.ui.components.MetaSelectBox<String>()
+		val field = de.fatox.meta.ui.components.MetaTextField("hello")
+		val root = MetaTable()
+		root.add(box)
+		root.add(field)
+		root.setSize(1920f, 1080f)
+		root.validate()
+
+		assertTrue(box.prefHeight > 0f, "the select box measured nothing")
+		assertTrue(field.prefHeight > 0f, "the text field measured nothing")
+		MetaLayout.assertValid(root)
+	}
+
+	@Test
 	fun `a stage can be built, so a screen can be tested rather than rebuilt`() {
 		// The capability that decides whether a consumer duplicates its layouts. Meta's
 		// screens own their stage, so without this every test would have to

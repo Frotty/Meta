@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.assets.MetaAssetProvider
@@ -14,6 +15,8 @@ import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.input.MetaUiInputBindings
+import de.fatox.meta.ui.UiControlHelper
 import de.fatox.meta.ui.refreshFontsRecursively
 import de.fatox.meta.ui.MetaToastManager
 
@@ -54,7 +57,21 @@ import de.fatox.meta.ui.MetaToastManager
  * succeeding and why.
  *
  * [uiScale] is writable so a test can check that a scale change re-measures, which is the one piece of responsive
- * behaviour that otherwise only shows up on someone's monitor.
+ * behaviour that otherwise only shows up on someone's monitor. Applying it to a tree that already exists needs
+ * [refreshFonts].
+ *
+ * ### It owns the injection graph
+ *
+ * [install] clears the global graph and [dispose] leaves it empty. That is deliberate — a font provider surviving
+ * from a previous test brings that test's cached faces at that test's scale with it — but it means a suite cannot
+ * interleave this with a bootstrap of its own that registers singletons **once**. A game whose setup is guarded
+ * (`if (installed) return`) will not re-register after a teardown has emptied the graph, and the next test fails with
+ * `Unknown class`. The same applies to `MetaModule`, whose registrations run from an object initialiser and therefore
+ * exactly once per classloader.
+ *
+ * So: let the harness own the graph for the tests that use it, and register anything extra inside the same test after
+ * [install]. Restoring a caller's previous graph would be better, and needs a snapshot API that `MetaInject` does not
+ * expose today.
  */
 object MetaHeadlessUi {
 
@@ -88,11 +105,27 @@ object MetaHeadlessUi {
 		try {
 			// Cleared first: a leftover graph from a previous test would keep that
 			// test's font provider, and therefore its cached faces at its scale.
+			//
+			// What follows is everything a Meta widget resolves *at construction time*.
+			// Most reach for their font lazily, but a handful resolve eagerly —
+			// `MetaSelectBox` takes a UiControlHelper that way — and a missing eager
+			// dependency is not a degraded widget, it is a GdxRuntimeException before
+			// the tree can be measured at all.
+			//
+			// The input processor is a stub, not the real MetaInput: that constructor
+			// claims `Gdx.input.inputProcessor` and adds a listener to the static
+			// Controllers registry, which is process-wide state a layout harness has no
+			// business taking. It cannot simply be left out either — UiControlHelper's
+			// `init` registers a global processor, so a select box cannot be built
+			// without something answering for the interface. See LayoutOnlyInput.
 			MetaInject.global(clear = true) {
 				singleton<AssetProvider> { MetaAssetProvider() }
 				singleton("default") { FontInfo() }
 				singleton<FontProvider>("default") { MetaFontProvider() }
 				singleton<UIRenderer> { LayoutOnlyRenderer(uiScale) }
+				singleton<MetaInputProcessor> { LayoutOnlyInput() }
+				singleton { MetaUiInputBindings() }
+				singleton("default") { UiControlHelper() }
 			}
 
 			MetaSkin.dispose()
