@@ -14,6 +14,7 @@ import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.refreshFontsRecursively
 import de.fatox.meta.ui.MetaToastManager
 
 /**
@@ -106,6 +107,22 @@ object MetaHeadlessUi {
 			runCatching { dispose() }
 			throw failure
 		}
+	}
+
+	/**
+	 * Applies a [uiScale] change to a tree that already exists, the way the real renderer does.
+	 *
+	 * Writing [uiScale] alone regenerates nothing: [MetaFontProvider] re-rasterizes lazily, so widgets built before
+	 * the write keep the faces they already hold while widgets built after it get new ones — a split that would make a
+	 * scale test quietly meaningless. At runtime `MetaUIRenderer` subscribes to the scale and walks its stage; there
+	 * is no renderer here to do that, so a test names the root itself.
+	 *
+	 * The order is the renderer's and matters for the same reason: refresh the tree first so every widget re-fetches,
+	 * *then* release the old faces, which are still referenced until it has.
+	 */
+	fun refreshFonts(root: Actor) {
+		root.refreshFontsRecursively()
+		runCatching { MetaInject.inject<FontProvider>("default").disposeOrphanedFonts() }
 	}
 
 	/**

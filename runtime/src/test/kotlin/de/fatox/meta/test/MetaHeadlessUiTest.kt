@@ -162,18 +162,80 @@ internal class MetaHeadlessUiTest {
 		}
 	}
 
+	/** Counts the refresh calls a real font-caching widget would receive. */
+	private class CountingRefreshable : com.badlogic.gdx.scenes.scene2d.Actor(), de.fatox.meta.ui.FontRefreshable {
+		var refreshes = 0
+		override fun refreshFont() {
+			refreshes++
+		}
+	}
+
 	@Test
-	fun `a scale change re-rasterizes the fonts`() {
-		val before = de.fatox.meta.injection.MetaInject.inject<de.fatox.meta.api.graphics.FontProvider>()
-		val generationBefore = before.fontGeneration
+	fun `refreshing a tree reaches every widget in it`() {
+		// The walk is the whole point: a widget that never re-fetches keeps a face that
+		// disposeOrphanedFonts is about to release. Asserted through a FontRefreshable
+		// spy rather than through the provider's generation counter, because
+		// disposeOrphanedFonts bumps that counter on its own — an earlier version of
+		// this test passed with the walk deleted, which is exactly the weakness the
+		// review flagged in the version before that.
+		val nested = CountingRefreshable()
+		val inner = MetaTable()
+		inner.add(nested)
+		val root = MetaTable()
+		root.add(MetaLabel("Play", 18))
+		root.add(inner)
+		root.setSize(1920f, 1080f)
+		root.validate()
 
 		MetaHeadlessUi.uiScale.value = 2f
-		val label = MetaLabel("Play", 18)
+		MetaHeadlessUi.refreshFonts(root)
 
-		assertTrue(label.prefWidth > 0f, "a label built after a scale change measured nothing")
+		assertEquals(1, nested.refreshes, "the refresh walk did not reach a nested widget")
+	}
+
+	@Test
+	fun `refreshing a tree after a scale change re-rasterizes its fonts`() {
+		val provider = de.fatox.meta.injection.MetaInject
+			.inject<de.fatox.meta.api.graphics.FontProvider>("default")
+		val root = MetaTable()
+		root.add(MetaLabel("Play", 18))
+		root.setSize(1920f, 1080f)
+		root.validate()
+
+		val generationBefore = provider.fontGeneration
+		val faceBefore = provider.getFont(18, de.fatox.meta.api.graphics.FontType.REGULAR)
+
+		MetaHeadlessUi.uiScale.value = 2f
+		MetaHeadlessUi.refreshFonts(root)
+
 		assertTrue(
-			before.fontGeneration >= generationBefore,
-			"the font generation counter went backwards across a scale change",
+			provider.fontGeneration > generationBefore,
+			"the provider never regenerated: ${provider.fontGeneration} was not past $generationBefore",
+		)
+		assertTrue(
+			provider.getFont(18, de.fatox.meta.api.graphics.FontType.REGULAR) !== faceBefore,
+			"the same face came back after a scale change, so nothing was re-rasterized",
+		)
+	}
+
+	@Test
+	fun `a scale change alone leaves an existing tree on its old faces`() {
+		// Pinning the boundary the refresh exists for, rather than leaving a consumer
+		// to discover it: the provider re-rasterizes lazily, so writing the scale
+		// without refreshing regenerates nothing at all.
+		val provider = de.fatox.meta.injection.MetaInject
+			.inject<de.fatox.meta.api.graphics.FontProvider>("default")
+		val root = MetaTable()
+		root.add(MetaLabel("Play", 18))
+		root.validate()
+
+		val generationBefore = provider.fontGeneration
+		MetaHeadlessUi.uiScale.value = 2f
+
+		assertEquals(
+			generationBefore,
+			provider.fontGeneration,
+			"a bare scale write regenerated fonts, so refreshFonts is no longer the documented step",
 		)
 	}
 }
