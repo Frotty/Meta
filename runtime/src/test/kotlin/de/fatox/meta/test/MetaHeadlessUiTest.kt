@@ -124,6 +124,39 @@ internal class MetaHeadlessUiTest {
 	}
 
 	@Test
+	fun `the stubbed input processor stacks exclusive owners like the real one`() {
+		// Nested grabs are why the real one is a stack, so a stub that clobbers would
+		// let a test asserting on leaked-owner lifecycle pass where production fails.
+		// Compared against MetaInput's documented semantics, not against convenience.
+		val input = de.fatox.meta.injection.MetaInject
+			.inject<de.fatox.meta.api.MetaInputProcessor>()
+		val first = com.badlogic.gdx.InputAdapter()
+		val second = com.badlogic.gdx.InputAdapter()
+
+		input.pushExclusiveProcessor(first)
+		input.pushExclusiveProcessor(second)
+		assertTrue(input.exclusiveProcessor === second, "the top of the stack is the most recent grab")
+
+		assertTrue(input.popExclusiveProcessor(second), "popping the top reports success")
+		assertTrue(input.exclusiveProcessor === first, "popping the top restores the owner underneath it")
+
+		// Popping from underneath an active owner has to work too: a game-owned grab
+		// can be released while a dialog still holds one above it.
+		input.pushExclusiveProcessor(second)
+		assertTrue(input.popExclusiveProcessor(first), "an owner below the top is still removable")
+		assertTrue(input.exclusiveProcessor === second, "and the one above it keeps ownership")
+
+		// Re-pushing an owner already on the stack moves it to the top rather than
+		// duplicating it, so one pop is enough to release it.
+		input.pushExclusiveProcessor(second)
+		assertTrue(input.popExclusiveProcessor(second))
+		assertEquals(null, input.exclusiveProcessor, "a re-pushed owner was duplicated on the stack")
+
+		input.clearExclusiveProcessors()
+		assertEquals(null, input.exclusiveProcessor)
+	}
+
+	@Test
 	fun `a stage can be built, so a screen can be tested rather than rebuilt`() {
 		// The capability that decides whether a consumer duplicates its layouts. Meta's
 		// screens own their stage, so without this every test would have to

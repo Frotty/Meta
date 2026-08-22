@@ -26,20 +26,49 @@ internal class LayoutOnlyInput : MetaInputProcessor {
 	private val globalScrollListeners = ArrayList<ScrollListener>()
 	private val screenScrollListeners = ArrayList<ScrollListener>()
 
-	override var exclusiveProcessor: InputProcessor? = null
+	/**
+	 * A LIFO stack, matching [de.fatox.meta.input.MetaInput] rather than approximating it.
+	 *
+	 * A single slot would have been simpler and wrong in a way that matters here: nested grabs are the reason the real
+	 * one is a stack, so `push(A); push(B); pop(B)` must leave A owning input, and popping A while B is active must
+	 * remove A from underneath it. A stub that clobbers instead of stacking would let a test asserting on
+	 * leaked-owner lifecycle pass when the production path would have failed — the harness lying about the thing the
+	 * test is checking.
+	 *
+	 * Identity, not equality, for the same reason `MetaInput` uses `removeValue(processor, true)`: two distinct
+	 * processors that happen to compare equal are still two owners.
+	 */
+	private val exclusiveProcessors = ArrayList<InputProcessor>()
+
+	override var exclusiveProcessor: InputProcessor?
+		get() = exclusiveProcessors.lastOrNull()
+		set(value) {
+			if (value == null) {
+				if (exclusiveProcessors.isNotEmpty()) exclusiveProcessors.removeAt(exclusiveProcessors.lastIndex)
+			} else {
+				pushExclusiveProcessor(value)
+			}
+		}
 
 	override fun pushExclusiveProcessor(processor: InputProcessor) {
-		exclusiveProcessor = processor
+		removeByIdentity(processor) // avoid duplicates; (re)push to the top
+		exclusiveProcessors.add(processor)
 	}
 
-	override fun popExclusiveProcessor(processor: InputProcessor): Boolean {
-		if (exclusiveProcessor !== processor) return false
-		exclusiveProcessor = null
-		return true
-	}
+	override fun popExclusiveProcessor(processor: InputProcessor): Boolean = removeByIdentity(processor)
 
 	override fun clearExclusiveProcessors() {
-		exclusiveProcessor = null
+		exclusiveProcessors.clear()
+	}
+
+	private fun removeByIdentity(processor: InputProcessor): Boolean {
+		for (i in exclusiveProcessors.indices) {
+			if (exclusiveProcessors[i] === processor) {
+				exclusiveProcessors.removeAt(i)
+				return true
+			}
+		}
+		return false
 	}
 
 	override val isLeftCtrlDown: Boolean = false
