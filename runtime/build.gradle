@@ -1,3 +1,9 @@
+// Publishes `de.fatox.meta.test` as a test-fixtures variant so a consuming game
+// can write the layout tests this repo's own guidance tells it to write. Without
+// it GdxTestEnvironment lived in src/test and shipped nowhere, so `MetaLayout`
+// was reachable downstream and the headless boot it needs was not.
+apply plugin: 'java-test-fixtures'
+
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 eclipse.project.name = appName + '-runtime'
 
@@ -11,6 +17,16 @@ dependencies {
 	// XZ backs Commons Compress' LZMA support but is not part of Meta's public API.
 	implementation "org.tukaani:xz:$xzVersion"
 	api "org.slf4j:slf4j-api:$slf4jVersion"
+
+	// `api`, not `implementation`: GdxTestEnvironment's whole job is booting this
+	// backend, so anything using the fixture needs it on the classpath too.
+	testFixturesApi "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
+	// The natives have to travel with the fixture, not just sit in this project's
+	// own testRuntimeOnly. A consumer that resolved the fixture without them got
+	// as far as booting and then died on "Couldn't load shared library 'gdx64.dll'"
+	// — the fixture is only useful if it brings what HeadlessApplication needs.
+	testFixturesRuntimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+	testFixturesRuntimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
 
 	testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
 	testImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
