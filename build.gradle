@@ -41,6 +41,22 @@ configure(subprojects) {
 	publishing {
 		publications {
 			mavenJava(MavenPublication) {
+				// Coordinates come from the project group (see `subprojects` below),
+				// deliberately, not from an override here.
+				//
+				// JitPack rewrites the POM to `com.github.Frotty.Meta:<module>` and
+				// leaves the Gradle module metadata saying `com.github.Frotty:Meta`.
+				// Gradle discards metadata whose component does not match the request
+				// and silently falls back to the POM, losing every variant a POM
+				// cannot express — so `testFixtures(...)` could not resolve while the
+				// fixture jar sat in the repository right beside the jar that did.
+				//
+				// Overriding only `groupId` here is not enough and is worth recording:
+				// a feature capability is derived from the *project* group, so the
+				// fixture still advertised `com.github.Frotty:runtime-test-fixtures`
+				// against a consumer asking for `com.github.Frotty.Meta:...`. One
+				// group, set once, keeps the POM, the metadata and the capabilities
+				// agreeing.
 				from components.java
 			}
 		}
@@ -48,7 +64,11 @@ configure(subprojects) {
 }
 
 subprojects {
-	group = 'com.github.Frotty'
+	// The coordinates JitPack actually serves under. Declaring them here rather than
+	// letting JitPack rewrite them keeps the POM, the Gradle module metadata and the
+	// derived feature capabilities all saying the same thing — see the publishing
+	// block above for what went wrong when they disagreed.
+	group = 'com.github.Frotty.Meta'
 	version = '1.0.0-SNAPSHOT'
 
 	repositories {

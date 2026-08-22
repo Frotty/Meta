@@ -1,0 +1,208 @@
+package de.fatox.meta.test
+
+import com.badlogic.gdx.graphics.Camera
+import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.assets.MetaAssetProvider
+import de.fatox.meta.graphics.font.FontInfo
+import de.fatox.meta.graphics.font.MetaFontProvider
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.reactive.Signal
+import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.input.MetaUiInputBindings
+import de.fatox.meta.ui.UiControlHelper
+import de.fatox.meta.ui.refreshFontsRecursively
+import de.fatox.meta.ui.MetaToastManager
+
+/**
+ * Builds and measures **real** Meta widget trees in a plain unit test.
+ *
+ * [GdxTestEnvironment] gets scene2d far enough to lay out plain actors, which is enough to test the layout
+ * containers themselves and not enough to test a screen: every widget that carries text needs a font, a font needs a
+ * texture, and a texture needs a graphics device. So the only geometry a consumer could check was geometry with the
+ * text taken out of it — stand-in actors standing where the labels go, which is exactly the part most likely to be
+ * the wrong size.
+ *
+ * This closes that. [HeadlessGL20] supplies a graphics device that discards every call, and this supplies the object
+ * graph Meta's widgets resolve against, so a test can construct a `MetaLabel`, a `MetaFlexBox` full of them, or a
+ * whole screen's worth of rows, and assert what it measures:
+ *
+ * ```kotlin
+ * @BeforeEach fun setUp() = MetaHeadlessUi.install()
+ * @AfterEach  fun tearDown() = MetaHeadlessUi.dispose()
+ *
+ * @Test fun `the options rows line up`() {
+ *     val row = metaFlexRow { addItem(MetaLabel("Volume", 18)); addItem(MetaLabel("100%", 18)) }
+ *     val root = MetaTable().apply { setSize(1920f, 1080f); add(row) }
+ *     root.validate()
+ *     MetaLayout.assertValid(root)
+ * }
+ * ```
+ *
+ * ### Scope
+ *
+ * Everything up to and including layout is real: real TTF faces through [MetaFontProvider], real generated skin
+ * chrome, real text measurement, real flex and table arithmetic, a real `SpriteBatch` and `Stage`, and
+ * [de.fatox.meta.ui.layout.MetaLayout] over the result. A screen that owns its stage can therefore be tested as
+ * itself instead of rebuilt inside the test.
+ *
+ * **Measurements are real, pixels are not.** Every draw call is discarded, so a test may lay out, measure and
+ * validate a tree, and must never assert on what was rendered. [HeadlessGL20] says which calls it reports as
+ * succeeding and why.
+ *
+ * [uiScale] is writable so a test can check that a scale change re-measures, which is the one piece of responsive
+ * behaviour that otherwise only shows up on someone's monitor. Applying it to a tree that already exists needs
+ * [refreshFonts].
+ *
+ * ### It owns the injection graph
+ *
+ * [install] clears the global graph and [dispose] leaves it empty. That is deliberate — a font provider surviving
+ * from a previous test brings that test's cached faces at that test's scale with it — but it means a suite cannot
+ * interleave this with a bootstrap of its own that registers singletons **once**. A game whose setup is guarded
+ * (`if (installed) return`) will not re-register after a teardown has emptied the graph, and the next test fails with
+ * `Unknown class`. The same applies to `MetaModule`, whose registrations run from an object initialiser and therefore
+ * exactly once per classloader.
+ *
+ * So: let the harness own the graph for the tests that use it, and register anything extra inside the same test after
+ * [install]. Restoring a caller's previous graph would be better, and needs a snapshot API that `MetaInject` does not
+ * expose today.
+ */
+object MetaHeadlessUi {
+
+	/**
+	 * The UI scale the font provider rasterizes against. Write it to exercise a scale change; widgets re-fetch their
+	 * face through [FontProvider.fontGeneration] the same way they do at runtime.
+	 */
+	val uiScale: Signal<Float> = signal(1f)
+
+	private var installed = false
+
+	/**
+	 * Boots the headless application and the GL stub once per JVM, then registers the object graph and initialises
+	 * the skin. Call from `@BeforeEach`; pair with [dispose].
+	 *
+	 * @param installSkinDefaults generate the real skin chrome. On by default because a widget measured against a
+	 *   defaults-free skin is measured without its own padding and borders, which is not the size it will have.
+	 *   Turn it off for a test that only cares about layout containers.
+	 */
+	@JvmOverloads
+	fun install(installSkinDefaults: Boolean = true) {
+		GdxTestEnvironment.ensure()
+		HeadlessGL20.install()
+		// Set before anything that can throw, not after everything succeeded. The
+		// first global is already acquired, so from here on teardown has work to do —
+		// and if `dispose()` bailed out because a later step failed, the stub and the
+		// graph would outlive the test that installed them and change every test
+		// after it in the JVM. A failed setup must poison one test, not the run.
+		installed = true
+
+		try {
+			// Cleared first: a leftover graph from a previous test would keep that
+			// test's font provider, and therefore its cached faces at its scale.
+			//
+			// What follows is everything a Meta widget resolves *at construction time*.
+			// Most reach for their font lazily, but a handful resolve eagerly —
+			// `MetaSelectBox` takes a UiControlHelper that way — and a missing eager
+			// dependency is not a degraded widget, it is a GdxRuntimeException before
+			// the tree can be measured at all.
+			//
+			// The input processor is a stub, not the real MetaInput: that constructor
+			// claims `Gdx.input.inputProcessor` and adds a listener to the static
+			// Controllers registry, which is process-wide state a layout harness has no
+			// business taking. It cannot simply be left out either — UiControlHelper's
+			// `init` registers a global processor, so a select box cannot be built
+			// without something answering for the interface. See LayoutOnlyInput.
+			MetaInject.global(clear = true) {
+				singleton<AssetProvider> { MetaAssetProvider() }
+				singleton("default") { FontInfo() }
+				singleton<FontProvider>("default") { MetaFontProvider() }
+				singleton<UIRenderer> { LayoutOnlyRenderer(uiScale) }
+				singleton<MetaInputProcessor> { LayoutOnlyInput() }
+				singleton { MetaUiInputBindings() }
+				singleton("default") { UiControlHelper() }
+			}
+
+			MetaSkin.dispose()
+			if (installSkinDefaults) {
+				MetaSkin.initialize()
+			} else {
+				MetaSkin.initialize(Skin(), installDefaults = false)
+			}
+		} catch (failure: Throwable) {
+			// Roll back rather than leave half a harness standing, and still fail the
+			// test that asked for it.
+			runCatching { dispose() }
+			throw failure
+		}
+	}
+
+	/**
+	 * Applies a [uiScale] change to a tree that already exists, the way the real renderer does.
+	 *
+	 * Writing [uiScale] alone regenerates nothing: [MetaFontProvider] re-rasterizes lazily, so widgets built before
+	 * the write keep the faces they already hold while widgets built after it get new ones — a split that would make a
+	 * scale test quietly meaningless. At runtime `MetaUIRenderer` subscribes to the scale and walks its stage; there
+	 * is no renderer here to do that, so a test names the root itself.
+	 *
+	 * The order is the renderer's and matters for the same reason: refresh the tree first so every widget re-fetches,
+	 * *then* release the old faces, which are still referenced until it has.
+	 */
+	fun refreshFonts(root: Actor) {
+		root.refreshFontsRecursively()
+		runCatching { MetaInject.inject<FontProvider>("default").disposeOrphanedFonts() }
+	}
+
+	/**
+	 * Releases everything [install] created, in the order it has to happen. Call from `@AfterEach`.
+	 *
+	 * The providers are disposed *before* the graph is cleared, because clearing only drops references: a
+	 * [MetaFontProvider] owns FreeType generators and cached faces and a [MetaAssetProvider] owns an `AssetManager`,
+	 * and none of that is garbage — it is native memory that an install/dispose cycle per test would otherwise leak
+	 * once per test. The GL stub goes last, since disposing fonts still calls through it.
+	 */
+	fun dispose() {
+		if (!installed) return
+		MetaSkin.dispose()
+		// Resolved rather than remembered: the graph owns them, and a `runCatching` keeps a teardown from failing
+		// over a provider a test never caused to be created.
+		runCatching { MetaInject.inject<FontProvider>("default").dispose() }
+		runCatching { MetaInject.inject<AssetProvider>().dispose() }
+		MetaInject.global(clear = true) {}
+		HeadlessGL20.uninstall()
+		uiScale.value = 1f
+		installed = false
+	}
+}
+
+/**
+ * A [UIRenderer] that owns a UI scale and refuses everything else.
+ *
+ * Meta's widgets reach the renderer for exactly one thing during layout — the scale their font is rasterized at — so
+ * that is all this provides. A test that wants a stage can build one; what it does not get is Meta's own UI layer,
+ * whose toast manager and focus renderer exist to draw. Refusing loudly is deliberate: a test that has wandered into
+ * drawing should say so rather than quietly get a no-op and then assert against nothing.
+ */
+private class LayoutOnlyRenderer(override val uiScale: Signal<Float>) : UIRenderer {
+	override val uiWidth: Float get() = 1920f
+	override val uiHeight: Float get() = 1080f
+
+	override fun load() = Unit
+	override fun addActor(actor: Actor) = Unit
+	override fun update() = Unit
+	override fun draw() = Unit
+	override fun resize(width: Int, height: Int) = Unit
+	override fun getCamera(): Camera = OrthographicCamera()
+	override fun setFocusedActor(actor: Actor?) = Unit
+
+	override fun getToastManager(): MetaToastManager =
+		throw UnsupportedOperationException(
+			"MetaHeadlessUi provides no UI layer of its own, so there is no toast manager. Build a Stage if a test " +
+				"needs one; see HeadlessGL20 for what drawing does and does not do here.",
+		)
+}
