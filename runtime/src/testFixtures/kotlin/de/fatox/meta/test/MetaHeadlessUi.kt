@@ -87,11 +87,23 @@ object MetaHeadlessUi {
 		installed = true
 	}
 
-	/** Releases the skin and empties the graph. Call from `@AfterEach`. */
+	/**
+	 * Releases everything [install] created, in the order it has to happen. Call from `@AfterEach`.
+	 *
+	 * The providers are disposed *before* the graph is cleared, because clearing only drops references: a
+	 * [MetaFontProvider] owns FreeType generators and cached faces and a [MetaAssetProvider] owns an `AssetManager`,
+	 * and none of that is garbage — it is native memory that an install/dispose cycle per test would otherwise leak
+	 * once per test. The GL stub goes last, since disposing fonts still calls through it.
+	 */
 	fun dispose() {
 		if (!installed) return
 		MetaSkin.dispose()
+		// Resolved rather than remembered: the graph owns them, and a `runCatching` keeps a teardown from failing
+		// over a provider a test never caused to be created.
+		runCatching { MetaInject.inject<FontProvider>("default").dispose() }
+		runCatching { MetaInject.inject<AssetProvider>().dispose() }
 		MetaInject.global(clear = true) {}
+		HeadlessGL20.uninstall()
 		uiScale.value = 1f
 		installed = false
 	}

@@ -121,6 +121,33 @@ internal class MetaHeadlessUiTest {
 	}
 
 	@Test
+	fun `teardown puts the GL globals back`() {
+		// These are process-wide. A stub left installed silently changes every later
+		// test in the JVM — MetaFontProviderTest asserts that font generation fails
+		// with an NPE naming Gdx.gl, so it would pass or fail depending on which class
+		// the runner reached first. Order-dependent tests are worse than absent ones.
+		assertTrue(com.badlogic.gdx.Gdx.gl != null, "the harness should have installed a GL stub")
+
+		MetaHeadlessUi.dispose()
+		assertEquals(null, com.badlogic.gdx.Gdx.gl, "Gdx.gl was left pointing at the stub")
+		assertEquals(null, com.badlogic.gdx.Gdx.gl20, "Gdx.gl20 was left pointing at the stub")
+
+		// Put it back for the shared @AfterEach, which is a no-op once disposed.
+		MetaHeadlessUi.install()
+	}
+
+	@Test
+	fun `an install and dispose cycle can be repeated`() {
+		// The documented usage is per test, so the cycle has to be re-entrant: fonts
+		// disposed, graph emptied, GL restored, and all of it able to start again.
+		repeat(3) {
+			MetaHeadlessUi.dispose()
+			MetaHeadlessUi.install()
+			assertTrue(MetaLabel("Play", 18).prefWidth > 0f, "the harness did not come back up")
+		}
+	}
+
+	@Test
 	fun `a scale change re-rasterizes the fonts`() {
 		val before = de.fatox.meta.injection.MetaInject.inject<de.fatox.meta.api.graphics.FontProvider>()
 		val generationBefore = before.fontGeneration

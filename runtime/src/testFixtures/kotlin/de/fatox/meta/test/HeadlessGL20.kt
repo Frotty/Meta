@@ -68,10 +68,34 @@ object HeadlessGL20 {
 		}
 	}
 
-	/** Points [Gdx.gl] and [Gdx.gl20] at the stub. Idempotent. */
+	private var previousGl: GL20? = null
+	private var previousGl20: GL20? = null
+	private var installed = false
+
+	/** Points [Gdx.gl] and [Gdx.gl20] at the stub, remembering what was there. Idempotent. */
 	fun install() {
-		if (Gdx.gl === stub) return
+		if (installed) return
+		previousGl = Gdx.gl
+		previousGl20 = Gdx.gl20
 		Gdx.gl = stub
 		Gdx.gl20 = stub
+		installed = true
+	}
+
+	/**
+	 * Puts back whatever held the GL globals before [install].
+	 *
+	 * Not optional. These are process-wide, so a stub left installed silently changes every later test in the JVM: a
+	 * test that boots only [GdxTestEnvironment] would no longer be running without a graphics device, and
+	 * `MetaFontProviderTest` — which asserts that font generation fails with an NPE naming `Gdx.gl` — would pass or
+	 * fail depending on which class the runner happened to reach first.
+	 */
+	fun uninstall() {
+		if (!installed) return
+		Gdx.gl = previousGl
+		Gdx.gl20 = previousGl20
+		previousGl = null
+		previousGl20 = null
+		installed = false
 	}
 }

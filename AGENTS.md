@@ -54,9 +54,10 @@ Meta is the scene2d UI layer; VisUI and libktx must not be introduced.
   persistence.
 - Test geometry with `MetaLayout.problems(root)` or `assertValid(root)`. `GdxTestEnvironment.ensure()` is enough for
   plain actors; `MetaHeadlessUi.install()` additionally stubs GL and registers the object graph, so **real** widget
-  trees — `MetaLabel`, flex rows, whole screens — construct and measure with no graphics device. Prefer it: a layout
-  measured with stand-ins where the labels go is not measuring the part most likely to be the wrong size. Drawing and
-  anything needing a `Stage` remain out of reach by design; see `HeadlessGL20`.
+  trees — `MetaLabel`, flex rows, a `Stage`, whole screens — construct and measure with no graphics device. Prefer it:
+  a layout measured with stand-ins where the labels go is not measuring the part most likely to be the wrong size, and
+  a screen that owns its stage can be tested as itself rather than rebuilt inside the test. Measurements are real;
+  **pixels are not** — every draw call is discarded, so never assert on what was rendered. See `HeadlessGL20`.
 - A consuming game gets both through
   `testImplementation testFixtures("com.github.Frotty.Meta:runtime:<version>")`. The fixture carries the headless
   backend and its natives, so nothing else is wired up downstream.
