@@ -434,7 +434,7 @@ class SplashScreen private constructor(
 			drawPanelBorder(visualAlpha)
 			val accent = presentation.palette.accent
 			val track = presentation.palette.track
-			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
+			spriteBatch.setPaletteColor(accent, visualAlpha)
 			spriteBatch.draw(pixelTexture!!, panelX, panelY + panelHeight - ACCENT_HEIGHT, panelWidth, ACCENT_HEIGHT)
 
 			val markX = panelX + PANEL_PADDING
@@ -442,12 +442,7 @@ class SplashScreen private constructor(
 			spriteBatch.setColor(MetaColor.PRIMARY.r, MetaColor.PRIMARY.g, MetaColor.PRIMARY.b, visualAlpha)
 			spriteBatch.draw(pixelTexture!!, markX, markY, MARK_SIZE, MARK_SIZE)
 
-			spriteBatch.setColor(
-				track.r,
-				track.g,
-				track.b,
-				DIVIDER_ALPHA * visualAlpha,
-			)
+			spriteBatch.setPaletteColor(track, DIVIDER_ALPHA * visualAlpha)
 			spriteBatch.draw(
 				pixelTexture!!,
 				panelX + PANEL_PADDING,
@@ -456,7 +451,7 @@ class SplashScreen private constructor(
 				1f,
 			)
 
-			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
+			spriteBatch.setPaletteColor(accent, visualAlpha)
 			spriteBatch.draw(
 				ringTexture!!,
 				spinnerCenterX - SPINNER_SIZE * 0.5f,
@@ -476,9 +471,9 @@ class SplashScreen private constructor(
 				false,
 			)
 
-			spriteBatch.setColor(track.r, track.g, track.b, TRACK_ALPHA * visualAlpha)
+			spriteBatch.setPaletteColor(track, TRACK_ALPHA * visualAlpha)
 			spriteBatch.draw(pixelTexture!!, barX, barY, barWidth, BAR_HEIGHT)
-			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
+			spriteBatch.setPaletteColor(accent, visualAlpha)
 			if (assetQueue != null && phase == SplashPhase.LOADING) {
 				spriteBatch.draw(
 					pixelTexture!!,
@@ -520,9 +515,9 @@ class SplashScreen private constructor(
 		spriteBatch.use {
 			val track = presentation.palette.track
 			val accent = presentation.palette.accent
-			spriteBatch.setColor(track.r, track.g, track.b, TRACK_ALPHA * visualAlpha)
+			spriteBatch.setPaletteColor(track, TRACK_ALPHA * visualAlpha)
 			spriteBatch.draw(pixelTexture!!, barX, barY, barWidth, barHeight)
-			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
+			spriteBatch.setPaletteColor(accent, visualAlpha)
 			if (assetQueue != null && phase == SplashPhase.LOADING) {
 				spriteBatch.draw(
 					pixelTexture!!,
@@ -540,6 +535,17 @@ class SplashScreen private constructor(
 			spriteBatch.color = Color.WHITE
 			titleText?.cache?.draw(spriteBatch, visualAlpha)
 		}
+	}
+
+	/**
+	 * Sets a palette colour on the batch, keeping its own alpha.
+	 *
+	 * Spelling this out at each site dropped the colour's `a` every time: a caller supplying a half-transparent
+	 * accent — or `Color.CLEAR`, meaning "do not draw this" — got it at full opacity instead. [opacity] is the
+	 * frame's fade times whatever constant the element is drawn at, and the colour's own alpha multiplies into it.
+	 */
+	private fun SpriteBatch.setPaletteColor(color: Color, opacity: Float) {
+		setColor(color.r, color.g, color.b, color.a * opacity)
 	}
 
 	private fun drawPanelBorder(visualAlpha: Float) {
