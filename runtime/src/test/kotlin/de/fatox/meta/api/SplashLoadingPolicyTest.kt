@@ -21,6 +21,36 @@ class SplashLoadingPolicyTest {
 	}
 
 	@Test
+	fun `a title that fits is left alone`() {
+		assertEquals(100, SplashTitleSizing.fitToWidth(100, measuredWidth = 400f, availableWidth = 500f, minSize = 28))
+		// Exactly filling the space is fitting.
+		assertEquals(100, SplashTitleSizing.fitToWidth(100, measuredWidth = 500f, availableWidth = 500f, minSize = 28))
+	}
+
+	@Test
+	fun `a title wider than the window is scaled to fit it`() {
+		// The case that clipped: sizing from height alone says nothing about width, so a long title or a tall narrow
+		// window overflowed and was centred at a negative x.
+		val fitted = SplashTitleSizing.fitToWidth(120, measuredWidth = 1200f, availableWidth = 600f, minSize = 28)
+		assertEquals(60, fitted)
+		// Floored, not rounded, so the result lands under the limit rather than on it.
+		assertEquals(66, SplashTitleSizing.fitToWidth(100, measuredWidth = 1200f, availableWidth = 800f, minSize = 28))
+	}
+
+	@Test
+	fun `fitting never produces an unreadable title`() {
+		// A title that fits but cannot be read is worse than one that is tight.
+		assertEquals(28, SplashTitleSizing.fitToWidth(120, measuredWidth = 10_000f, availableWidth = 100f, minSize = 28))
+	}
+
+	@Test
+	fun `fitting ignores measurements it cannot use`() {
+		// Before the first layout, or in a zero-width window, there is nothing to scale against.
+		assertEquals(90, SplashTitleSizing.fitToWidth(90, measuredWidth = 0f, availableWidth = 500f, minSize = 28))
+		assertEquals(90, SplashTitleSizing.fitToWidth(90, measuredWidth = 400f, availableWidth = 0f, minSize = 28))
+	}
+
+	@Test
 	fun `a palette keeps its own copies of the colours`() {
 		// libGDX's Color is mutable and these are held for the life of the screen, so a caller reusing a Color
 		// instance — a palette token, say — must not be able to change what the splash draws afterwards.

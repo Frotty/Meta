@@ -378,6 +378,7 @@ class SplashScreen private constructor(
 			spriteBatch.draw(pixelTexture!!, panelX, panelY, panelWidth, panelHeight)
 			drawPanelBorder(visualAlpha)
 			val accent = presentation.palette.accent
+			val track = presentation.palette.track
 			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
 			spriteBatch.draw(pixelTexture!!, panelX, panelY + panelHeight - ACCENT_HEIGHT, panelWidth, ACCENT_HEIGHT)
 
@@ -387,9 +388,9 @@ class SplashScreen private constructor(
 			spriteBatch.draw(pixelTexture!!, markX, markY, MARK_SIZE, MARK_SIZE)
 
 			spriteBatch.setColor(
-				presentation.palette.track.r,
-				presentation.palette.track.g,
-				presentation.palette.track.b,
+				track.r,
+				track.g,
+				track.b,
 				DIVIDER_ALPHA * visualAlpha,
 			)
 			spriteBatch.draw(
@@ -400,7 +401,7 @@ class SplashScreen private constructor(
 				1f,
 			)
 
-			spriteBatch.setColor(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
+			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
 			spriteBatch.draw(
 				ringTexture!!,
 				spinnerCenterX - SPINNER_SIZE * 0.5f,
@@ -420,7 +421,7 @@ class SplashScreen private constructor(
 				false,
 			)
 
-			spriteBatch.setColor(MetaColor.BORDER.r, MetaColor.BORDER.g, MetaColor.BORDER.b, TRACK_ALPHA * visualAlpha)
+			spriteBatch.setColor(track.r, track.g, track.b, TRACK_ALPHA * visualAlpha)
 			spriteBatch.draw(pixelTexture!!, barX, barY, barWidth, BAR_HEIGHT)
 			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
 			if (assetQueue != null && phase == SplashPhase.LOADING) {
@@ -678,8 +679,31 @@ class SplashScreen private constructor(
 		if (titleFont != null && wantedTitleSize == titleFontSize && pixelScale == textPixelScale) return
 		disposeFonts()
 		textPixelScale = pixelScale
-		titleFontSize = wantedTitleSize
-		val fonts = configuredFonts(pixelScale, wantedTitleSize)
+		buildText(wantedTitleSize, pixelScale)
+
+		// A size taken from the height can still be too wide: a long title, or a tall narrow window. Left alone the
+		// cache is centred at a negative x and clipped at both ends, so measure what was actually generated and, if
+		// it overflows, rebuild once at a size that fits. One corrective pass, because the correction is a linear
+		// scale of a measured width rather than a guess.
+		if (presentation.style == SplashStyle.QUIET) {
+			val available = Gdx.graphics.width * (1f - QUIET_TITLE_SIDE_MARGIN_FRACTION * 2f)
+			val fitted = SplashTitleSizing.fitToWidth(
+				titleFontSize,
+				titleText?.width ?: 0f,
+				available,
+				QUIET_TITLE_MIN_SIZE,
+			)
+			if (fitted != titleFontSize) {
+				disposeFonts()
+				textPixelScale = pixelScale
+				buildText(fitted, pixelScale)
+			}
+		}
+	}
+
+	private fun buildText(titleSize: Int, pixelScale: Float) {
+		titleFontSize = titleSize
+		val fonts = configuredFonts(pixelScale, titleSize)
 		titleFont = fonts.title
 		bodyFont = fonts.body
 		detailFont = fonts.detail
@@ -907,6 +931,8 @@ class SplashScreen private constructor(
 		const val QUIET_TITLE_MAX_SIZE = 180
 		/** Where the title's centre sits, as a fraction of the window height. Slightly above the middle. */
 		const val QUIET_TITLE_HEIGHT_POSITION = 0.54f
+		/** Clear space kept at each side of a quiet title, as a fraction of the window width. */
+		const val QUIET_TITLE_SIDE_MARGIN_FRACTION = 0.08f
 		const val QUIET_BAR_HEIGHT_FRACTION = 0.42f
 		const val QUIET_BAR_WIDTH_FRACTION = 0.24f
 		const val QUIET_BAR_THICKNESS_FRACTION = 0.0022f
@@ -979,6 +1005,20 @@ internal object SplashRingTexturePainter {
 
 /** How large the title is drawn. Its own object so the scaling is testable without a window. */
 internal object SplashTitleSizing {
+	/**
+	 * Shrinks a title whose rendered width does not fit the space allowed for it.
+	 *
+	 * Sizing from the window height alone says nothing about how wide the result will be — a long title, or a tall
+	 * narrow window, overflows. Scales by the ratio of what fits to what was measured, and floors so the result
+	 * lands under the limit rather than on it. Never below [minSize]: an unreadable title that fits is worse than a
+	 * readable one that is tight.
+	 */
+	fun fitToWidth(size: Int, measuredWidth: Float, availableWidth: Float, minSize: Int): Int {
+		if (measuredWidth <= 0f || availableWidth <= 0f) return size
+		if (measuredWidth <= availableWidth) return size
+		return (size * (availableWidth / measuredWidth)).toInt().coerceAtLeast(minSize)
+	}
+
 	fun forWindow(windowHeight: Int, style: SplashStyle): Int {
 		// A panel's layout is built around a known size, so it does not scale.
 		if (style == SplashStyle.PANEL) return SplashScreen.TITLE_FONT_SIZE
