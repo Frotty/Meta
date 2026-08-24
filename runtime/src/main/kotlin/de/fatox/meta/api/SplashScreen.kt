@@ -63,6 +63,29 @@ class SplashPalette(
 	val title: Color = Color(title)
 	val accent: Color = Color(accent)
 	val track: Color = Color(track)
+
+	// Structural, because [SplashPresentation] is a data class: identity equality here would make two presentations
+	// with identical settings compare unequal, and quietly break every comparison, change check and set that holds
+	// one. Not a data class itself, because the copy above is the point.
+	override fun equals(other: Any?): Boolean {
+		if (this === other) return true
+		if (other !is SplashPalette) return false
+		return background == other.background &&
+			title == other.title &&
+			accent == other.accent &&
+			track == other.track
+	}
+
+	override fun hashCode(): Int {
+		var result = background.hashCode()
+		result = 31 * result + title.hashCode()
+		result = 31 * result + accent.hashCode()
+		result = 31 * result + track.hashCode()
+		return result
+	}
+
+	override fun toString(): String =
+		"SplashPalette(background=$background, title=$title, accent=$accent, track=$track)"
 }
 
 /**
@@ -277,8 +300,12 @@ class SplashScreen private constructor(
 	private var bodyFont: BitmapFont? = null
 	private var detailFont: BitmapFont? = null
 	private var textPixelScale = 1f
-	/** The logical title size the current face was built at, so a resize can rebuild it. */
+	/** The logical title size the current face was built at. */
 	private var titleFontSize = 0
+	/** The window and density the current text was built for. See [SplashTextKey]. */
+	private var builtForHeight = -1
+	private var builtForWidth = -1
+	private var builtForScale = -1f
 	private var markText: SplashText? = null
 	private var titleText: SplashText? = null
 	private var subtitleText: SplashText? = null
@@ -671,15 +698,28 @@ class SplashScreen private constructor(
 	}
 
 	private fun createText() {
-		val wantedTitleSize = wantedTitleSize()
 		val pixelScale = currentPixelScale()
-		// Density is part of the key, not just the size. Moving the window to a monitor with different scaling
-		// changes the backbuffer-to-logical ratio without necessarily changing the logical height, and a face built
-		// for the old density is blurry and snapped to the wrong grid.
-		if (titleFont != null && wantedTitleSize == titleFontSize && pixelScale == textPixelScale) return
+		val keyHeight = SplashTextKey.keyHeight(Gdx.graphics.height, presentation.style)
+		val keyWidth = SplashTextKey.keyWidth(Gdx.graphics.width, presentation.style)
+		// Keyed on the inputs rather than on the size that came out of them. Keying on the size was wrong twice
+		// over: a width-only resize left it unchanged, so a narrowed window kept a title too wide for it; and after
+		// a fit had shrunk the title, the size no longer matched what the height asked for, so every later call
+		// rebuilt and re-shrank it. Density is in the key because a move between monitors of different scaling
+		// changes the backbuffer-to-logical ratio without changing either dimension.
+		if (
+			titleFont != null &&
+			pixelScale == builtForScale &&
+			keyHeight == builtForHeight &&
+			keyWidth == builtForWidth
+		) {
+			return
+		}
+		builtForScale = pixelScale
+		builtForHeight = keyHeight
+		builtForWidth = keyWidth
 		disposeFonts()
 		textPixelScale = pixelScale
-		buildText(wantedTitleSize, pixelScale)
+		buildText(wantedTitleSize(), pixelScale)
 
 		// A size taken from the height can still be too wide: a long title, or a tall narrow window. Left alone the
 		// cache is centred at a negative x and clipped at both ends, so measure what was actually generated and, if
@@ -1001,6 +1041,24 @@ internal object SplashRingTexturePainter {
 		val progress = ((value - edge0) / (edge1 - edge0)).coerceIn(0f, 1f)
 		return progress * progress * (3f - 2f * progress)
 	}
+}
+
+/**
+ * What the splash's generated text depends on, per style.
+ *
+ * A panel's title is a fixed size, so only pixel density can invalidate it. A quiet title is sized from the window
+ * height *and* fitted to the window width, so either dimension can. Expressed here rather than inline because
+ * getting it wrong is silent — the text simply stays wrong until something else happens to rebuild it.
+ */
+internal object SplashTextKey {
+	fun keyHeight(windowHeight: Int, style: SplashStyle): Int =
+		if (style == SplashStyle.QUIET) windowHeight else IGNORED
+
+	fun keyWidth(windowWidth: Int, style: SplashStyle): Int =
+		if (style == SplashStyle.QUIET) windowWidth else IGNORED
+
+	/** Stands in for a dimension the style does not depend on, so it never triggers a rebuild. */
+	const val IGNORED = 0
 }
 
 /** How large the title is drawn. Its own object so the scaling is testable without a window. */

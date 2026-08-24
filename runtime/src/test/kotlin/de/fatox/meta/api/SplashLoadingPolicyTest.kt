@@ -21,6 +21,48 @@ class SplashLoadingPolicyTest {
 	}
 
 	@Test
+	fun `a quiet splash rebuilds its text when only the width changes`() {
+		// The hole in the first fit fix: the size came from the height, so narrowing the window left the key
+		// unchanged and the title stayed too wide for the space it had.
+		val before = SplashTextKey.keyWidth(1920, SplashStyle.QUIET)
+		val after = SplashTextKey.keyWidth(800, SplashStyle.QUIET)
+		assertTrue(before != after, "a width-only resize did not change the key, so the title would not be re-fitted")
+	}
+
+	@Test
+	fun `a panel splash ignores the window in its text key`() {
+		// A panel's title is a fixed size, so regenerating its faces on every resize would be pure waste.
+		assertEquals(
+			SplashTextKey.keyHeight(720, SplashStyle.PANEL),
+			SplashTextKey.keyHeight(1600, SplashStyle.PANEL),
+		)
+		assertEquals(
+			SplashTextKey.keyWidth(800, SplashStyle.PANEL),
+			SplashTextKey.keyWidth(2560, SplashStyle.PANEL),
+		)
+	}
+
+	@Test
+	fun `a quiet splash tracks both dimensions`() {
+		assertEquals(1600, SplashTextKey.keyHeight(1600, SplashStyle.QUIET))
+		assertEquals(2560, SplashTextKey.keyWidth(2560, SplashStyle.QUIET))
+	}
+
+	@Test
+	fun `presentations with the same settings are equal`() {
+		// SplashPresentation is a data class, and a palette with identity equality would make two identical
+		// configurations compare unequal — breaking every comparison, change check and set that holds one.
+		assertEquals(SplashPresentation(), SplashPresentation())
+		assertEquals(SplashPresentation().hashCode(), SplashPresentation().hashCode())
+
+		val one = SplashPresentation(title = "Game", palette = SplashPalette(accent = Color.RED))
+		val same = SplashPresentation(title = "Game", palette = SplashPalette(accent = Color.RED))
+		val different = SplashPresentation(title = "Game", palette = SplashPalette(accent = Color.BLUE))
+		assertEquals(one, same)
+		assertTrue(one != different, "two presentations differing only by accent compared equal")
+	}
+
+	@Test
 	fun `a title that fits is left alone`() {
 		assertEquals(100, SplashTitleSizing.fitToWidth(100, measuredWidth = 400f, availableWidth = 500f, minSize = 28))
 		// Exactly filling the space is fitting.
