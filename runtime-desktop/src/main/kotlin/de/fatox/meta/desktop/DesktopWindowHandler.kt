@@ -22,6 +22,10 @@ class DesktopWindowHandler : WindowHandler, Lwjgl3WindowListener {
 	override val isMaximized: Boolean get() = maximized
 
 	override fun modify(x: Int, y: Int) {
+		// Guarded like every sibling below. This was the one that was not, and it is the one an application hits
+		// first: restoring the persisted display mode calls it, so a launcher that forgot `setWindowListener` got
+		// an UninitializedPropertyAccessException out of its first frame rather than a window in the wrong place.
+		if (!::currentWindow.isInitialized) return
 		log.debug { "Modify $currentWindow from ${this.x},${this.y} to $x,$y!" }
 		currentWindow.setPosition(x, y)
 		focus()

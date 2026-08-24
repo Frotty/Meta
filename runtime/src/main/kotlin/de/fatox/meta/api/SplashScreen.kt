@@ -229,6 +229,7 @@ class SplashScreen private constructor(
 	private var elapsed = 0f
 	private var phaseElapsed = 0f
 	private var phase = SplashPhase.FADE_IN
+	private var advancing = false
 	private var transitionStarted = false
 	private var transitionPreparationStarted = false
 	private var skippedLoadingFrames = 0
@@ -391,6 +392,21 @@ class SplashScreen private constructor(
 	}
 
 	private fun advanceLoading(frameDelta: Float) {
+		// Re-entrant renders are normal, and must not advance anything. Applying a display mode pumps the platform
+		// window, and on LWJGL3 that runs a frame — so this screen's own render() lands on the stack inside whatever
+		// callback asked for the change. Unguarded, the next phase or the next startup slice began while the current
+		// one was still running, which reordered the work and lost the completion of the step that was interrupted.
+		// The nested frame still draws the panel, which is the point of the window pumping in the first place.
+		if (advancing) return
+		advancing = true
+		try {
+			advancePhase(frameDelta)
+		} finally {
+			advancing = false
+		}
+	}
+
+	private fun advancePhase(frameDelta: Float) {
 		when (phase) {
 			SplashPhase.FADE_IN -> if (phaseElapsed >= presentation.transition.fadeInDuration && Meta.canChangeScreen()) {
 				if (assetPreparation == null) enterPhase(SplashPhase.QUEUEING) else startPreparation()

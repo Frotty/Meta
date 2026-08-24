@@ -127,6 +127,53 @@ internal class SplashScreenTest {
 	}
 
 	@Test
+	fun `a step that pumps the window does not advance the machine underneath itself`() {
+		// Applying a display mode re-enters the render loop: GLFW pumps the platform window, LWJGL3 runs a frame,
+		// and this screen's render() lands on the stack inside the step that asked for the change. Unguarded, the
+		// next slice began while the current one was still running — observed in a real game as step two finishing
+		// before step one, and step one never reporting at all.
+		val order = ArrayList<String>()
+		val pending = ArrayDeque(listOf("first", "second", "third"))
+		var pumped = false
+		val holder = arrayOfNulls<SplashScreen>(1)
+		val splash = SplashScreen(
+			SplashCallbacks(
+				startupLoad = {
+					val step = pending.removeFirstOrNull()
+					if (step != null) {
+						order.add("enter $step")
+						if (!pumped) {
+							pumped = true
+							// What the platform does to us, done deliberately.
+							holder[0]?.render(frameSeconds)
+						}
+						order.add("leave $step")
+					}
+					pending.isEmpty()
+				},
+				onLoaded = { order.add("loaded") },
+			),
+		)
+		holder[0] = splash
+
+		splash.show()
+		val frames = splash.runUntil { order.contains("loaded") }
+
+		assertTrue(frames > 0, "the splash never finished: $order")
+		assertTrue(pumped, "the re-entrant render never happened, so this test proved nothing")
+		assertEquals(
+			listOf(
+				"enter first", "leave first",
+				"enter second", "leave second",
+				"enter third", "leave third",
+				"loaded",
+			),
+			order,
+			"a step began while another was still on the stack",
+		)
+	}
+
+	@Test
 	fun `screen changes are unthrottled when nothing owns the screens`() {
 		// The throttle exists to stop Meta swapping screens twice in one frame. With no
 		// application there is nothing to throttle, and the splash waits on this to leave
