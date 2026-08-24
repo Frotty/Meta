@@ -2,6 +2,8 @@ package de.fatox.meta.api
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import de.fatox.meta.Meta
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.graphics.font.MetaFontProvider
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.test.MetaHeadlessUi
 import org.junit.jupiter.api.AfterEach
@@ -170,6 +172,81 @@ internal class SplashScreenTest {
 			),
 			order,
 			"a step began while another was still on the stack",
+		)
+	}
+
+	@Test
+	fun `faces are opened on the preparation worker, after the application has indexed its assets`() {
+		// Reading and parsing a face needs no graphics device, and Meta's own icon face is 599 KB, so it belongs on
+		// this thread rather than on a frame. Order matters as much as the thread: opening a face resolves its path
+		// through the asset provider, and the application's preparation is what indexes the tree those paths are in.
+		val order = ArrayList<String>()
+		val prepareThread = arrayOfNulls<String>(1)
+		val constructedOn = arrayOfNulls<String>(1)
+
+		// Reinstalled so the splash's own `FontProvider("default")` is the recorder. The graph is cleared by
+		// install(), so the panel's SpriteBatch has to go back in after it.
+		MetaHeadlessUi.dispose()
+		// Without the skin's defaults, so nothing has resolved the font provider by the time the splash runs. With
+		// them, generating the skin resolves it during install() and this test cannot tell which thread the splash
+		// would have built it on — it passed either way, which is the whole reason for spelling this out.
+		MetaHeadlessUi.install(
+			installSkinDefaults = false,
+			fontProvider = {
+				constructedOn[0] = Thread.currentThread().name
+				object : FontProvider by MetaFontProvider() {
+					override fun prepareFaces() {
+						prepareThread[0] = Thread.currentThread().name
+						synchronized(order) { order.add("faces") }
+					}
+				}
+			},
+		)
+		MetaInject.global { singleton { SpriteBatch() } }
+
+		val splash = SplashScreen(
+			SplashCallbacks(
+				prepareAssets = { synchronized(order) { order.add("index") } },
+				queueAssets = { synchronized(order) { order.add("queue") } },
+				onLoaded = { synchronized(order) { order.add("loaded") } },
+			),
+		)
+
+		splash.show()
+		// The worker needs wall-clock time, so this waits rather than counting frames.
+		val deadline = System.nanoTime() + 20_000_000_000L
+		while (!synchronized(order) { order.contains("loaded") } && System.nanoTime() < deadline) {
+			splash.render(frameSeconds)
+			Thread.sleep(2)
+		}
+
+		// Bounded because the face work is deliberately not waited on: it overlaps the frames that follow, so it can
+		// finish before or after the panel hands over.
+		val facesDeadline = System.nanoTime() + 10_000_000_000L
+		while (!synchronized(order) { order.contains("faces") } && System.nanoTime() < facesDeadline) {
+			Thread.sleep(2)
+		}
+		val seen = synchronized(order) { ArrayList(order) }
+
+		assertTrue(seen.contains("loaded"), "the splash never finished: $seen")
+		assertTrue(seen.contains("faces"), "the faces were never pre-opened: $seen")
+		// The ordering that matters: a face resolves its path through the asset provider, so it cannot be opened
+		// before the application has indexed the tree that path is in.
+		assertTrue(
+			seen.indexOf("faces") > seen.indexOf("queue"),
+			"faces were opened before the application finished preparing: $seen",
+		)
+		assertTrue(
+			prepareThread[0] != null && prepareThread[0] != Thread.currentThread().name,
+			"faces were opened on the calling thread rather than off it (${prepareThread[0]})",
+		)
+		// The provider is *resolved* on this thread even though its faces are opened off it. MetaInject's maps are
+		// unsynchronized, so a worker that resolves the provider itself can race the GL thread resolving anything
+		// else — two providers, or one published half-built.
+		assertEquals(
+			Thread.currentThread().name,
+			constructedOn[0],
+			"the font provider was built on the worker instead of the thread that started it",
 		)
 	}
 

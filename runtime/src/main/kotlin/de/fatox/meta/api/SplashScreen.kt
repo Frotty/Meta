@@ -11,10 +11,12 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
+import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.MathUtils
 import de.fatox.meta.Meta
+import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -23,6 +25,8 @@ import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+
+private val splashLog = MetaLoggerFactory.logger {}
 
 /**
  * Static copy for the startup panel. Font files must be available before application assets are prepared, so keep
@@ -219,6 +223,7 @@ class SplashScreen private constructor(
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
+	private val fontProvider: FontProvider by lazyInject("default")
 	private var ringTexture: Texture? = null
 	private var pixelTexture: Texture? = null
 	private var titleFont: BitmapFont? = null
@@ -464,6 +469,11 @@ class SplashScreen private constructor(
 	private fun startPreparation() {
 		enterPhase(SplashPhase.PREPARING)
 		val preparation = assetPreparation ?: return
+		// Resolved here, on the GL thread, and captured — so the worker below calls a method on an object that
+		// already exists instead of reaching into the injection graph. `MetaInject` keeps its singletons in
+		// unsynchronized maps and hands out `LazyThreadSafetyMode.NONE` delegates, so a worker resolving a service
+		// while this thread resolves another can build two of something or publish one half-initialized.
+		val fonts = fontProvider
 		Thread({
 			try {
 				preparation.task.invoke()
@@ -473,6 +483,17 @@ class SplashScreen private constructor(
 			} finally {
 				preparationComplete = true
 			}
+			// After the phase has been released, and deliberately so. Loading waits on `preparationComplete`, so work
+			// done before it is still serial with every frame that follows; this runs alongside them instead.
+			//
+			// After the application's callbacks for a second reason: opening a face resolves its path through the
+			// asset provider, and the application's preparation is what indexes the tree those paths live in.
+			//
+			// Reading and parsing a TrueType file needs no graphics device — Meta's icon face is 599 KB — so it
+			// belongs here. Rasterizing and uploading stay on the GL thread, which is why only the file work moves.
+			// A face the GL thread reaches first is simply opened there; the provider serializes the two.
+			runCatching { fonts.prepareFaces() }
+				.onFailure { splashLog.warn("Could not pre-open the configured fonts; they open on first use", it) }
 		}, PREPARATION_THREAD_NAME).apply {
 			isDaemon = true
 			priority = Thread.MIN_PRIORITY
