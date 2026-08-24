@@ -62,8 +62,23 @@ class MetaFontProvider : FontProvider {
 	 */
 	private val generatorLock = Any()
 
-	private fun sourceFor(type: FontType): FontGeneratorSource? = synchronized(generatorLock) {
-		generatorSlots.getOrPut(type) { GeneratorSlot(createGenerator(type)) }.source
+	private fun sourceFor(type: FontType): FontGeneratorSource? {
+		synchronized(generatorLock) { generatorSlots[type]?.let { return it.source } }
+		// Opened outside the lock. Parsing a face takes tens of milliseconds — Meta's icon face is 599 KB — and the
+		// GL thread asking for a different face must not wait behind it.
+		val opened = createGenerator(type)
+		return synchronized(generatorLock) {
+			val existing = generatorSlots[type]
+			if (existing != null) {
+				// Another thread opened this type while we were parsing. Keep theirs, since callers may already hold
+				// fonts from it, and release ours rather than leaking a FreeType face.
+				opened?.generator?.dispose()
+				existing.source
+			} else {
+				generatorSlots[type] = GeneratorSlot(opened)
+				opened
+			}
+		}
 	}
 
 	/**

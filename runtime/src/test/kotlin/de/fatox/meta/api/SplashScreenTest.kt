@@ -214,11 +214,25 @@ internal class SplashScreenTest {
 			Thread.sleep(2)
 		}
 
+		// Bounded because the face work is deliberately not waited on: it overlaps the frames that follow, so it can
+		// finish before or after the panel hands over.
+		val facesDeadline = System.nanoTime() + 10_000_000_000L
+		while (!synchronized(order) { order.contains("faces") } && System.nanoTime() < facesDeadline) {
+			Thread.sleep(2)
+		}
 		val seen = synchronized(order) { ArrayList(order) }
-		assertEquals(listOf("index", "queue", "faces", "loaded"), seen)
+
+		assertTrue(seen.contains("loaded"), "the splash never finished: $seen")
+		assertTrue(seen.contains("faces"), "the faces were never pre-opened: $seen")
+		// The ordering that matters: a face resolves its path through the asset provider, so it cannot be opened
+		// before the application has indexed the tree that path is in.
+		assertTrue(
+			seen.indexOf("faces") > seen.indexOf("queue"),
+			"faces were opened before the application finished preparing: $seen",
+		)
 		assertTrue(
 			prepareThread[0] != null && prepareThread[0] != Thread.currentThread().name,
-			"faces were opened on the calling thread, not the preparation worker (${prepareThread[0]})",
+			"faces were opened on the calling thread rather than off it (${prepareThread[0]})",
 		)
 	}
 

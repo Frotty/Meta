@@ -16,6 +16,7 @@ import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.MathUtils
 import de.fatox.meta.Meta
+import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -24,6 +25,8 @@ import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+
+private val splashLog = MetaLoggerFactory.logger {}
 
 /**
  * Static copy for the startup panel. Font files must be available before application assets are prepared, so keep
@@ -470,16 +473,22 @@ class SplashScreen private constructor(
 			try {
 				preparation.task.invoke()
 				assetQueue?.task?.invoke()
-				// Last, not first: opening a face resolves its path through the asset provider, and the application's
-				// preparation is what indexes the tree those paths live in. Reading and parsing a TrueType file needs
-				// no graphics device — Meta's own icon face is 599 KB — so it belongs on this thread rather than on a
-				// frame. Rasterizing stays on the GL thread; only the file work moves.
-				fontProvider.prepareFaces()
 			} catch (failure: Throwable) {
 				preparationFailure = failure
 			} finally {
 				preparationComplete = true
 			}
+			// After the phase has been released, and deliberately so. Loading waits on `preparationComplete`, so work
+			// done before it is still serial with every frame that follows; this runs alongside them instead.
+			//
+			// After the application's callbacks for a second reason: opening a face resolves its path through the
+			// asset provider, and the application's preparation is what indexes the tree those paths live in.
+			//
+			// Reading and parsing a TrueType file needs no graphics device — Meta's icon face is 599 KB — so it
+			// belongs here. Rasterizing and uploading stay on the GL thread, which is why only the file work moves.
+			// A face the GL thread reaches first is simply opened there; the provider serializes the two.
+			runCatching { fontProvider.prepareFaces() }
+				.onFailure { splashLog.warn("Could not pre-open the configured fonts; they open on first use", it) }
 		}, PREPARATION_THREAD_NAME).apply {
 			isDaemon = true
 			priority = Thread.MIN_PRIORITY
