@@ -187,7 +187,11 @@ internal class SplashScreenTest {
 		// Reinstalled so the splash's own `FontProvider("default")` is the recorder. The graph is cleared by
 		// install(), so the panel's SpriteBatch has to go back in after it.
 		MetaHeadlessUi.dispose()
+		// Without the skin's defaults, so nothing has resolved the font provider by the time the splash runs. With
+		// them, generating the skin resolves it during install() and this test cannot tell which thread the splash
+		// would have built it on — it passed either way, which is the whole reason for spelling this out.
 		MetaHeadlessUi.install(
+			installSkinDefaults = false,
 			fontProvider = {
 				constructedOn[0] = Thread.currentThread().name
 				object : FontProvider by MetaFontProvider() {
