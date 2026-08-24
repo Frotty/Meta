@@ -43,10 +43,19 @@ data class SplashPresentation(
 	val transition: SplashTransitionConfiguration = SplashTransitionConfiguration(),
 )
 
-/** Native bootstrap geometry and transition timings shared by launchers and [SplashScreen]. */
+/** Panel geometry and transition timings shared by launchers and [SplashScreen]. */
 data class SplashTransitionConfiguration(
 	val bootstrapWidth: Int = 860,
 	val bootstrapHeight: Int = 320,
+	/**
+	 * Draw the panel as a centred banner of [bootstrapWidth] × [bootstrapHeight] rather than filling the window.
+	 *
+	 * Off by default, so an existing splash keeps the full-window panel it has. On, the panel becomes what its
+	 * surface, border and accent strip already imply — a card on the background — which suits an application whose
+	 * window is the size it will be played at rather than an IDE opening its workspace. Clamped to the window, so a
+	 * banner wider than the window is simply the window.
+	 */
+	val banner: Boolean = false,
 	val fadeInDuration: Float = 0.5f,
 	val fadeOutDuration: Float = 0.5f,
 	val minimumHoldDuration: Float = 0.2f,
@@ -663,10 +672,15 @@ class SplashScreen private constructor(
 
 	private fun updateProjection() {
 		spriteBatch.projectionMatrix.setToOrtho2D(0f, 0f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
-		panelWidth = Gdx.graphics.width.toFloat().coerceAtLeast(1f)
-		panelHeight = Gdx.graphics.height.toFloat().coerceAtLeast(1f)
-		panelX = 0f
-		panelY = 0f
+		val bounds = SplashPanelGeometry.bounds(
+			Gdx.graphics.width,
+			Gdx.graphics.height,
+			presentation.transition,
+		)
+		panelX = bounds[0]
+		panelY = bounds[1]
+		panelWidth = bounds[2]
+		panelHeight = bounds[3]
 		layoutText()
 	}
 
@@ -783,6 +797,27 @@ internal object SplashRingTexturePainter {
 	private fun smoothStep(edge0: Float, edge1: Float, value: Float): Float {
 		val progress = ((value - edge0) / (edge1 - edge0)).coerceIn(0f, 1f)
 		return progress * progress * (3f - 2f * progress)
+	}
+}
+
+/** Where the loading panel sits in the window. Its own object so the arithmetic is testable without a window. */
+internal object SplashPanelGeometry {
+	/** Returns x, y, width, height. */
+	fun bounds(windowWidth: Int, windowHeight: Int, transition: SplashTransitionConfiguration): FloatArray {
+		val availableWidth = windowWidth.toFloat().coerceAtLeast(1f)
+		val availableHeight = windowHeight.toFloat().coerceAtLeast(1f)
+		if (!transition.banner) return floatArrayOf(0f, 0f, availableWidth, availableHeight)
+
+		val width = transition.bootstrapWidth.toFloat().coerceAtMost(availableWidth)
+		val height = transition.bootstrapHeight.toFloat().coerceAtMost(availableHeight)
+		// Rounded so the panel edge lands on a pixel: a half-pixel origin softens the border and the text baselines
+		// snapped inside it.
+		return floatArrayOf(
+			((availableWidth - width) * 0.5f).roundToInt().toFloat(),
+			((availableHeight - height) * 0.5f).roundToInt().toFloat(),
+			width,
+			height,
+		)
 	}
 }
 
