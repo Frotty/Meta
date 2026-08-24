@@ -20,6 +20,27 @@ class SplashLoadingPolicyTest {
 	}
 
 	@Test
+	fun `the panel fills the window unless it is a banner`() {
+		val bounds = SplashPanelGeometry.bounds(1920, 1080, SplashTransitionConfiguration())
+		assertEquals(listOf(0f, 0f, 1920f, 1080f), bounds.toList())
+	}
+
+	@Test
+	fun `a banner is centred at its configured size`() {
+		val transition = SplashTransitionConfiguration(bootstrapWidth = 860, bootstrapHeight = 320, banner = true)
+		val bounds = SplashPanelGeometry.bounds(1920, 1080, transition)
+		assertEquals(listOf(530f, 380f, 860f, 320f), bounds.toList())
+	}
+
+	@Test
+	fun `a banner larger than the window is the window`() {
+		// Otherwise the panel hangs off both edges and the text anchored to its top is off-screen.
+		val transition = SplashTransitionConfiguration(bootstrapWidth = 860, bootstrapHeight = 320, banner = true)
+		val bounds = SplashPanelGeometry.bounds(640, 200, transition)
+		assertEquals(listOf(0f, 0f, 640f, 200f), bounds.toList())
+	}
+
+	@Test
 	fun `fade easing is clamped and smooth`() {
 		assertEquals(0f, SplashLoadingPolicy.smoothStep(-1f))
 		assertEquals(0.5f, SplashLoadingPolicy.smoothStep(0.5f))
@@ -50,6 +71,7 @@ class SplashLoadingPolicyTest {
 			queueStatus = "queue",
 			assetStatus = "assets",
 			interfaceStatus = "interface",
+			applicationStatus = "application",
 			readyStatus = "ready",
 		)
 
@@ -58,6 +80,7 @@ class SplashLoadingPolicyTest {
 		assertEquals("queue", presentation.statusFor(SplashPhase.QUEUEING))
 		assertEquals("assets", presentation.statusFor(SplashPhase.LOADING))
 		assertEquals("interface", presentation.statusFor(SplashPhase.UI_LOADING))
+		assertEquals("application", presentation.statusFor(SplashPhase.APP_LOADING))
 		assertEquals("ready", presentation.statusFor(SplashPhase.HOLD))
 		assertEquals("ready", presentation.statusFor(SplashPhase.FADE_OUT))
 	}

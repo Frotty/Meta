@@ -1,5 +1,10 @@
 package de.fatox.meta.test
 
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.graphics.font.MetaFontProvider
 import de.fatox.meta.ui.components.MetaFlexAlign
 import de.fatox.meta.ui.components.MetaFlexBox
 import de.fatox.meta.ui.components.MetaFlexDirection
@@ -27,6 +32,39 @@ internal class MetaHeadlessUiTest {
 
 	@AfterEach
 	fun tearDown() = MetaHeadlessUi.dispose()
+
+	@Test
+	fun `a stand-in font provider sees what the widgets ask for`() {
+		// The one service a test may need to watch rather than just use. A game that pre-rasterizes faces during its
+		// splash has to know which sizes and weights its screens actually request, and guessing that list wastes the
+		// startup time it was meant to save. Replacing the provider after install() is not an option: initializing
+		// the skin resolves it, and MetaInject refuses to re-register a singleton it has already built.
+		MetaHeadlessUi.dispose()
+		lateinit var recorder: RecordingFontProvider
+		MetaHeadlessUi.install(fontProvider = { RecordingFontProvider(MetaFontProvider()).also { recorder = it } })
+
+		MetaLabel("Play", 54, Color.WHITE, FontType.BOLD).prefWidth
+		MetaLabel("100%", 30, Color.WHITE, FontType.REGULAR).prefWidth
+
+		assertTrue("BOLD@54" in recorder.asked, "the bold face was never requested: ${recorder.asked}")
+		assertTrue("REGULAR@30" in recorder.asked, "the regular face was never requested: ${recorder.asked}")
+	}
+
+	private class RecordingFontProvider(private val delegate: FontProvider) : FontProvider {
+		val asked: MutableSet<String> = LinkedHashSet()
+
+		override fun getFont(size: Int, type: FontType): BitmapFont {
+			asked.add("$type@$size")
+			return delegate.getFont(size, type)
+		}
+
+		override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) =
+			delegate.write(x, y, text, size, type)
+
+		override val fontGeneration: Int get() = delegate.fontGeneration
+		override fun disposeOrphanedFonts() = delegate.disposeOrphanedFonts()
+		override fun dispose() = delegate.dispose()
+	}
 
 	@Test
 	fun `a text widget measures real text`() {
