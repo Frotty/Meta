@@ -77,19 +77,20 @@ class SplashPalette(
 	val track: Color = Color(track)
 
 	/**
-	 * The four colours as they were at construction, packed.
+	 * The four colours as they were at construction, packed one per component.
 	 *
 	 * [equals] and [hashCode] read these rather than the mutable instances above, so a palette held in a set stays
-	 * findable even if something writes to one of its colours. A hash that can change after insertion is a lost
+	 * findable even if something writes to one of its colours: a hash that can change after insertion is a lost
 	 * entry, and the fields it is computed from are public and mutable.
+	 *
+	 * Four values rather than one combined hash, because equality must not be decided by a hash. Compressing four
+	 * 32-bit colours into a single `Int` guarantees collisions, and two palettes that collided would have compared
+	 * equal while rendering visibly different — and taken the enclosing presentation's equality with them.
 	 */
-	private val identity: Int = run {
-		var packed = Color.rgba8888(background)
-		packed = 31 * packed + Color.rgba8888(title)
-		packed = 31 * packed + Color.rgba8888(accent)
-		packed = 31 * packed + Color.rgba8888(track)
-		packed
-	}
+	private val packedBackground: Int = Color.rgba8888(background)
+	private val packedTitle: Int = Color.rgba8888(title)
+	private val packedAccent: Int = Color.rgba8888(accent)
+	private val packedTrack: Int = Color.rgba8888(track)
 
 	// Structural, because [SplashPresentation] is a data class: identity equality here would make two presentations
 	// with identical settings compare unequal, and quietly break every comparison, change check and set that holds
@@ -97,10 +98,19 @@ class SplashPalette(
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true
 		if (other !is SplashPalette) return false
-		return identity == other.identity
+		return packedBackground == other.packedBackground &&
+			packedTitle == other.packedTitle &&
+			packedAccent == other.packedAccent &&
+			packedTrack == other.packedTrack
 	}
 
-	override fun hashCode(): Int = identity
+	override fun hashCode(): Int {
+		var result = packedBackground
+		result = 31 * result + packedTitle
+		result = 31 * result + packedAccent
+		result = 31 * result + packedTrack
+		return result
+	}
 
 	override fun toString(): String =
 		"SplashPalette(background=$background, title=$title, accent=$accent, track=$track)"

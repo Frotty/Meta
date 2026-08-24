@@ -49,6 +49,28 @@ class SplashLoadingPolicyTest {
 	}
 
 	@Test
+	fun `every palette colour takes part in equality`() {
+		// Equality compares the four packed colours, not their combined hash: four 32-bit values in one Int
+		// guarantees collisions, and a collision would have made two visibly different palettes compare equal. The
+		// per-component check also catches an equality that simply forgot one of them.
+		val base = SplashPalette()
+		val differing = listOf(
+			"background" to SplashPalette(background = Color.RED),
+			"title" to SplashPalette(title = Color.RED),
+			"accent" to SplashPalette(accent = Color.RED),
+			"track" to SplashPalette(track = Color.RED),
+		)
+		for ((name, other) in differing) {
+			assertTrue(base != other, "a palette differing only in $name compared equal to the default")
+		}
+		// And the same colour in a different role is a different palette.
+		assertTrue(
+			SplashPalette(accent = Color.RED) != SplashPalette(track = Color.RED),
+			"two palettes with the same colour in different roles compared equal",
+		)
+	}
+
+	@Test
 	fun `a palette stays findable after one of its colours is written to`() {
 		// The fields equals and hashCode are computed from are public and mutable, so a hash that changed after
 		// insertion would lose the entry. They read a snapshot taken at construction instead.
