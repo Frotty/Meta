@@ -90,9 +90,16 @@ object MetaHeadlessUi {
 	 * @param installSkinDefaults generate the real skin chrome. On by default because a widget measured against a
 	 *   defaults-free skin is measured without its own padding and borders, which is not the size it will have.
 	 *   Turn it off for a test that only cares about layout containers.
+	 * @param fontProvider the face source, for a test that wants to observe or stand in for it. Cannot be replaced
+	 *   after the fact: initializing the skin resolves the provider, and `MetaInject` refuses to re-register a
+	 *   singleton it has already built. A decorator over [MetaFontProvider] is the way to record which faces a
+	 *   widget tree asks for — which is what a game needs to know if it pre-rasterizes them at startup.
 	 */
 	@JvmOverloads
-	fun install(installSkinDefaults: Boolean = true) {
+	fun install(
+		installSkinDefaults: Boolean = true,
+		fontProvider: () -> FontProvider = { MetaFontProvider() },
+	) {
 		GdxTestEnvironment.ensure()
 		HeadlessGL20.install()
 		// Set before anything that can throw, not after everything succeeded. The
@@ -121,7 +128,7 @@ object MetaHeadlessUi {
 			MetaInject.global(clear = true) {
 				singleton<AssetProvider> { MetaAssetProvider() }
 				singleton("default") { FontInfo() }
-				singleton<FontProvider>("default") { MetaFontProvider() }
+				singleton<FontProvider>("default", fontProvider)
 				singleton<UIRenderer> { LayoutOnlyRenderer(uiScale) }
 				singleton<MetaInputProcessor> { LayoutOnlyInput() }
 				singleton { MetaUiInputBindings() }
