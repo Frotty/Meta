@@ -1,6 +1,7 @@
 package de.fatox.meta.api
 
 import com.badlogic.gdx.Files
+import com.badlogic.gdx.graphics.Color
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -17,6 +18,18 @@ class SplashLoadingPolicyTest {
 	fun `healthy refresh frames advance but slow frames recover without more work`() {
 		assertEquals(8, SplashLoadingPolicy.updateBudgetMillis(1f / 60f))
 		assertEquals(0, SplashLoadingPolicy.updateBudgetMillis(1f / 30f))
+	}
+
+	@Test
+	fun `a palette keeps its own copies of the colours`() {
+		// libGDX's Color is mutable and these are held for the life of the screen, so a caller reusing a Color
+		// instance — a palette token, say — must not be able to change what the splash draws afterwards.
+		val source = Color(0.1f, 0.2f, 0.3f, 1f)
+		val palette = SplashPalette(background = source, accent = source)
+		source.set(0.9f, 0.9f, 0.9f, 1f)
+
+		assertEquals(0.1f, palette.background.r)
+		assertEquals(0.1f, palette.accent.r)
 	}
 
 	@Test

@@ -47,6 +47,10 @@ enum class SplashStyle { PANEL, QUIET }
  * want to say something: the splash is the first thing on screen and a hand-off into a menu of a different hue reads
  * as two programs starting rather than one.
  *
+ * Covers the background, the title, and both parts of the progress indicator, in **either** style. The panel's card
+ * surface and border are deliberately not here: they are structural chrome rather than brand colour, and a card in
+ * an application's accent with Meta's surface behind it looks worse than a themed card does.
+ *
  * Copied on construction, because libGDX's [Color] is mutable and these are held for the life of the screen.
  */
 class SplashPalette(
@@ -373,7 +377,8 @@ class SplashScreen private constructor(
 			)
 			spriteBatch.draw(pixelTexture!!, panelX, panelY, panelWidth, panelHeight)
 			drawPanelBorder(visualAlpha)
-			spriteBatch.setColor(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
+			val accent = presentation.palette.accent
+			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
 			spriteBatch.draw(pixelTexture!!, panelX, panelY + panelHeight - ACCENT_HEIGHT, panelWidth, ACCENT_HEIGHT)
 
 			val markX = panelX + PANEL_PADDING
@@ -382,9 +387,9 @@ class SplashScreen private constructor(
 			spriteBatch.draw(pixelTexture!!, markX, markY, MARK_SIZE, MARK_SIZE)
 
 			spriteBatch.setColor(
-				MetaColor.BORDER.r,
-				MetaColor.BORDER.g,
-				MetaColor.BORDER.b,
+				presentation.palette.track.r,
+				presentation.palette.track.g,
+				presentation.palette.track.b,
 				DIVIDER_ALPHA * visualAlpha,
 			)
 			spriteBatch.draw(
@@ -417,7 +422,7 @@ class SplashScreen private constructor(
 
 			spriteBatch.setColor(MetaColor.BORDER.r, MetaColor.BORDER.g, MetaColor.BORDER.b, TRACK_ALPHA * visualAlpha)
 			spriteBatch.draw(pixelTexture!!, barX, barY, barWidth, BAR_HEIGHT)
-			spriteBatch.setColor(MetaColor.ACCENT.r, MetaColor.ACCENT.g, MetaColor.ACCENT.b, visualAlpha)
+			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
 			if (assetQueue != null && phase == SplashPhase.LOADING) {
 				spriteBatch.draw(
 					pixelTexture!!,
@@ -666,11 +671,12 @@ class SplashScreen private constructor(
 
 	private fun createText() {
 		val wantedTitleSize = wantedTitleSize()
-		if (titleFont != null && wantedTitleSize == titleFontSize) return
+		val pixelScale = currentPixelScale()
+		// Density is part of the key, not just the size. Moving the window to a monitor with different scaling
+		// changes the backbuffer-to-logical ratio without necessarily changing the logical height, and a face built
+		// for the old density is blurry and snapped to the wrong grid.
+		if (titleFont != null && wantedTitleSize == titleFontSize && pixelScale == textPixelScale) return
 		disposeFonts()
-		val pixelScale = (
-			Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1)
-			).coerceAtLeast(1f)
 		textPixelScale = pixelScale
 		titleFontSize = wantedTitleSize
 		val fonts = configuredFonts(pixelScale, wantedTitleSize)
@@ -695,6 +701,10 @@ class SplashScreen private constructor(
 	 */
 	private fun wantedTitleSize(): Int =
 		SplashTitleSizing.forWindow(Gdx.graphics.height, presentation.style)
+
+	private fun currentPixelScale(): Float = (
+		Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1)
+		).coerceAtLeast(1f)
 
 	private fun disposeFonts() {
 		titleFont?.dispose()
