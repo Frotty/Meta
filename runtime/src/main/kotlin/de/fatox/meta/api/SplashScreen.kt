@@ -29,6 +29,39 @@ import kotlin.math.sqrt
 private val splashLog = MetaLoggerFactory.logger {}
 
 /**
+ * How much of itself the startup screen shows.
+ *
+ * [PANEL] is the informative one: a card carrying a mark, a title, a subtitle, a message, a phase status, a spinner
+ * and a progress bar. It suits an application whose startup the user is expected to read.
+ *
+ * [QUIET] is a title and one indicator, centred on the background and sized from the window. It suits an
+ * application whose startup the user is only waiting through — a game, where a panel of loading telemetry reads as
+ * something having gone wrong rather than as the game starting.
+ */
+enum class SplashStyle { PANEL, QUIET }
+
+/**
+ * The startup screen's colours, for an application that does not want Meta's.
+ *
+ * Defaults to the theme, so a splash that says nothing about colour looks exactly as it did. A game generally does
+ * want to say something: the splash is the first thing on screen and a hand-off into a menu of a different hue reads
+ * as two programs starting rather than one.
+ *
+ * Copied on construction, because libGDX's [Color] is mutable and these are held for the life of the screen.
+ */
+class SplashPalette(
+	background: Color = MetaColor.BACKGROUND,
+	title: Color = MetaColor.TEXT,
+	accent: Color = MetaColor.ACCENT,
+	track: Color = MetaColor.BORDER,
+) {
+	val background: Color = Color(background)
+	val title: Color = Color(title)
+	val accent: Color = Color(accent)
+	val track: Color = Color(track)
+}
+
+/**
  * Static copy for the startup panel. Font files must be available before application assets are prepared, so keep
  * custom splash fonts as loose or classpath bootstrap resources rather than relying on a later-mounted asset archive.
  */
@@ -45,6 +78,16 @@ data class SplashPresentation(
 	val applicationStatus: String = "PREPARING APPLICATION",
 	val readyStatus: String = "READY",
 	val transition: SplashTransitionConfiguration = SplashTransitionConfiguration(),
+	/**
+	 * Which of the two presentations to draw. [SplashStyle.PANEL] by default, so an existing splash is unchanged.
+	 *
+	 * [SplashStyle.QUIET] uses only [title] and the transition timings; the mark, subtitle, message and status
+	 * strings are not drawn, and the title is sized from the window rather than fixed, so it does not shrink into a
+	 * corner of a large one.
+	 */
+	val style: SplashStyle = SplashStyle.PANEL,
+	/** Colours to draw with. Defaults to Meta's theme. */
+	val palette: SplashPalette = SplashPalette(),
 )
 
 /** Panel geometry and transition timings shared by launchers and [SplashScreen]. */
@@ -230,6 +273,8 @@ class SplashScreen private constructor(
 	private var bodyFont: BitmapFont? = null
 	private var detailFont: BitmapFont? = null
 	private var textPixelScale = 1f
+	/** The logical title size the current face was built at, so a resize can rebuild it. */
+	private var titleFontSize = 0
 	private var markText: SplashText? = null
 	private var titleText: SplashText? = null
 	private var subtitleText: SplashText? = null
@@ -290,16 +335,20 @@ class SplashScreen private constructor(
 		Gdx.gl.apply {
 			// Window dimensions are logical points on Retina/HiDPI displays; HdpiUtils maps them to framebuffer pixels.
 			HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
+			val background = presentation.palette.background
 			glClearColor(
-				MetaColor.BACKGROUND.r * visualAlpha,
-				MetaColor.BACKGROUND.g * visualAlpha,
-				MetaColor.BACKGROUND.b * visualAlpha,
+				background.r * visualAlpha,
+				background.g * visualAlpha,
+				background.b * visualAlpha,
 				1f,
 			)
 			glClear(GL20.GL_COLOR_BUFFER_BIT)
 		}
 
-		drawLoadingPanel(visualAlpha)
+		when (presentation.style) {
+			SplashStyle.PANEL -> drawLoadingPanel(visualAlpha)
+			SplashStyle.QUIET -> drawQuietTitle(visualAlpha)
+		}
 		advanceLoading(delta)
 	}
 
@@ -389,6 +438,46 @@ class SplashScreen private constructor(
 			subtitleText?.cache?.draw(spriteBatch, visualAlpha)
 			messageText?.cache?.draw(spriteBatch, visualAlpha)
 			statusText?.cache?.draw(spriteBatch, visualAlpha)
+		}
+	}
+
+	/**
+	 * A title and one indicator, centred, sized from the window.
+	 *
+	 * No surface, border, mark or status line: the point of this style is that nothing is on screen except the name
+	 * of the thing being started and evidence that it is still starting. The bar sweeps at a fraction of the panel's
+	 * speed — a fast indeterminate bar reads as activity, a slow one reads as patience.
+	 */
+	private fun drawQuietTitle(visualAlpha: Float) {
+		val width = Gdx.graphics.width.toFloat()
+		val height = Gdx.graphics.height.toFloat()
+		val barWidth = (width * QUIET_BAR_WIDTH_FRACTION).coerceAtMost(width - QUIET_BAR_MIN_MARGIN * 2f)
+		val barX = (width - barWidth) * 0.5f
+		val barY = height * QUIET_BAR_HEIGHT_FRACTION
+		val barHeight = (height * QUIET_BAR_THICKNESS_FRACTION).coerceAtLeast(1f)
+
+		spriteBatch.use {
+			val track = presentation.palette.track
+			val accent = presentation.palette.accent
+			spriteBatch.setColor(track.r, track.g, track.b, TRACK_ALPHA * visualAlpha)
+			spriteBatch.draw(pixelTexture!!, barX, barY, barWidth, barHeight)
+			spriteBatch.setColor(accent.r, accent.g, accent.b, visualAlpha)
+			if (assetQueue != null && phase == SplashPhase.LOADING) {
+				spriteBatch.draw(
+					pixelTexture!!,
+					barX,
+					barY,
+					barWidth * assetProvider.progress.coerceIn(0f, 1f),
+					barHeight,
+				)
+			} else {
+				val segmentWidth = barWidth * QUIET_BAR_SEGMENT_FRACTION
+				val travel = barWidth - segmentWidth
+				val sweep = (MathUtils.sin(elapsed * QUIET_BAR_SPEED) + 1f) * 0.5f
+				spriteBatch.draw(pixelTexture!!, barX + travel * sweep, barY, segmentWidth, barHeight)
+			}
+			spriteBatch.color = Color.WHITE
+			titleText?.cache?.draw(spriteBatch, visualAlpha)
 		}
 	}
 
@@ -576,25 +665,54 @@ class SplashScreen private constructor(
 	}
 
 	private fun createText() {
-		if (titleFont != null) return
+		val wantedTitleSize = wantedTitleSize()
+		if (titleFont != null && wantedTitleSize == titleFontSize) return
+		disposeFonts()
 		val pixelScale = (
 			Gdx.graphics.backBufferWidth.toFloat() / Gdx.graphics.width.coerceAtLeast(1)
 			).coerceAtLeast(1f)
 		textPixelScale = pixelScale
-		val fonts = configuredFonts(pixelScale)
+		titleFontSize = wantedTitleSize
+		val fonts = configuredFonts(pixelScale, wantedTitleSize)
 		titleFont = fonts.title
 		bodyFont = fonts.body
 		detailFont = fonts.detail
 
-		markText = createText(titleFont!!, presentation.mark, MetaColor.TEXT)
-		titleText = createText(titleFont!!, presentation.title, MetaColor.TEXT)
-		subtitleText = createText(detailFont!!, presentation.subtitle, MetaColor.TEXT_MUTED)
-		messageText = createText(bodyFont!!, presentation.message, MetaColor.TEXT)
+		titleText = createText(titleFont!!, presentation.title, presentation.palette.title)
+		if (presentation.style == SplashStyle.PANEL) {
+			markText = createText(titleFont!!, presentation.mark, MetaColor.TEXT)
+			subtitleText = createText(detailFont!!, presentation.subtitle, MetaColor.TEXT_MUTED)
+			messageText = createText(bodyFont!!, presentation.message, MetaColor.TEXT)
+		}
 		updateStatusText()
 	}
 
-	private fun configuredFonts(pixelScale: Float): SplashFonts {
-		val configuredTitle = configuredFont(fontConfiguration.title, TITLE_FONT_SIZE, pixelScale, "title")
+	/**
+	 * The logical title size for the current style.
+	 *
+	 * Fixed for a panel, whose whole layout is built around a known size. Proportional to the window height for a
+	 * quiet splash, because a fixed 25 px title in a 2560x1600 window is a caption, not a title.
+	 */
+	private fun wantedTitleSize(): Int =
+		SplashTitleSizing.forWindow(Gdx.graphics.height, presentation.style)
+
+	private fun disposeFonts() {
+		titleFont?.dispose()
+		titleFont = null
+		bodyFont?.dispose()
+		bodyFont = null
+		detailFont?.dispose()
+		detailFont = null
+		markText = null
+		titleText = null
+		subtitleText = null
+		messageText = null
+		statusText = null
+		displayedStatus = null
+	}
+
+	private fun configuredFonts(pixelScale: Float, titleSize: Int): SplashFonts {
+		val configuredTitle = configuredFont(fontConfiguration.title, titleSize, pixelScale, "title")
 		val configuredBody = configuredBodyFonts(fontConfiguration.body, pixelScale)
 		return SplashFonts(configuredTitle, configuredBody.first, configuredBody.second)
 	}
@@ -683,6 +801,7 @@ class SplashScreen private constructor(
 	}
 
 	private fun updateStatusText() {
+		if (presentation.style == SplashStyle.QUIET) return
 		val font = detailFont ?: return
 		val status = presentation.statusFor(phase)
 		if (displayedStatus == status) return
@@ -693,6 +812,9 @@ class SplashScreen private constructor(
 
 	private fun updateProjection() {
 		spriteBatch.projectionMatrix.setToOrtho2D(0f, 0f, Gdx.graphics.width.toFloat(), Gdx.graphics.height.toFloat())
+		// Before laying out: a quiet title is sized from the window, so a resize has to rebuild the face at the new
+		// size rather than reposition the old one.
+		createText()
 		val bounds = SplashPanelGeometry.bounds(
 			Gdx.graphics.width,
 			Gdx.graphics.height,
@@ -707,6 +829,16 @@ class SplashScreen private constructor(
 
 	private fun layoutText() {
 		if (titleFont == null) return
+		if (presentation.style == SplashStyle.QUIET) {
+			val title = titleText ?: return
+			// Centred on the window, sitting above the bar rather than on it. The baseline is what a font cache is
+			// positioned by, so the height goes in here rather than into the y fraction.
+			title.cache.setPosition(
+				snapToPhysicalPixel((Gdx.graphics.width - title.width) * 0.5f, textPixelScale),
+				snapToPhysicalPixel(Gdx.graphics.height * QUIET_TITLE_HEIGHT_POSITION + title.height * 0.5f, textPixelScale),
+			)
+			return
+		}
 		val markX = panelX + PANEL_PADDING
 		val markY = panelY + panelHeight - PANEL_PADDING - MARK_SIZE
 		markText?.let {
@@ -734,7 +866,7 @@ class SplashScreen private constructor(
 		)
 	}
 
-	private companion object {
+	internal companion object {
 		const val PREPARATION_THREAD_NAME = "meta-asset-preparation"
 		const val RING_TEXTURE_SIZE = 64
 		const val SPINNER_SIZE = 42f
@@ -758,6 +890,20 @@ class SplashScreen private constructor(
 		const val TRACK_ALPHA = 0.65f
 		const val DIVIDER_ALPHA = 0.65f
 		const val TITLE_FONT_SIZE = 25
+
+		/** Quiet style: the title is this fraction of the window height, so it scales with the window. */
+		const val QUIET_TITLE_HEIGHT_FRACTION = 0.075f
+		const val QUIET_TITLE_MIN_SIZE = 28
+		const val QUIET_TITLE_MAX_SIZE = 180
+		/** Where the title's centre sits, as a fraction of the window height. Slightly above the middle. */
+		const val QUIET_TITLE_HEIGHT_POSITION = 0.54f
+		const val QUIET_BAR_HEIGHT_FRACTION = 0.42f
+		const val QUIET_BAR_WIDTH_FRACTION = 0.24f
+		const val QUIET_BAR_THICKNESS_FRACTION = 0.0022f
+		const val QUIET_BAR_MIN_MARGIN = 24f
+		const val QUIET_BAR_SEGMENT_FRACTION = 0.28f
+		/** Deliberately slower than the panel's: a slow sweep reads as patience rather than as activity. */
+		const val QUIET_BAR_SPEED = 1.0f
 		const val BODY_FONT_SIZE = 15
 		const val DETAIL_FONT_SIZE = 12
 		const val SPLASH_FONT_OVERSAMPLE = 2f
@@ -818,6 +964,17 @@ internal object SplashRingTexturePainter {
 	private fun smoothStep(edge0: Float, edge1: Float, value: Float): Float {
 		val progress = ((value - edge0) / (edge1 - edge0)).coerceIn(0f, 1f)
 		return progress * progress * (3f - 2f * progress)
+	}
+}
+
+/** How large the title is drawn. Its own object so the scaling is testable without a window. */
+internal object SplashTitleSizing {
+	fun forWindow(windowHeight: Int, style: SplashStyle): Int {
+		// A panel's layout is built around a known size, so it does not scale.
+		if (style == SplashStyle.PANEL) return SplashScreen.TITLE_FONT_SIZE
+		return (windowHeight * SplashScreen.QUIET_TITLE_HEIGHT_FRACTION)
+			.roundToInt()
+			.coerceIn(SplashScreen.QUIET_TITLE_MIN_SIZE, SplashScreen.QUIET_TITLE_MAX_SIZE)
 	}
 }
 

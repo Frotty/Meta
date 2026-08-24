@@ -20,6 +20,32 @@ class SplashLoadingPolicyTest {
 	}
 
 	@Test
+	fun `a panel title does not scale with the window`() {
+		// The panel's layout is built around a known size — mark box, gaps, baselines are all fixed — so scaling the
+		// title would break it.
+		assertEquals(
+			SplashTitleSizing.forWindow(720, SplashStyle.PANEL),
+			SplashTitleSizing.forWindow(1600, SplashStyle.PANEL),
+		)
+	}
+
+	@Test
+	fun `a quiet title scales with the window`() {
+		// The symptom that prompted this: a fixed 25 px title in a 2560x1600 window is a caption, not a title.
+		val small = SplashTitleSizing.forWindow(720, SplashStyle.QUIET)
+		val large = SplashTitleSizing.forWindow(1600, SplashStyle.QUIET)
+		assertTrue(large > small, "a larger window did not get a larger title: $small then $large")
+	}
+
+	@Test
+	fun `a quiet title stays readable and stays sane`() {
+		// Both ends matter. A 200-pixel-tall window must not get an unreadable title, and a wall-sized one must not
+		// get a title that does not fit on it.
+		assertTrue(SplashTitleSizing.forWindow(1, SplashStyle.QUIET) >= 28)
+		assertTrue(SplashTitleSizing.forWindow(20_000, SplashStyle.QUIET) <= 180)
+	}
+
+	@Test
 	fun `the panel fills the window unless it is a banner`() {
 		val bounds = SplashPanelGeometry.bounds(1920, 1080, SplashTransitionConfiguration())
 		assertEquals(listOf(0f, 0f, 1920f, 1080f), bounds.toList())
