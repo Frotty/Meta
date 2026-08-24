@@ -140,8 +140,28 @@ abstract class Meta(
 		lateinit var instance: Meta
 			private set
 
+		/**
+		 * The running application, or null when there is none.
+		 *
+		 * An application may use Meta's UI layer, asset pipeline or [de.fatox.meta.api.SplashScreen] without
+		 * adopting this class, in which case [instance] is never assigned and reading it throws. Engine code that
+		 * only wants the window or the screen timing when they exist reads this instead.
+		 */
 		@JvmStatic
-		fun canChangeScreen(): Boolean = TimeUtils.millis() > instance.lastChange + 150
+		val instanceOrNull: Meta?
+			get() = if (::instance.isInitialized) instance else null
+
+		/**
+		 * Whether enough time has passed since the last screen change to make another.
+		 *
+		 * True when there is no [Meta] application: the throttle exists to stop this class swapping screens twice
+		 * in a frame, and an application that manages its own screens has nothing here to throttle.
+		 */
+		@JvmStatic
+		fun canChangeScreen(): Boolean {
+			val running = instanceOrNull ?: return true
+			return TimeUtils.millis() > running.lastChange + 150
+		}
 
 		@JvmStatic
 		fun newLastScreen() {

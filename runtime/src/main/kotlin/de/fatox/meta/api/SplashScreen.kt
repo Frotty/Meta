@@ -38,6 +38,7 @@ data class SplashPresentation(
 	val queueStatus: String = "BUILDING LOAD QUEUE",
 	val assetStatus: String = "LOADING ASSETS",
 	val interfaceStatus: String = "BUILDING INTERFACE",
+	val applicationStatus: String = "PREPARING APPLICATION",
 	val readyStatus: String = "READY",
 	val transition: SplashTransitionConfiguration = SplashTransitionConfiguration(),
 )
@@ -77,6 +78,44 @@ data class SplashFontConfiguration(
 )
 
 /**
+ * The application's own startup work, advanced a slice at a time.
+ *
+ * Meta can only spread out the loading it owns: [AssetProvider.update] for queued assets and
+ * [de.fatox.meta.api.ui.UIRenderer.updateLoad] for generated UI resources. Work that belongs to the application
+ * itself — its own faces, its atlases, a scene it wants standing before the first screen appears — has nowhere to
+ * go but the loaded callback, where it costs one frozen frame for as long as it takes. That is the freeze this
+ * replaces: [SplashScreen] calls [update] once per frame with a soft budget and keeps the panel animating until it
+ * returns true.
+ *
+ * Calls happen on the GL thread after Meta's assets and UI resources are ready, so a step may create textures,
+ * fonts and scene2d actors — which is the point, since that is the work with nowhere else to run. A step that
+ * overruns its budget still costs one long frame, so divide the work into steps rather than trusting the budget.
+ */
+fun interface SplashStartupLoad {
+	/** Advances startup work for up to [millis], then reports whether anything is left. */
+	fun update(millis: Int): Boolean
+}
+
+/**
+ * Every callback [SplashScreen] can drive, named at the call site.
+ *
+ * The constructor overloads cover combinations of two and three callbacks positionally, which is already as far as
+ * that reads clearly. This is the same set as one argument, so a caller can supply any subset — and adding a
+ * callback here does not widen that matrix again.
+ */
+data class SplashCallbacks(
+	/** Discovery and queue construction, run in order on a low-priority worker. Neither may touch GL or scene2d. */
+	val prepareAssets: (() -> Unit)? = null,
+	val queueAssets: (() -> Unit)? = null,
+	/** The application's own GL-thread startup work, advanced in slices. See [SplashStartupLoad]. */
+	val startupLoad: SplashStartupLoad? = null,
+	/** Runs on the GL thread once loading is done, one frame before the panel starts fading out. */
+	val beforeFadeOut: (() -> Unit)? = null,
+	/** Runs on the GL thread after the panel has faded out. Hand over to the first real screen here. */
+	val onLoaded: () -> Unit,
+)
+
+/**
  * Lightweight startup screen which only uses Meta's shared [SpriteBatch].
  *
  * The single-callback constructor preserves the original GL-thread contract. Prefer the two-callback constructor:
@@ -85,6 +124,13 @@ data class SplashFontConfiguration(
  * discovery or queue construction is substantial, use the three-callback constructor: [prepareAssets] and
  * [queueAssets] run sequentially on a low-priority worker before GL-thread updates begin; [onLoaded] remains on the
  * GL thread. This worker mode requires queueing operations that do not touch OpenGL or scene2d.
+ *
+ * An application whose own startup work is expensive should pass [SplashCallbacks.startupLoad] as well, so that work
+ * is advanced in slices between the UI resources and the fade-out instead of blocking [onLoaded]. Whatever is left in
+ * [onLoaded] runs while the panel is gone, so keep it to handing over the first screen.
+ *
+ * Does not require the application to extend [Meta]. Everything it draws with comes from the injection graph, so a
+ * game that only adopts Meta's UI layer can still show it.
  */
 class SplashScreen private constructor(
 	private val onLoaded: () -> Unit,
@@ -93,7 +139,23 @@ class SplashScreen private constructor(
 	private val presentation: SplashPresentation,
 	private val fontConfiguration: SplashFontConfiguration,
 	private val beforeFadeOut: (() -> Unit)? = null,
+	private val startupLoad: SplashStartupLoad? = null,
 ) : ScreenAdapter() {
+	/** Any combination of the callbacks, including [SplashCallbacks.startupLoad], which has no positional form. */
+	constructor(
+		callbacks: SplashCallbacks,
+		presentation: SplashPresentation = SplashPresentation(),
+		fonts: SplashFontConfiguration = SplashFontConfiguration(),
+	) : this(
+		callbacks.onLoaded,
+		callbacks.queueAssets?.let { AssetQueue(it) },
+		callbacks.prepareAssets?.let { AssetPreparation(it) },
+		presentation,
+		fonts,
+		callbacks.beforeFadeOut,
+		callbacks.startupLoad,
+	)
+
 	constructor(onLoaded: () -> Unit) : this(onLoaded, null, null, SplashPresentation(), SplashFontConfiguration())
 	constructor(presentation: SplashPresentation, onLoaded: () -> Unit) :
 		this(onLoaded, null, null, presentation, SplashFontConfiguration())
@@ -177,7 +239,10 @@ class SplashScreen private constructor(
 		createTextures()
 		createText()
 		updateProjection()
-		Meta.instance.windowHandler.focus()
+		// Null when the application does not extend Meta: this screen only needs the shared SpriteBatch, the asset
+		// provider and the UI renderer, all of which come from the injection graph, so a game that uses Meta's UI
+		// layer without its Game class can show it. There is then no window handler to raise.
+		Meta.instanceOrNull?.windowHandler?.focus()
 	}
 
 	override fun dispose() {
@@ -346,7 +411,14 @@ class SplashScreen private constructor(
 			}
 			SplashPhase.UI_LOADING -> {
 				val budgetMillis = loadingBudgetMillis(frameDelta)
-				if (uiRenderer.updateLoad(budgetMillis)) enterPhase(SplashPhase.HOLD)
+				if (uiRenderer.updateLoad(budgetMillis)) {
+					enterPhase(if (startupLoad == null) SplashPhase.HOLD else SplashPhase.APP_LOADING)
+				}
+			}
+			SplashPhase.APP_LOADING -> {
+				val work = startupLoad
+				val budgetMillis = loadingBudgetMillis(frameDelta)
+				if (work == null || work.update(budgetMillis)) enterPhase(SplashPhase.HOLD)
 			}
 			SplashPhase.HOLD -> if (phaseElapsed >= presentation.transition.minimumHoldDuration) {
 				if (!transitionPreparationStarted) {
@@ -650,7 +722,9 @@ class SplashScreen private constructor(
 
 internal fun SplashFont.fileHandle() = Gdx.files.getFileHandle(path, fileType)
 
-internal enum class SplashPhase { FADE_IN, PREPARING, QUEUEING, LOADING, UI_LOADING, HOLD, FADE_OUT, COMPLETE }
+internal enum class SplashPhase {
+	FADE_IN, PREPARING, QUEUEING, LOADING, UI_LOADING, APP_LOADING, HOLD, FADE_OUT, COMPLETE
+}
 
 internal fun SplashPresentation.statusFor(phase: SplashPhase): String = when (phase) {
 	SplashPhase.FADE_IN -> startingStatus
@@ -658,6 +732,7 @@ internal fun SplashPresentation.statusFor(phase: SplashPhase): String = when (ph
 	SplashPhase.QUEUEING -> queueStatus
 	SplashPhase.LOADING -> assetStatus
 	SplashPhase.UI_LOADING -> interfaceStatus
+	SplashPhase.APP_LOADING -> applicationStatus
 	SplashPhase.HOLD, SplashPhase.FADE_OUT, SplashPhase.COMPLETE -> readyStatus
 }
 

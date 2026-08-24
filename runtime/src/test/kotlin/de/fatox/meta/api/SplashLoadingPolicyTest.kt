@@ -50,6 +50,7 @@ class SplashLoadingPolicyTest {
 			queueStatus = "queue",
 			assetStatus = "assets",
 			interfaceStatus = "interface",
+			applicationStatus = "application",
 			readyStatus = "ready",
 		)
 
@@ -58,6 +59,7 @@ class SplashLoadingPolicyTest {
 		assertEquals("queue", presentation.statusFor(SplashPhase.QUEUEING))
 		assertEquals("assets", presentation.statusFor(SplashPhase.LOADING))
 		assertEquals("interface", presentation.statusFor(SplashPhase.UI_LOADING))
+		assertEquals("application", presentation.statusFor(SplashPhase.APP_LOADING))
 		assertEquals("ready", presentation.statusFor(SplashPhase.HOLD))
 		assertEquals("ready", presentation.statusFor(SplashPhase.FADE_OUT))
 	}

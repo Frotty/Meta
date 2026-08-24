@@ -118,6 +118,11 @@ Allocation rate is the primary controllable JVM game-runtime cost.
 - Prefer `SplashScreen(prepareAssets, queueAssets, onLoaded)` for non-trivial startup. The first two callbacks run
   sequentially on a worker and may do CPU/file/queue work only. `onLoaded`, scene2d, GL resources, and reactive UI
   writes run on the GL thread.
+- GL-thread startup work of the application's own — its faces, atlases or a pre-built scene — belongs in
+  `SplashCallbacks.startupLoad`, which the splash advances in budgeted slices while the panel animates. Anything left
+  in `onLoaded` blocks a frame with the panel already gone, so keep that to handing over the first screen.
+- `SplashScreen` does not require extending `Meta`; read `Meta.instanceOrNull` rather than `Meta.instance` in engine
+  code that must work for an application which only adopts the UI layer.
 - Use `AssetProvider.load` with frame-budgeted updates. Avoid `finish()` and unqueued `getResource()` on animated
   loading paths.
 - Commons Compress is an XPK implementation detail. Public APIs expose Meta/libGDX types; use
