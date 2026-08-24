@@ -1,6 +1,7 @@
 package de.fatox.meta.api
 
 import com.badlogic.gdx.Files
+import com.badlogic.gdx.graphics.Color
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -17,6 +18,152 @@ class SplashLoadingPolicyTest {
 	fun `healthy refresh frames advance but slow frames recover without more work`() {
 		assertEquals(8, SplashLoadingPolicy.updateBudgetMillis(1f / 60f))
 		assertEquals(0, SplashLoadingPolicy.updateBudgetMillis(1f / 30f))
+	}
+
+	@Test
+	fun `a quiet splash rebuilds its text when only the width changes`() {
+		// The hole in the first fit fix: the size came from the height, so narrowing the window left the key
+		// unchanged and the title stayed too wide for the space it had.
+		val before = SplashTextKey.keyWidth(1920, SplashStyle.QUIET)
+		val after = SplashTextKey.keyWidth(800, SplashStyle.QUIET)
+		assertTrue(before != after, "a width-only resize did not change the key, so the title would not be re-fitted")
+	}
+
+	@Test
+	fun `a panel splash ignores the window in its text key`() {
+		// A panel's title is a fixed size, so regenerating its faces on every resize would be pure waste.
+		assertEquals(
+			SplashTextKey.keyHeight(720, SplashStyle.PANEL),
+			SplashTextKey.keyHeight(1600, SplashStyle.PANEL),
+		)
+		assertEquals(
+			SplashTextKey.keyWidth(800, SplashStyle.PANEL),
+			SplashTextKey.keyWidth(2560, SplashStyle.PANEL),
+		)
+	}
+
+	@Test
+	fun `a quiet splash tracks both dimensions`() {
+		assertEquals(1600, SplashTextKey.keyHeight(1600, SplashStyle.QUIET))
+		assertEquals(2560, SplashTextKey.keyWidth(2560, SplashStyle.QUIET))
+	}
+
+	@Test
+	fun `every palette colour takes part in equality`() {
+		// Equality compares the four packed colours, not their combined hash: four 32-bit values in one Int
+		// guarantees collisions, and a collision would have made two visibly different palettes compare equal. The
+		// per-component check also catches an equality that simply forgot one of them.
+		val base = SplashPalette()
+		val differing = listOf(
+			"background" to SplashPalette(background = Color.RED),
+			"title" to SplashPalette(title = Color.RED),
+			"accent" to SplashPalette(accent = Color.RED),
+			"track" to SplashPalette(track = Color.RED),
+		)
+		for ((name, other) in differing) {
+			assertTrue(base != other, "a palette differing only in $name compared equal to the default")
+		}
+		// And the same colour in a different role is a different palette.
+		assertTrue(
+			SplashPalette(accent = Color.RED) != SplashPalette(track = Color.RED),
+			"two palettes with the same colour in different roles compared equal",
+		)
+	}
+
+	@Test
+	fun `a palette stays findable after one of its colours is written to`() {
+		// The fields equals and hashCode are computed from are public and mutable, so a hash that changed after
+		// insertion would lose the entry. They read a snapshot taken at construction instead.
+		val palette = SplashPalette(accent = Color(0.2f, 0.4f, 0.6f, 1f))
+		val presentation = SplashPresentation(palette = palette)
+		val set = hashSetOf(presentation)
+
+		palette.accent.set(1f, 0f, 0f, 1f)
+
+		assertTrue(presentation in set, "writing to a palette colour lost the presentation holding it")
+		assertEquals(presentation.hashCode(), presentation.copy().hashCode())
+	}
+
+	@Test
+	fun `presentations with the same settings are equal`() {
+		// SplashPresentation is a data class, and a palette with identity equality would make two identical
+		// configurations compare unequal — breaking every comparison, change check and set that holds one.
+		assertEquals(SplashPresentation(), SplashPresentation())
+		assertEquals(SplashPresentation().hashCode(), SplashPresentation().hashCode())
+
+		val one = SplashPresentation(title = "Game", palette = SplashPalette(accent = Color.RED))
+		val same = SplashPresentation(title = "Game", palette = SplashPalette(accent = Color.RED))
+		val different = SplashPresentation(title = "Game", palette = SplashPalette(accent = Color.BLUE))
+		assertEquals(one, same)
+		assertTrue(one != different, "two presentations differing only by accent compared equal")
+	}
+
+	@Test
+	fun `a title that fits is left alone`() {
+		assertEquals(100, SplashTitleSizing.fitToWidth(100, measuredWidth = 400f, availableWidth = 500f, minSize = 28))
+		// Exactly filling the space is fitting.
+		assertEquals(100, SplashTitleSizing.fitToWidth(100, measuredWidth = 500f, availableWidth = 500f, minSize = 28))
+	}
+
+	@Test
+	fun `a title wider than the window is scaled to fit it`() {
+		// The case that clipped: sizing from height alone says nothing about width, so a long title or a tall narrow
+		// window overflowed and was centred at a negative x.
+		val fitted = SplashTitleSizing.fitToWidth(120, measuredWidth = 1200f, availableWidth = 600f, minSize = 28)
+		assertEquals(60, fitted)
+		// Floored, not rounded, so the result lands under the limit rather than on it.
+		assertEquals(66, SplashTitleSizing.fitToWidth(100, measuredWidth = 1200f, availableWidth = 800f, minSize = 28))
+	}
+
+	@Test
+	fun `fitting never produces an unreadable title`() {
+		// A title that fits but cannot be read is worse than one that is tight.
+		assertEquals(28, SplashTitleSizing.fitToWidth(120, measuredWidth = 10_000f, availableWidth = 100f, minSize = 28))
+	}
+
+	@Test
+	fun `fitting ignores measurements it cannot use`() {
+		// Before the first layout, or in a zero-width window, there is nothing to scale against.
+		assertEquals(90, SplashTitleSizing.fitToWidth(90, measuredWidth = 0f, availableWidth = 500f, minSize = 28))
+		assertEquals(90, SplashTitleSizing.fitToWidth(90, measuredWidth = 400f, availableWidth = 0f, minSize = 28))
+	}
+
+	@Test
+	fun `a palette keeps its own copies of the colours`() {
+		// libGDX's Color is mutable and these are held for the life of the screen, so a caller reusing a Color
+		// instance — a palette token, say — must not be able to change what the splash draws afterwards.
+		val source = Color(0.1f, 0.2f, 0.3f, 1f)
+		val palette = SplashPalette(background = source, accent = source)
+		source.set(0.9f, 0.9f, 0.9f, 1f)
+
+		assertEquals(0.1f, palette.background.r)
+		assertEquals(0.1f, palette.accent.r)
+	}
+
+	@Test
+	fun `a panel title does not scale with the window`() {
+		// The panel's layout is built around a known size — mark box, gaps, baselines are all fixed — so scaling the
+		// title would break it.
+		assertEquals(
+			SplashTitleSizing.forWindow(720, SplashStyle.PANEL),
+			SplashTitleSizing.forWindow(1600, SplashStyle.PANEL),
+		)
+	}
+
+	@Test
+	fun `a quiet title scales with the window`() {
+		// The symptom that prompted this: a fixed 25 px title in a 2560x1600 window is a caption, not a title.
+		val small = SplashTitleSizing.forWindow(720, SplashStyle.QUIET)
+		val large = SplashTitleSizing.forWindow(1600, SplashStyle.QUIET)
+		assertTrue(large > small, "a larger window did not get a larger title: $small then $large")
+	}
+
+	@Test
+	fun `a quiet title stays readable and stays sane`() {
+		// Both ends matter. A 200-pixel-tall window must not get an unreadable title, and a wall-sized one must not
+		// get a title that does not fit on it.
+		assertTrue(SplashTitleSizing.forWindow(1, SplashStyle.QUIET) >= 28)
+		assertTrue(SplashTitleSizing.forWindow(20_000, SplashStyle.QUIET) <= 180)
 	}
 
 	@Test
