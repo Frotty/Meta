@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.graphics.font.FontInfo
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.MathUtils
@@ -787,6 +788,10 @@ class SplashScreen private constructor(
 
 	private fun configuredFonts(pixelScale: Float, titleSize: Int): SplashFonts {
 		val configuredTitle = configuredFont(fontConfiguration.title, titleSize, pixelScale, "title")
+		// A quiet splash draws the title and nothing else, so generating the body and detail faces is two FreeType
+		// rasterizations and two texture uploads for text that is never built. That is per rebuild, and a quiet
+		// title rebuilds on resize — enough to stall an interactive drag during startup.
+		if (presentation.style == SplashStyle.QUIET) return SplashFonts(configuredTitle, null, null)
 		val configuredBody = configuredBodyFonts(fontConfiguration.body, pixelScale)
 		return SplashFonts(configuredTitle, configuredBody.first, configuredBody.second)
 	}
@@ -797,7 +802,7 @@ class SplashScreen private constructor(
 		pixelScale: Float,
 		role: String,
 	): BitmapFont {
-		if (source == null) return fallbackFont(logicalSize)
+		if (source == null) return unconfiguredFont(logicalSize, pixelScale)
 		val generator = try {
 			FreeTypeFontGenerator(source.fileHandle())
 		} catch (error: Exception) {
@@ -842,6 +847,33 @@ class SplashScreen private constructor(
 			"Could not load configured $role splash font '${source.path}'; using the bundled bitmap font.",
 			error,
 		)
+	}
+
+	/**
+	 * The face to use when the application configured none.
+	 *
+	 * libGDX's bundled bitmap font is a fixed low-resolution atlas, so scaling it to a quiet title's size — up to
+	 * 180 px — magnifies it into something visibly blurry. Meta packages scalable faces in its own jar, and they are
+	 * classpath resources rather than application assets, so they are available this early. Only reached when the
+	 * caller supplied no title font; an application that supplies one never loads these.
+	 */
+	private fun unconfiguredFont(logicalSize: Int, pixelScale: Float): BitmapFont {
+		if (logicalSize <= BITMAP_FALLBACK_MAX_SIZE) return fallbackFont(logicalSize)
+		val bundled = SplashFont(FontInfo.DEFAULT_BOLD_FONT_PATH, Files.FileType.Classpath)
+		val generator = try {
+			FreeTypeFontGenerator(bundled.fileHandle())
+		} catch (error: Exception) {
+			splashLog.debug("No bundled splash face at {}; scaling the bitmap font instead", bundled.path, error)
+			return fallbackFont(logicalSize)
+		}
+		return try {
+			generateFont(generator, logicalSize, pixelScale)
+		} catch (error: Exception) {
+			splashLog.debug("Could not generate a bundled splash face; scaling the bitmap font instead", error)
+			fallbackFont(logicalSize)
+		} finally {
+			generator.dispose()
+		}
 	}
 
 	private fun fallbackFont(logicalSize: Int): BitmapFont = BitmapFont().apply {
@@ -964,6 +996,8 @@ class SplashScreen private constructor(
 		const val TRACK_ALPHA = 0.65f
 		const val DIVIDER_ALPHA = 0.65f
 		const val TITLE_FONT_SIZE = 25
+		/** Above this, magnifying libGDX's bundled bitmap atlas is visibly blurry and a real face is worth loading. */
+		const val BITMAP_FALLBACK_MAX_SIZE = 32
 
 		/** Quiet style: the title is this fraction of the window height, so it scales with the window. */
 		const val QUIET_TITLE_HEIGHT_FRACTION = 0.075f
@@ -989,7 +1023,8 @@ class SplashScreen private constructor(
 
 	private class AssetQueue(val task: () -> Unit)
 	private class AssetPreparation(val task: () -> Unit)
-	private class SplashFonts(val title: BitmapFont, val body: BitmapFont, val detail: BitmapFont)
+	/** [body] and [detail] are absent for a quiet splash, which draws neither. */
+	private class SplashFonts(val title: BitmapFont, val body: BitmapFont?, val detail: BitmapFont?)
 	private class SplashText(val cache: BitmapFontCache, val width: Float, val height: Float)
 }
 
