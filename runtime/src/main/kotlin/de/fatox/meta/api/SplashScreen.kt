@@ -469,6 +469,11 @@ class SplashScreen private constructor(
 	private fun startPreparation() {
 		enterPhase(SplashPhase.PREPARING)
 		val preparation = assetPreparation ?: return
+		// Resolved here, on the GL thread, and captured — so the worker below calls a method on an object that
+		// already exists instead of reaching into the injection graph. `MetaInject` keeps its singletons in
+		// unsynchronized maps and hands out `LazyThreadSafetyMode.NONE` delegates, so a worker resolving a service
+		// while this thread resolves another can build two of something or publish one half-initialized.
+		val fonts = fontProvider
 		Thread({
 			try {
 				preparation.task.invoke()
@@ -487,7 +492,7 @@ class SplashScreen private constructor(
 			// Reading and parsing a TrueType file needs no graphics device — Meta's icon face is 599 KB — so it
 			// belongs here. Rasterizing and uploading stay on the GL thread, which is why only the file work moves.
 			// A face the GL thread reaches first is simply opened there; the provider serializes the two.
-			runCatching { fontProvider.prepareFaces() }
+			runCatching { fonts.prepareFaces() }
 				.onFailure { splashLog.warn("Could not pre-open the configured fonts; they open on first use", it) }
 		}, PREPARATION_THREAD_NAME).apply {
 			isDaemon = true

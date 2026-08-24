@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFails
 import kotlin.test.assertTrue
 
 /**
@@ -34,6 +35,7 @@ internal class MetaFontProviderFaceLoadingTest {
 
 	@AfterEach
 	fun tearDown() {
+		// Disposing twice is deliberate in two of these tests; the second call must be a no-op, not a crash.
 		provider.dispose()
 		MetaHeadlessUi.dispose()
 	}
@@ -90,6 +92,44 @@ internal class MetaFontProviderFaceLoadingTest {
 		assertEquals(FontType.entries.size, provider.openFaceCount)
 		// Rasterizing is still the GL thread's job, and this is it.
 		assertTrue(provider.getFont(20, FontType.BOLD).data.getGlyph('W') != null)
+	}
+
+	@Test
+	fun `a disposed provider opens no more faces`() {
+		// The preparation worker outlives the phase that started it, so an application closed during startup can
+		// reach prepareFaces after teardown. Storing a face then leaves a FreeType handle in a map nothing will
+		// clear again.
+		provider.getFont(18, FontType.REGULAR)
+		provider.dispose()
+
+		provider.prepareFaces()
+		assertEquals(0, provider.openFaceCount, "a disposed provider reopened faces")
+	}
+
+	@Test
+	fun `disposal releases the faces it opened`() {
+		provider.prepareFaces()
+		assertEquals(FontType.entries.size, provider.openFaceCount)
+
+		provider.dispose()
+		assertEquals(0, provider.openFaceCount, "disposal left faces open")
+	}
+
+	@Test
+	fun `the dependencies prepareFaces needs are resolved at construction`() {
+		// Not lazily. prepareFaces runs on a worker and reads the asset provider and the font info; MetaInject keeps
+		// its singletons in unsynchronized maps and hands out NONE-mode lazy delegates, so resolving either of those
+		// off-thread can build two of something or publish one half-built. Resolving at construction puts it on
+		// whichever thread builds the provider, and SplashScreen makes sure that is the GL thread.
+		//
+		// Observable only as this: with nothing registered, building one fails here rather than succeeding and
+		// failing later on another thread.
+		MetaHeadlessUi.dispose()
+		MetaInject.global(clear = true) {}
+		assertFails { MetaFontProvider() }
+
+		// Restored so the shared teardown has a graph to work with.
+		MetaHeadlessUi.install()
 	}
 
 	@Test

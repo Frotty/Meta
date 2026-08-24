@@ -182,12 +182,14 @@ internal class SplashScreenTest {
 		// through the asset provider, and the application's preparation is what indexes the tree those paths are in.
 		val order = ArrayList<String>()
 		val prepareThread = arrayOfNulls<String>(1)
+		val constructedOn = arrayOfNulls<String>(1)
 
 		// Reinstalled so the splash's own `FontProvider("default")` is the recorder. The graph is cleared by
 		// install(), so the panel's SpriteBatch has to go back in after it.
 		MetaHeadlessUi.dispose()
 		MetaHeadlessUi.install(
 			fontProvider = {
+				constructedOn[0] = Thread.currentThread().name
 				object : FontProvider by MetaFontProvider() {
 					override fun prepareFaces() {
 						prepareThread[0] = Thread.currentThread().name
@@ -233,6 +235,14 @@ internal class SplashScreenTest {
 		assertTrue(
 			prepareThread[0] != null && prepareThread[0] != Thread.currentThread().name,
 			"faces were opened on the calling thread rather than off it (${prepareThread[0]})",
+		)
+		// The provider is *resolved* on this thread even though its faces are opened off it. MetaInject's maps are
+		// unsynchronized, so a worker that resolves the provider itself can race the GL thread resolving anything
+		// else — two providers, or one published half-built.
+		assertEquals(
+			Thread.currentThread().name,
+			constructedOn[0],
+			"the font provider was built on the worker instead of the thread that started it",
 		)
 	}
 

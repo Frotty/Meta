@@ -23,6 +23,7 @@ import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.api.graphics.physicalPixelsPerUnit
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.roundToInt
 
@@ -30,9 +31,21 @@ internal const val FONT_ATLAS_OVERSAMPLE = 2f
 private val log = MetaLoggerFactory.logger {}
 
 class MetaFontProvider : FontProvider {
-	private val assetProvider: AssetProvider by lazyInject()
+	/**
+	 * Resolved now, not lazily, because [prepareFaces] runs on a worker and these are what it reads.
+	 *
+	 * `MetaInject` keeps its singletons in unsynchronized maps and hands out `LazyThreadSafetyMode.NONE`
+	 * delegates, so a worker resolving either of these while the GL thread resolves something else can build two
+	 * providers or publish a half-initialized one. Resolving at construction moves that onto whichever thread
+	 * builds the provider, and [de.fatox.meta.api.SplashScreen] makes sure that is the GL thread before it starts
+	 * its worker. This is also what the constructor did before faces became lazy — it opened all four here, which
+	 * read both of these.
+	 */
+	private val assetProvider: AssetProvider = inject()
+	private val fontInfo: FontInfo = inject()
+
+	/** Still lazy: only [write] and [physicalUiScale] read these, and both are GL-thread paths. */
 	private val spriteBatch: SpriteBatch by lazyInject()
-	private val fontInfo: FontInfo by lazyInject()
 	private val uiRenderer: UIRenderer by lazyInject()
 
 	private val normalFontMap = IntMap<BitmapFont>()
@@ -63,11 +76,21 @@ class MetaFontProvider : FontProvider {
 	private val generatorLock = Any()
 
 	private fun sourceFor(type: FontType): FontGeneratorSource? {
-		synchronized(generatorLock) { generatorSlots[type]?.let { return it.source } }
+		synchronized(generatorLock) {
+			if (disposed) return null
+			generatorSlots[type]?.let { return it.source }
+		}
 		// Opened outside the lock. Parsing a face takes tens of milliseconds — Meta's icon face is 599 KB — and the
 		// GL thread asking for a different face must not wait behind it.
 		val opened = createGenerator(type)
 		return synchronized(generatorLock) {
+			// Disposal can land while we were parsing: the preparation worker outlives the phase that started it, so
+			// an application closed during startup reaches exactly this. Release what we opened rather than storing
+			// it in a map nothing will ever clear again.
+			if (disposed) {
+				opened?.generator?.dispose()
+				return null
+			}
 			val existing = generatorSlots[type]
 			if (existing != null) {
 				// Another thread opened this type while we were parsing. Keep theirs, since callers may already hold
@@ -80,6 +103,9 @@ class MetaFontProvider : FontProvider {
 			}
 		}
 	}
+
+	/** Set under [generatorLock]; stops [sourceFor] from opening or storing a face after teardown. */
+	private var disposed = false
 
 	/**
 	 * How many faces have been opened. Zero until something asks for one.
@@ -166,9 +192,12 @@ class MetaFontProvider : FontProvider {
 		disposeAll(iconFontMap)
 		for (i in 0 until orphanedFonts.size) disposeFont(orphanedFonts.get(i))
 		orphanedFonts.clear()
-		val types = FontType.entries
-		for (i in types.indices) generatorSlots[types[i]]?.source?.generator?.dispose()
-		generatorSlots.clear()
+		synchronized(generatorLock) {
+			disposed = true
+			val types = FontType.entries
+			for (i in types.indices) generatorSlots[types[i]]?.source?.generator?.dispose()
+			generatorSlots.clear()
+		}
 		for (i in 0 until retiredGenerators.size) retiredGenerators.get(i).dispose()
 		retiredGenerators.clear()
 	}
