@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
+import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.MathUtils
@@ -219,6 +220,7 @@ class SplashScreen private constructor(
 	private val spriteBatch: SpriteBatch by lazyInject()
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val assetProvider: AssetProvider by lazyInject()
+	private val fontProvider: FontProvider by lazyInject("default")
 	private var ringTexture: Texture? = null
 	private var pixelTexture: Texture? = null
 	private var titleFont: BitmapFont? = null
@@ -468,6 +470,11 @@ class SplashScreen private constructor(
 			try {
 				preparation.task.invoke()
 				assetQueue?.task?.invoke()
+				// Last, not first: opening a face resolves its path through the asset provider, and the application's
+				// preparation is what indexes the tree those paths live in. Reading and parsing a TrueType file needs
+				// no graphics device — Meta's own icon face is 599 KB — so it belongs on this thread rather than on a
+				// frame. Rasterizing stays on the GL thread; only the file work moves.
+				fontProvider.prepareFaces()
 			} catch (failure: Throwable) {
 				preparationFailure = failure
 			} finally {
