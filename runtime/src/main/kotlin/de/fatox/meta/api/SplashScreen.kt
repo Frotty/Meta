@@ -48,9 +48,14 @@ enum class SplashStyle { PANEL, QUIET }
  * want to say something: the splash is the first thing on screen and a hand-off into a menu of a different hue reads
  * as two programs starting rather than one.
  *
- * Covers the background, the title, and both parts of the progress indicator, in **either** style. The panel's card
- * surface and border are deliberately not here: they are structural chrome rather than brand colour, and a card in
- * an application's accent with Meta's surface behind it looks worse than a themed card does.
+ * Covers the title and both parts of the progress indicator in either style, and [background] is the colour the
+ * frame is cleared to.
+ *
+ * One consequence worth knowing: a [SplashStyle.PANEL] with `banner = false` covers the whole window with its card,
+ * so nothing of [background] remains visible. For a branded backdrop use [SplashStyle.QUIET], which draws no card,
+ * or a banner, which leaves the cleared frame showing around it. The card's own surface and border stay themed
+ * deliberately — they are structural chrome rather than brand colour, and painting the card in [background] would
+ * silently restyle every existing full-window panel.
  *
  * Copied on construction, because libGDX's [Color] is mutable and these are held for the life of the screen.
  */
@@ -60,10 +65,31 @@ class SplashPalette(
 	accent: Color = MetaColor.ACCENT,
 	track: Color = MetaColor.BORDER,
 ) {
+	/**
+	 * Read these, never write them.
+	 *
+	 * They are copies, so mutating them cannot reach the caller's own colours — but they are still libGDX `Color`s
+	 * and still mutable, in keeping with every other colour in this codebase.
+	 */
 	val background: Color = Color(background)
 	val title: Color = Color(title)
 	val accent: Color = Color(accent)
 	val track: Color = Color(track)
+
+	/**
+	 * The four colours as they were at construction, packed.
+	 *
+	 * [equals] and [hashCode] read these rather than the mutable instances above, so a palette held in a set stays
+	 * findable even if something writes to one of its colours. A hash that can change after insertion is a lost
+	 * entry, and the fields it is computed from are public and mutable.
+	 */
+	private val identity: Int = run {
+		var packed = Color.rgba8888(background)
+		packed = 31 * packed + Color.rgba8888(title)
+		packed = 31 * packed + Color.rgba8888(accent)
+		packed = 31 * packed + Color.rgba8888(track)
+		packed
+	}
 
 	// Structural, because [SplashPresentation] is a data class: identity equality here would make two presentations
 	// with identical settings compare unequal, and quietly break every comparison, change check and set that holds
@@ -71,19 +97,10 @@ class SplashPalette(
 	override fun equals(other: Any?): Boolean {
 		if (this === other) return true
 		if (other !is SplashPalette) return false
-		return background == other.background &&
-			title == other.title &&
-			accent == other.accent &&
-			track == other.track
+		return identity == other.identity
 	}
 
-	override fun hashCode(): Int {
-		var result = background.hashCode()
-		result = 31 * result + title.hashCode()
-		result = 31 * result + accent.hashCode()
-		result = 31 * result + track.hashCode()
-		return result
-	}
+	override fun hashCode(): Int = identity
 
 	override fun toString(): String =
 		"SplashPalette(background=$background, title=$title, accent=$accent, track=$track)"

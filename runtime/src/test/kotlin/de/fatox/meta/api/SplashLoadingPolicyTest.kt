@@ -49,6 +49,20 @@ class SplashLoadingPolicyTest {
 	}
 
 	@Test
+	fun `a palette stays findable after one of its colours is written to`() {
+		// The fields equals and hashCode are computed from are public and mutable, so a hash that changed after
+		// insertion would lose the entry. They read a snapshot taken at construction instead.
+		val palette = SplashPalette(accent = Color(0.2f, 0.4f, 0.6f, 1f))
+		val presentation = SplashPresentation(palette = palette)
+		val set = hashSetOf(presentation)
+
+		palette.accent.set(1f, 0f, 0f, 1f)
+
+		assertTrue(presentation in set, "writing to a palette colour lost the presentation holding it")
+		assertEquals(presentation.hashCode(), presentation.copy().hashCode())
+	}
+
+	@Test
 	fun `presentations with the same settings are equal`() {
 		// SplashPresentation is a data class, and a palette with identity equality would make two identical
 		// configurations compare unequal — breaking every comparison, change check and set that holds one.
