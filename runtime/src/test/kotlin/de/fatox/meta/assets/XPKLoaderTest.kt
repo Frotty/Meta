@@ -11,6 +11,7 @@ import java.nio.ByteOrder
 import java.nio.file.Files
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 
 class XPKLoaderTest {
 	@Test
@@ -39,6 +40,7 @@ class XPKLoaderTest {
 			assertEquals("textures\\test.bin", entries[0].name())
 			assertEquals(expected.size.toLong(), entries[0].length())
 			assertContentEquals(expected, entries[0].readBytes())
+			assertSame(entries[0], entries[0].parent().child("TEST.BIN"))
 			assertEquals(listOf("textures\\test.bin"), XPKLoader.listEntryNames(FileHandle(temporaryFile)).toList())
 		} finally {
 			temporaryFile.delete()

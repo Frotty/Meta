@@ -27,7 +27,6 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.api.extensions.warn
-import java.util.Locale
 import de.fatox.meta.assets.XPKLoader.getList
 
 private val log = MetaLoggerFactory.logger {}
@@ -66,6 +65,7 @@ class MetaAssetProvider : AssetProvider {
 	private val atlasCache = Array<TextureAtlas>()
 	private val animCache = IntMap<Array<out TextureRegion>>()
 	private val fileCache = ObjectMap<String, FileHandle>()
+	private val fileOrigins = ObjectMap<String, String>()
 	private val pendingFinalization = Array<AssetDescriptor<*>>()
 	private val stagedTextureUploads = StagedTextureUploads()
 	private val resolver = MetaFileHandleResolver()
@@ -86,7 +86,7 @@ class MetaAssetProvider : AssetProvider {
 					val list = getList(itrHandle)
 					for (index in 0 until list.size) {
 						val file = list[index]
-						fileCache.put(assetKey(file.name()), file)
+						cacheFile(file.name(), file, itrHandle.path())
 					}
 					log.debug { "Indexed ${list.size} assets from <${itrHandle.name()}>" }
 				}
@@ -119,8 +119,8 @@ class MetaAssetProvider : AssetProvider {
 						fullPath
 					}
 
-					// Put both forward-slash and backslash versions into the file cache
-					fileCache.put(assetKey(relativePath), child)
+					// Store one portable lookup key; keep the actual source path on the handle.
+					cacheFile(relativePath, child, folder.path())
 					if (++filesSinceYield >= FILES_PER_YIELD) {
 						filesSinceYield = 0
 						Thread.yield()
@@ -139,7 +139,7 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun <T: Any> load(name: String, type: Class<T>) {
 		log.trace { "queueing <$name>" }
-		val cachedFile = fileCache[assetKey(name)]
+		val cachedFile = fileCache[assetPathKey(name)]
 		if (cachedFile != null) {
 			log.trace { "pack cache contains filename" }
 			queueIntern(AssetDescriptor(cachedFile, type))
@@ -244,7 +244,7 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun <T : Any> getResource(fileName: String, type: Class<T>, index: Int): T {
-		val cachedFile = fileCache[assetKey(fileName)]
+		val cachedFile = fileCache[assetPathKey(fileName)]
 		return when {
 			type == FileHandle::class.java -> {
 				type.cast(cachedFile ?: Gdx.files.internal(fileName))
@@ -297,6 +297,7 @@ class MetaAssetProvider : AssetProvider {
 		atlasCache.clear()
 		animCache.clear()
 		fileCache.clear()
+		fileOrigins.clear()
 		assetManager.dispose()
 	}
 
@@ -323,12 +324,23 @@ class MetaAssetProvider : AssetProvider {
 
 	internal inner class MetaFileHandleResolver : FileHandleResolver {
 		override fun resolve(fileName: String): FileHandle {
-			return fileCache[assetKey(fileName)] ?: Gdx.files.internal(fileName)
+			return fileCache[assetPathKey(fileName)] ?: Gdx.files.internal(fileName)
 		}
 	}
 
-	/** Asset archives are portable data, so lookup must not depend on host filesystem case rules. */
-	private fun assetKey(path: String): String = path.replace('\\', '/').lowercase(Locale.ROOT)
+	private fun cacheFile(assetPath: String, file: FileHandle, origin: String) {
+		val key = assetPathKey(assetPath)
+		val existing = fileCache[key]
+		val existingOrigin = fileOrigins[key]
+		if (existing != null && (existing.path() != file.path() || existingOrigin != origin)) {
+			throw GdxRuntimeException(
+				"Case-insensitive asset path collision for '$assetPath': '" +
+					existing.path() + "' from '" + existingOrigin + "' and '" + file.path() + "' from '" + origin + "'",
+			)
+		}
+		fileCache.put(key, file)
+		fileOrigins.put(key, origin)
+	}
 
 	private companion object {
 		const val MAX_FINALIZATIONS_PER_UPDATE = 1
