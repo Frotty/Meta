@@ -92,7 +92,26 @@ class UiControlHelper @JvmOverloads constructor(
 	private val emptySelection = Actor()
 	private var selectedActorBacking: Actor = emptySelection
 	private var focusedRoot: Group? = null
-	private var synthesizingCanonicalAction = false
+	/**
+	 * Whether *any* helper is mid-redispatch of a canonical key.
+	 *
+	 * Shared rather than per-instance, and that is the whole point. `MetaInput.keyDown` broadcasts to every global
+	 * processor, so a redispatch from one cursor reaches all of them: with a per-instance flag, player one confirming
+	 * with SPACE synthesized ENTER, player two's helper saw a key its own profile owns, and both players confirmed
+	 * from one press. Restricting *who* synthesizes does not help - the synthetic event has to be invisible to every
+	 * cursor.
+	 *
+	 * It stays visible to `KeyListener`s, which is who synthesis is for: a screen-level listener registered on a
+	 * canonical keycode still hears a rebound alias.
+	 *
+	 * Saved and restored rather than set and cleared, so a nested redispatch cannot end the outer one early. GL
+	 * thread only, like every other reactive write here.
+	 */
+	private var synthesizingCanonicalAction: Boolean
+		get() = synthesizingDepth > 0
+		set(value) {
+			synthesizingDepth = if (value) synthesizingDepth + 1 else (synthesizingDepth - 1).coerceAtLeast(0)
+		}
 
 	// Whether we are actively controlling UI focus
 	var activated: Boolean = true
@@ -667,5 +686,8 @@ class UiControlHelper @JvmOverloads constructor(
 	private companion object {
 		const val NAV_REPEAT_DELAY_SECONDS = 0.4f
 		const val NAV_REPEAT_SECONDS = 0.2f
+
+		/** Nesting depth of canonical redispatch, across every helper. See [synthesizingCanonicalAction]. */
+		private var synthesizingDepth = 0
 	}
 }

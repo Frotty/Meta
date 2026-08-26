@@ -208,6 +208,65 @@ internal class UiControlHelperTest {
 	}
 
 	@Test
+	fun `player one's non-canonical key does not reach player two through synthesis`() {
+		// The natural layout, and the one my first tests avoided: player one on WASD, player two on the arrows. W is
+		// not the canonical NAVIGATE_UP, so player one's helper redispatches UP through MetaInput -- which broadcasts
+		// to every global processor, including player two's helper, whose profile legitimately owns UP. Both cursors
+		// then moved from one press, and restricting *who* synthesizes does not help.
+		val profiles = MetaUiInputProfiles()
+		val two = MetaPlayer(1)
+		bindings.setKeyboardKeys(MetaUiAction.NAVIGATE_DOWN, Input.Keys.S)
+		profiles[two].setKeyboardKeys(MetaUiAction.NAVIGATE_DOWN, Input.Keys.DOWN)
+		val second = UiControlHelper(two, profiles[two])
+
+		val left = testRoot()
+		val leftTop = button(0f, 100f)
+		val leftBottom = button(0f, 0f)
+		left.addActor(leftTop)
+		left.addActor(leftBottom)
+		val right = testRoot()
+		val rightTop = button(300f, 100f)
+		val rightBottom = button(300f, 0f)
+		right.addActor(rightTop)
+		right.addActor(rightBottom)
+		stage.addActor(left)
+		stage.addActor(right)
+		helper.focusFirstIn(left, leftTop)
+		second.focusFirstIn(right, rightTop)
+
+		input.keyDown(Input.Keys.S)
+		input.keyUp(Input.Keys.S)
+
+		assertSame(leftBottom, helper.focusedActor.value, "player one's own key did not move player one")
+		assertSame(
+			rightTop,
+			second.focusedActor.value,
+			"player one's synthesized canonical key moved player two as well",
+		)
+		second.dispose()
+	}
+
+	@Test
+	fun `synthesis still reaches a key listener`() {
+		// The reason synthesis exists at all: a screen-level listener registered on a canonical keycode must hear a
+		// rebound alias. Hiding the synthetic event from cursors must not hide it from listeners too.
+		var canonicalUps = 0
+		bindings.setKeyboardKeys(MetaUiAction.BACK, Input.Keys.BACKSPACE)
+		input.addGlobalKeyListener(Input.Keys.ESCAPE, 0, object : KeyListener() {
+			override fun onEvent() = Unit
+
+			override fun onUp() {
+				canonicalUps++
+			}
+		})
+
+		input.keyDown(Input.Keys.BACKSPACE)
+		input.keyUp(Input.Keys.BACKSPACE)
+
+		assertEquals(1, canonicalUps, "a rebound back key no longer reached the canonical listener")
+	}
+
+	@Test
 	fun `a disposed helper stops reacting and lets go of what it held`() {
 		// Only mattered once a second cursor became a second instance: a recreated screen would leave its old helper
 		// registered with MetaInput, still holding its focusedRoot, and that player's keys would drive both.
