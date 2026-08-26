@@ -2,9 +2,13 @@ package de.fatox.meta.input
 
 import com.badlogic.gdx.controllers.Controller
 import com.badlogic.gdx.controllers.ControllerListener
+import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.IntSet
+import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
+import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.api.extensions.forEachIntReentrant
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.absoluteValue
@@ -12,7 +16,12 @@ import kotlin.math.absoluteValue
 private val log = MetaLoggerFactory.logger {}
 
 object MetaControllerListener : ControllerListener {
-	var metaInput: MetaInput? = null
+	/**
+	 * Where synthesized key events go. The interface, not [MetaInput]: this only ever calls `keyDown`/`keyUp`, both
+	 * of which the interface declares, and depending on the concrete class made the translation untestable from
+	 * outside - there was no way to observe what a button press emitted without standing up the real processor.
+	 */
+	var metaInput: MetaInputProcessor? = null
 	private val uiBindings: MetaUiInputBindings by lazyInject()
 	private var currentHorDownKey = -1
 	private var currentVertDownKey = -1
@@ -20,6 +29,92 @@ object MetaControllerListener : ControllerListener {
 	/** Canonical keys currently held down via controller buttons, so a disconnect can release them (no stuck keys). */
 	private val downButtonKeys = IntSet()
 	var deadzone = 0.39f
+
+	/**
+	 * While set, raw button presses are reported here and are **not** translated into canonical UI keys.
+	 *
+	 * This is what a rebinding screen needs, and it needs both halves. It needs the raw code, because that is the
+	 * thing being bound. And it needs the translation suppressed, because otherwise pressing the pad's A button
+	 * while a rebind dialog is capturing a *keyboard* key emits ENTER into the exclusive processor, and the dialog
+	 * dutifully binds ENTER -- a button press captured as a keystroke.
+	 *
+	 * Stick pushes are suppressed with it, for the same reason: a nudged stick would otherwise emit arrow keys into
+	 * the capture. Held keys are released first, so nothing is left stuck down across the handover.
+	 *
+	 * Set through [captureButtons] and released through [releaseCapture], which pops by owner the way
+	 * `MetaInputProcessor`'s exclusive stack does -- a capture nested on top of another must not bury it.
+	 */
+	private val captureTargets = Array<(Controller, Int) -> Unit>()
+
+	/** The capture currently in force: the newest one still registered. */
+	private val captureTarget: ((Controller, Int) -> Unit)?
+		get() = if (captureTargets.isEmpty) null else captureTargets.peek()
+
+	/**
+	 * Buttons whose press a capture consumed, so their release is consumed too - **including after the capture has
+	 * ended**.
+	 *
+	 * A rebind dialog closes on the press, and closing releases the capture, so the physical release lands after
+	 * teardown with translation switched back on. Without this it becomes a canonical key-up for a key that was never
+	 * pressed down, and `UiControlHelper` reads a CONFIRM key-up as an activation - so letting go of the button you
+	 * just bound presses whatever is focused behind the dialog that closed.
+	 *
+	 * Keyed by device as well as code. Clearing every pad's entries when any one of them disconnects would defeat
+	 * the guard in the case it exists for: pad A captures and closes the dialog, pad B is unplugged before A's
+	 * release, and A's release is then translated after all.
+	 */
+	private val capturedDownButtons = ObjectMap<Controller, IntSet>()
+
+	/**
+	 * Raw button codes currently held, per device.
+	 *
+	 * Kept unconditionally, because the interesting moment is the one *before* a capture exists: a capture starting
+	 * needs to know which releases are still outstanding, and [downButtonKeys] cannot say - it holds canonical keys,
+	 * not the raw codes a release arrives with.
+	 */
+	private val heldRawButtons = ObjectMap<Controller, IntSet>()
+
+	/** Whether raw button capture is active. */
+	val capturing: Boolean get() = captureTarget != null
+
+	/**
+	 * Routes raw button presses to [target] until [releaseCapture] is called with the same target.
+	 *
+	 * Releases whatever keys the pad is currently holding down first: those were emitted as canonical keys, and the
+	 * matching key-ups will never arrive once translation is off.
+	 */
+	fun captureButtons(target: (Controller, Int) -> Unit) {
+		releaseAxisKeys()
+		releaseButtonKeys()
+		// A release is still owed for anything held right now: its press was translated and its release will not be,
+		// so without this the button the player happened to be holding when the dialog opened emits an unmatched
+		// canonical key-up once the capture ends - and for a CONFIRM binding that presses whatever is focused behind.
+		heldRawButtons.forEachEntryReentrant { controller, held -> capturedPressesOf(controller).addAll(held) }
+		captureTargets.removeValue(target, true)
+		captureTargets.add(target)
+	}
+
+	/**
+	 * Stops routing to [target]. A no-op if some other capture has since taken over, so a dialog closing late
+	 * cannot switch off a capture it does not own.
+	 */
+	/**
+	 * Drops every capture, whoever owns them.
+	 *
+	 * The counterpart to [MetaInputProcessor.clearExclusiveProcessors]: a recovery hatch for a teardown that cannot
+	 * name the owners, not a substitute for [releaseCapture]. Leaving a capture registered makes the pad look dead,
+	 * because translation stays off.
+	 */
+	fun clearCaptures() {
+		captureTargets.clear()
+	}
+
+	fun releaseCapture(target: (Controller, Int) -> Unit) {
+		// By identity and from anywhere in the stack, the way `popExclusiveProcessor` pops by owner: releasing the
+		// top restores the one beneath it, and releasing a buried one leaves the top in force. A single slot lost
+		// the outer capture the moment an inner one let go, which is not the lifetime this API advertises.
+		captureTargets.removeValue(target, true)
+	}
 
 	override fun connected(controller: Controller) {
 		log.debug { "Controller connected." }
@@ -29,9 +124,19 @@ object MetaControllerListener : ControllerListener {
 		log.debug { "Controller disconnected." }
 		releaseAxisKeys()
 		releaseButtonKeys()
+		// No releases are coming for a pad that is gone. Only its own entries: another pad may still be mid-press.
+		capturedDownButtons.remove(controller)
+		heldRawButtons.remove(controller)
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
+		heldOf(controller).add(buttonCode)
+		captureTarget?.let {
+			// Recorded before the callback, which usually closes the dialog and releases the capture synchronously.
+			capturedPressesOf(controller).add(buttonCode)
+			it(controller, buttonCode)
+			return true
+		}
 		return uiBindings.actionForButton(controller, buttonCode)?.let {
 			val key = uiBindings.canonicalKeyFor(it)
 			downButtonKeys.add(key)
@@ -41,6 +146,12 @@ object MetaControllerListener : ControllerListener {
 	}
 
 	override fun buttonUp(controller: Controller, buttonCode: Int): Boolean {
+		// Consumed rather than translated: the matching down was captured, so emitting a key-up for a key that was
+		// never pressed would look like a release of whatever that button normally means. Checked before the capture
+		// itself, because the capture is usually already gone by the time the finger comes off the button.
+		heldRawButtons.get(controller)?.remove(buttonCode)
+		if (capturedDownButtons.get(controller)?.remove(buttonCode) == true) return true
+		if (captureTarget != null) return true
 		return uiBindings.actionForButton(controller, buttonCode)?.let {
 			val key = uiBindings.canonicalKeyFor(it)
 			downButtonKeys.remove(key)
@@ -50,6 +161,7 @@ object MetaControllerListener : ControllerListener {
 	}
 
 	override fun axisMoved(controller: Controller, axisCode: Int, value: Float): Boolean {
+		if (captureTarget != null) return false
 		if (!uiBindings.axisNavigationEnabled) return false
 		return checkVert(controller) || checkHor(controller)
 	}
@@ -118,6 +230,17 @@ object MetaControllerListener : ControllerListener {
 	private fun releaseButtonKeys() {
 		downButtonKeys.forEachIntReentrant(::emitKeyUp)
 		downButtonKeys.clear()
+	}
+
+	/** One [IntSet] per device, created on that device's first captured press. Never a per-frame path. */
+	private fun capturedPressesOf(controller: Controller): IntSet {
+		capturedDownButtons.get(controller)?.let { return it }
+		return IntSet().also { capturedDownButtons.put(controller, it) }
+	}
+
+	private fun heldOf(controller: Controller): IntSet {
+		heldRawButtons.get(controller)?.let { return it }
+		return IntSet().also { heldRawButtons.put(controller, it) }
 	}
 
 	private fun emitKeyDown(keycode: Int) {
