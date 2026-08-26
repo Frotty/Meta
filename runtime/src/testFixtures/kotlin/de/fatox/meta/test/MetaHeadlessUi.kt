@@ -1,12 +1,17 @@
 package de.fatox.meta.test
 
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
+import com.badlogic.gdx.backends.headless.mock.input.MockInput
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.assets.MetaAssetProvider
 import de.fatox.meta.graphics.font.FontInfo
@@ -74,6 +79,20 @@ import de.fatox.meta.ui.MetaToastManager
  * expose today.
  */
 object MetaHeadlessUi {
+	private var previousGdxInput: Input? = null
+
+	/** Disposables a fixture handed over, released in [dispose] in reverse order of acquisition. */
+	private val owned = ArrayList<Disposable>()
+
+	/**
+	 * Takes ownership of something a fixture created, so a test does not have to keep a reference it was never given.
+	 * Used by [toastStage]; safe to call before [install] and idempotent per object.
+	 */
+	fun own(disposable: Disposable) {
+		for (index in owned.indices) if (owned[index] === disposable) return
+		owned.add(disposable)
+	}
+
 
 	/**
 	 * The UI scale the font provider rasterizes against. Write it to exercise a scale change; widgets re-fetch their
@@ -99,9 +118,34 @@ object MetaHeadlessUi {
 	fun install(
 		installSkinDefaults: Boolean = true,
 		fontProvider: () -> FontProvider = { MetaFontProvider() },
+		/**
+		 * The input processor to register. Defaults to [LayoutOnlyInput], which dispatches nothing — pass
+		 * `{ DispatchingInput() }` to cover behaviour that only happens when input actually arrives.
+		 */
+		input: () -> MetaInputProcessor = { LayoutOnlyInput() },
+		/**
+		 * A [UIManager], or `null` to register none as before.
+		 *
+		 * Null is still the default because most tests do not need one and registering a stub they never call would
+		 * only widen what a failure could mean. Pass `{ RecordingUiManager() }` to test a `MetaDialog` subclass, which
+		 * cannot be closed or detached without one.
+		 */
+		uiManager: (() -> UIManager)? = null,
+		/**
+		 * A toast manager for [LayoutOnlyRenderer], or `null` to keep its documented throw.
+		 *
+		 * Null by default deliberately: the throw is what stops a test asserting a toast that was never rendered, and
+		 * a silent no-op would be worse than no seam at all. A test that *means* to exercise a notification passes one
+		 * — `{ MetaToastManager(toastStage()) }` is enough.
+		 */
+		toastManager: (() -> MetaToastManager)? = null,
 	) {
 		GdxTestEnvironment.ensure()
 		HeadlessGL20.install()
+		// UiControlHelper.activateSelectedActor asks `Gdx.input.isKeyPressed`, not MetaInputProcessor, so a fixture
+		// tracking modifiers privately would leave ctrl+confirm activating a control production leaves alone. Wire the
+		// two together for the lifetime of the install, and restore whatever was there on dispose.
+		previousGdxInput = Gdx.input
 		// Set before anything that can throw, not after everything succeeded. The
 		// first global is already acquired, so from here on teardown has work to do —
 		// and if `dispose()` bailed out because a later step failed, the stub and the
@@ -129,8 +173,15 @@ object MetaHeadlessUi {
 				singleton<AssetProvider> { MetaAssetProvider() }
 				singleton("default") { FontInfo() }
 				singleton<FontProvider>("default", fontProvider)
-				singleton<UIRenderer> { LayoutOnlyRenderer(uiScale) }
-				singleton<MetaInputProcessor> { LayoutOnlyInput() }
+				singleton<UIRenderer> { LayoutOnlyRenderer(uiScale, toastManager) }
+				singleton<MetaInputProcessor> {
+					input().also { processor ->
+						if (processor is DispatchingInput) Gdx.input = HeldKeyInput(processor, previousGdxInput)
+					}
+				}
+				// Owned, not merely registered: UIManager is Disposable, and clearing the graph would otherwise drop a
+				// manager holding stages or reactive scopes without ever calling dispose on it.
+				uiManager?.let { factory -> singleton<UIManager> { factory().also { own(it) } } }
 				singleton { MetaUiInputBindings() }
 				singleton("default") { UiControlHelper() }
 			}
@@ -175,6 +226,11 @@ object MetaHeadlessUi {
 	 */
 	fun dispose() {
 		if (!installed) return
+		previousGdxInput?.let { Gdx.input = it }
+		previousGdxInput = null
+		// Reverse order: a manager built on a stage goes before the stage it draws through.
+		for (index in owned.indices.reversed()) runCatching { owned[index].dispose() }
+		owned.clear()
 		MetaSkin.dispose()
 		// Resolved rather than remembered: the graph owns them, and a `runCatching` keeps a teardown from failing
 		// over a provider a test never caused to be created.
@@ -195,7 +251,10 @@ object MetaHeadlessUi {
  * whose toast manager and focus renderer exist to draw. Refusing loudly is deliberate: a test that has wandered into
  * drawing should say so rather than quietly get a no-op and then assert against nothing.
  */
-private class LayoutOnlyRenderer(override val uiScale: Signal<Float>) : UIRenderer {
+private class LayoutOnlyRenderer(
+	override val uiScale: Signal<Float>,
+	private val toastManager: (() -> MetaToastManager)?,
+) : UIRenderer {
 	override val uiWidth: Float get() = 1920f
 	override val uiHeight: Float get() = 1080f
 
@@ -207,9 +266,34 @@ private class LayoutOnlyRenderer(override val uiScale: Signal<Float>) : UIRender
 	override fun getCamera(): Camera = OrthographicCamera()
 	override fun setFocusedActor(actor: Actor?) = Unit
 
+	/**
+	 * Throws unless a test supplied one, which is the point rather than an omission: a silently absent toast layer
+	 * would let a test assert a notification that was never rendered and still pass.
+	 */
+	/** Memoized: production hands back one manager, and a fresh one per call would give every toast its own list. */
+	private var resolvedToastManager: MetaToastManager? = null
+
 	override fun getToastManager(): MetaToastManager =
-		throw UnsupportedOperationException(
-			"MetaHeadlessUi provides no UI layer of its own, so there is no toast manager. Build a Stage if a test " +
-				"needs one; see HeadlessGL20 for what drawing does and does not do here.",
+		resolvedToastManager
+			?: toastManager?.invoke()?.also { resolvedToastManager = it }
+			?: throw UnsupportedOperationException(
+			"MetaHeadlessUi provides no UI layer of its own, so there is no toast manager. Pass " +
+				"`toastManager = { MetaToastManager(toastStage()) }` to install(), or build a Stage yourself; see " +
+				"HeadlessGL20 for what drawing does and does not do here.",
 		)
+}
+
+/**
+ * Answers `isKeyPressed` from a [DispatchingInput]'s held keys and delegates everything else.
+ *
+ * Needed because two different questions are asked about the keyboard: `MetaInputProcessor` is *told* about presses,
+ * while `UiControlHelper.activateSelectedActor` *asks* `Gdx.input` whether a modifier is down. A fixture that answers
+ * only the first lets a test activate a control while ctrl is held, which production refuses.
+ */
+private class HeldKeyInput(
+	private val source: DispatchingInput,
+	private val delegate: Input?,
+) : Input by (delegate ?: MockInput()) {
+	override fun isKeyPressed(key: Int): Boolean =
+		if (key == Input.Keys.ANY_KEY) source.isAnyKeyHeld() else source.isKeyHeld(key)
 }
