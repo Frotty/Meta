@@ -28,12 +28,21 @@ import de.fatox.meta.input.ScrollListener
  *
  * ### What it reproduces, and why each part matters
  *
- * Dispatch order follows `MetaInput`: an exclusive grab short-circuits everything, then key listeners, then global
- * processors, then screen ones. A harness that reordered those would let a test pass against a build where a modal
- * did not actually own input.
+ * Dispatch follows `MetaInput` exactly, including where it is asymmetric:
  *
- * Modifier state is real, because `UiControlHelper.activateSelectedActor` declines to fire while ctrl or alt is held
- * and a harness reporting `false` forever would hide that.
+ * - An exclusive grab receives the event and nothing else does — for **every** event type, pointer motion and scroll
+ *   included. A harness that let those through to the background would make a modal test pass against a build where
+ *   the modal did not own input.
+ * - `touchCancelled` is a `touchUp`, so an interrupted gesture releases drag state rather than vanishing.
+ * - Pointer and scroll events **stop at the first processor that consumes them**; key events do not, and run every
+ *   processor unconditionally. Getting that backwards either hides a consumed event or invents a second delivery.
+ * - Scroll listeners are notified before processors, so a `ScrollListener` registration is not silently inert.
+ * - Return values match, since a caller driving the fixture directly can see them.
+ *
+ * Held-key state is real, and reaches `Gdx.input`. `UiControlHelper.activateSelectedActor` declines to fire while
+ * ctrl or alt is held and it asks **`Gdx.input.isKeyPressed`**, not this interface — so tracking modifiers in private
+ * fields, as the first version of this fixture did, left ctrl+confirm activating a control that production would have
+ * left alone. [MetaHeadlessUi] points `Gdx.input` at [isKeyHeld] for the lifetime of the install.
  *
  * `KeyListener` semantics are the real ones too: `onDown` then `onUp`, with `onEvent` arriving from `onUp` for a
  * listener registered with no hold duration. A harness that called `onEvent` on the press would quietly disagree with
@@ -85,14 +94,18 @@ class DispatchingInput : MetaInputProcessor {
 		return false
 	}
 
-	override var isLeftCtrlDown: Boolean = false
-		private set
-	override var isRightCtrlDown: Boolean = false
-		private set
-	override var isLeftShiftDown: Boolean = false
-		private set
-	override var isRightShiftDown: Boolean = false
-		private set
+	private val heldKeys = HashSet<Int>()
+
+	/** Whether [keycode] is currently down. What [MetaHeadlessUi] points `Gdx.input.isKeyPressed` at. */
+	fun isKeyHeld(keycode: Int): Boolean = heldKeys.contains(keycode)
+
+	/** Whether anything is down, for `isKeyPressed(Input.Keys.ANY_KEY)`. */
+	fun isAnyKeyHeld(): Boolean = heldKeys.isNotEmpty()
+
+	override val isLeftCtrlDown: Boolean get() = isKeyHeld(Input.Keys.CONTROL_LEFT)
+	override val isRightCtrlDown: Boolean get() = isKeyHeld(Input.Keys.CONTROL_RIGHT)
+	override val isLeftShiftDown: Boolean get() = isKeyHeld(Input.Keys.SHIFT_LEFT)
+	override val isRightShiftDown: Boolean get() = isKeyHeld(Input.Keys.SHIFT_RIGHT)
 
 	override fun changeScreen() {
 		screenProcessors.clear()
@@ -150,93 +163,113 @@ class DispatchingInput : MetaInputProcessor {
 	// ── Dispatch ──────────────────────────────────────────────────────────────
 
 	override fun keyDown(keycode: Int): Boolean {
-		trackModifier(keycode, down = true)
-		exclusiveProcessors.lastOrNull()?.let {
+		heldKeys.add(keycode)
+		grab()?.let {
 			it.keyDown(keycode)
 			return false
 		}
-		notifyKeyListeners(keycode) { it.onDown() }
-		forEachProcessor { it.keyDown(keycode) }
+		notifyKeyListeners(keycode) { listener -> listener.onDown() }
+		// Keys reach every processor: MetaInput does not short-circuit them.
+		eachProcessor { it.keyDown(keycode) }
 		return false
 	}
 
 	override fun keyUp(keycode: Int): Boolean {
-		trackModifier(keycode, down = false)
-		exclusiveProcessors.lastOrNull()?.let {
+		heldKeys.remove(keycode)
+		grab()?.let {
 			it.keyUp(keycode)
 			return false
 		}
-		notifyKeyListeners(keycode) { it.onUp() }
-		forEachProcessor { it.keyUp(keycode) }
+		notifyKeyListeners(keycode) { listener -> listener.onUp() }
+		eachProcessor { it.keyUp(keycode) }
 		return false
 	}
 
 	override fun keyTyped(character: Char): Boolean {
-		exclusiveProcessors.lastOrNull()?.let {
+		grab()?.let {
 			it.keyTyped(character)
 			return false
 		}
-		forEachProcessor { it.keyTyped(character) }
+		eachProcessor { it.keyTyped(character) }
 		return false
 	}
 
 	override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-		exclusiveProcessors.lastOrNull()?.let {
+		grab()?.let {
 			it.touchDown(screenX, screenY, pointer, button)
-			return false
+			return true
 		}
-		forEachProcessor { it.touchDown(screenX, screenY, pointer, button) }
-		return false
+		untilConsumed { it.touchDown(screenX, screenY, pointer, button) }
+		return true
 	}
 
 	override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-		exclusiveProcessors.lastOrNull()?.let {
+		grab()?.let {
 			it.touchUp(screenX, screenY, pointer, button)
 			return false
 		}
-		forEachProcessor { it.touchUp(screenX, screenY, pointer, button) }
-		return false
+		return untilConsumed { it.touchUp(screenX, screenY, pointer, button) }
 	}
 
-	override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean = false
+	/** A cancelled gesture is a release, exactly as in `MetaInput`, or drag state is never let go of. */
+	override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean =
+		touchUp(screenX, screenY, pointer, button)
 
 	override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
-		forEachProcessor { it.touchDragged(screenX, screenY, pointer) }
-		return false
+		grab()?.let {
+			it.touchDragged(screenX, screenY, pointer)
+			return false
+		}
+		untilConsumed { it.touchDragged(screenX, screenY, pointer) }
+		return true
 	}
 
 	override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
-		forEachProcessor { it.mouseMoved(screenX, screenY) }
-		return false
+		grab()?.let {
+			it.mouseMoved(screenX, screenY)
+			return false
+		}
+		return untilConsumed { it.mouseMoved(screenX, screenY) }
 	}
 
 	override fun scrolled(amountX: Float, amountY: Float): Boolean {
-		forEachProcessor { it.scrolled(amountX, amountY) }
-		return false
+		grab()?.let {
+			it.scrolled(amountX, amountY)
+			return true
+		}
+		// Before the processors, as in MetaInput: a ScrollListener registration must not be silently inert.
+		val globals = globalScrollListeners.toTypedArray()
+		for (index in globals.indices) globals[index].onScroll()
+		val screens = screenScrollListeners.toTypedArray()
+		for (index in screens.indices) screens[index].onScroll()
+		untilConsumed { it.scrolled(amountX, amountY) }
+		return true
 	}
+
+	private fun grab(): InputProcessor? = exclusiveProcessors.lastOrNull()
 
 	/**
 	 * Snapshotted before dispatch, because a listener may register or remove one during it — `UiControlHelper`
 	 * disposing mid-press is exactly that — and mutating the list under an index walk drops or repeats a processor.
 	 */
-	private inline fun forEachProcessor(action: (InputProcessor) -> Unit) {
+	private inline fun eachProcessor(action: (InputProcessor) -> Unit) {
 		val globals = globalProcessors.toTypedArray()
 		for (index in globals.indices) action(globals[index])
 		val screens = screenProcessors.toTypedArray()
 		for (index in screens.indices) action(screens[index])
 	}
 
+	/** Global then screen, stopping at the first processor that returns `true`. Snapshotted for the same reason. */
+	private inline fun untilConsumed(action: (InputProcessor) -> Boolean): Boolean {
+		val globals = globalProcessors.toTypedArray()
+		for (index in globals.indices) if (action(globals[index])) return true
+		val screens = screenProcessors.toTypedArray()
+		for (index in screens.indices) if (action(screens[index])) return true
+		return false
+	}
+
 	private inline fun notifyKeyListeners(keycode: Int, action: (KeyListener) -> Unit) {
 		screenKeyListeners[keycode]?.toTypedArray()?.let { for (index in it.indices) action(it[index]) }
 		globalKeyListeners[keycode]?.toTypedArray()?.let { for (index in it.indices) action(it[index]) }
-	}
-
-	private fun trackModifier(keycode: Int, down: Boolean) {
-		when (keycode) {
-			Input.Keys.CONTROL_LEFT -> isLeftCtrlDown = down
-			Input.Keys.CONTROL_RIGHT -> isRightCtrlDown = down
-			Input.Keys.SHIFT_LEFT -> isLeftShiftDown = down
-			Input.Keys.SHIFT_RIGHT -> isRightShiftDown = down
-		}
 	}
 }
