@@ -3,6 +3,7 @@ package de.fatox.meta.input
 import com.badlogic.gdx.controllers.Controller
 import com.badlogic.gdx.controllers.ControllerListener
 import com.badlogic.gdx.utils.IntSet
+import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.MetaInputProcessor
@@ -52,10 +53,11 @@ object MetaControllerListener : ControllerListener {
 	 * pressed down, and `UiControlHelper` reads a CONFIRM key-up as an activation - so letting go of the button you
 	 * just bound presses whatever is focused behind the dialog that closed.
 	 *
-	 * Keyed by button code alone, like [downButtonKeys]: this listener is a singleton with no per-device state, and
-	 * two pads holding the same code is not a case it distinguishes anywhere else.
+	 * Keyed by device as well as code. Clearing every pad's entries when any one of them disconnects would defeat
+	 * the guard in the case it exists for: pad A captures and closes the dialog, pad B is unplugged before A's
+	 * release, and A's release is then translated after all.
 	 */
-	private val capturedDownButtons = IntSet()
+	private val capturedDownButtons = ObjectMap<Controller, IntSet>()
 
 	/** Whether raw button capture is active. */
 	val capturing: Boolean get() = captureTarget != null
@@ -88,14 +90,14 @@ object MetaControllerListener : ControllerListener {
 		log.debug { "Controller disconnected." }
 		releaseAxisKeys()
 		releaseButtonKeys()
-		// No releases are coming for a pad that is gone; holding their codes would consume the next pad's.
-		capturedDownButtons.clear()
+		// No releases are coming for a pad that is gone. Only its own entries: another pad may still be mid-press.
+		capturedDownButtons.remove(controller)
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
 		captureTarget?.let {
 			// Recorded before the callback, which usually closes the dialog and releases the capture synchronously.
-			capturedDownButtons.add(buttonCode)
+			capturedPressesOf(controller).add(buttonCode)
 			it(controller, buttonCode)
 			return true
 		}
@@ -111,7 +113,7 @@ object MetaControllerListener : ControllerListener {
 		// Consumed rather than translated: the matching down was captured, so emitting a key-up for a key that was
 		// never pressed would look like a release of whatever that button normally means. Checked before the capture
 		// itself, because the capture is usually already gone by the time the finger comes off the button.
-		if (capturedDownButtons.remove(buttonCode)) return true
+		if (capturedDownButtons.get(controller)?.remove(buttonCode) == true) return true
 		if (captureTarget != null) return true
 		return uiBindings.actionForButton(controller, buttonCode)?.let {
 			val key = uiBindings.canonicalKeyFor(it)
@@ -191,6 +193,12 @@ object MetaControllerListener : ControllerListener {
 	private fun releaseButtonKeys() {
 		downButtonKeys.forEachIntReentrant(::emitKeyUp)
 		downButtonKeys.clear()
+	}
+
+	/** One [IntSet] per device, created on that device's first captured press. Never a per-frame path. */
+	private fun capturedPressesOf(controller: Controller): IntSet {
+		capturedDownButtons.get(controller)?.let { return it }
+		return IntSet().also { capturedDownButtons.put(controller, it) }
 	}
 
 	private fun emitKeyDown(keycode: Int) {

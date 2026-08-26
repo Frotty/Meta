@@ -198,6 +198,26 @@ internal class MetaControllerCaptureTest {
 	}
 
 	@Test
+	fun `one pad disconnecting does not release another pad's captured press`() {
+		// The guard exists for exactly this shape, so clearing every device's entries on any disconnect would defeat
+		// it: pad A captures and closes the dialog, pad B is unplugged before A's release, and A's release is then
+		// translated after all - activating whatever sits behind the dialog that closed.
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		val other = FakeController()
+		val target: (Controller, Int) -> Unit = { _, _ -> }
+		MetaControllerListener.captureButtons(target)
+		MetaControllerListener.buttonDown(controller, 3)
+		MetaControllerListener.releaseCapture(target)
+
+		MetaControllerListener.disconnected(other)
+		input.keysUp.clear()
+		val consumed = MetaControllerListener.buttonUp(controller, 3)
+
+		assertTrue(consumed, "another pad's disconnect released this pad's captured press")
+		assertTrue(input.keysUp.isEmpty(), "the release leaked after an unrelated disconnect: ${input.keysUp}")
+	}
+
+	@Test
 	fun `a disconnect forgets captured presses whose releases will never arrive`() {
 		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
 		val target: (Controller, Int) -> Unit = { _, _ -> }

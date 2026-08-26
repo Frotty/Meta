@@ -16,7 +16,7 @@ import de.fatox.meta.ui.components.MetaLabel
  * Captures one control - a key or a controller button - and reports what it was.
  *
  * ```
- * val dialog = MetaKeyRebindDialog()
+ * val dialog = uiManager.showDialog<MetaKeyRebindDialog>()
  * scope.effect("rebind") {
  *     when (val capture = dialog.captured()) {
  *         is MetaRebindCapture.Key -> profile.bindKey(action, capture.keycode)
@@ -24,7 +24,6 @@ import de.fatox.meta.ui.components.MetaLabel
  *         null -> Unit // still waiting, or cancelled
  *     }
  * }
- * uiManager.showDialog(dialog)
  * ```
  *
  * ### Why it takes the whole of input
@@ -86,8 +85,11 @@ class MetaKeyRebindDialog @JvmOverloads constructor(
 	}
 
 	init {
+		// The prompt has to name what this mode actually accepts. In keyboard-only mode a button press is swallowed
+		// and the dialog stays open, so inviting one leaves it looking broken to anyone who follows the instruction.
+		val accepts = if (captureControllerButtons) "a key or button" else "a key"
 		contentTable.add(
-			MetaLabel("Press a key or button to bind. ${Input.Keys.toString(cancelKeycode)} cancels.", MetaType.BODY),
+			MetaLabel("Press $accepts to bind. ${Input.Keys.toString(cancelKeycode)} cancels.", MetaType.BODY),
 		).center()
 	}
 
