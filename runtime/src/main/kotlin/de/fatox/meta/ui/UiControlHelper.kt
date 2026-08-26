@@ -6,6 +6,7 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.InputAdapter
+import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
@@ -18,6 +19,7 @@ import com.badlogic.gdx.utils.Timer
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.input.MetaPlayer
 import de.fatox.meta.input.MetaUiAction
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.reactive.ReactiveValue
@@ -38,10 +40,49 @@ import kotlin.math.sqrt
  *    only considers widgets in that direction, and picks the one with the smallest
  *    true distance from edge-to-edge center.
  */
-class UiControlHelper {
+class UiControlHelper @JvmOverloads constructor(
+	/**
+	 * Which local player this cursor belongs to. Defaults to [MetaPlayer.ONE], which is what the registered singleton
+	 * is and what every existing consumer keeps getting.
+	 *
+	 * A second cursor is a second instance with its own bindings, scoped with [focusFirstIn] so the two never contend
+	 * for an actor:
+	 *
+	 * ```
+	 * val profiles: MetaUiInputProfiles = inject()
+	 * val two = MetaPlayer(1)
+	 * profiles[two].setKeyboardKeys(MetaUiAction.NAVIGATE_UP, Input.Keys.W)   // ... and the rest
+	 * val p2 = UiControlHelper(two, profiles[two])
+	 * p2.focusFirstIn(rightCharacterGrid)
+	 * ```
+	 *
+	 * Two things are player one's alone, both because sharing them would be worse than not having them: canonical-key
+	 * synthesis (see [synthesizeCanonicalKeyDown]) and the renderer's single focused actor (see [setFocusedActor]).
+	 */
+	val player: MetaPlayer = MetaPlayer.ONE,
+	/**
+	 * The bindings this cursor reads. `null` means the registered `MetaUiInputBindings` singleton, which is what
+	 * player one wants and what the no-argument constructor gives.
+	 *
+	 * Passed rather than resolved from a registry on purpose: a helper needs *a* binding set, and where it came from
+	 * is not its concern. It also keeps this class from acquiring a new injected dependency, which would have broken
+	 * every consumer that stands up a partial graph - Meta's own `UiControlHelperTest` among them.
+	 * [de.fatox.meta.input.MetaUiInputProfiles] is the convenient place to keep one per player.
+	 */
+	private val bindingsOverride: MetaUiInputBindings? = null,
+) {
 	private val metaInput: MetaInputProcessor by lazyInject()
 	private val metaUIRenderer: UIRenderer by lazyInject()
-	private val uiBindings: MetaUiInputBindings by lazyInject()
+
+	/** Resolved only when no override was given, so a per-player helper needs nothing in the graph. */
+	private val injectedBindings: MetaUiInputBindings by lazyInject()
+
+	private val uiBindings: MetaUiInputBindings get() = bindingsOverride ?: injectedBindings
+
+	private val isPrimary: Boolean get() = player == MetaPlayer.ONE
+
+	/** The actor this cursor most recently focused, tracked only when [isPrimary] is false. */
+	private var nonPrimaryFocus: Actor? = null
 	private val focusedActorSignal = signal<Actor?>(null) { a, b -> a === b }
 
 	/** The widget currently focused by keyboard/controller navigation, as a reactive value (read it in an effect). */
@@ -51,7 +92,26 @@ class UiControlHelper {
 	private val emptySelection = Actor()
 	private var selectedActorBacking: Actor = emptySelection
 	private var focusedRoot: Group? = null
-	private var synthesizingCanonicalAction = false
+	/**
+	 * Whether *any* helper is mid-redispatch of a canonical key.
+	 *
+	 * Shared rather than per-instance, and that is the whole point. `MetaInput.keyDown` broadcasts to every global
+	 * processor, so a redispatch from one cursor reaches all of them: with a per-instance flag, player one confirming
+	 * with SPACE synthesized ENTER, player two's helper saw a key its own profile owns, and both players confirmed
+	 * from one press. Restricting *who* synthesizes does not help - the synthetic event has to be invisible to every
+	 * cursor.
+	 *
+	 * It stays visible to `KeyListener`s, which is who synthesis is for: a screen-level listener registered on a
+	 * canonical keycode still hears a rebound alias.
+	 *
+	 * Saved and restored rather than set and cleared, so a nested redispatch cannot end the outer one early. GL
+	 * thread only, like every other reactive write here.
+	 */
+	private var synthesizingCanonicalAction: Boolean
+		get() = synthesizingDepth > 0
+		set(value) {
+			synthesizingDepth = if (value) synthesizingDepth + 1 else (synthesizingDepth - 1).coerceAtLeast(0)
+		}
 
 	// Whether we are actively controlling UI focus
 	var activated: Boolean = true
@@ -80,9 +140,25 @@ class UiControlHelper {
 		return handle::dispose
 	}
 
+	/**
+	 * Only player one drives the renderer's focused actor, which is a single slot: two cursors writing it would
+	 * trample each other, and the loser would lose its focus ring rather than merely sharing it.
+	 *
+	 * A second cursor still restyles what it moves over - it calls [MetaFocus.assign] itself, tracking its own
+	 * previous actor - so a `MetaTextButton` under player two's cursor still looks focused. What it does not get is
+	 * `DefaultFocusRenderer`'s overlay box, which has nowhere to record whose it is. A cell that draws its own focus
+	 * from [focusedActor] is unaffected either way, and that is the recommended shape for a second cursor.
+	 *
+	 * The gap this leaves: with both cursors on the *same* actor, whichever leaves first restyles it unfocused while
+	 * the other is still there. Scoping each cursor to its own group with [focusFirstIn] makes that unreachable.
+	 */
 	private fun setFocusedActor(actor: Actor?) {
 		if (focusedActorSignal.peek() === actor) return
-		metaUIRenderer.setFocusedActor(actor)
+		if (isPrimary) {
+			metaUIRenderer.setFocusedActor(actor)
+		} else {
+			nonPrimaryFocus = MetaFocus.assign(nonPrimaryFocus, actor)
+		}
 		focusedActorSignal.value = actor // notifies any effect observing focusedActor (incl. legacy bridges)
 	}
 
@@ -132,30 +208,64 @@ class UiControlHelper {
 	private var targets = Array<Actor>()
 	private val repeatTasks = ObjectMap<MetaUiAction, Timer.Task>()
 
-	init {
-		metaInput.addGlobalInputProcessor(object : InputAdapter() {
-			override fun keyDown(keycode: Int): Boolean {
-				if (synthesizingCanonicalAction) return false
-				val action = uiBindings.actionForKey(keycode) ?: return false
-				if (hasTextEditingFocus()) {
-					cancelRepeat(action)
-					return false
-				}
-				handleActionDown(action, keycode)
+	/**
+	 * Held so [dispose] can remove exactly what was registered.
+	 *
+	 * It was an anonymous argument while this class was only ever the app-lifetime singleton, and that was fine. It
+	 * stopped being fine the moment a second cursor became a second instance: a recreated screen would leave its old
+	 * helper registered with `MetaInput`, still holding its `focusedRoot`, and that player's keys would reach the dead
+	 * helper as well as the live one.
+	 */
+	private val inputProcessor: InputProcessor = object : InputAdapter() {
+		override fun keyDown(keycode: Int): Boolean {
+			if (synthesizingCanonicalAction) return false
+			val action = uiBindings.actionForKey(keycode) ?: return false
+			if (hasTextEditingFocus()) {
+				cancelRepeat(action)
 				return false
 			}
+			handleActionDown(action, keycode)
+			return false
+		}
 
-			override fun keyUp(keycode: Int): Boolean {
-				if (synthesizingCanonicalAction) return false
-				val action = uiBindings.actionForKey(keycode) ?: return false
-				if (hasTextEditingFocus()) {
-					cancelRepeat(action)
-					return false
-				}
-				handleActionUp(action, keycode)
+		override fun keyUp(keycode: Int): Boolean {
+			if (synthesizingCanonicalAction) return false
+			val action = uiBindings.actionForKey(keycode) ?: return false
+			if (hasTextEditingFocus()) {
+				cancelRepeat(action)
 				return false
 			}
-		})
+			handleActionUp(action, keycode)
+			return false
+		}
+	}
+
+	private var disposed = false
+
+	init {
+		metaInput.addGlobalInputProcessor(inputProcessor)
+	}
+
+	/**
+	 * Unregisters this cursor and drops what it was holding: the input processor, any pending navigation repeat, the
+	 * focused actor and the scoped root.
+	 *
+	 * Never needed for the registered singleton, which lives as long as the app. Required for any helper a screen
+	 * constructs - a second player's - because without it the screen's replacement adds another processor beside the
+	 * old one and that player's keys drive both.
+	 *
+	 * Idempotent.
+	 */
+	fun dispose() {
+		if (disposed) return
+		disposed = true
+		metaInput.removeGlobalInputProcessor(inputProcessor)
+		// By action rather than by iterating `repeatTasks`: libGDX's map iterators are cached and the build gate
+		// rejects them, and there are six actions.
+		for (index in MetaUiAction.entries.indices) cancelRepeat(MetaUiAction.entries[index])
+		setFocusedActor(null)
+		selectedActorBacking = emptySelection
+		focusedRoot = null
 	}
 
 	private fun handleActionDown(action: MetaUiAction, keycode: Int) {
@@ -172,7 +282,20 @@ class UiControlHelper {
 		synthesizeCanonicalKeyUp(action, keycode)
 	}
 
+	/**
+	 * Player one only.
+	 *
+	 * Synthesis exists so a listener registered on a canonical keycode hears every alias bound to that action -
+	 * a rebound key, or a pad button `MetaControllerListener` has already turned into a key. Doing it for a second
+	 * player would defeat the isolation this class now offers: player two's confirm would arrive at player one's
+	 * cursor as ENTER, and both would act.
+	 *
+	 * The consequence to know about is that a screen-level listener on a canonical key hears player one only. That is
+	 * the right default - "back" or "pause" is a property of the screen, not of a player - but it is a decision, not
+	 * an accident.
+	 */
 	private fun synthesizeCanonicalKeyDown(action: MetaUiAction, keycode: Int) {
+		if (!isPrimary) return
 		val canonicalKey = uiBindings.canonicalKeyFor(action)
 		if (keycode == canonicalKey) return
 		synthesizingCanonicalAction = true
@@ -183,7 +306,9 @@ class UiControlHelper {
 		}
 	}
 
+	/** Player one only; see [synthesizeCanonicalKeyDown]. */
 	private fun synthesizeCanonicalKeyUp(action: MetaUiAction, keycode: Int) {
+		if (!isPrimary) return
 		val canonicalKey = uiBindings.canonicalKeyFor(action)
 		if (keycode == canonicalKey) return
 		synthesizingCanonicalAction = true
@@ -561,5 +686,8 @@ class UiControlHelper {
 	private companion object {
 		const val NAV_REPEAT_DELAY_SECONDS = 0.4f
 		const val NAV_REPEAT_SECONDS = 0.2f
+
+		/** Nesting depth of canonical redispatch, across every helper. See [synthesizingCanonicalAction]. */
+		private var synthesizingDepth = 0
 	}
 }
