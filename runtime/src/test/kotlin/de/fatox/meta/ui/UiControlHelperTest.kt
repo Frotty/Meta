@@ -43,6 +43,7 @@ import de.fatox.meta.test.GdxTestEnvironment
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -204,6 +205,61 @@ internal class UiControlHelperTest {
 		input.keyUp(Input.Keys.J)
 
 		assertSame(bottom, fresh.focusedActor.value, "a default helper did not follow the injected bindings")
+	}
+
+	@Test
+	fun `a disposed helper stops reacting and lets go of what it held`() {
+		// Only mattered once a second cursor became a second instance: a recreated screen would leave its old helper
+		// registered with MetaInput, still holding its focusedRoot, and that player's keys would drive both.
+		val profiles = MetaUiInputProfiles()
+		val two = MetaPlayer(1)
+		profiles[two].setKeyboardKeys(MetaUiAction.NAVIGATE_DOWN, Input.Keys.S)
+		val second = UiControlHelper(two, profiles[two])
+		val root = testRoot()
+		val top = button(0f, 100f)
+		val bottom = button(0f, 0f)
+		root.addActor(top)
+		root.addActor(bottom)
+		stage.addActor(root)
+		second.focusFirstIn(root, top)
+
+		second.dispose()
+		input.keyDown(Input.Keys.S)
+		input.keyUp(Input.Keys.S)
+
+		assertNull(second.focusedActor.value, "a disposed helper kept hold of its focused actor")
+		assertNotSame(bottom, second.selectedActor, "a disposed helper still navigated on its player's key")
+	}
+
+	@Test
+	fun `disposing twice is harmless`() {
+		val second = UiControlHelper(MetaPlayer(1), MetaUiInputProfiles()[MetaPlayer(1)])
+
+		second.dispose()
+		second.dispose()
+	}
+
+	@Test
+	fun `conflicting keys between two profiles are reported`() {
+		// The registry hands out live mutable bindings, so it cannot prevent a collision -- but a game committing a
+		// rebind can ask, and both cursors moving on one press is otherwise silent.
+		val profiles = MetaUiInputProfiles()
+		val two = MetaPlayer(1)
+		profiles[two].setKeyboardKeys(MetaUiAction.NAVIGATE_DOWN, Input.Keys.DOWN, Input.Keys.S)
+
+		val shared = profiles.conflictingKeys(two, MetaPlayer.ONE)
+
+		assertEquals(1, shared.size, "expected exactly the shared key, got ${shared.toList()}")
+		assertEquals(Input.Keys.DOWN, shared[0], "DOWN is bound for both players and was not reported")
+	}
+
+	@Test
+	fun `disjoint profiles report no conflicts`() {
+		val profiles = MetaUiInputProfiles()
+		val two = MetaPlayer(1)
+		profiles[two].setKeyboardKeys(MetaUiAction.NAVIGATE_DOWN, Input.Keys.S)
+
+		assertEquals(0, profiles.conflictingKeys(two, MetaPlayer.ONE).size, "disjoint key sets reported a conflict")
 	}
 
 	@Test

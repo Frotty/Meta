@@ -6,6 +6,7 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.InputAdapter
+import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
@@ -188,30 +189,64 @@ class UiControlHelper @JvmOverloads constructor(
 	private var targets = Array<Actor>()
 	private val repeatTasks = ObjectMap<MetaUiAction, Timer.Task>()
 
-	init {
-		metaInput.addGlobalInputProcessor(object : InputAdapter() {
-			override fun keyDown(keycode: Int): Boolean {
-				if (synthesizingCanonicalAction) return false
-				val action = uiBindings.actionForKey(keycode) ?: return false
-				if (hasTextEditingFocus()) {
-					cancelRepeat(action)
-					return false
-				}
-				handleActionDown(action, keycode)
+	/**
+	 * Held so [dispose] can remove exactly what was registered.
+	 *
+	 * It was an anonymous argument while this class was only ever the app-lifetime singleton, and that was fine. It
+	 * stopped being fine the moment a second cursor became a second instance: a recreated screen would leave its old
+	 * helper registered with `MetaInput`, still holding its `focusedRoot`, and that player's keys would reach the dead
+	 * helper as well as the live one.
+	 */
+	private val inputProcessor: InputProcessor = object : InputAdapter() {
+		override fun keyDown(keycode: Int): Boolean {
+			if (synthesizingCanonicalAction) return false
+			val action = uiBindings.actionForKey(keycode) ?: return false
+			if (hasTextEditingFocus()) {
+				cancelRepeat(action)
 				return false
 			}
+			handleActionDown(action, keycode)
+			return false
+		}
 
-			override fun keyUp(keycode: Int): Boolean {
-				if (synthesizingCanonicalAction) return false
-				val action = uiBindings.actionForKey(keycode) ?: return false
-				if (hasTextEditingFocus()) {
-					cancelRepeat(action)
-					return false
-				}
-				handleActionUp(action, keycode)
+		override fun keyUp(keycode: Int): Boolean {
+			if (synthesizingCanonicalAction) return false
+			val action = uiBindings.actionForKey(keycode) ?: return false
+			if (hasTextEditingFocus()) {
+				cancelRepeat(action)
 				return false
 			}
-		})
+			handleActionUp(action, keycode)
+			return false
+		}
+	}
+
+	private var disposed = false
+
+	init {
+		metaInput.addGlobalInputProcessor(inputProcessor)
+	}
+
+	/**
+	 * Unregisters this cursor and drops what it was holding: the input processor, any pending navigation repeat, the
+	 * focused actor and the scoped root.
+	 *
+	 * Never needed for the registered singleton, which lives as long as the app. Required for any helper a screen
+	 * constructs - a second player's - because without it the screen's replacement adds another processor beside the
+	 * old one and that player's keys drive both.
+	 *
+	 * Idempotent.
+	 */
+	fun dispose() {
+		if (disposed) return
+		disposed = true
+		metaInput.removeGlobalInputProcessor(inputProcessor)
+		// By action rather than by iterating `repeatTasks`: libGDX's map iterators are cached and the build gate
+		// rejects them, and there are six actions.
+		for (index in MetaUiAction.entries.indices) cancelRepeat(MetaUiAction.entries[index])
+		setFocusedActor(null)
+		selectedActorBacking = emptySelection
+		focusedRoot = null
 	}
 
 	private fun handleActionDown(action: MetaUiAction, keycode: Int) {
