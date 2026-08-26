@@ -70,6 +70,11 @@ class MetaAssetProviderTest {
 		}
 	}
 
+	@Test
+	fun `asset lookup keys normalize separators and case without changing the source path`() {
+		assertEquals("fonts/montserrat.ttf", assetPathKey("Fonts\\Montserrat.TTF"))
+	}
+
 	companion object {
 		private const val UPDATE_BUDGET_MS = 1
 		private const val MAX_UPDATE_ATTEMPTS = 1_000

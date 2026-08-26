@@ -28,7 +28,9 @@ class XPKFileHandle internal constructor(
 	}
 
 	override fun sibling(name: String?): FileHandle? =
-		siblings.firstOrNull { it.path == path && it.fileName == name }
+		siblings.firstOrNull {
+			assetPathKey(it.path) == assetPathKey(path) && assetPathKey(it.fileName) == assetPathKey(name.orEmpty())
+		}
 
 	override fun read(): InputStream {
 		try {
@@ -56,7 +58,7 @@ class XPKFileHandle internal constructor(
 		val search = if (path != name && path.isNotBlank()) "$path\\$name" else name
 
 		return siblings.firstOrNull {
-			it.name.replace('/', '\\') == search
+			assetPathKey(it.name) == assetPathKey(search)
 		} ?: XPKFileHandle(siblings, 0, sevenZFile, entryName, entrySize, search)
 	}
 
