@@ -56,6 +56,10 @@ object MetaControllerListener : ControllerListener {
 	 * Buttons whose press a capture consumed, so their release is consumed too - **including after the capture has
 	 * ended**.
 	 *
+	 * Doubles as the "not translating" marker that [anyButtonHolds] subtracts from [heldRawButtons]: every entry got
+	 * here because its press did not become a canonical key-down, either because a capture took it or because a
+	 * starting capture took the key away underneath it.
+	 *
 	 * A rebind dialog closes on the press, and closing releases the capture, so the physical release lands after
 	 * teardown with translation switched back on. Without this it becomes a canonical key-up for a key that was never
 	 * pressed down, and `UiControlHelper` reads a CONFIRM key-up as an activation - so letting go of the button you
@@ -282,8 +286,12 @@ object MetaControllerListener : ControllerListener {
 	private fun anyButtonHolds(key: Int): Boolean {
 		var held = false
 		heldRawButtons.forEachEntryReentrant { controller, buttons ->
+			// A captured press is physically down and is not translating, which is not the same thing. Counting it
+			// would report the key as already held: a second button bound to the same action would have its
+			// legitimate press suppressed, and its release would then emit a key-up with no down to match it.
+			val notTranslating = capturedDownButtons.get(controller)
 			buttons.forEachIntReentrant { code ->
-				if (!held && keyFor(controller, code) == key) held = true
+				if (!held && notTranslating?.contains(code) != true && keyFor(controller, code) == key) held = true
 			}
 		}
 		return held

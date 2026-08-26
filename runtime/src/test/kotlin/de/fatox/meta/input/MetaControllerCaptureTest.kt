@@ -313,6 +313,33 @@ internal class MetaControllerCaptureTest {
 		assertFalse(MetaControllerListener.capturing, "the owner could not release its own capture")
 	}
 
+	@Test
+	fun `a button still held from a capture does not block the next press of the same action`() {
+		// The rebind dialog closes on the button-down, so the player is still holding that button when the capture is
+		// already gone. It is physically down and it is not translating, and counting it as "the key is held" swallows
+		// the next legitimate press of the same action - then emits a key-up with no down to match it.
+		val a = controller.mapping.buttonA
+		val start = controller.mapping.buttonStart
+		val target: (Controller, Int) -> Unit = { _, _ -> }
+		MetaControllerListener.captureButtons(target)
+		MetaControllerListener.buttonDown(controller, a)
+		MetaControllerListener.releaseCapture(target)
+		assertTrue(input.keysDown.isEmpty(), "precondition: the captured press must not have emitted a key")
+
+		MetaControllerListener.buttonDown(controller, start)
+
+		assertEquals(
+			listOf(Input.Keys.ENTER),
+			input.keysDown,
+			"the still-held captured button suppressed a legitimate press of the same action",
+		)
+
+		MetaControllerListener.buttonUp(controller, a)
+		assertTrue(input.keysUp.isEmpty(), "the captured button's release was translated")
+		MetaControllerListener.buttonUp(controller, start)
+		assertEquals(listOf(Input.Keys.ENTER), input.keysUp, "the key-up did not match the key-down exactly once")
+	}
+
 	// ── One canonical key, many devices ───────────────────────────────────────
 
 	@Test
