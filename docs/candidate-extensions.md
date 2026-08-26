@@ -1,0 +1,203 @@
+# Candidate extensions
+
+Things found in a consuming game that look like they belong here instead — either
+because Meta already has most of the machinery and the game is filling a gap, or
+because the game solved something generic well enough that a second consumer
+would rewrite it.
+
+Sourced from an audit of **BabSky** (`../babs-sky`, a libGDX + Box2D v3 game) in
+August 2026, while moving its menus onto `UiControlHelper`. Each entry records
+what exists there, why it is generic, and what would have to be decided before it
+moves. Nothing here is committed to — it is a list of leads, and a couple of them
+are arguments *against* moving.
+
+---
+
+## 1. A menu-shaped focusable row
+
+**In the game:** `MenuList` + `MenuRow` — a vertical list of choices with an
+accent marker on the focused row. `MenuRow` implements `MetaFocusable` purely to
+become navigable and to suppress `DefaultFocusRenderer`'s ring, and carries one
+`ClickListener` so that confirm (which `UiControlHelper` synthesises as a click),
+a real click, and a hover all land in one place.
+
+**Why it is generic:** every game with a title screen writes this. The pieces it
+needs from Meta already exist; what is missing is the *shape*.
+
+**Why `MetaActionList` was not used:** its rows are tool-style — fixed
+COMPACT/COMFORTABLE densities of 32 and 44 logical pixels, `MetaType.BODY` text,
+button chrome. Right for an editor panel, wrong for a menu read from a couch,
+where a row is 44px of *type* on a 4K display. That is a real gap rather than a
+missed reuse, so the extension is a second list widget, not a change to that one.
+
+**Open question:** whether the marker belongs to the widget or to the consumer.
+BabSky's is a `SolidRect` in the game's accent colour, tinted from three states
+(focused-and-enabled, focused-and-disabled, neither). A Meta version probably
+wants that as a skin role.
+
+## 2. `MetaFocusable` needs a "no ring, I draw my own" story that does not lie
+
+**What happened:** `MetaFocus.assign` calls `setMetaFocused` only when
+`handlesMetaFocus` is true, and `DefaultFocusRenderer` skips a focusable that
+handles its own focus. Both correct. But the *callback* only arrives if a
+`UIRenderer` relays it, and `MetaHeadlessUi`'s `LayoutOnlyRenderer` implements
+`setFocusedActor` as `Unit`.
+
+So a widget that reacts in `setMetaFocused` works at runtime and is silently
+inert under test. BabSky hit this and moved its selection onto
+`UiControlHelper.focusedActor` — the reactive value, which `setFocusedActor` sets
+unconditionally. That is the documented path and it is the right one; the trap is
+that the interface makes the other path look equally available.
+
+**Not the suggestion:** having `UiControlHelper` call `MetaFocus.assign` itself
+instead of going through the renderer. `MetaUIRenderer` keeps its own private
+`focusedActor` field, updated *only* in `setFocusedActor` and read in `draw` to
+feed `DefaultFocusRenderer` — so bypassing it would leave ordinary buttons and
+select boxes navigable but with no visible focus ring, which is a worse bug than
+the one being fixed.
+
+**Suggestion:** say plainly in `MetaFocusable`'s KDoc that `setMetaFocused` is
+presentation-only and that state belongs on `UiControlHelper.focusedActor`. If
+the callback should also reach a headless consumer, that needs an API change
+that keeps the renderer's tracking intact rather than routing around it.
+
+## 3. Consumers have no input-capable test harness
+
+`LayoutOnlyInput` accepts registrations and dispatches nothing. That is
+**deliberate and documented** — its KDoc says so, explains why (the real
+`MetaInput` claims `Gdx.input.inputProcessor` and the static `Controllers`
+registry, "process-wide state a layout harness has no business taking"), and
+directs a test that wants real input to build the real processor and own its
+teardown. It is a layout harness and it says which one it is.
+
+The gap is next to it, not in it. Meta *does* test `UiControlHelper`'s spatial
+navigation — `UiControlHelperTest` carries a `TestInput` that dispatches to its
+registered global processors — but that class is private to the test file, so
+the capability exists and is not shipped. A consumer wanting to cover the same
+ground has to rebuild it, and the arrow-key step (`navigate`, `getNextX`,
+`getNextY`) is the most interesting logic in the class and the easiest to break
+with a layout change.
+
+**Suggestion:** promote a dispatching input harness into `testFixtures`
+alongside `LayoutOnlyInput`, as a separate opt-in rather than a change to it.
+Layout isolation and input integration are different jobs and the current
+fixture is right to do only the first.
+
+## 3a. No documented way to test a code path that raises a toast
+
+`UIRenderer.getToastManager()` is not optional in the interface but is optional
+in practice: `MetaUIRenderer` has one and `MetaHeadlessUi`'s `LayoutOnlyRenderer`
+throws `UnsupportedOperationException` with a helpful message. The message is
+good and so is the throw — it is what stops a test asserting a toast that was
+never rendered. What is missing is the seam beside it.
+
+A toast is a notification *about* an action, so it tends to be the last line of a
+handler — "Fullscreen on" after toggling fullscreen. In BabSky that meant a test
+of the fullscreen row died halfway through, after the host had been asked to
+toggle and before the page could say so, and the consumer now wraps every
+`toast()` in a try/catch.
+
+**Not the suggestion:** returning a no-op manager, or making the accessor
+nullable. The throw is deliberate and it is load-bearing — a silent no-op would
+let a test assert a toast that was never rendered and still pass, and a nullable
+accessor would push a fixture's limitation onto every real renderer and consumer.
+
+**Suggestion:** a documented, one-line way for a test to install a toast double.
+Today a consumer has to re-register `UIRenderer` after `MetaHeadlessUi.install()`
+and work out what to implement; nothing says so, so the path of least resistance
+is a try/catch in production code — which is how BabSky ended up with one, and
+where that wrapper should be reconsidered once the seam exists.
+
+## 4. A screen fade / transition primitive
+
+**In the game:** two of them. `Fade` (Kotlin, reactive — phases IDLE/IN/OUT, a
+pending intent carried through the fade so the navigation decision is a value
+rather than a callback) and `ScreenFade` (Java, imperative). The reactive one is
+the good design: `MainMenuScreen` reads `fade.finished()` in one effect and that
+is the single place deciding where a completed fade leads.
+
+**Why it is generic:** Meta has `UIRenderer.armStartupTransition` for the
+startup cover and nothing for screen-to-screen. Any game with more than one
+screen needs this.
+
+**Open question:** the intent payload is typed `String?` in BabSky. A Meta
+version wants a generic parameter.
+
+## 5. A material-routed collision sound system — mostly already here
+
+**In the game:** `CollisionAudioSystem` (~430 lines) hand-rolls voice limiting
+(`MAX_ACTIVE = 6`), a global cooldown and a per-pair cooldown, distance
+attenuation between `MIN_DISTANCE` and `MAX_DISTANCE`, and round-robin banks
+keyed by a material category.
+
+**Already in Meta:** `MetaSoundPlayer` has per-definition `maxInstances`,
+`MetaSoundPlaybackPolicy.cooldownMs`, positional volume and pan through
+`MetaSoundFalloff`, `randomPitchRange`, and looping. Much of this is the same
+class twice.
+
+**But not the voice budget, which is the part that matters most here.**
+`MetaSoundPlayer` keeps a handle list per `MetaSoundDefinition` and caps that
+list, so N definitions playing at once admit up to `N * maxInstances` voices.
+`CollisionAudioSystem.MAX_ACTIVE` is a single global budget of six across every
+material. A migration that treats `maxInstances` as the equivalent would let a
+pile-up of mixed-material impacts spam the backend. A player-wide cap is a second
+prerequisite alongside the playback abstraction below.
+
+**The blocker, and it is real:** BabSky goes through **miniaudio**
+(`games.rednblack.miniaudio`) for `MAAttenuationModel`/`MAPositioning`, while
+Meta's sound layer sits on libGDX `Sound` behind a pluggable `SoundHandler`
+(`NoSoundHandler`, `DesktopSoundHandler`). Moving the game onto
+`MetaSoundPlayer` as it stands would trade miniaudio's spatial model for
+Meta's falloff maths.
+
+**The interesting option, and it is bigger than it first looked:**
+`SoundHandler` is not the seam. It declares exactly one method, `duration(sound)`
+— `MetaSoundPlayer` creates its sounds with `Gdx.audio.newSound` and calls
+`Sound.play`/`loop` directly, so implementing `SoundHandler` against miniaudio
+would leave every byte of playback on libGDX and buy no spatial audio at all.
+
+What the move actually needs is a **sound creation and playback abstraction**
+that does not exist yet: something `MetaSoundPlayer` goes through instead of
+touching `Gdx.audio` and `Sound`, with the libGDX path as the default
+implementation and miniaudio as an optional sibling module. That is the version
+where the game deletes 400 lines and Meta gains spatial audio — and it is a
+larger piece of work than "write a `SoundHandler`", which is worth knowing
+before anyone starts.
+
+**What is genuinely game-specific and should stay:** the material → category
+routing (`stone`/`obsidian`/`iron` → `soft`/`metallic`/`glass`) and the
+impact-speed thresholds. Those are content decisions.
+
+## 6. A rolling / continuous contact sound
+
+Not a dedup — a gap both projects have. `MetaSoundPlayer` plays one-shots and
+loops, but there is no notion of a loop whose gain and filter track a continuous
+physical quantity (contact speed, in a rolling game). Any physics game wants it
+and it is fiddly enough — fade in and out around the contact starting and
+stopping, avoid retriggering per contact event — that it should not be written
+twice.
+
+## 7. Preferences: several games' worth of `Gdx.app.getPreferences`
+
+`MetaData` is registered and used for Meta's own state, but BabSky still reaches
+for raw `Preferences` in four places (`BabsMain` volume and bindings,
+`GpuHintOverlay`, `LevelProgress`). Not a Meta gap — a game not using what is
+there. Noted here only because the pattern is likely repeated in other
+consumers, and a short "persisting your own settings" note in Meta's docs would
+probably fix it everywhere at once.
+
+## 8. Deliberately **not** candidates
+
+Recorded so the same ground is not re-covered:
+
+- **`UiScale`** — looks like a duplicate of `MetaResponsive` and is not. It is
+  already built on `MetaResponsiveState`, `responsive()` and `MetaBreakpoints`;
+  what it adds is one game's type ramp (display/heading/item/body/caption/hint,
+  and a glyph size for Kenney's input faces). That is content.
+- **`PromptIcons`** — Kenney input-prompt faces chosen per `ControllerFamily`.
+  Font *files* the game ships, and a mapping from actions to glyphs in them.
+  A Meta version would be a licence and asset decision, not a code one.
+- **`InputBindings`** — overlaps `MetaUiInputBindings` for six UI actions, and
+  the fix was to project one onto the other (`MenuInputBindings` in the game),
+  not to move it. The rest of it is move/speed/grip/pause/restart, which are the
+  game's verbs.
