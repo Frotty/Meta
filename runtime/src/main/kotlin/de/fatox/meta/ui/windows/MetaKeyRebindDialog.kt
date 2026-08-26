@@ -55,7 +55,10 @@ import de.fatox.meta.ui.components.MetaLabel
 class MetaKeyRebindDialog @JvmOverloads constructor(
 	/** The key that cancels instead of binding. Named in the prompt, and unbindable here as a result. */
 	private val cancelKeycode: Int = Input.Keys.ESCAPE,
-	/** Whether controller buttons are captured too. Off for a keyboard-only binding column. */
+	/**
+	 * Whether a controller button is *recorded* as the binding. When false the pad is still captured and its presses
+	 * swallowed - see [buttonTarget] for why ignoring it is not the same as switching it off.
+	 */
 	private val captureControllerButtons: Boolean = true,
 ) : MetaDialog("Rebind Key", true) {
 
@@ -73,7 +76,13 @@ class MetaKeyRebindDialog @JvmOverloads constructor(
 	 * releasing by identity would never match what was registered and every dialog would leak its capture.
 	 */
 	private val buttonTarget: (Controller, Int) -> Unit = { controller, buttonCode ->
-		finish(MetaRebindCapture.Button(controller, buttonCode))
+		if (captureControllerButtons) {
+			finish(MetaRebindCapture.Button(controller, buttonCode))
+		}
+		// Otherwise swallowed, and swallowing is the whole point of installing a capture in keyboard-only mode.
+		// Leaving the pad uncaptured does not make it inert: MetaControllerListener would still translate a bound
+		// button into its canonical key, so pressing A would reach the exclusive processor as ENTER and be recorded
+		// as a *keyboard* binding. A mode that only accepts keys has to suppress the pad, not ignore it.
 	}
 
 	init {
@@ -90,7 +99,8 @@ class MetaKeyRebindDialog @JvmOverloads constructor(
 		if (rebindProcessor == null) {
 			rebindProcessor = RebindProcessor(this).also { metaInput.pushExclusiveProcessor(it) }
 		}
-		if (captureControllerButtons) MetaControllerListener.captureButtons(buttonTarget)
+		// Unconditional: see buttonTarget. Both modes need the pad captured; they differ in what they do with it.
+		MetaControllerListener.captureButtons(buttonTarget)
 	}
 
 	/**

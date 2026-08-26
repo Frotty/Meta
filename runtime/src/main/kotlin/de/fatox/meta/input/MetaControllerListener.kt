@@ -43,6 +43,20 @@ object MetaControllerListener : ControllerListener {
 	 */
 	private var captureTarget: ((Controller, Int) -> Unit)? = null
 
+	/**
+	 * Buttons whose press a capture consumed, so their release is consumed too - **including after the capture has
+	 * ended**.
+	 *
+	 * A rebind dialog closes on the press, and closing releases the capture, so the physical release lands after
+	 * teardown with translation switched back on. Without this it becomes a canonical key-up for a key that was never
+	 * pressed down, and `UiControlHelper` reads a CONFIRM key-up as an activation - so letting go of the button you
+	 * just bound presses whatever is focused behind the dialog that closed.
+	 *
+	 * Keyed by button code alone, like [downButtonKeys]: this listener is a singleton with no per-device state, and
+	 * two pads holding the same code is not a case it distinguishes anywhere else.
+	 */
+	private val capturedDownButtons = IntSet()
+
 	/** Whether raw button capture is active. */
 	val capturing: Boolean get() = captureTarget != null
 
@@ -74,10 +88,14 @@ object MetaControllerListener : ControllerListener {
 		log.debug { "Controller disconnected." }
 		releaseAxisKeys()
 		releaseButtonKeys()
+		// No releases are coming for a pad that is gone; holding their codes would consume the next pad's.
+		capturedDownButtons.clear()
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
 		captureTarget?.let {
+			// Recorded before the callback, which usually closes the dialog and releases the capture synchronously.
+			capturedDownButtons.add(buttonCode)
 			it(controller, buttonCode)
 			return true
 		}
@@ -91,7 +109,9 @@ object MetaControllerListener : ControllerListener {
 
 	override fun buttonUp(controller: Controller, buttonCode: Int): Boolean {
 		// Consumed rather than translated: the matching down was captured, so emitting a key-up for a key that was
-		// never pressed would look like a release of whatever that button normally means.
+		// never pressed would look like a release of whatever that button normally means. Checked before the capture
+		// itself, because the capture is usually already gone by the time the finger comes off the button.
+		if (capturedDownButtons.remove(buttonCode)) return true
 		if (captureTarget != null) return true
 		return uiBindings.actionForButton(controller, buttonCode)?.let {
 			val key = uiBindings.canonicalKeyFor(it)

@@ -41,8 +41,11 @@ internal class MetaControllerCaptureTest {
 
 	@AfterTest
 	fun tearDown() {
-		// The listener is a singleton object and outlives any one test, so a capture left set would leak into the
-		// next one and silently switch its translation off.
+		// The listener is a singleton object and outlives any one test, so anything it is still holding leaks into
+		// the next one. Each test releases the buttons it pressed, the way a real pad does, so this is a backstop and
+		// not the mechanism - isolation that depended on `disconnected()` would depend on the very code under test,
+		// and reverting that code showed up as a failure in an unrelated test rather than its own.
+		MetaControllerListener.disconnected(controller)
 		MetaControllerListener.metaInput = null
 		global(clear = true) {}
 	}
@@ -77,6 +80,7 @@ internal class MetaControllerCaptureTest {
 		assertTrue(consumed, "a captured press must be consumed, or it also reaches whatever is underneath")
 		assertSame(controller, seenController, "the device did not travel with the capture")
 		assertEquals(7, seenButton, "the raw button code was not reported")
+		MetaControllerListener.buttonUp(controller, 7)
 		MetaControllerListener.releaseCapture(target)
 	}
 
@@ -91,6 +95,7 @@ internal class MetaControllerCaptureTest {
 		MetaControllerListener.buttonDown(controller, 3)
 
 		assertEquals(3, seenButton, "a bound button was translated instead of captured")
+		MetaControllerListener.buttonUp(controller, 3)
 		MetaControllerListener.releaseCapture(target)
 	}
 
@@ -107,6 +112,7 @@ internal class MetaControllerCaptureTest {
 			input.keysDown.isEmpty(),
 			"the press was translated as well as captured, so a rebind dialog would bind ENTER: ${input.keysDown}",
 		)
+		MetaControllerListener.buttonUp(controller, 3)
 		clearCapture()
 	}
 
@@ -148,6 +154,65 @@ internal class MetaControllerCaptureTest {
 			listOf(Input.Keys.ENTER),
 			input.keysDown,
 			"the pad stayed deaf after the dialog closed",
+		)
+	}
+
+	@Test
+	fun `a captured press keeps its release consumed after the capture ends`() {
+		// The shape a rebind dialog actually has: it closes on the press, and closing releases the capture, so the
+		// physical release lands after teardown with translation switched back on. Translating it emits a CONFIRM
+		// key-up for a key that was never pressed - and UiControlHelper reads that as an activation, so letting go of
+		// the button you just bound presses whatever is focused behind the dialog that closed.
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		val target: (Controller, Int) -> Unit = { _, _ -> }
+		MetaControllerListener.captureButtons(target)
+
+		MetaControllerListener.buttonDown(controller, 3)
+		MetaControllerListener.releaseCapture(target)
+		val consumed = MetaControllerListener.buttonUp(controller, 3)
+
+		assertTrue(consumed, "the release escaped the capture that consumed its press")
+		assertTrue(
+			input.keysUp.isEmpty(),
+			"releasing the bound button activated whatever was focused behind the dialog: ${input.keysUp}",
+		)
+	}
+
+	@Test
+	fun `only the captured press has its release consumed`() {
+		// The other half: a button that was never captured must go back to translating normally, or the pad goes
+		// half-deaf after any rebind.
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		val target: (Controller, Int) -> Unit = { _, _ -> }
+		MetaControllerListener.captureButtons(target)
+		MetaControllerListener.buttonDown(controller, 9)
+		MetaControllerListener.releaseCapture(target)
+
+		MetaControllerListener.buttonUp(controller, 3)
+
+		assertEquals(
+			listOf(Input.Keys.ENTER),
+			input.keysUp,
+			"an uncaptured button stopped translating its release",
+		)
+	}
+
+	@Test
+	fun `a disconnect forgets captured presses whose releases will never arrive`() {
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		val target: (Controller, Int) -> Unit = { _, _ -> }
+		MetaControllerListener.captureButtons(target)
+		MetaControllerListener.buttonDown(controller, 3)
+		MetaControllerListener.releaseCapture(target)
+
+		MetaControllerListener.disconnected(controller)
+		input.keysUp.clear()
+		MetaControllerListener.buttonUp(controller, 3)
+
+		assertEquals(
+			listOf(Input.Keys.ENTER),
+			input.keysUp,
+			"a stale captured press swallowed the next pad's release",
 		)
 	}
 
