@@ -45,21 +45,15 @@ internal class MetaControllerCaptureTest {
 		// the next one. Each test releases the buttons it pressed, the way a real pad does, so this is a backstop and
 		// not the mechanism - isolation that depended on `disconnected()` would depend on the very code under test,
 		// and reverting that code showed up as a failure in an unrelated test rather than its own.
+		MetaControllerListener.clearCaptures()
 		MetaControllerListener.disconnected(controller)
 		MetaControllerListener.metaInput = null
 		global(clear = true) {}
 	}
 
-	/**
-	 * Releases whatever capture is active, whoever owns it.
-	 *
-	 * Taking it over first is the only way: releasing is by owner on purpose, so a test that started a capture with
-	 * an anonymous lambda has no handle to give back.
-	 */
+	/** Drops every capture. Releasing is by owner on purpose, so a test that used an inline lambda has no handle. */
 	private fun clearCapture() {
-		val probe: (Controller, Int) -> Unit = { _, _ -> }
-		MetaControllerListener.captureButtons(probe)
-		MetaControllerListener.releaseCapture(probe)
+		MetaControllerListener.clearCaptures()
 		assertFalse(MetaControllerListener.capturing, "a capture outlived the test that started it")
 	}
 
@@ -252,6 +246,45 @@ internal class MetaControllerCaptureTest {
 			"the held key was never released, so it stays down forever - the matching up is captured, not translated",
 		)
 		clearCapture()
+	}
+
+	@Test
+	fun `releasing the top capture restores the one beneath it`() {
+		// The lifetime this API advertises, and the one MetaInputProcessor's exclusive stack has: an inner modal
+		// letting go must hand input back to the outer one, not to nobody. A single slot lost the outer capture the
+		// moment the inner one released, and the pad silently resumed navigating the UI behind both.
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		var outerSaw = -1
+		val outer: (Controller, Int) -> Unit = { _, code -> outerSaw = code }
+		val inner: (Controller, Int) -> Unit = { _, _ -> }
+		MetaControllerListener.captureButtons(outer)
+		MetaControllerListener.captureButtons(inner)
+
+		MetaControllerListener.releaseCapture(inner)
+		MetaControllerListener.buttonDown(controller, 3)
+
+		assertEquals(3, outerSaw, "the outer capture was not restored when the inner one released")
+		assertTrue(input.keysDown.isEmpty(), "translation resumed while a capture was still registered")
+		MetaControllerListener.buttonUp(controller, 3)
+		MetaControllerListener.releaseCapture(outer)
+	}
+
+	@Test
+	fun `a button held when a capture starts has its release consumed`() {
+		// The press was translated before the capture existed and the release will not be, so without care the
+		// release emits an unmatched canonical key-up once the capture ends - activating whatever is focused behind
+		// the dialog the player was about to cancel.
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		MetaControllerListener.buttonDown(controller, 3)
+		val target: (Controller, Int) -> Unit = { _, _ -> }
+		MetaControllerListener.captureButtons(target)
+		MetaControllerListener.releaseCapture(target)
+		input.keysUp.clear()
+
+		val consumed = MetaControllerListener.buttonUp(controller, 3)
+
+		assertTrue(consumed, "a release owed from before the capture escaped it")
+		assertTrue(input.keysUp.isEmpty(), "the held button emitted a second, unmatched key-up: ${input.keysUp}")
 	}
 
 	@Test

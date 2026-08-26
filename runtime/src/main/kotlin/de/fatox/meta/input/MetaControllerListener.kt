@@ -2,11 +2,13 @@ package de.fatox.meta.input
 
 import com.badlogic.gdx.controllers.Controller
 import com.badlogic.gdx.controllers.ControllerListener
+import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.IntSet
 import com.badlogic.gdx.utils.ObjectMap
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.api.extensions.forEachIntReentrant
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.absoluteValue
@@ -42,7 +44,11 @@ object MetaControllerListener : ControllerListener {
 	 * Set through [captureButtons] and released through [releaseCapture], which pops by owner the way
 	 * `MetaInputProcessor`'s exclusive stack does -- a capture nested on top of another must not bury it.
 	 */
-	private var captureTarget: ((Controller, Int) -> Unit)? = null
+	private val captureTargets = Array<(Controller, Int) -> Unit>()
+
+	/** The capture currently in force: the newest one still registered. */
+	private val captureTarget: ((Controller, Int) -> Unit)?
+		get() = if (captureTargets.isEmpty) null else captureTargets.peek()
 
 	/**
 	 * Buttons whose press a capture consumed, so their release is consumed too - **including after the capture has
@@ -59,6 +65,15 @@ object MetaControllerListener : ControllerListener {
 	 */
 	private val capturedDownButtons = ObjectMap<Controller, IntSet>()
 
+	/**
+	 * Raw button codes currently held, per device.
+	 *
+	 * Kept unconditionally, because the interesting moment is the one *before* a capture exists: a capture starting
+	 * needs to know which releases are still outstanding, and [downButtonKeys] cannot say - it holds canonical keys,
+	 * not the raw codes a release arrives with.
+	 */
+	private val heldRawButtons = ObjectMap<Controller, IntSet>()
+
 	/** Whether raw button capture is active. */
 	val capturing: Boolean get() = captureTarget != null
 
@@ -71,15 +86,34 @@ object MetaControllerListener : ControllerListener {
 	fun captureButtons(target: (Controller, Int) -> Unit) {
 		releaseAxisKeys()
 		releaseButtonKeys()
-		captureTarget = target
+		// A release is still owed for anything held right now: its press was translated and its release will not be,
+		// so without this the button the player happened to be holding when the dialog opened emits an unmatched
+		// canonical key-up once the capture ends - and for a CONFIRM binding that presses whatever is focused behind.
+		heldRawButtons.forEachEntryReentrant { controller, held -> capturedPressesOf(controller).addAll(held) }
+		captureTargets.removeValue(target, true)
+		captureTargets.add(target)
 	}
 
 	/**
 	 * Stops routing to [target]. A no-op if some other capture has since taken over, so a dialog closing late
 	 * cannot switch off a capture it does not own.
 	 */
+	/**
+	 * Drops every capture, whoever owns them.
+	 *
+	 * The counterpart to [MetaInputProcessor.clearExclusiveProcessors]: a recovery hatch for a teardown that cannot
+	 * name the owners, not a substitute for [releaseCapture]. Leaving a capture registered makes the pad look dead,
+	 * because translation stays off.
+	 */
+	fun clearCaptures() {
+		captureTargets.clear()
+	}
+
 	fun releaseCapture(target: (Controller, Int) -> Unit) {
-		if (captureTarget === target) captureTarget = null
+		// By identity and from anywhere in the stack, the way `popExclusiveProcessor` pops by owner: releasing the
+		// top restores the one beneath it, and releasing a buried one leaves the top in force. A single slot lost
+		// the outer capture the moment an inner one let go, which is not the lifetime this API advertises.
+		captureTargets.removeValue(target, true)
 	}
 
 	override fun connected(controller: Controller) {
@@ -92,9 +126,11 @@ object MetaControllerListener : ControllerListener {
 		releaseButtonKeys()
 		// No releases are coming for a pad that is gone. Only its own entries: another pad may still be mid-press.
 		capturedDownButtons.remove(controller)
+		heldRawButtons.remove(controller)
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
+		heldOf(controller).add(buttonCode)
 		captureTarget?.let {
 			// Recorded before the callback, which usually closes the dialog and releases the capture synchronously.
 			capturedPressesOf(controller).add(buttonCode)
@@ -113,6 +149,7 @@ object MetaControllerListener : ControllerListener {
 		// Consumed rather than translated: the matching down was captured, so emitting a key-up for a key that was
 		// never pressed would look like a release of whatever that button normally means. Checked before the capture
 		// itself, because the capture is usually already gone by the time the finger comes off the button.
+		heldRawButtons.get(controller)?.remove(buttonCode)
 		if (capturedDownButtons.get(controller)?.remove(buttonCode) == true) return true
 		if (captureTarget != null) return true
 		return uiBindings.actionForButton(controller, buttonCode)?.let {
@@ -199,6 +236,11 @@ object MetaControllerListener : ControllerListener {
 	private fun capturedPressesOf(controller: Controller): IntSet {
 		capturedDownButtons.get(controller)?.let { return it }
 		return IntSet().also { capturedDownButtons.put(controller, it) }
+	}
+
+	private fun heldOf(controller: Controller): IntSet {
+		heldRawButtons.get(controller)?.let { return it }
+		return IntSet().also { heldRawButtons.put(controller, it) }
 	}
 
 	private fun emitKeyDown(keycode: Int) {
