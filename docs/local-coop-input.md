@@ -50,15 +50,40 @@ that makes rebinding work. Either synthesis becomes player-tagged, or it is
 suppressed once more than one profile is registered — and the second option silently
 breaks `BackAction`-style listeners.
 
-### 4. Focus is one actor, and `MetaFocusable` cannot say whose
+### 4. Focus is one actor — but this is *not* a prerequisite
+
+Recorded here because the first version of this document treated it as one, and
+that was wrong. Checking it changes the cost of the whole feature.
 
 `MetaUIRenderer` keeps one private `focusedActor` and passes it to
 `FocusRenderer.draw(stage, focusedActor, deltaTime)`. `MetaFocus.assign` flips one
 boolean through `MetaFocusable.setMetaFocused(focused: Boolean)`.
 
 With two cursors an actor can be focused by P1 and not P2 — or by both, mid-hover —
-and a boolean cannot express that. Nor can one focus ring distinguish the players,
-which is the whole point of showing it.
+and a boolean cannot express that. Nor can one focus ring distinguish the players.
+
+**But a self-drawing focusable never reaches that code.**
+`DefaultFocusRenderer` returns immediately for any actor where
+`MetaFocus.isHandledByActor` holds, so a cell that shows its own focus — read
+reactively from *its own* helper's `focusedActor`, which is a per-instance signal —
+is unaffected by the renderer having one slot. Two helpers do still trample
+`MetaUIRenderer`'s single `focusedActor`, and with self-drawing cells that is
+invisible.
+
+That is the pattern already in use: `MenuRow` in the consumer is a
+`MetaFocusable` with `handlesMetaFocus = true` that tints an accent marker from
+`focusedActor`. It would work as a second player's cell today.
+
+Two consequences worth stating:
+
+- `MetaFocus.assign` will call `setMetaFocused(false)` on P1's cell when P2 moves.
+  Harmless **because** `setMetaFocused` is presentation-only and widgets are now
+  documented not to keep state there. That contract is what makes this safe.
+- The trampled `focusedActor` is a shared mutable with two writers. Invisible, not
+  correct. A non-primary helper skipping the renderer call would fix it in one line.
+
+So per-player focus *rendering* is a nice-to-have for games whose cells want
+Meta's ring, not a gate on local co-op.
 
 ---
 
@@ -124,7 +149,7 @@ canonical keycode hears player one only. That is the right default — a screen-
 "back" is a system action, not a per-player one — but it must be *documented*, not
 discovered.
 
-### Focus becomes a set
+### Focus becomes a set — only if slice 2 is wanted
 
 ```kotlin
 interface MetaFocusable {
@@ -147,17 +172,19 @@ existing widget changes. `DefaultFocusRenderer` tints the ring per player index.
 player-scoped synthesis. Single-player behaviour must be byte-identical; the test
 that matters is that the existing suite passes untouched.
 
-**Slice 2 — visible second cursor.** Per-player focus in `MetaUIRenderer`,
-`MetaFocusSet`, the `MetaFocusable` overload, per-player ring tint. This is where
-the fighting-game select screen becomes possible.
+**Slice 2 — optional, for games that want Meta's ring per player.** Per-player
+focus in `MetaUIRenderer`, `MetaFocusSet`, the `MetaFocusable` overload, per-player
+ring tint. **Not** required for the fighting-game select screen: cells that draw
+their own focus already bypass the renderer entirely (see blocker 4).
 
 **Slice 3 — controllers.** Pad-to-player assignment in `MetaControllerListener`,
 which today merges every device onto one stream on purpose. The raw-button capture
 added for `MetaKeyRebindDialog` needs the same player dimension, so a rebind screen
 can rebind *player two's* pad.
 
-Slice 1 is worth doing even if 2 and 3 never happen: it is what turns "Meta assumes
-one cursor" from an unwritten assumption into a stated one with a seam.
+Slice 1 is the whole feature for the keyboard case, and it is small: a value class,
+a profile registry, a player field on `UiControlHelper`, and not synthesising for
+non-primary players. Slices 2 and 3 are additions, not completions.
 
 ---
 
