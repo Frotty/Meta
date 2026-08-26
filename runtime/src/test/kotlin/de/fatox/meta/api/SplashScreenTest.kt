@@ -1,0 +1,261 @@
+package de.fatox.meta.api
+
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import de.fatox.meta.Meta
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.graphics.font.MetaFontProvider
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.test.MetaHeadlessUi
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+/**
+ * The splash screen driving a real startup, with no [Meta] application behind it.
+ *
+ * Both halves of that sentence are the point. The phase machine was only ever exercised by running the editor,
+ * and it could only run there: `show()` dereferenced `Meta.instance`, so the screen threw for any application that
+ * adopted Meta's UI layer without its `Game` class — and threw in a test, which is why there was no test. It now
+ * reads [Meta.instanceOrNull], and every assertion below is made with that field never assigned.
+ *
+ * Frames are driven by hand rather than by a clock. A [SplashCallbacks.prepareAssets] worker would make the
+ * result depend on how fast a thread starts, so these cover the GL-thread path; the worker phases have no branch
+ * of their own beyond the one already covered by the status mapping.
+ */
+internal class SplashScreenTest {
+
+	/** Enough frames for the fades, the hold and a slow startup, with room to spare. */
+	private val frameCap = 600
+	private val frameSeconds = 1f / 60f
+
+	@BeforeEach
+	fun setUp() {
+		MetaHeadlessUi.install()
+		// The one thing the panel needs that the layout harness has no use for. Registered
+		// after install(), which owns (and clears) the graph.
+		MetaInject.global { singleton { SpriteBatch() } }
+	}
+
+	@AfterEach
+	fun tearDown() = MetaHeadlessUi.dispose()
+
+	/** Which frame the loop is on, so a callback can record when it was called. */
+	private var frame = 0
+
+	/** Renders until [until] holds, or gives up. Returns the frames it took. */
+	private fun SplashScreen.runUntil(until: () -> Boolean): Int {
+		while (frame < frameCap) {
+			frame++
+			render(frameSeconds)
+			if (until()) return frame
+		}
+		return -1
+	}
+
+	@Test
+	fun `the application's startup work is advanced in slices before the panel goes away`() {
+		val events = ArrayList<String>()
+		val sliceFrames = ArrayList<Int>()
+		val sliceBudgets = ArrayList<Int>()
+		val splash = SplashScreen(
+			SplashCallbacks(
+				queueAssets = { events.add("queue") },
+				startupLoad = { millis ->
+					sliceFrames.add(frame)
+					sliceBudgets.add(millis)
+					events.add("slice")
+					sliceFrames.size == 4
+				},
+				onLoaded = { events.add("loaded") },
+			),
+		)
+
+		splash.show()
+		val frames = splash.runUntil { events.contains("loaded") }
+
+		assertTrue(frames > 0, "the splash never finished loading in $frameCap frames: $events")
+		assertEquals(4, sliceFrames.size, "the startup load was not called until it reported completion")
+		assertEquals("queue", events.first(), "assets must be queued before the application loads its own")
+		assertEquals("loaded", events.last(), "the loaded callback ran before startup work had finished")
+		// One call per frame, never four in a row: the whole reason for the phase is that the
+		// panel draws between the steps. Draining the queue inside one frame would satisfy every
+		// assertion above and none of this one.
+		assertEquals(
+			sliceFrames.size,
+			sliceFrames.distinct().size,
+			"two slices ran in the same frame, so the panel never drew between them: $sliceFrames",
+		)
+		assertTrue(
+			sliceBudgets.none { it <= 0 },
+			"a slice was handed no budget at all, so that frame did no work: $sliceBudgets",
+		)
+	}
+
+	@Test
+	fun `startup work that never finishes holds the panel instead of handing over`() {
+		// The property that makes the phase worth having. If an unfinished load fell through
+		// to onLoaded, the caller would be handed a screen whose resources do not exist yet —
+		// which is exactly the freeze-then-crash the phase replaces, only quieter.
+		var slices = 0
+		var loaded = false
+		val splash = SplashScreen(
+			SplashCallbacks(
+				startupLoad = { slices++; false },
+				onLoaded = { loaded = true },
+			),
+		)
+
+		splash.show()
+		repeat(frameCap) { splash.render(frameSeconds) }
+
+		assertFalse(loaded, "the splash handed over while the application was still loading")
+		assertTrue(slices > 100, "the splash stopped asking for work after $slices slices")
+	}
+
+	@Test
+	fun `a splash with no application work of its own still reaches its callback`() {
+		// The existing constructors pass no startup load, so this is the path every current
+		// caller takes: the new phase must be skipped, not entered and waited on.
+		var loaded = false
+		val splash = SplashScreen(onLoaded = { loaded = true })
+
+		splash.show()
+		val frames = splash.runUntil { loaded }
+
+		assertTrue(frames > 0, "a splash with no callbacks never completed in $frameCap frames")
+	}
+
+	@Test
+	fun `a step that pumps the window does not advance the machine underneath itself`() {
+		// Applying a display mode re-enters the render loop: GLFW pumps the platform window, LWJGL3 runs a frame,
+		// and this screen's render() lands on the stack inside the step that asked for the change. Unguarded, the
+		// next slice began while the current one was still running — observed in a real game as step two finishing
+		// before step one, and step one never reporting at all.
+		val order = ArrayList<String>()
+		val pending = ArrayDeque(listOf("first", "second", "third"))
+		var pumped = false
+		val holder = arrayOfNulls<SplashScreen>(1)
+		val splash = SplashScreen(
+			SplashCallbacks(
+				startupLoad = {
+					val step = pending.removeFirstOrNull()
+					if (step != null) {
+						order.add("enter $step")
+						if (!pumped) {
+							pumped = true
+							// What the platform does to us, done deliberately.
+							holder[0]?.render(frameSeconds)
+						}
+						order.add("leave $step")
+					}
+					pending.isEmpty()
+				},
+				onLoaded = { order.add("loaded") },
+			),
+		)
+		holder[0] = splash
+
+		splash.show()
+		val frames = splash.runUntil { order.contains("loaded") }
+
+		assertTrue(frames > 0, "the splash never finished: $order")
+		assertTrue(pumped, "the re-entrant render never happened, so this test proved nothing")
+		assertEquals(
+			listOf(
+				"enter first", "leave first",
+				"enter second", "leave second",
+				"enter third", "leave third",
+				"loaded",
+			),
+			order,
+			"a step began while another was still on the stack",
+		)
+	}
+
+	@Test
+	fun `faces are opened on the preparation worker, after the application has indexed its assets`() {
+		// Reading and parsing a face needs no graphics device, and Meta's own icon face is 599 KB, so it belongs on
+		// this thread rather than on a frame. Order matters as much as the thread: opening a face resolves its path
+		// through the asset provider, and the application's preparation is what indexes the tree those paths are in.
+		val order = ArrayList<String>()
+		val prepareThread = arrayOfNulls<String>(1)
+		val constructedOn = arrayOfNulls<String>(1)
+
+		// Reinstalled so the splash's own `FontProvider("default")` is the recorder. The graph is cleared by
+		// install(), so the panel's SpriteBatch has to go back in after it.
+		MetaHeadlessUi.dispose()
+		// Without the skin's defaults, so nothing has resolved the font provider by the time the splash runs. With
+		// them, generating the skin resolves it during install() and this test cannot tell which thread the splash
+		// would have built it on — it passed either way, which is the whole reason for spelling this out.
+		MetaHeadlessUi.install(
+			installSkinDefaults = false,
+			fontProvider = {
+				constructedOn[0] = Thread.currentThread().name
+				object : FontProvider by MetaFontProvider() {
+					override fun prepareFaces() {
+						prepareThread[0] = Thread.currentThread().name
+						synchronized(order) { order.add("faces") }
+					}
+				}
+			},
+		)
+		MetaInject.global { singleton { SpriteBatch() } }
+
+		val splash = SplashScreen(
+			SplashCallbacks(
+				prepareAssets = { synchronized(order) { order.add("index") } },
+				queueAssets = { synchronized(order) { order.add("queue") } },
+				onLoaded = { synchronized(order) { order.add("loaded") } },
+			),
+		)
+
+		splash.show()
+		// The worker needs wall-clock time, so this waits rather than counting frames.
+		val deadline = System.nanoTime() + 20_000_000_000L
+		while (!synchronized(order) { order.contains("loaded") } && System.nanoTime() < deadline) {
+			splash.render(frameSeconds)
+			Thread.sleep(2)
+		}
+
+		// Bounded because the face work is deliberately not waited on: it overlaps the frames that follow, so it can
+		// finish before or after the panel hands over.
+		val facesDeadline = System.nanoTime() + 10_000_000_000L
+		while (!synchronized(order) { order.contains("faces") } && System.nanoTime() < facesDeadline) {
+			Thread.sleep(2)
+		}
+		val seen = synchronized(order) { ArrayList(order) }
+
+		assertTrue(seen.contains("loaded"), "the splash never finished: $seen")
+		assertTrue(seen.contains("faces"), "the faces were never pre-opened: $seen")
+		// The ordering that matters: a face resolves its path through the asset provider, so it cannot be opened
+		// before the application has indexed the tree that path is in.
+		assertTrue(
+			seen.indexOf("faces") > seen.indexOf("queue"),
+			"faces were opened before the application finished preparing: $seen",
+		)
+		assertTrue(
+			prepareThread[0] != null && prepareThread[0] != Thread.currentThread().name,
+			"faces were opened on the calling thread rather than off it (${prepareThread[0]})",
+		)
+		// The provider is *resolved* on this thread even though its faces are opened off it. MetaInject's maps are
+		// unsynchronized, so a worker that resolves the provider itself can race the GL thread resolving anything
+		// else — two providers, or one published half-built.
+		assertEquals(
+			Thread.currentThread().name,
+			constructedOn[0],
+			"the font provider was built on the worker instead of the thread that started it",
+		)
+	}
+
+	@Test
+	fun `screen changes are unthrottled when nothing owns the screens`() {
+		// The throttle exists to stop Meta swapping screens twice in one frame. With no
+		// application there is nothing to throttle, and the splash waits on this to leave
+		// its first phase — so a false here is a startup that never begins.
+		assertTrue(Meta.canChangeScreen())
+		assertEquals(null, Meta.instanceOrNull)
+	}
+}
