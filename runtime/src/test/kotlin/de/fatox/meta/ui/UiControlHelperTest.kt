@@ -29,8 +29,10 @@ import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.input.KeyListener
+import de.fatox.meta.input.MetaPlayer
 import de.fatox.meta.input.MetaUiAction
 import de.fatox.meta.input.MetaUiInputBindings
+import de.fatox.meta.input.MetaUiInputProfiles
 import de.fatox.meta.input.ScrollListener
 import de.fatox.meta.ui.components.MetaScrollPane
 import de.fatox.meta.ui.components.shiftedHorizontalScrollPosition
@@ -66,6 +68,142 @@ internal class UiControlHelperTest {
 		helper = UiControlHelper()
 		stage = Stage(TestViewport(), NullBatch())
 		stage.viewport.update(800, 600, true)
+	}
+
+	// ── Per-player cursors ────────────────────────────────────────────────────
+
+	@Test
+	fun `player one's profile is the registered singleton, not a copy`() {
+		// The whole backwards-compatibility story: a consumer that injects MetaUiInputBindings and mutates it is
+		// configuring player one, exactly as before this existed. A copy would leave every such consumer configuring
+		// something nothing reads.
+		val profiles = MetaUiInputProfiles()
+
+		assertSame(bindings, profiles[MetaPlayer.ONE], "player one got a copy of the bindings, not the singleton")
+	}
+
+	@Test
+	fun `a later player's profile starts empty`() {
+		// Copying the defaults would give two people one cursor either could move, which is the outcome per-player
+		// input exists to prevent. An unconfigured second player answers nothing instead.
+		val profiles = MetaUiInputProfiles()
+
+		val second = profiles[MetaPlayer(1)]
+
+		assertNull(second.actionForKey(Input.Keys.UP), "player two inherited the arrows")
+		assertNull(second.actionForKey(Input.Keys.ENTER), "player two inherited confirm")
+		assertEquals(2, profiles.playerCount)
+	}
+
+	@Test
+	fun `two cursors on one keyboard move independently`() {
+		// The point of the whole thing: WASD and the arrows, one device, two cursors.
+		val profiles = MetaUiInputProfiles()
+		val two = MetaPlayer(1)
+		profiles[two].setKeyboardKeys(MetaUiAction.NAVIGATE_DOWN, Input.Keys.S)
+		val second = UiControlHelper(two, profiles[two])
+
+		val left = testRoot()
+		val leftTop = button(0f, 100f)
+		val leftBottom = button(0f, 0f)
+		left.addActor(leftTop)
+		left.addActor(leftBottom)
+		val right = testRoot()
+		val rightTop = button(300f, 100f)
+		val rightBottom = button(300f, 0f)
+		right.addActor(rightTop)
+		right.addActor(rightBottom)
+		stage.addActor(left)
+		stage.addActor(right)
+
+		helper.focusFirstIn(left, leftTop)
+		second.focusFirstIn(right, rightTop)
+
+		// Player two's key must move player two only.
+		input.keyDown(Input.Keys.S)
+		input.keyUp(Input.Keys.S)
+		assertSame(rightBottom, second.focusedActor.value, "player two's key did not move player two")
+		assertSame(leftTop, helper.focusedActor.value, "player two's key moved player one as well")
+
+		// And player one's key must move player one only.
+		input.keyDown(Input.Keys.DOWN)
+		input.keyUp(Input.Keys.DOWN)
+		assertSame(leftBottom, helper.focusedActor.value, "player one's key did not move player one")
+		assertSame(rightBottom, second.focusedActor.value, "player one's key moved player two as well")
+	}
+
+	@Test
+	fun `a second player's confirm does not reach player one`() {
+		// The constraint that would have derailed this: synthesis re-emits the canonical key for any bound alias, so
+		// without scoping it to player one, player two's confirm arrives at player one's cursor as ENTER and both act.
+		val profiles = MetaUiInputProfiles()
+		val two = MetaPlayer(1)
+		profiles[two].setKeyboardKeys(MetaUiAction.CONFIRM, Input.Keys.SHIFT_RIGHT)
+		val second = UiControlHelper(two, profiles[two])
+
+		val root = testRoot()
+		val playerOnesButton = button(0f, 0f)
+		val playerTwosButton = button(300f, 0f)
+		var playerOneClicks = 0
+		var playerTwoClicks = 0
+		playerOnesButton.addListener(object : ChangeListener() {
+			override fun changed(event: ChangeEvent, actor: Actor) {
+				playerOneClicks++
+			}
+		})
+		playerTwosButton.addListener(object : ChangeListener() {
+			override fun changed(event: ChangeEvent, actor: Actor) {
+				playerTwoClicks++
+			}
+		})
+		root.addActor(playerOnesButton)
+		root.addActor(playerTwosButton)
+		stage.addActor(root)
+		helper.focusFirstIn(root, playerOnesButton)
+		second.focusFirstIn(root, playerTwosButton)
+
+		input.keyDown(Input.Keys.SHIFT_RIGHT)
+		input.keyUp(Input.Keys.SHIFT_RIGHT)
+
+		assertEquals(1, playerTwoClicks, "player two's confirm did not activate player two's control")
+		assertEquals(0, playerOneClicks, "player two's confirm also activated player one's control")
+	}
+
+	@Test
+	fun `only player one drives the renderer's focused actor`() {
+		// One slot, so two writers would trample. A second cursor is shown by cells reading its own focusedActor.
+		val profiles = MetaUiInputProfiles()
+		val two = MetaPlayer(1)
+		val second = UiControlHelper(two, profiles[two])
+		val mine = button(0f, 0f)
+		val theirs = button(300f, 0f)
+		stage.addActor(mine)
+		stage.addActor(theirs)
+
+		helper.focusFromPointer(mine)
+		second.focusFromPointer(theirs)
+
+		assertSame(theirs, second.focusedActor.value, "player two's own cursor did not move")
+		assertSame(mine, renderer.currentFocusedActor, "player two overwrote the renderer's focused actor")
+	}
+
+	@Test
+	fun `a helper given no bindings still uses the injected singleton`() {
+		// The no-argument path every existing consumer takes, asserted rather than assumed.
+		val fresh = UiControlHelper()
+		val root = testRoot()
+		val top = button(0f, 100f)
+		val bottom = button(0f, 0f)
+		root.addActor(top)
+		root.addActor(bottom)
+		stage.addActor(root)
+		fresh.focusFirstIn(root, top)
+
+		bindings.setKeyboardKeys(MetaUiAction.NAVIGATE_DOWN, Input.Keys.J)
+		input.keyDown(Input.Keys.J)
+		input.keyUp(Input.Keys.J)
+
+		assertSame(bottom, fresh.focusedActor.value, "a default helper did not follow the injected bindings")
 	}
 
 	@Test

@@ -23,6 +23,7 @@ import de.fatox.meta.graphics.font.MetaFontProvider
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.input.MetaInput
 import de.fatox.meta.input.MetaUiInputBindings
+import de.fatox.meta.input.MetaUiInputProfiles
 import de.fatox.meta.sound.MetaSoundPlayer
 import de.fatox.meta.task.MetaTaskManager
 import de.fatox.meta.ui.DefaultFocusRenderer
@@ -45,6 +46,7 @@ object MetaModule {
 			singleton { ModelBuilder() }
 			singleton<MetaInputProcessor> { MetaInput() }
 			singleton { MetaUiInputBindings() }
+			singleton { MetaUiInputProfiles() }
 			singleton<EntityManager<Meta3DEntity>>("default") { MetaEntityManager() }
 			singleton("default") { MetaTaskManager() }
 			singleton("", "default")

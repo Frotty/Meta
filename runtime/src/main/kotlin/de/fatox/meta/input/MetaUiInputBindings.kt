@@ -93,6 +93,16 @@ class MetaUiInputBindings {
 		setControllerButtons(MetaUiAction.BACK, MetaControllerButton.B, MetaControllerButton.BACK)
 	}
 
+	/**
+	 * Removes every binding, leaving a profile that answers no key and no button.
+	 *
+	 * For a second player's profile, which must not inherit the arrows: see [MetaUiInputProfiles].
+	 */
+	fun clear() {
+		keyboardBindings.clear()
+		controllerBindings.clear()
+	}
+
 	fun setKeyboardKeys(action: MetaUiAction, vararg keycodes: Int) {
 		keyboardBindings[action] = keycodes.copyOf()
 	}

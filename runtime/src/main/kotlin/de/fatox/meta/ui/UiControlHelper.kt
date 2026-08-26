@@ -18,6 +18,7 @@ import com.badlogic.gdx.utils.Timer
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.input.MetaPlayer
 import de.fatox.meta.input.MetaUiAction
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.reactive.ReactiveValue
@@ -38,10 +39,49 @@ import kotlin.math.sqrt
  *    only considers widgets in that direction, and picks the one with the smallest
  *    true distance from edge-to-edge center.
  */
-class UiControlHelper {
+class UiControlHelper @JvmOverloads constructor(
+	/**
+	 * Which local player this cursor belongs to. Defaults to [MetaPlayer.ONE], which is what the registered singleton
+	 * is and what every existing consumer keeps getting.
+	 *
+	 * A second cursor is a second instance with its own bindings, scoped with [focusFirstIn] so the two never contend
+	 * for an actor:
+	 *
+	 * ```
+	 * val profiles: MetaUiInputProfiles = inject()
+	 * val two = MetaPlayer(1)
+	 * profiles[two].setKeyboardKeys(MetaUiAction.NAVIGATE_UP, Input.Keys.W)   // ... and the rest
+	 * val p2 = UiControlHelper(two, profiles[two])
+	 * p2.focusFirstIn(rightCharacterGrid)
+	 * ```
+	 *
+	 * Two things are player one's alone, both because sharing them would be worse than not having them: canonical-key
+	 * synthesis (see [synthesizeCanonicalKeyDown]) and the renderer's single focused actor (see [setFocusedActor]).
+	 */
+	val player: MetaPlayer = MetaPlayer.ONE,
+	/**
+	 * The bindings this cursor reads. `null` means the registered `MetaUiInputBindings` singleton, which is what
+	 * player one wants and what the no-argument constructor gives.
+	 *
+	 * Passed rather than resolved from a registry on purpose: a helper needs *a* binding set, and where it came from
+	 * is not its concern. It also keeps this class from acquiring a new injected dependency, which would have broken
+	 * every consumer that stands up a partial graph - Meta's own `UiControlHelperTest` among them.
+	 * [de.fatox.meta.input.MetaUiInputProfiles] is the convenient place to keep one per player.
+	 */
+	private val bindingsOverride: MetaUiInputBindings? = null,
+) {
 	private val metaInput: MetaInputProcessor by lazyInject()
 	private val metaUIRenderer: UIRenderer by lazyInject()
-	private val uiBindings: MetaUiInputBindings by lazyInject()
+
+	/** Resolved only when no override was given, so a per-player helper needs nothing in the graph. */
+	private val injectedBindings: MetaUiInputBindings by lazyInject()
+
+	private val uiBindings: MetaUiInputBindings get() = bindingsOverride ?: injectedBindings
+
+	private val isPrimary: Boolean get() = player == MetaPlayer.ONE
+
+	/** The actor this cursor most recently focused, tracked only when [isPrimary] is false. */
+	private var nonPrimaryFocus: Actor? = null
 	private val focusedActorSignal = signal<Actor?>(null) { a, b -> a === b }
 
 	/** The widget currently focused by keyboard/controller navigation, as a reactive value (read it in an effect). */
@@ -80,9 +120,25 @@ class UiControlHelper {
 		return handle::dispose
 	}
 
+	/**
+	 * Only player one drives the renderer's focused actor, which is a single slot: two cursors writing it would
+	 * trample each other, and the loser would lose its focus ring rather than merely sharing it.
+	 *
+	 * A second cursor still restyles what it moves over - it calls [MetaFocus.assign] itself, tracking its own
+	 * previous actor - so a `MetaTextButton` under player two's cursor still looks focused. What it does not get is
+	 * `DefaultFocusRenderer`'s overlay box, which has nowhere to record whose it is. A cell that draws its own focus
+	 * from [focusedActor] is unaffected either way, and that is the recommended shape for a second cursor.
+	 *
+	 * The gap this leaves: with both cursors on the *same* actor, whichever leaves first restyles it unfocused while
+	 * the other is still there. Scoping each cursor to its own group with [focusFirstIn] makes that unreachable.
+	 */
 	private fun setFocusedActor(actor: Actor?) {
 		if (focusedActorSignal.peek() === actor) return
-		metaUIRenderer.setFocusedActor(actor)
+		if (isPrimary) {
+			metaUIRenderer.setFocusedActor(actor)
+		} else {
+			nonPrimaryFocus = MetaFocus.assign(nonPrimaryFocus, actor)
+		}
 		focusedActorSignal.value = actor // notifies any effect observing focusedActor (incl. legacy bridges)
 	}
 
@@ -172,7 +228,20 @@ class UiControlHelper {
 		synthesizeCanonicalKeyUp(action, keycode)
 	}
 
+	/**
+	 * Player one only.
+	 *
+	 * Synthesis exists so a listener registered on a canonical keycode hears every alias bound to that action -
+	 * a rebound key, or a pad button `MetaControllerListener` has already turned into a key. Doing it for a second
+	 * player would defeat the isolation this class now offers: player two's confirm would arrive at player one's
+	 * cursor as ENTER, and both would act.
+	 *
+	 * The consequence to know about is that a screen-level listener on a canonical key hears player one only. That is
+	 * the right default - "back" or "pause" is a property of the screen, not of a player - but it is a decision, not
+	 * an accident.
+	 */
 	private fun synthesizeCanonicalKeyDown(action: MetaUiAction, keycode: Int) {
+		if (!isPrimary) return
 		val canonicalKey = uiBindings.canonicalKeyFor(action)
 		if (keycode == canonicalKey) return
 		synthesizingCanonicalAction = true
@@ -183,7 +252,9 @@ class UiControlHelper {
 		}
 	}
 
+	/** Player one only; see [synthesizeCanonicalKeyDown]. */
 	private fun synthesizeCanonicalKeyUp(action: MetaUiAction, keycode: Int) {
+		if (!isPrimary) return
 		val canonicalKey = uiBindings.canonicalKeyFor(action)
 		if (keycode == canonicalKey) return
 		synthesizingCanonicalAction = true
