@@ -118,6 +118,14 @@ Additional profiles start **empty** rather than defaulted — two players cannot
 have the arrows, and silently copying defaults would produce exactly the shared
 cursor this is meant to avoid.
 
+Empty defaults only prevent a collision *at allocation*. `get` hands back the live
+mutable bindings, because that is what makes a rebinding screen possible, so a
+later `setKeyboardKeys` can assign a key another profile already holds and both
+cursors then move on one press. The registry cannot arbitrate that — which player
+keeps a contested key is a game's decision, and silently dropping one player's
+binding is the worst available behaviour — so it reports instead:
+`conflictingKeys(a, b)`, for a game to call when a profile is committed.
+
 ### `UiControlHelper` gains a player, and keeps its singleton
 
 ```kotlin
@@ -151,26 +159,70 @@ discovered.
 
 ### Focus becomes a set — only if slice 2 is wanted
 
+The first version of this section proposed **replacing** both signatures. That is
+wrong twice over, and the corrections are the interesting part.
+
+**`FocusRenderer` must keep its existing entry point.** A downstream consumer can
+supply a custom `FocusRenderer`; changing `draw(Stage, Actor?, Float)` breaks it at
+source, and an already-compiled one at runtime. Additive instead — the new method
+carries a default that delegates to the old one, so an existing renderer keeps
+working and sees player one:
+
 ```kotlin
-interface MetaFocusable {
-    fun setMetaFocused(player: MetaPlayer, focused: Boolean)
-}
-interface FocusRenderer {
-    fun draw(stage: Stage, focused: MetaFocusSet, deltaTime: Float)
+interface FocusRenderer : Disposable {
+    fun draw(stage: Stage, focusedActor: Actor?, deltaTime: Float)
+
+    /** Default keeps a pre-existing renderer working: it is shown player one and nothing else. */
+    fun draw(stage: Stage, focused: MetaFocusSet, deltaTime: Float) =
+        draw(stage, focused[MetaPlayer.ONE], deltaTime)
 }
 ```
 
-`setMetaFocused(Boolean)` stays as a default that forwards `MetaPlayer.ONE`, so no
-existing widget changes. `DefaultFocusRenderer` tints the ring per player index.
+**A `MetaFocusable` bridge cannot be a simple default in either direction.** This
+was the subtler mistake:
+
+- Have `setMetaFocused(Boolean)` forward *to* the player overload, and every
+  existing widget — `MetaTextButton`, `MetaCheckBox`, `MetaSlider` and the rest —
+  implements only the boolean and leaves the overload unimplemented. Nothing
+  restyles.
+- Reverse it, so the overload defaults to calling the boolean, and it compiles and
+  keeps existing widgets working — but it **collapses both players into one
+  boolean.** One player leaving an actor clears the other's focus, and the widget
+  cannot tint per player, which was the point.
+
+So the bridge has to carry state, not just delegate. The shape that works:
+
+```kotlin
+interface MetaFocusable {
+    fun setMetaFocused(focused: Boolean)
+
+    /**
+     * Default keeps existing widgets compiling *and* correct: the boolean is driven by whether *any* player holds
+     * focus, so a second player arriving does not re-notify and a first player leaving does not clear it while the
+     * second is still there. A widget wanting a per-player tint overrides this instead.
+     */
+    fun setMetaFocused(player: MetaPlayer, focused: Boolean, held: MetaFocusSet) =
+        setMetaFocused(held.isNotEmpty())
+}
+```
+
+That is more surface than "add a parameter", and it is the honest cost of slice 2.
+It is also why slice 1 does not attempt it, and why a second cursor is recommended
+to be shown by cells reading `focusedActor` themselves.
 
 ---
 
 ## Suggested slicing
 
 **Slice 1 — foundation, zero behaviour change.** `MetaPlayer`,
-`MetaUiInputProfiles`, `UiControlHelper(player)` filtering by its own profile,
-player-scoped synthesis. Single-player behaviour must be byte-identical; the test
-that matters is that the existing suite passes untouched.
+`MetaUiInputProfiles`, `UiControlHelper(player, bindings)` filtering by its own
+profile, player-scoped synthesis, and a `dispose()` on the helper — the moment a
+cursor is a per-screen instance rather than the app-lifetime singleton, its global
+input processor has to be removable, or a recreated screen stacks one per
+instance and that player's keys drive every one of them.
+
+Single-player behaviour must be byte-identical; the test that matters is that the
+existing suite passes untouched. **Implemented in #33.**
 
 **Slice 2 — optional, for games that want Meta's ring per player.** Per-player
 focus in `MetaUIRenderer`, `MetaFocusSet`, the `MetaFocusable` overload, per-player
