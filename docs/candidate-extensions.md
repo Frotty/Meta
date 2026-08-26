@@ -108,6 +108,34 @@ and work out what to implement; nothing says so, so the path of least resistance
 is a try/catch in production code — which is how BabSky ended up with one, and
 where that wrapper should be reconsidered once the seam exists.
 
+## 3b. No per-player UI navigation, and no way to express it
+
+Meta's UI input layer is single-cursor by construction: one `UiControlHelper`,
+one `focusedActor`, one set of `MetaUiInputBindings`. Every device is merged onto
+one keyboard-shaped stream — `MetaControllerListener` translates pad buttons into
+canonical keys, and a key is down while anything is holding it.
+
+For a shared menu that is right, and it is what the merge in `anyButtonHolds`
+exists to get correct. For **couch co-op it is a ceiling.** Two players picking a
+character, or each confirming their own readiness, need a cursor each, and there
+is nothing to express that with:
+
+- Bindings are global, not per player. Binding P2's WASD to `NAVIGATE_*`
+  alongside P1's arrows would give both players the same cursor.
+- Keying by device does not help. Two players on one keyboard are two *key sets*
+  on one device, so there is no device to separate them by — and the same is true
+  of two players sharing a pad.
+
+BabSky works around this by keeping the two worlds apart: gameplay input is
+per-player and polled by the game itself (`readDriveForPlayer(index)`), while the
+menus are one shared cursor. That is a sane split and it is worth saying out loud
+that it is the only one Meta currently supports.
+
+**Suggestion:** if per-player UI navigation is ever wanted, it is a
+`UiControlHelper` per player plus a binding profile per player, not a change to
+the translation layer. Worth deciding *whether* before anyone needs it, because
+the answer shapes whether `UiControlHelper` can stay a singleton.
+
 ## 4. A screen fade / transition primitive
 
 **In the game:** two of them. `Fade` (Kotlin, reactive — phases IDLE/IN/OUT, a

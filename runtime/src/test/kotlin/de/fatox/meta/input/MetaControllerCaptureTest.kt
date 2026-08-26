@@ -26,14 +26,24 @@ import kotlin.test.assertTrue
  * recorded as a keystroke. A test that only checked delivery would pass on a build with that bug in it.
  */
 internal class MetaControllerCaptureTest {
-	private lateinit var bindings: MetaUiInputBindings
 	private lateinit var input: RecordingInput
 	private lateinit var controller: FakeController
 
+	/**
+	 * One instance for the whole class, reset per test rather than replaced.
+	 *
+	 * [MetaControllerListener] is an `object` and resolves its bindings through `lazyInject`, which is
+	 * `lazy { inject() }` - so it latches onto whichever instance is in the graph the first time it looks and keeps
+	 * it for the rest of the run. Registering a fresh one per test looked like isolation and was not: every test
+	 * after the first mutated an instance the listener had already stopped reading, and the suite only passed because
+	 * the first test happened to leave the shared instance in the state the others also wanted.
+	 */
+	private val bindings = MetaUiInputBindings()
+
 	@BeforeTest
 	fun setUp() {
-		bindings = MetaUiInputBindings()
 		global(clear = true) { singleton(bindings) }
+		bindings.resetDefaults()
 		input = RecordingInput()
 		MetaControllerListener.metaInput = input
 		controller = FakeController()
@@ -359,6 +369,44 @@ internal class MetaControllerCaptureTest {
 		MetaControllerListener.disconnected(controller)
 
 		assertEquals(listOf(Input.Keys.ENTER), input.keysUp, "a disconnect left the pad's key stuck down")
+	}
+
+	@Test
+	fun `two buttons on one pad bound to one action hold the key together`() {
+		// Not a contrived binding: resetDefaults maps both A and START to CONFIRM, so this is the shipped default.
+		// A set of canonical keys cannot tell "one of the two was released" from "the last one was", so it let go of
+		// CONFIRM while the other button was still down and let go again on the real release - two activations.
+		val a = controller.mapping.buttonA
+        val start = controller.mapping.buttonStart
+
+		MetaControllerListener.buttonDown(controller, a)
+		MetaControllerListener.buttonDown(controller, start)
+		assertEquals(listOf(Input.Keys.ENTER), input.keysDown, "the second button pressed the key again")
+
+		MetaControllerListener.buttonUp(controller, a)
+		assertTrue(input.keysUp.isEmpty(), "releasing one of two held buttons let the key up early: ${input.keysUp}")
+
+		MetaControllerListener.buttonUp(controller, start)
+		assertEquals(listOf(Input.Keys.ENTER), input.keysUp, "the key was not released exactly once")
+	}
+
+	@Test
+	fun `an unbound button held alongside a bound one does not hold the key`() {
+		// The derivation has to consult the bindings, not just count held buttons.
+		val a = controller.mapping.buttonA
+		// R2 in FakeMapping, which the shipped defaults leave unbound - unlike the d-pad codes, which are not.
+		val unbound = controller.mapping.buttonR2
+		MetaControllerListener.buttonDown(controller, a)
+		MetaControllerListener.buttonDown(controller, unbound)
+
+		MetaControllerListener.buttonUp(controller, a)
+
+		assertEquals(
+			listOf(Input.Keys.ENTER),
+			input.keysUp,
+			"an unbound button kept the key down after the bound one was released",
+		)
+		MetaControllerListener.buttonUp(controller, unbound)
 	}
 
 	// ── Doubles ───────────────────────────────────────────────────────────────
