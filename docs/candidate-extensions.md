@@ -49,10 +49,17 @@ inert under test. BabSky hit this and moved its selection onto
 unconditionally. That is the documented path and it is the right one; the trap is
 that the interface makes the other path look equally available.
 
-**Suggestion:** either have `UiControlHelper` drive `MetaFocus.assign` itself
-rather than going through the renderer, or say plainly in `MetaFocusable`'s KDoc
-that `setMetaFocused` is presentation-only and state belongs on `focusedActor`.
-The first removes the trap; the second documents it.
+**Not the suggestion:** having `UiControlHelper` call `MetaFocus.assign` itself
+instead of going through the renderer. `MetaUIRenderer` keeps its own private
+`focusedActor` field, updated *only* in `setFocusedActor` and read in `draw` to
+feed `DefaultFocusRenderer` — so bypassing it would leave ordinary buttons and
+select boxes navigable but with no visible focus ring, which is a worse bug than
+the one being fixed.
+
+**Suggestion:** say plainly in `MetaFocusable`'s KDoc that `setMetaFocused` is
+presentation-only and that state belongs on `UiControlHelper.focusedActor`. If
+the callback should also reach a headless consumer, that needs an API change
+that keeps the renderer's tracking intact rather than routing around it.
 
 ## 3. Consumers have no input-capable test harness
 
@@ -84,14 +91,21 @@ throws `UnsupportedOperationException` with a helpful message. The message is
 good. Throwing is the problem.
 
 A toast is a notification *about* an action, so it tends to be the last line of a
-handler — "Fullscreen on" after toggling fullscreen. In BabSky that meant one
-absent UI layer aborted the settings action halfway through, after the host had
-been asked to toggle and before the page could say so. The consumer now wraps
-every `toast()` in a try/catch, which is the wrong place for that knowledge.
+handler — "Fullscreen on" after toggling fullscreen. In BabSky that meant a test
+of the fullscreen row died halfway through, after the host had been asked to
+toggle and before the page could say so, and the consumer now wraps every
+`toast()` in a try/catch.
 
-**Suggestion:** return a no-op toast manager from renderers that have no toast
-layer, or make the accessor nullable. A consumer should not have to defend
-against a notification.
+**Not the suggestion:** returning a no-op manager, or making the accessor
+nullable. The throw is deliberate and it is load-bearing — a silent no-op would
+let a test assert a toast that was never rendered and still pass, and a nullable
+accessor would push a fixture's limitation onto every real renderer and consumer.
+
+**Suggestion:** a documented, one-line way for a test to install a toast double.
+Today a consumer has to re-register `UIRenderer` after `MetaHeadlessUi.install()`
+and work out what to implement; nothing says so, so the path of least resistance
+is a try/catch in production code — which is how BabSky ended up with one, and
+where that wrapper should be reconsidered once the seam exists.
 
 ## 4. A screen fade / transition primitive
 
