@@ -214,14 +214,36 @@ there. Noted here only because the pattern is likely repeated in other
 consumers, and a short "persisting your own settings" note in Meta's docs would
 probably fix it everywhere at once.
 
+## 7a. `MetaType` has no responsive counterpart
+
+`MetaType` is fixed pixels — `CAPTION 12`, `BODY 16`, `LABEL 18`, `SUBTITLE 21`,
+`TITLE 24`, `HEADING 32`, `DISPLAY 48` — and `MetaResponsive` knows nothing about
+type. Nothing joins them.
+
+That is fine for a tool UI read at desk distance and unusable for one read from a
+couch. BabSky's display face runs 96px at 1280 and 200px at QHD, four times
+`MetaType.DISPLAY` at the top end, so it cannot use the scale at all: `UiScale`
+rolls a full ramp (display/heading/item/body/caption/hint) on top of
+`MetaResponsiveState`, and every `MetaLabel` in the game is sized from it rather
+than from a semantic token.
+
+An audit against Meta's own conventions flags that as a custom-rolled typography
+scale bypassing `MetaType`, and it is — but the correction is not "use
+`MetaType`", because `MetaType` cannot express it. The gap is Meta's.
+
+**Suggestion:** a responsive `MetaType` — the same semantic roles, resolved per
+breakpoint through `MetaResponsiveValue`, with today's constants as the base
+tier so nothing changes for existing consumers. A game then overrides the tiers
+it cares about and keeps using the role names, instead of inventing a parallel
+vocabulary.
+
 ## 8. Deliberately **not** candidates
 
 Recorded so the same ground is not re-covered:
 
 - **`UiScale`** — looks like a duplicate of `MetaResponsive` and is not. It is
-  already built on `MetaResponsiveState`, `responsive()` and `MetaBreakpoints`;
-  what it adds is one game's type ramp (display/heading/item/body/caption/hint,
-  and a glyph size for Kenney's input faces). That is content.
+  already built on `MetaResponsiveState`, `responsive()` and `MetaBreakpoints`.
+  The *numbers* in its ramp are content. See 8a for the part of it that is not.
 - **`PromptIcons`** — Kenney input-prompt faces chosen per `ControllerFamily`.
   Font *files* the game ships, and a mapping from actions to glyphs in them.
   A Meta version would be a licence and asset decision, not a code one.
