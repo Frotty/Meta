@@ -78,10 +78,10 @@ ground has to rebuild it, and the arrow-key step (`navigate`, `getNextX`,
 `getNextY`) is the most interesting logic in the class and the easiest to break
 with a layout change.
 
-**Suggestion:** promote a dispatching input harness into `testFixtures`
-alongside `LayoutOnlyInput`, as a separate opt-in rather than a change to it.
-Layout isolation and input integration are different jobs and the current
-fixture is right to do only the first.
+**Done:** `DispatchingInput` sits in `testFixtures` beside `LayoutOnlyInput`, as a
+separate opt-in — `MetaHeadlessUi.install(input = { DispatchingInput() })`.
+`LayoutOnlyInput` is unchanged, because layout isolation and input integration are
+different jobs and it is right to do only the first.
 
 ## 3a. No documented way to test a code path that raises a toast
 
@@ -102,11 +102,13 @@ nullable. The throw is deliberate and it is load-bearing — a silent no-op woul
 let a test assert a toast that was never rendered and still pass, and a nullable
 accessor would push a fixture's limitation onto every real renderer and consumer.
 
-**Suggestion:** a documented, one-line way for a test to install a toast double.
-Today a consumer has to re-register `UIRenderer` after `MetaHeadlessUi.install()`
-and work out what to implement; nothing says so, so the path of least resistance
-is a try/catch in production code — which is how BabSky ended up with one, and
-where that wrapper should be reconsidered once the seam exists.
+**Done, and it needed no double at all:** `MetaToastManager` takes a `Stage`, so a
+test builds a real one — `install(toastManager = { MetaToastManager(toastStage()) })`.
+The throw stays the default, because it is what stops a test asserting a toast that
+was never rendered.
+
+Which leaves the consumer's `try/catch` around `BabskyUi.toast` as the thing to
+reconsider: it was written to survive this fixture, not to survive production.
 
 ## 3b. No per-player UI navigation, and no way to express it
 
