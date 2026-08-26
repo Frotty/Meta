@@ -56,10 +56,10 @@ feed `DefaultFocusRenderer` — so bypassing it would leave ordinary buttons and
 select boxes navigable but with no visible focus ring, which is a worse bug than
 the one being fixed.
 
-**Suggestion:** say plainly in `MetaFocusable`'s KDoc that `setMetaFocused` is
-presentation-only and that state belongs on `UiControlHelper.focusedActor`. If
-the callback should also reach a headless consumer, that needs an API change
-that keeps the renderer's tracking intact rather than routing around it.
+**Done** (the documentation half): `setMetaFocused`'s KDoc now says it is
+presentation-only and points at `UiControlHelper.focusedActor` for state. If the
+callback should *also* reach a headless consumer, that still needs an API change
+keeping the renderer's tracking intact rather than routing around it.
 
 ## 3. Consumers have no input-capable test harness
 

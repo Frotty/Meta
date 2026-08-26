@@ -303,6 +303,64 @@ internal class MetaControllerCaptureTest {
 		assertFalse(MetaControllerListener.capturing, "the owner could not release its own capture")
 	}
 
+	// ── One canonical key, many devices ───────────────────────────────────────
+
+	@Test
+	fun `a second pad pressing the same button does not press the key twice`() {
+		// The translation collapses every pad onto one keyboard-shaped stream, so the key is down while *anyone*
+		// holds it. Emitting per device would send a second CONFIRM down that nothing had released.
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		val other = FakeController()
+
+		MetaControllerListener.buttonDown(controller, 3)
+		MetaControllerListener.buttonDown(other, 3)
+
+		assertEquals(listOf(Input.Keys.ENTER), input.keysDown, "the second pad pressed the key again")
+		MetaControllerListener.buttonUp(controller, 3)
+		MetaControllerListener.buttonUp(other, 3)
+	}
+
+	@Test
+	fun `the key stays down until the last pad holding it lets go`() {
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		val other = FakeController()
+		MetaControllerListener.buttonDown(controller, 3)
+		MetaControllerListener.buttonDown(other, 3)
+
+		MetaControllerListener.buttonUp(controller, 3)
+		assertTrue(input.keysUp.isEmpty(), "one pad releasing let go of a key another was still holding")
+
+		MetaControllerListener.buttonUp(other, 3)
+		assertEquals(listOf(Input.Keys.ENTER), input.keysUp, "the last release did not let the key up")
+	}
+
+	@Test
+	fun `disconnecting one pad does not release a key another is holding`() {
+		// The deferred half of the per-device work: `disconnected` released every pad's keys, so unplugging a second
+		// controller let go of CONFIRM while the player was still holding it on the first.
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		val other = FakeController()
+        MetaControllerListener.buttonDown(controller, 3)
+		MetaControllerListener.buttonDown(other, 3)
+
+		MetaControllerListener.disconnected(other)
+
+		assertTrue(input.keysUp.isEmpty(), "a disconnect released a key a surviving pad was holding: ${input.keysUp}")
+		MetaControllerListener.buttonUp(controller, 3)
+		assertEquals(listOf(Input.Keys.ENTER), input.keysUp, "the surviving pad could no longer release the key")
+	}
+
+	@Test
+	fun `disconnecting a pad releases the keys only it was holding`() {
+		// The other half: no stuck keys either.
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		MetaControllerListener.buttonDown(controller, 3)
+
+		MetaControllerListener.disconnected(controller)
+
+		assertEquals(listOf(Input.Keys.ENTER), input.keysUp, "a disconnect left the pad's key stuck down")
+	}
+
 	// ── Doubles ───────────────────────────────────────────────────────────────
 
 	private class RecordingInput : MetaInputProcessor {
