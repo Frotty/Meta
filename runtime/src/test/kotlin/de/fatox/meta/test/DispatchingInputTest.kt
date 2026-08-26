@@ -190,7 +190,71 @@ class DispatchingInputTest {
 		assertTrue(Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT), "alt was not tracked")
 	}
 
+	@Test
+	fun `removing a registration removes the one handed over, not one that merely compares equal`() {
+		// ArrayList.remove drops the first *equal* element. MetaInput uses removeValue(x, true) and the key-listener
+		// API promises identity, so equality-based removal would report a registration gone while leaving it live.
+		val first = EqualRecorder()
+		val second = EqualRecorder()
+		input.addGlobalInputProcessor(first)
+		input.addGlobalInputProcessor(second)
+
+		input.removeGlobalInputProcessor(second)
+		input.keyDown(Input.Keys.A)
+
+		assertEquals(listOf("keyDown"), first.events, "the wrong registration was removed")
+		assertTrue(second.events.isEmpty(), "the removed registration still received input: ${second.events}")
+	}
+
+	/** Two distinct owners that compare equal, which is the case identity removal exists for. */
+	private class EqualRecorder : InputAdapter() {
+		val events = ArrayList<String>()
+
+		override fun keyDown(keycode: Int): Boolean {
+			events.add("keyDown")
+			return false
+		}
+
+		override fun equals(other: Any?): Boolean = other is EqualRecorder
+		override fun hashCode(): Int = 1
+	}
+
 	// ── The toast seam ────────────────────────────────────────────────────────
+
+	@Test
+	fun `a stage created for a toast manager is disposed with the harness`() {
+		// The documented one-liner gives the caller nowhere to keep the reference, and a Stage owns a SpriteBatch, so
+		// an install/dispose cycle per test would retain one each time.
+		MetaHeadlessUi.dispose()
+		// Built inside the factory, not before install: a Stage needs the GL stub that install() puts in place.
+		var stage: TrackedStage? = null
+		MetaHeadlessUi.install(
+			toastManager = {
+				val created = TrackedStage()
+				MetaHeadlessUi.own(created)
+				stage = created
+				MetaToastManager(created)
+			},
+		)
+		val renderer: UIRenderer = MetaInject.inject()
+		renderer.getToastManager()
+		val created = requireNotNull(stage) { "the factory never ran, so nothing was handed over" }
+
+		MetaHeadlessUi.dispose()
+
+		assertTrue(created.disposed, "the harness did not dispose a stage handed to it")
+		// Reinstall so tearDown has something to tear down.
+		MetaHeadlessUi.install()
+	}
+
+	private class TrackedStage : com.badlogic.gdx.scenes.scene2d.Stage() {
+		var disposed = false
+
+		override fun dispose() {
+			disposed = true
+			super.dispose()
+		}
+	}
 
 	@Test
 	fun `the supplied toast manager is the same one every time`() {

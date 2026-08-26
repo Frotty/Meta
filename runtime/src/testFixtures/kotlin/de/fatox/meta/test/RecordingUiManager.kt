@@ -152,5 +152,11 @@ class RecordingUiManager : UIManager {
 	}
 }
 
-/** A [Stage] is all a real [de.fatox.meta.ui.MetaToastManager] needs, so tests build one rather than a double. */
-fun toastStage(): Stage = Stage()
+/**
+ * A [Stage] for a real [de.fatox.meta.ui.MetaToastManager], owned by [MetaHeadlessUi] and disposed with it.
+ *
+ * A `Stage` creates a `SpriteBatch`, and the documented `MetaToastManager(toastStage())` one-liner gives the caller
+ * nowhere to keep the reference — so an install/dispose cycle per test would retain a batch each time. Handing it to
+ * the harness keeps the one-liner and puts the lifetime where the rest of the fixture's already is.
+ */
+fun toastStage(): Stage = Stage().also { MetaHeadlessUi.own(it) }

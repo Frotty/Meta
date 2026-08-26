@@ -84,10 +84,19 @@ class DispatchingInput : MetaInputProcessor {
 		exclusiveProcessors.clear()
 	}
 
-	private fun removeExclusiveByIdentity(processor: InputProcessor): Boolean {
-		for (index in exclusiveProcessors.indices) {
-			if (exclusiveProcessors[index] === processor) {
-				exclusiveProcessors.removeAt(index)
+	private fun removeExclusiveByIdentity(processor: InputProcessor): Boolean =
+		removeByIdentity(exclusiveProcessors, processor)
+
+	/**
+	 * Identity, never equality — `ArrayList.remove` would drop the first *equal* element instead of the one handed
+	 * over. `MetaInput` uses `removeValue(x, true)` for the same reason, and the key-listener API promises it: two
+	 * distinct owners that happen to compare equal are still two owners, and removing the wrong one would leave a
+	 * registration live while reporting it gone.
+	 */
+	private fun <T : Any> removeByIdentity(from: ArrayList<T>, value: T): Boolean {
+		for (index in from.indices) {
+			if (from[index] === value) {
+				from.removeAt(index)
 				return true
 			}
 		}
@@ -117,25 +126,25 @@ class DispatchingInput : MetaInputProcessor {
 		inputProcessor.also { globalProcessors.add(it) }
 
 	override fun removeGlobalInputProcessor(inputProcessor: InputProcessor): Boolean =
-		globalProcessors.remove(inputProcessor)
+		removeByIdentity(globalProcessors, inputProcessor)
 
 	override fun addScreenInputProcessor(inputProcessor: InputProcessor): InputProcessor =
 		inputProcessor.also { screenProcessors.add(it) }
 
 	override fun removeScreenInputProcessor(inputProcessor: InputProcessor): Boolean =
-		screenProcessors.remove(inputProcessor)
+		removeByIdentity(screenProcessors, inputProcessor)
 
 	override fun addGlobalKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener): KeyListener =
 		register(globalKeyListeners, keycode, millisRequired, keyListener)
 
 	override fun removeGlobalKeyListener(keycode: Int, keyListener: KeyListener): Boolean =
-		globalKeyListeners[keycode]?.remove(keyListener) ?: false
+		globalKeyListeners[keycode]?.let { removeByIdentity(it, keyListener) } ?: false
 
 	override fun addScreenKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener): KeyListener =
 		register(screenKeyListeners, keycode, millisRequired, keyListener)
 
 	override fun removeScreenKeyListener(keycode: Int, keyListener: KeyListener): Boolean =
-		screenKeyListeners[keycode]?.remove(keyListener) ?: false
+		screenKeyListeners[keycode]?.let { removeByIdentity(it, keyListener) } ?: false
 
 	private fun register(
 		into: HashMap<Int, ArrayList<KeyListener>>,
@@ -152,13 +161,13 @@ class DispatchingInput : MetaInputProcessor {
 		scrollListener.also { globalScrollListeners.add(it) }
 
 	override fun removeGlobalScrollListener(scrollListener: ScrollListener): Boolean =
-		globalScrollListeners.remove(scrollListener)
+		removeByIdentity(globalScrollListeners, scrollListener)
 
 	override fun addScreenScrollListener(scrollListener: ScrollListener): ScrollListener =
 		scrollListener.also { screenScrollListeners.add(it) }
 
 	override fun removeScreenScrollListener(scrollListener: ScrollListener): Boolean =
-		screenScrollListeners.remove(scrollListener)
+		removeByIdentity(screenScrollListeners, scrollListener)
 
 	// ── Dispatch ──────────────────────────────────────────────────────────────
 

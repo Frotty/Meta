@@ -6,6 +6,7 @@ import com.badlogic.gdx.backends.headless.mock.input.MockInput
 import com.badlogic.gdx.graphics.Camera
 import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
@@ -79,6 +80,18 @@ import de.fatox.meta.ui.MetaToastManager
  */
 object MetaHeadlessUi {
 	private var previousGdxInput: Input? = null
+
+	/** Disposables a fixture handed over, released in [dispose] in reverse order of acquisition. */
+	private val owned = ArrayList<Disposable>()
+
+	/**
+	 * Takes ownership of something a fixture created, so a test does not have to keep a reference it was never given.
+	 * Used by [toastStage]; safe to call before [install] and idempotent per object.
+	 */
+	fun own(disposable: Disposable) {
+		for (index in owned.indices) if (owned[index] === disposable) return
+		owned.add(disposable)
+	}
 
 
 	/**
@@ -213,6 +226,9 @@ object MetaHeadlessUi {
 		if (!installed) return
 		previousGdxInput?.let { Gdx.input = it }
 		previousGdxInput = null
+		// Reverse order: a manager built on a stage goes before the stage it draws through.
+		for (index in owned.indices.reversed()) runCatching { owned[index].dispose() }
+		owned.clear()
 		MetaSkin.dispose()
 		// Resolved rather than remembered: the graph owns them, and a `runCatching` keeps a teardown from failing
 		// over a provider a test never caused to be created.
