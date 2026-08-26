@@ -83,12 +83,13 @@ alongside `LayoutOnlyInput`, as a separate opt-in rather than a change to it.
 Layout isolation and input integration are different jobs and the current
 fixture is right to do only the first.
 
-## 3a. `getToastManager()` throws where a no-op would do
+## 3a. No documented way to test a code path that raises a toast
 
 `UIRenderer.getToastManager()` is not optional in the interface but is optional
 in practice: `MetaUIRenderer` has one and `MetaHeadlessUi`'s `LayoutOnlyRenderer`
 throws `UnsupportedOperationException` with a helpful message. The message is
-good. Throwing is the problem.
+good and so is the throw — it is what stops a test asserting a toast that was
+never rendered. What is missing is the seam beside it.
 
 A toast is a notification *about* an action, so it tends to be the last line of a
 handler — "Fullscreen on" after toggling fullscreen. In BabSky that meant a test
@@ -131,8 +132,16 @@ keyed by a material category.
 
 **Already in Meta:** `MetaSoundPlayer` has per-definition `maxInstances`,
 `MetaSoundPlaybackPolicy.cooldownMs`, positional volume and pan through
-`MetaSoundFalloff`, `randomPitchRange`, and looping. This is very close to the
-same class twice.
+`MetaSoundFalloff`, `randomPitchRange`, and looping. Much of this is the same
+class twice.
+
+**But not the voice budget, which is the part that matters most here.**
+`MetaSoundPlayer` keeps a handle list per `MetaSoundDefinition` and caps that
+list, so N definitions playing at once admit up to `N * maxInstances` voices.
+`CollisionAudioSystem.MAX_ACTIVE` is a single global budget of six across every
+material. A migration that treats `maxInstances` as the equivalent would let a
+pile-up of mixed-material impacts spam the backend. A player-wide cap is a second
+prerequisite alongside the playback abstraction below.
 
 **The blocker, and it is real:** BabSky goes through **miniaudio**
 (`games.rednblack.miniaudio`) for `MAAttenuationModel`/`MAPositioning`, while
