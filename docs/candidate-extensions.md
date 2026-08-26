@@ -54,21 +54,27 @@ rather than going through the renderer, or say plainly in `MetaFocusable`'s KDoc
 that `setMetaFocused` is presentation-only and state belongs on `focusedActor`.
 The first removes the trap; the second documents it.
 
-## 3. `LayoutOnlyInput` cannot drive a registered processor
+## 3. Consumers have no input-capable test harness
 
-`keyDown`/`keyUp` return `false` without dispatching to the processors added
-through `addGlobalInputProcessor`. `UiControlHelper` registers its navigation
-listener exactly that way, so no headless test can exercise the spatial
-arrow-key step — `navigate`, `getNextX`, `getNextY` — which is the most
-interesting logic in the class and the easiest to break with a layout change.
+`LayoutOnlyInput` accepts registrations and dispatches nothing. That is
+**deliberate and documented** — its KDoc says so, explains why (the real
+`MetaInput` claims `Gdx.input.inputProcessor` and the static `Controllers`
+registry, "process-wide state a layout harness has no business taking"), and
+directs a test that wants real input to build the real processor and own its
+teardown. It is a layout harness and it says which one it is.
 
-Everything else about that stub is unusually careful (the exclusive-processor
-stack is a LIFO on purpose, with a comment explaining what a clobbering stub
-would let through). This looks like an oversight rather than a decision.
+The gap is next to it, not in it. Meta *does* test `UiControlHelper`'s spatial
+navigation — `UiControlHelperTest` carries a `TestInput` that dispatches to its
+registered global processors — but that class is private to the test file, so
+the capability exists and is not shipped. A consumer wanting to cover the same
+ground has to rebuild it, and the arrow-key step (`navigate`, `getNextX`,
+`getNextY`) is the most interesting logic in the class and the easiest to break
+with a layout change.
 
-**Suggestion:** dispatch to the stored `globalProcessors`/`screenProcessors` the
-way `MetaInput` does, honouring the exclusive stack. It would let Meta test its
-own navigation, not just consumers test theirs.
+**Suggestion:** promote a dispatching input harness into `testFixtures`
+alongside `LayoutOnlyInput`, as a separate opt-in rather than a change to it.
+Layout isolation and input integration are different jobs and the current
+fixture is right to do only the first.
 
 ## 3a. `getToastManager()` throws where a no-op would do
 
@@ -121,10 +127,19 @@ Meta's sound layer sits on libGDX `Sound` behind a pluggable `SoundHandler`
 `MetaSoundPlayer` as it stands would trade miniaudio's spatial model for
 Meta's falloff maths.
 
-**The interesting option:** a miniaudio-backed `SoundHandler` in Meta (or a
-sibling module, to keep the dependency optional). That is the version where the
-game deletes 400 lines and Meta gains spatial audio, rather than the game
-losing something.
+**The interesting option, and it is bigger than it first looked:**
+`SoundHandler` is not the seam. It declares exactly one method, `duration(sound)`
+— `MetaSoundPlayer` creates its sounds with `Gdx.audio.newSound` and calls
+`Sound.play`/`loop` directly, so implementing `SoundHandler` against miniaudio
+would leave every byte of playback on libGDX and buy no spatial audio at all.
+
+What the move actually needs is a **sound creation and playback abstraction**
+that does not exist yet: something `MetaSoundPlayer` goes through instead of
+touching `Gdx.audio` and `Sound`, with the libGDX path as the default
+implementation and miniaudio as an optional sibling module. That is the version
+where the game deletes 400 lines and Meta gains spatial audio — and it is a
+larger piece of work than "write a `SoundHandler`", which is worth knowing
+before anyone starts.
 
 **What is genuinely game-specific and should stay:** the material → category
 routing (`stone`/`obsidian`/`iron` → `soft`/`metallic`/`glass`) and the
