@@ -46,9 +46,18 @@ consumer relies on it).
 
 With two profiles, P2 pressing their confirm synthesises `ENTER`, and **P1's helper
 sees `ENTER` as its own confirm.** Per-player isolation is broken by the mechanism
-that makes rebinding work. Either synthesis becomes player-tagged, or it is
-suppressed once more than one profile is registered — and the second option silently
-breaks `BackAction`-style listeners.
+that makes rebinding work.
+
+And it is worse than "make synthesis player-aware", which is what this document
+first proposed. `MetaInput.keyDown` broadcasts to **every** global processor, so a
+redispatch from one cursor reaches all of them: restricting *who* may synthesize
+still leaves player one confirming with SPACE redispatching `ENTER`, and player two's
+helper seeing a key its own profile legitimately owns. Both act on one press, with no
+conflict in the physical bindings at all.
+
+The synthetic event has to be invisible to every *cursor* while staying visible to
+`KeyListener`s, which is who synthesis is for. That makes the "am I synthesizing"
+guard shared across helpers rather than per-instance.
 
 ### 4. Focus is one actor — but this is *not* a prerequisite
 
@@ -143,14 +152,43 @@ val p2 = UiControlHelper(MetaPlayer(1))
 p2.focusFirstIn(rightCharacterGrid)
 ```
 
-`focusFirstIn(root)` already confines the spatial search to a group via
-`focusedRoot`, which is the affordance that makes this work at all — two cursors in
-two panels never contend for the same actor.
+`focusFirstIn(root)` confines the spatial search to a group via `focusedRoot`,
+which is the affordance that makes this work at all.
 
-### Synthesis becomes player-scoped
+**But the confinement is soft, and the first version of this document over-claimed
+it.** `possibleTargets` applies `focusedRoot` only while the selected actor is still
+inside it — `focusedRoot?.takeIf { selectedActor.isDescendantOf(it) }` — and falls
+back to the full parent lineage otherwise. That fallback is deliberate and has a
+test named after it (`manual navigation keeps legacy parent lineage search outside
+scoped roots`).
 
-The narrow fix: synthesise the canonical key **only for player one**, and have
-non-primary helpers dispatch their action directly without re-emitting a keycode.
+Anything that moves a cursor out of its root therefore un-scopes it, and the pointer
+is exactly such a thing: `MetaUIRenderer.touchDown` routes every click to the
+*singleton* helper's `focusFromPointer`, which takes the nearest navigable ancestor
+with no root check. Click a control in player two's panel and player one's cursor is
+now on it, able to navigate and confirm player two's controls.
+
+So: **two keyboard cursors in two panels do not contend, and a mouse breaks that.**
+For the case this proposal is about — two players at one keyboard — that is
+acceptable, and should be stated rather than glossed. For a game mixing a pointer
+with per-player cursors it is not, and needs one of:
+
+- `focusFromPointer` rejecting targets outside a set `focusedRoot`. Small, but a
+  behaviour change to a shared API: a dialog would also stop losing focus to a click
+  behind it, which is arguably a fix and is still a change.
+- Explicit ownership routing, so a click goes to the cursor owning the panel it
+  landed in rather than always to the singleton.
+
+Both are maintainer decisions, so neither is in slice one.
+
+### Synthesis becomes player-scoped *and* cursor-invisible
+
+Two parts, and the first alone is not enough:
+
+1. Only player one synthesizes, so a second cursor never emits a canonical key.
+2. The guard is **shared across helpers**, so the key player one does emit is not
+   read as input by any other cursor. A per-instance guard leaves the emitting helper
+   skipping it and every other helper processing it.
 
 Consequence to accept deliberately: a `BackAction`-style listener registered on a
 canonical keycode hears player one only. That is the right default — a screen-level
