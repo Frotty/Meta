@@ -31,8 +31,9 @@ import kotlin.reflect.KClass
  * overlay calls `onDialogBottomOverlayChanged` — so without something answering for this interface a dialog could be
  * constructed and never shown or closed. `MetaKeyRebindDialog` shipped with no coverage for exactly that reason.
  *
- * Only the five members a dialog or window actually touches do anything: [onDialogRemoved],
- * [onDialogBottomOverlayChanged], [closeWindow], [previewWindowDock] and [updateWindow]. Those record. Everything
+ * Only the members a dialog or window actually touches do anything: [onDialogRemoved],
+ * [onDialogBottomOverlayChanged], [closeWindow], [previewWindowDock] and all three `updateWindow` overloads. Those
+ * record. Everything
  * else is a no-op or an empty value, and the three that cannot honestly return one — [showWindow], [getWindow],
  * [showDialog] — throw with a message saying so, because a fixture inventing a window would be lying about the thing
  * a test is checking.
@@ -43,8 +44,11 @@ import kotlin.reflect.KClass
  *
  * Toasts land in [toasts] rather than being dropped, so a test can assert a notification was raised without standing
  * up a `MetaToastManager` and a stage for it.
+ *
+ * `open`, because a test wanting one member to behave differently — a `dispose` that records, say — should subclass
+ * rather than reimplement forty-three of them.
  */
-class RecordingUiManager : UIManager {
+open class RecordingUiManager : UIManager {
 
 	/** Dialogs whose removal this manager was told about, in order. */
 	val removedDialogs = ArrayList<MetaDialog>()
@@ -55,8 +59,21 @@ class RecordingUiManager : UIManager {
 	/** Windows this manager was asked to close. */
 	val closedWindows = ArrayList<Window>()
 
-	/** Windows this manager was told changed, including dock previews (which record `null`). */
-	val updatedWindows = ArrayList<Window?>()
+	/**
+	 * Every `updateWindow` notification, live and committed.
+	 *
+	 * All three overloads are overridden, which is not redundant: `MetaWindow.draw` reports a move or resize in
+	 * progress as `updateWindow(window, interaction, finished = false)`, and the interface default for that drops it
+	 * unless `finished` — so overriding only the one-argument form recorded nothing for the whole of a gesture while
+	 * the manager was in fact being notified throughout.
+	 */
+	val windowUpdates = ArrayList<WindowUpdate>()
+
+	/** Dock-preview notifications. `null` means the preview was cleared. Kept apart from [windowUpdates]. */
+	val dockPreviews = ArrayList<Window?>()
+
+	/** One notification: which window, which gesture if any, and whether it was the committing call. */
+	data class WindowUpdate(val window: Window, val interaction: MetaWindowInteraction?, val finished: Boolean)
 
 	/** Toast messages raised, in order. */
 	val toasts = ArrayList<String>()
@@ -76,11 +93,19 @@ class RecordingUiManager : UIManager {
 	}
 
 	override fun updateWindow(window: Window) {
-		updatedWindows.add(window)
+		windowUpdates.add(WindowUpdate(window, interaction = null, finished = true))
+	}
+
+	override fun updateWindow(window: Window, interaction: MetaWindowInteraction) {
+		windowUpdates.add(WindowUpdate(window, interaction, finished = true))
+	}
+
+	override fun updateWindow(window: Window, interaction: MetaWindowInteraction, finished: Boolean) {
+		windowUpdates.add(WindowUpdate(window, interaction, finished))
 	}
 
 	override fun previewWindowDock(window: Window?) {
-		updatedWindows.add(window)
+		dockPreviews.add(window)
 	}
 
 	override fun showToast(message: String, duration: Float) {

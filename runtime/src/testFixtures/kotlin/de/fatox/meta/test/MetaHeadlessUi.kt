@@ -179,7 +179,9 @@ object MetaHeadlessUi {
 						if (processor is DispatchingInput) Gdx.input = HeldKeyInput(processor, previousGdxInput)
 					}
 				}
-				uiManager?.let { factory -> singleton<UIManager> { factory() } }
+				// Owned, not merely registered: UIManager is Disposable, and clearing the graph would otherwise drop a
+				// manager holding stages or reactive scopes without ever calling dispose on it.
+				uiManager?.let { factory -> singleton<UIManager> { factory().also { own(it) } } }
 				singleton { MetaUiInputBindings() }
 				singleton("default") { UiControlHelper() }
 			}

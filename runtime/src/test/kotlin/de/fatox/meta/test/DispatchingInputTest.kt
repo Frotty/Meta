@@ -8,6 +8,8 @@ import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.input.KeyListener
+import de.fatox.meta.api.ui.MetaWindowInteraction
+import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaToastManager
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -217,6 +219,51 @@ class DispatchingInputTest {
 
 		override fun equals(other: Any?): Boolean = other is EqualRecorder
 		override fun hashCode(): Int = 1
+	}
+
+	// ── The manager double ────────────────────────────────────────────────────
+
+	@Test
+	fun `an injected UI manager is disposed with the harness`() {
+		// UIManager is Disposable, and a real one holds stages and reactive scopes. Clearing the graph without calling
+		// dispose would leak them across the documented per-test install/dispose cycle.
+		MetaHeadlessUi.dispose()
+		val manager = DisposeTrackingUiManager()
+		MetaHeadlessUi.install(uiManager = { manager })
+		MetaInject.inject<de.fatox.meta.api.ui.UIManager>()
+
+		MetaHeadlessUi.dispose()
+
+		assertTrue(manager.disposed, "the harness cleared the graph without disposing the manager it created")
+		MetaHeadlessUi.install()
+	}
+
+	private class DisposeTrackingUiManager : RecordingUiManager() {
+		var disposed = false
+
+		override fun dispose() {
+			disposed = true
+		}
+	}
+
+	@Test
+	fun `a live window gesture is recorded, not only its commit`() {
+		// MetaWindow.draw reports a move in progress as updateWindow(window, interaction, finished = false), and the
+		// interface default drops that unless finished -- so overriding only the one-argument form recorded nothing
+		// for the whole gesture while the manager was being notified throughout.
+		MetaHeadlessUi.dispose()
+		val manager = RecordingUiManager()
+		MetaHeadlessUi.install(uiManager = { manager })
+		val window = com.badlogic.gdx.scenes.scene2d.ui.Window("t", MetaSkin.skin())
+
+		manager.updateWindow(window, MetaWindowInteraction.MOVE, finished = false)
+		manager.updateWindow(window, MetaWindowInteraction.MOVE, finished = true)
+
+		assertEquals(2, manager.windowUpdates.size, "a live gesture was dropped: ${manager.windowUpdates}")
+		assertFalse(manager.windowUpdates[0].finished, "the in-progress call was recorded as committed")
+		assertTrue(manager.windowUpdates[1].finished, "the committing call was recorded as in-progress")
+		MetaHeadlessUi.dispose()
+		MetaHeadlessUi.install()
 	}
 
 	// ── The toast seam ────────────────────────────────────────────────────────
