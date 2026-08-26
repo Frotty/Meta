@@ -56,10 +56,10 @@ feed `DefaultFocusRenderer` — so bypassing it would leave ordinary buttons and
 select boxes navigable but with no visible focus ring, which is a worse bug than
 the one being fixed.
 
-**Suggestion:** say plainly in `MetaFocusable`'s KDoc that `setMetaFocused` is
-presentation-only and that state belongs on `UiControlHelper.focusedActor`. If
-the callback should also reach a headless consumer, that needs an API change
-that keeps the renderer's tracking intact rather than routing around it.
+**Done** (the documentation half): `setMetaFocused`'s KDoc now says it is
+presentation-only and points at `UiControlHelper.focusedActor` for state. If the
+callback should *also* reach a headless consumer, that still needs an API change
+keeping the renderer's tracking intact rather than routing around it.
 
 ## 3. Consumers have no input-capable test harness
 
@@ -107,6 +107,36 @@ Today a consumer has to re-register `UIRenderer` after `MetaHeadlessUi.install()
 and work out what to implement; nothing says so, so the path of least resistance
 is a try/catch in production code — which is how BabSky ended up with one, and
 where that wrapper should be reconsidered once the seam exists.
+
+## 3b. No per-player UI navigation, and no way to express it
+
+Meta's UI input layer is single-cursor by construction: one `UiControlHelper`,
+one `focusedActor`, one set of `MetaUiInputBindings`. Every device is merged onto
+one keyboard-shaped stream — `MetaControllerListener` translates pad buttons into
+canonical keys, and a key is down while anything is holding it.
+
+For a shared menu that is right, and it is what the merge in `anyButtonHolds`
+exists to get correct. For **couch co-op it is a ceiling.** Two players picking a
+character, or each confirming their own readiness, need a cursor each, and there
+is nothing to express that with:
+
+- Bindings are global, not per player. Binding P2's WASD to `NAVIGATE_*`
+  alongside P1's arrows would give both players the same cursor.
+- Keying by device does not help. Two players on one keyboard are two *key sets*
+  on one device, so there is no device to separate them by — and the same is true
+  of two players sharing a pad.
+
+BabSky works around this by keeping the two worlds apart: gameplay input is
+per-player and polled by the game itself (`readDriveForPlayer(index)`), while the
+menus are one shared cursor. That is a sane split and it is worth saying out loud
+that it is the only one Meta currently supports.
+
+**Suggestion:** a `UiControlHelper` per player plus a binding profile per player,
+not a change to the translation layer. Written up as a full proposal — the four
+things that block it, an API sketch, a slicing — in
+[local-coop-input.md](local-coop-input.md), including the constraint that would
+derail a naive attempt: canonical-key synthesis crosses player boundaries, so
+player two's confirm reaches player one's cursor as `ENTER`.
 
 ## 4. A screen fade / transition primitive
 
@@ -186,14 +216,36 @@ there. Noted here only because the pattern is likely repeated in other
 consumers, and a short "persisting your own settings" note in Meta's docs would
 probably fix it everywhere at once.
 
+## 7a. `MetaType` has no responsive counterpart
+
+`MetaType` is fixed pixels — `CAPTION 12`, `BODY 16`, `LABEL 18`, `SUBTITLE 21`,
+`TITLE 24`, `HEADING 32`, `DISPLAY 48` — and `MetaResponsive` knows nothing about
+type. Nothing joins them.
+
+That is fine for a tool UI read at desk distance and unusable for one read from a
+couch. BabSky's display face runs 96px at 1280 and 200px at QHD, four times
+`MetaType.DISPLAY` at the top end, so it cannot use the scale at all: `UiScale`
+rolls a full ramp (display/heading/item/body/caption/hint) on top of
+`MetaResponsiveState`, and every `MetaLabel` in the game is sized from it rather
+than from a semantic token.
+
+An audit against Meta's own conventions flags that as a custom-rolled typography
+scale bypassing `MetaType`, and it is — but the correction is not "use
+`MetaType`", because `MetaType` cannot express it. The gap is Meta's.
+
+**Suggestion:** a responsive `MetaType` — the same semantic roles, resolved per
+breakpoint through `MetaResponsiveValue`, with today's constants as the base
+tier so nothing changes for existing consumers. A game then overrides the tiers
+it cares about and keeps using the role names, instead of inventing a parallel
+vocabulary.
+
 ## 8. Deliberately **not** candidates
 
 Recorded so the same ground is not re-covered:
 
 - **`UiScale`** — looks like a duplicate of `MetaResponsive` and is not. It is
-  already built on `MetaResponsiveState`, `responsive()` and `MetaBreakpoints`;
-  what it adds is one game's type ramp (display/heading/item/body/caption/hint,
-  and a glyph size for Kenney's input faces). That is content.
+  already built on `MetaResponsiveState`, `responsive()` and `MetaBreakpoints`.
+  The *numbers* in its ramp are content. See 8a for the part of it that is not.
 - **`PromptIcons`** — Kenney input-prompt faces chosen per `ControllerFamily`.
   Font *files* the game ships, and a mapping from actions to glyphs in them.
   A Meta version would be a licence and asset decision, not a code one.

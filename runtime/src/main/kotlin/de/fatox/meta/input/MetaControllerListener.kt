@@ -26,9 +26,11 @@ object MetaControllerListener : ControllerListener {
 	private var currentHorDownKey = -1
 	private var currentVertDownKey = -1
 
-	/** Canonical keys currently held down via controller buttons, so a disconnect can release them (no stuck keys). */
-	private val downButtonKeys = IntSet()
+	/** Scratch for the paths that release several keys at once and must emit each at most once. */
+	private val scratchKeys = IntSet()
 	var deadzone = 0.39f
+
+	private const val NO_KEY = -1
 
 	/**
 	 * While set, raw button presses are reported here and are **not** translated into canonical UI keys.
@@ -53,6 +55,10 @@ object MetaControllerListener : ControllerListener {
 	/**
 	 * Buttons whose press a capture consumed, so their release is consumed too - **including after the capture has
 	 * ended**.
+	 *
+	 * Doubles as the "not translating" marker that [anyButtonHolds] subtracts from [heldRawButtons]: every entry got
+	 * here because its press did not become a canonical key-down, either because a capture took it or because a
+	 * starting capture took the key away underneath it.
 	 *
 	 * A rebind dialog closes on the press, and closing releases the capture, so the physical release lands after
 	 * teardown with translation switched back on. Without this it becomes a canonical key-up for a key that was never
@@ -85,7 +91,8 @@ object MetaControllerListener : ControllerListener {
 	 */
 	fun captureButtons(target: (Controller, Int) -> Unit) {
 		releaseAxisKeys()
-		releaseButtonKeys()
+		// Every device's, not one's: a capture suppresses translation for all of them.
+		releaseAllButtonKeys()
 		// A release is still owed for anything held right now: its press was translated and its release will not be,
 		// so without this the button the player happened to be holding when the dialog opened emits an unmatched
 		// canonical key-up once the capture ends - and for a CONFIRM binding that presses whatever is focused behind.
@@ -123,13 +130,17 @@ object MetaControllerListener : ControllerListener {
 	override fun disconnected(controller: Controller) {
 		log.debug { "Controller disconnected." }
 		releaseAxisKeys()
-		releaseButtonKeys()
 		// No releases are coming for a pad that is gone. Only its own entries: another pad may still be mid-press.
 		capturedDownButtons.remove(controller)
-		heldRawButtons.remove(controller)
+		// Removed first, so "is anything still holding this key" does not count the pad that just left.
+		val orphaned = heldRawButtons.remove(controller)
+		if (orphaned != null) releaseKeysOf(controller, orphaned)
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
+		val key = keyFor(controller, buttonCode)
+		// Asked before this press is recorded, so the question is whether anything *else* was already holding it.
+		val alreadyDown = key != NO_KEY && anyButtonHolds(key)
 		heldOf(controller).add(buttonCode)
 		captureTarget?.let {
 			// Recorded before the callback, which usually closes the dialog and releases the capture synchronously.
@@ -137,12 +148,9 @@ object MetaControllerListener : ControllerListener {
 			it(controller, buttonCode)
 			return true
 		}
-		return uiBindings.actionForButton(controller, buttonCode)?.let {
-			val key = uiBindings.canonicalKeyFor(it)
-			downButtonKeys.add(key)
-			emitKeyDown(key)
-			true
-		} ?: false
+		if (key == NO_KEY) return false
+		if (!alreadyDown) emitKeyDown(key)
+		return true
 	}
 
 	override fun buttonUp(controller: Controller, buttonCode: Int): Boolean {
@@ -152,12 +160,11 @@ object MetaControllerListener : ControllerListener {
 		heldRawButtons.get(controller)?.remove(buttonCode)
 		if (capturedDownButtons.get(controller)?.remove(buttonCode) == true) return true
 		if (captureTarget != null) return true
-		return uiBindings.actionForButton(controller, buttonCode)?.let {
-			val key = uiBindings.canonicalKeyFor(it)
-			downButtonKeys.remove(key)
-			emitKeyUp(key)
-			true
-		} ?: false
+		val key = keyFor(controller, buttonCode)
+		if (key == NO_KEY) return false
+		// The raw button is already out of `heldRawButtons`, so this asks about everything still down.
+		if (!anyButtonHolds(key)) emitKeyUp(key)
+		return true
 	}
 
 	override fun axisMoved(controller: Controller, axisCode: Int, value: Float): Boolean {
@@ -227,9 +234,73 @@ object MetaControllerListener : ControllerListener {
 		currentVertDownKey = -1
 	}
 
-	private fun releaseButtonKeys() {
-		downButtonKeys.forEachIntReentrant(::emitKeyUp)
-		downButtonKeys.clear()
+	/** Releases the keys [orphaned] buttons were holding, leaving down any that something else still holds. */
+	private fun releaseKeysOf(controller: Controller, orphaned: IntSet) {
+		scratchKeys.clear()
+		orphaned.forEachIntReentrant { code ->
+			val key = keyFor(controller, code)
+			if (key != NO_KEY) scratchKeys.add(key)
+		}
+		scratchKeys.forEachIntReentrant { key -> if (!anyButtonHolds(key)) emitKeyUp(key) }
+	}
+
+	/**
+	 * Releases every key any device is holding, once each. Used when a capture takes translation from all of them.
+	 *
+	 * `heldRawButtons` is deliberately left intact: the caller reads it next to work out which releases are still
+	 * owed, and those are the same buttons.
+	 */
+	private fun releaseAllButtonKeys() {
+		scratchKeys.clear()
+		heldRawButtons.forEachEntryReentrant { controller, buttons ->
+			buttons.forEachIntReentrant { code ->
+				val key = keyFor(controller, code)
+				if (key != NO_KEY) scratchKeys.add(key)
+			}
+		}
+		scratchKeys.forEachIntReentrant(::emitKeyUp)
+	}
+
+	/**
+	 * Whether any button still held, on any device, is bound to [key].
+	 *
+	 * Derived from the raw buttons rather than tracked as a set of keys, because a key is not held once - two buttons
+	 * on one pad can both be bound to it, as A and START both are to CONFIRM by default. A set of keys cannot tell
+	 * "one of the two was released" from "the last one was", so it let go of CONFIRM while the other button was still
+	 * down and then let go of it again on the real release.
+	 *
+	 * Iterating allocates an iterator, which the helper's contract rules out for per-frame paths. This is not one: it
+	 * runs on a button edge, a handful of times a second at human speed, over as many entries as there are pads.
+	 *
+	 * ### It merges devices on purpose
+	 *
+	 * The question is "is *anything* holding this key", not "is this pad holding it". That is deliberate and it is
+	 * the existing model: there is one [de.fatox.meta.ui.UiControlHelper] with one focused actor, so there is one
+	 * cursor for every player to share. Two pads pressing confirm on a shared menu is one confirm.
+	 *
+	 * What it is not is per-player UI navigation. Nothing here can give two players a cursor each, and for a
+	 * keyboard there would be nothing to key it by anyway - couch co-op on one keyboard is two key sets on one
+	 * device, not two devices. A game that wants separate cursors needs its own input path, the way a game already
+	 * reads per-player gameplay bindings itself.
+	 */
+	private fun anyButtonHolds(key: Int): Boolean {
+		var held = false
+		heldRawButtons.forEachEntryReentrant { controller, buttons ->
+			// A captured press is physically down and is not translating, which is not the same thing. Counting it
+			// would report the key as already held: a second button bound to the same action would have its
+			// legitimate press suppressed, and its release would then emit a key-up with no down to match it.
+			val notTranslating = capturedDownButtons.get(controller)
+			buttons.forEachIntReentrant { code ->
+				if (!held && notTranslating?.contains(code) != true && keyFor(controller, code) == key) held = true
+			}
+		}
+		return held
+	}
+
+	/** The canonical key [buttonCode] drives on [controller], or [NO_KEY] if it is not bound to a UI action. */
+	private fun keyFor(controller: Controller, buttonCode: Int): Int {
+		val action = uiBindings.actionForButton(controller, buttonCode) ?: return NO_KEY
+		return uiBindings.canonicalKeyFor(action)
 	}
 
 	/** One [IntSet] per device, created on that device's first captured press. Never a per-frame path. */
