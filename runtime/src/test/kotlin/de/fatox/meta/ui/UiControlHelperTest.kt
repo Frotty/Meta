@@ -223,10 +223,19 @@ internal class UiControlHelperTest {
 		stage.addActor(root)
 		second.focusFirstIn(root, top)
 
+		val registered = input.globalProcessorCount
 		second.dispose()
 		input.keyDown(Input.Keys.S)
 		input.keyUp(Input.Keys.S)
 
+		// The assertion that matters, and the one the first version of this test was missing: clearing the helper's
+		// state made it *stop having an effect*, so every other assertion here passed with the processor still
+		// registered and the leak intact.
+		assertEquals(
+			registered - 1,
+			input.globalProcessorCount,
+			"dispose left its input processor registered, so a recreated screen stacks one per instance",
+		)
 		assertNull(second.focusedActor.value, "a disposed helper kept hold of its focused actor")
 		assertNotSame(bottom, second.selectedActor, "a disposed helper still navigated on its player's key")
 	}
@@ -606,6 +615,9 @@ internal class UiControlHelperTest {
 
 	private class TestInput : InputAdapter(), MetaInputProcessor {
 		private val globalProcessors = ArrayList<InputProcessor>()
+
+		/** So a test can assert a helper actually unregistered, rather than merely stopped having an effect. */
+		val globalProcessorCount: Int get() = globalProcessors.size
 		private val globalKeys = HashMap<Int, ArrayList<KeyListener>>()
 		override var exclusiveProcessor: InputProcessor? = null
 		override val isLeftCtrlDown = false
