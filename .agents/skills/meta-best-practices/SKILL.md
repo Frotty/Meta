@@ -52,12 +52,21 @@ Treat generic primitive signals as unsuitable for high-frequency writes because 
 - Make desktop layouts responsive to their parent, not to a one-time global screen measurement. Exercise narrow fallback, 1280, 1920, 2560, and 3840 width classes plus constrained-height cases when applicable.
 - Avoid triplicated breakpoint layouts. Keep shared structure and cascade only the properties, visibility, sizing, or direction that differ.
 - Use `MetaType`, `MetaSpacing`, `MetaColor`, `MetaButtonTier`, and Meta control-size conventions. Treat shared colors as read-only and copy variants.
+- Check labels and other text widgets against the semantic `MetaType` typography scale. Flag magic-number font sizes and locally duplicated or custom-rolled typography scales that bypass or drift from `MetaType`; use the nearest existing semantic token instead.
 - Use the bundled Remix icon catalog and semantic Meta icon/button components for routine actions. Do not substitute text glyphs, emoji, or bitmap icons for catalog actions.
 - Use TTF-backed Meta text widgets. Clone a skin style before changing its font; never mutate a shared style.
 - Use `FontProvider`-generated fonts and Meta pixel-snap/font-refresh helpers. Do not bypass them with ad hoc font caches or unsnapped text drawing that can blur, bleed, or retain a stale scale.
 - Use `MetaScrollPane`, `MetaWindow`, and `MetaDialog` according to their ownership contracts instead of layering competing scrolling or window chrome.
 
 For offline geometry verification, initialize `GdxTestEnvironment`, size and validate the root, then use `MetaLayout.problems(root)` or `MetaLayout.assertValid(root)`. Add deterministic tests for breakpoint transitions, visibility, minimum/preferred sizes, nesting, constrained height, and overflow-prone layouts.
+
+## Startup, asset loading, and perceived progress
+
+- For non-trivial startup, use `SplashScreen` with `prepareAssets`, `queueAssets`, and `onLoaded`: keep filesystem discovery, archive indexing, and queue construction off the GL thread, queue through `AssetProvider`, and perform scene2d/GL work only in the GL-thread completion phase.
+- Advance `AssetProvider` with frame-budgeted `update` calls while rendering the splash. Do not block animated loading with `finish()` or unqueued `getResource()` calls, and do not let one large upload make the loading screen appear frozen when cooperative budgeting can avoid it.
+- Expose real `AssetProvider.progress` when determinate; use an honest indeterminate spinner when work cannot be measured instead of a fake timer. Keep the splash responsive with animated spinners/status text and smooth fade-in, fade-out, and post-load UI transitions.
+- Handle preparation and loading failures visibly and preserve cleanup for splash-owned textures, fonts, providers, worker threads, and reactive/UI scopes on every exit path.
+- Keep loading progress and transition state reactive where it drives UI, but avoid rebuilding the loading tree or allocating strings/temporary objects every frame.
 
 ## Scene2D and reactive lifecycle
 
