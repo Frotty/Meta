@@ -131,10 +131,12 @@ per-player and polled by the game itself (`readDriveForPlayer(index)`), while th
 menus are one shared cursor. That is a sane split and it is worth saying out loud
 that it is the only one Meta currently supports.
 
-**Suggestion:** if per-player UI navigation is ever wanted, it is a
-`UiControlHelper` per player plus a binding profile per player, not a change to
-the translation layer. Worth deciding *whether* before anyone needs it, because
-the answer shapes whether `UiControlHelper` can stay a singleton.
+**Suggestion:** a `UiControlHelper` per player plus a binding profile per player,
+not a change to the translation layer. Written up as a full proposal — the four
+things that block it, an API sketch, a slicing — in
+[local-coop-input.md](local-coop-input.md), including the constraint that would
+derail a naive attempt: canonical-key synthesis crosses player boundaries, so
+player two's confirm reaches player one's cursor as `ENTER`.
 
 ## 4. A screen fade / transition primitive
 
