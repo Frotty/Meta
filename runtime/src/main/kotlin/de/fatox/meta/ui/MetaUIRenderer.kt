@@ -119,13 +119,37 @@ class MetaUIRenderer : UIRenderer {
 	 * selects the value the renderer had already chosen - or returns to it later - is indistinguishable from
 	 * nobody having chosen anything, and the next monitor change would overwrite a deliberate choice. Recording
 	 * *who* wrote it cannot make that mistake.
+	 *
+	 * `internal` so a test can assert it. Whether a write was recorded is otherwise invisible - the case that
+	 * matters most is the one where the value does not change - and a regression here is silent until someone's
+	 * chosen scale is overwritten by moving a window.
 	 */
-	private var scaleChosenByUser = false
+	internal var scaleChosenByUser = false
+		private set
 
 	/** Set only while this renderer is assigning [uiScale], so its own write is not mistaken for a user's. */
 	private var applyingAutomaticScale = false
 
-	override val uiScale: Signal<Float> = signal(1f) { a, b -> abs(a - b) < 0.001f }
+	private val backingUiScale: Signal<Float> = signal(1f) { a, b -> abs(a - b) < 0.001f }
+
+	/**
+	 * Wrapped so provenance is recorded at the write, not at the change.
+	 *
+	 * A signal suppresses a write equal to its current value - it returns before notifying - so a subscription
+	 * never sees a player committing the scale that was already in effect. Watching for changes therefore misses
+	 * the one case where the difference between "chosen" and "defaulted" matters most, and the next monitor
+	 * transition would overwrite that choice. Every write lands here whether or not it changes anything.
+	 */
+	override val uiScale: Signal<Float> = object : Signal<Float> {
+		override var value: Float
+			get() = backingUiScale.value
+			set(newValue) {
+				if (!applyingAutomaticScale) scaleChosenByUser = true
+				backingUiScale.value = newValue
+			}
+
+		override fun peek(): Float = backingUiScale.peek()
+	}
 
 	// The stage's world size already is physical-pixels ÷ unitsPerPixel (= ÷ uiScale) — i.e. UI units.
 	override val uiWidth: Float get() = stage.width
@@ -230,10 +254,7 @@ class MetaUIRenderer : UIRenderer {
 		// HiDPI: every consumer gets DPI-correct UI by default (no per-game wiring). Re-apply live on any uiScale
 		// change (e.g. a settings slider), and seed the default from the display. Games may override uiScale.value
 		// afterwards with a user-chosen / persisted value.
-		reactiveScope.subscribe(uiScale) {
-			// Any write not made by applySuggestedScale is somebody else's choice, and from here on the renderer
-			// stops re-suggesting. This is the only place every write passes through.
-			if (!applyingAutomaticScale) scaleChosenByUser = true
+		reactiveScope.subscribe(backingUiScale) {
 			applyViewport(Gdx.graphics.width, Gdx.graphics.height)
 			// Fonts are rasterized per scale: walk the stage so every widget that caches a font re-fetches it from
 			// the (now regenerated) provider, then release the orphaned old-scale fonts. Order matters: dispose only
