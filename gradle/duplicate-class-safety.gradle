@@ -1,0 +1,57 @@
+/*
+ * Rejects the same fully-qualified class name being produced by more than one module.
+ *
+ * Kotlin names a file's class after the file, so two `MetaDataKeys.kt` in package `de.fatox.meta` - one in
+ * `runtime`, one in `editor` - both became `de.fatox.meta.MetaDataKeysKt`. Every module compiled, every test
+ * passed, and the application died at startup with NoSuchMethodError for a method that existed: on the combined
+ * classpath the editor's class came first and shadowed the runtime's.
+ *
+ * Nothing else in the build could have caught that. Compilation sees one module at a time and the test suites run
+ * per module, so the collision only exists once the jars are on one classpath. This check is the seam.
+ */
+
+def duplicateClassTask = tasks.register('verifyNoDuplicateClasses') {
+	group = 'verification'
+	description = 'Rejects the same fully-qualified class name being produced by more than one module.'
+
+	def moduleOutputs = subprojects.collectEntries { module ->
+		[(module.name): module.fileTree("build/classes/kotlin/main") { include '**/*.class' }]
+	}
+	inputs.files(moduleOutputs.values())
+
+	doLast {
+		def ownersByClass = [:].withDefault { [] as Set }
+		moduleOutputs.each { moduleName, tree ->
+			tree.visit { detail ->
+				if (detail.isDirectory()) return
+				// Kotlin emits `Foo$bar` helpers alongside `Foo`; the outer name is enough to spot a collision
+				// and keeps the message readable.
+				def className = detail.relativePath.pathString
+					.replaceAll(/\.class$/, '')
+					.replace('/', '.')
+				if (className.contains('$')) return
+				ownersByClass[className] << moduleName
+			}
+		}
+
+		def collisions = ownersByClass.findAll { className, owners -> owners.size() > 1 }
+		if (!collisions.isEmpty()) {
+			throw new GradleException(
+				"The same class is produced by more than one module (${collisions.size()}):\n" +
+					collisions.collect { className, owners ->
+						"  - ${className}  <-  ${owners.sort().join(', ')}"
+					}.join('\n') +
+					"\nOn a combined classpath one silently shadows the other, so members that exist become " +
+					"unreachable at runtime while every module still compiles and every test still passes.\n" +
+					"Rename the file so its generated class name is unique, or move the declarations into a class " +
+					"that is already module-specific."
+			)
+		}
+	}
+}
+
+subprojects {
+	tasks.matching { task -> task.name == 'check' }.configureEach {
+		dependsOn(duplicateClassTask)
+	}
+}
