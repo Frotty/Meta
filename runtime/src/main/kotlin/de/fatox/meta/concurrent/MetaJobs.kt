@@ -130,6 +130,10 @@ object MetaJobs {
 							onDone(result)
 							job.markComplete()
 						} catch (completionFailure: Throwable) {
+							// Counted here too. The increment used to live only in the worker-side catch, so a job
+							// whose main-thread application threw reported isFailed while failedCount ignored it -
+							// two answers to the same question, in the numbers a profiler reads.
+							failed.incrementAndGet()
 							job.markFailed(completionFailure)
 							throw completionFailure
 						}

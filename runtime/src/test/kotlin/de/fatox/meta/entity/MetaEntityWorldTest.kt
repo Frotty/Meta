@@ -125,7 +125,7 @@ class MetaEntityWorldTest {
 			world.store.forEachSlot { world.add(extra) }
 		}
 		assertThrows(IllegalStateException::class.java) {
-			world.store.forEachSlot { world.remove(world.entities.get(0)) }
+			world.store.forEachSlot { world.remove(world.entityAt(0)) }
 		}
 
 		// Throwing is not enough: the refusal has to happen before anything is modified. remove() swaps and shrinks
@@ -136,6 +136,30 @@ class MetaEntityWorldTest {
 		assertEquals(4, world.size)
 		assertEquals(4, world.store.count)
 		assertFalse(extra.isBound, "The refused add must not have bound its entity")
+	}
+
+	@Test
+	fun `the entity list cannot be mutated from outside`() {
+		// A getter handing back the backing Array let a caller add, set, removeIndex or clear it directly, bypassing
+		// every guard here and breaking the slot/count invariants silently - nothing notices until an entity reads a
+		// neighbour's transform. Access is indexed and bounds-checked instead.
+		repeat(3) { world.add(Probe("e$it")) }
+		assertThrows(IllegalArgumentException::class.java) { world.entityAt(3) }
+		assertThrows(IllegalArgumentException::class.java) { world.entityAt(-1) }
+		assertEquals(3, world.size)
+		world.validate()
+	}
+
+	@Test
+	fun `emptying a world goes through the world, not the store`() {
+		// store.clear() empties the columns and unbinds every entity but cannot touch the world's list, leaving a
+		// world whose size is non-zero, whose validate() fails, and whose ghosts cannot be removed - removal refuses
+		// an unbound entity. Keeping it internal is the fix; this pins that clear() is the whole operation.
+		repeat(5) { world.add(Probe("e$it")) }
+		world.clear()
+		assertEquals(0, world.size)
+		assertEquals(0, world.store.count)
+		world.validate()
 	}
 
 	@Test

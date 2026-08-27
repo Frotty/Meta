@@ -41,7 +41,10 @@ class MetaJob internal constructor() {
 	 * read will notice; a tight CPU loop will not, so long compute jobs should check [isCancelled] themselves.
 	 */
 	fun cancel() {
-		if (state.getAndSet(State.CANCELLED) == State.CANCELLED) return
+		// Only RUNNING may become CANCELLED. getAndSet overwrote COMPLETE and FAILED, and that happened routinely:
+		// the most recently registered job stays tracked until another registration sweeps it, so disposing a scope
+		// re-labelled the job that had just succeeded. Any handle still held then stopped reporting what happened.
+		if (!state.compareAndSet(State.RUNNING, State.CANCELLED)) return
 		future.get()?.cancel(true)
 	}
 

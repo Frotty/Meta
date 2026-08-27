@@ -35,13 +35,23 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 	private val liveEntities = Array<MetaEntity>(initialCapacity)
 
 	/**
-	 * Every live entity, in slot order.
+	 * The entity in [index], where `index` runs `0 until size`.
 	 *
-	 * Iterate this to act on entities *as objects* - calling their methods, reading their own fields. Do not
-	 * iterate it to read transforms in bulk; that is what [store] is for, and it is roughly an order of magnitude
-	 * quicker.
+	 * Indexed rather than a collection getter on purpose: handing out the backing `Array` let a caller `add`,
+	 * `set`, `removeIndex` or `clear` it directly, which bypasses every guard here and breaks the slot/count
+	 * invariants the store depends on - silently, since nothing would notice until an entity read a neighbour's
+	 * transform.
+	 *
+	 * Use this to act on entities *as objects* - calling their methods, reading their own fields. Do not loop it to
+	 * read transforms in bulk; that is what [store] is for, and it is roughly an order of magnitude quicker.
 	 */
-	val entities: Array<MetaEntity> get() = liveEntities
+	fun entityAt(index: Int): MetaEntity {
+		require(index in 0 until liveEntities.size) { "No entity at $index (size=${liveEntities.size})" }
+		return liveEntities.get(index)
+	}
+
+	/** Read-only traversal for engine code that already respects the invariants. */
+	internal val entities: Array<MetaEntity> get() = liveEntities
 
 	/** How many entities are live. Always equal to `store.count`. */
 	val size: Int get() = liveEntities.size
@@ -84,7 +94,7 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 		return true
 	}
 
-	/** Removes every entity and unbinds all of them. */
+	/** Removes every entity and unbinds all of them. The only correct way to empty a world. */
 	fun clear() {
 		store.clear()
 		liveEntities.clear()

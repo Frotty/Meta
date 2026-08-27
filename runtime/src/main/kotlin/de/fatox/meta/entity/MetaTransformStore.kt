@@ -163,8 +163,15 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		iterating = false
 	}
 
-	/** Releases every entity and empties the store. Entities are unbound and must be re-added to be used again. */
-	fun clear() {
+	/**
+	 * Releases every entity and empties the columns.
+	 *
+	 * Internal: this half of the world cannot clear the other. Called directly it would empty the columns and unbind
+	 * every entity while [MetaEntityWorld]'s list still held them - leaving a world whose `size` is non-zero, whose
+	 * `validate()` fails, and whose ghost entities cannot be removed because removal refuses an unbound entity.
+	 * Clear through [MetaEntityWorld.clear].
+	 */
+	internal fun clear() {
 		checkMutable("clear the store")
 		for (slot in 0 until count) {
 			owners[slot]?.unbind()

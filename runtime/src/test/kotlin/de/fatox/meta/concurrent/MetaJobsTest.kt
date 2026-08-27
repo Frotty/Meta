@@ -306,6 +306,36 @@ class MetaJobsTest {
 	}
 
 	@Test
+	fun `disposing a scope does not relabel jobs that already finished`() {
+		// A finished job stays tracked until another registration sweeps it, so scope disposal reached it and
+		// getAndSet overwrote COMPLETE with CANCELLED. Any handle still held then stopped reporting what happened.
+		val scope = MetaJobScope()
+		val applied = AtomicBoolean()
+		val job = scope.io(work = { "value" }) { applied.set(true) }
+
+		assertTrue(pumpUntil { applied.get() }, "The job never completed")
+		assertTrue(job.isComplete)
+
+		scope.dispose()
+
+		assertTrue(job.isComplete, "Disposal relabelled a job that had already completed")
+		assertFalse(job.isCancelled)
+	}
+
+	@Test
+	fun `a completion failure is counted as well as recorded`() {
+		// isFailed and failedCount answered the same question differently: the increment lived only in the
+		// worker-side catch, so a job whose main-thread application threw was invisible to a profiler.
+		MetaJobs.onJobFailure = { }
+		val before = MetaJobs.failedCount
+		val job = MetaJobs.io(work = { "value" }) { error("completion blew up") }
+
+		assertTrue(pumpUntil { !job.isActive }, "Job never left RUNNING")
+		assertTrue(job.isFailed)
+		assertEquals(before + 1, MetaJobs.failedCount, "A completion failure must reach failedCount")
+	}
+
+	@Test
 	fun `draining from a worker thread is refused`() {
 		val thrown = AtomicReference<Throwable>()
 		val worker = Thread({ thrown.set(runCatching { MetaJobs.drainCompletions() }.exceptionOrNull()) }, "drainer")
