@@ -174,6 +174,46 @@ class MetaSpatialIndexTest {
 	}
 
 	@Test
+	fun `a stationary entity stays stationary where float bounds lose precision`() {
+		// The cached cell interval is two adjacent cell edges rounded to Float. Past 2^24 those round to the same
+		// value, so at cellSize 1 and x = 20,000,000 the interval is empty and the fast check fails forever. An
+		// entity that never moves would then be unlinked and relinked every frame - the stationary optimisation
+		// inverted into its opposite, silently, with lastMoved reporting churn that is not real.
+		val index = MetaSpatialIndex(cellSize = 1f)
+		val xs = floatArrayOf(20_000_000f)
+		val ys = floatArrayOf(20_000_000f)
+
+		index.update(xs, ys, 1)
+		assertEquals(1, index.lastMoved, "The first update files it")
+		index.update(xs, ys, 1)
+		assertEquals(0, index.lastMoved, "Nothing moved, so nothing may be re-filed")
+		index.update(xs, ys, 1)
+		assertEquals(0, index.lastMoved)
+
+		// And it is still findable out there.
+		var found = false
+		index.forEachInBounds(xs[0], ys[0], xs[0], ys[0], margin = 0f) { found = true }
+		assertTrue(found) { "The entity could not find itself at 20,000,000" }
+	}
+
+	@Test
+	fun `extreme coordinates neither churn nor lose the entity`() {
+		// Where the cell index saturates, the cached upper edge wraps negative and inverts the interval outright.
+		val index = MetaSpatialIndex(cellSize = 1f)
+		val xs = floatArrayOf(2.0e9f, -2.0e9f)
+		val ys = floatArrayOf(0f, 0f)
+
+		index.update(xs, ys, 2)
+		index.update(xs, ys, 2)
+		assertEquals(0, index.lastMoved, "Extreme but stationary coordinates were re-filed")
+		for (slot in xs.indices) {
+			var found = false
+			index.forEachInBounds(xs[slot], ys[slot], xs[slot], ys[slot], margin = 0f) { if (it == slot) found = true }
+			assertTrue(found) { "The entity at x=${xs[slot]} could not find itself" }
+		}
+	}
+
+	@Test
 	fun `spanning cost survives coordinates that overflow an int cell index`() {
 		// The method exists to warn a caller off a ruinous query, so it is the one place an arithmetic wrap is
 		// worst: subtracting Int cell indices near the extremes produces a small or negative span, telling the

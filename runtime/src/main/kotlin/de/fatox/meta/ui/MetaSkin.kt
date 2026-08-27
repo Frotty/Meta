@@ -215,8 +215,14 @@ object MetaSkin {
 		installCursor = 0
 		collectingInstallActions = false
 		pendingDrawables.clear()
-		// The skin owns the page textures (registered in finalizeAtlas) and disposes them; the packer only frees
-		// page images that never became one, so the two do not overlap.
+		// Every page texture, not only the ones finalizeAtlas registered with the skin. Glyphs are packed into this
+		// same atlas as they are rasterized, so a font can create a page *after* finalization - and such a page has
+		// no owner at all: the skin never saw it, and PixmapPacker.dispose() deliberately leaves alone any page
+		// that already has a texture. Texture.dispose() returns early once its handle is zero, so disposing the
+		// registered pages here as well and again through the skin is harmless.
+		packer?.pages?.let { pages ->
+			for (index in 0 until pages.size) pages[index].texture?.dispose()
+		}
 		activeSkin?.dispose()
 		activeSkin = null
 		packer?.dispose()

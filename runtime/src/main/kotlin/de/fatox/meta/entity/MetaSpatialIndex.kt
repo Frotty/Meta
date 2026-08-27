@@ -168,8 +168,19 @@ class MetaSpatialIndex(
 			) {
 				continue
 			}
+			val cx = cellOf(x)
+			val cy = cellOf(y)
+			// The float bounds are a fast approximation and can be wrong in one direction: they can claim an
+			// entity moved when it did not. A cell interval is two adjacent cell edges rounded to Float, and past
+			// 2^24 those round to the same value - at cellSize 1 and x = 20,000,000 the interval is empty, so the
+			// test above fails forever and a stationary entity is unlinked and relinked every frame. At
+			// Int.MAX_VALUE the upper edge wraps negative and inverts it outright.
+			//
+			// Confirming against the cell itself costs a floor per apparently-moved entity, which is the rare
+			// case, and makes the fast path an optimisation rather than the source of truth.
+			if (filed[slot] && cellX[slot] == cx && cellY[slot] == cy) continue
 			if (filed[slot]) unlink(slot)
-			link(slot, cellOf(x), cellOf(y))
+			link(slot, cx, cy)
 			moved++
 		}
 		size = count
