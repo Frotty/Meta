@@ -176,27 +176,27 @@ class FrameBudgetTest {
 		const val ALLOC_ITERATIONS = 50
 
 		/**
-		 * Measured at 31 once the skin moved to one atlas page, down from 37.
+		 * Measured at 7, from 37 before any atlas work and 31 with the chrome alone on a page.
 		 *
-		 * A smaller drop than the texture count suggests, and the reason is worth recording: what remains is not
-		 * distinct textures but **alternation**. Scene2d draws each widget's background then its text, so a screen
-		 * of buttons alternates skin page and font page and flushes on every switch - twenty buttons cost forty
-		 * binds against only two textures. See [MAX_BUTTON_ROW_BINDS].
-		 *
-		 * Collapsing this further needs the skin and the fonts on the *same* page, not merely fewer pages.
+		 * The last step was the one that mattered: chrome and glyphs share a page, so a widget's background and its
+		 * text come from the same texture and there is nothing for the batch to switch to. What remains is real
+		 * work - the text fields clip, and clipping flushes.
 		 */
-		const val MAX_TEXTURE_BINDS = 35
-		const val MAX_DRAW_CALLS = 35
+		const val MAX_TEXTURE_BINDS = 12
+		const val MAX_DRAW_CALLS = 12
 		const val MAX_SHADER_SWITCHES = 2
 
 		/**
-		 * Twenty text buttons, measured at 40 binds: one skin patch and one glyph run each, alternating.
+		 * Twenty text buttons in one draw call, measured at 1. It was 40.
 		 *
-		 * Pinned as its own budget because it isolates the alternation cost from everything else on a screen. Only
-		 * a shared skin+font atlas moves it, and when that lands this should fall to roughly 1 - which is the
-		 * clearest single signal that the change worked.
+		 * This case exists because it isolates alternation from everything else: twenty buttons used two textures
+		 * between them and still cost forty draw calls, because scene2d draws each background then its text and the
+		 * batch flushed on every switch. Reducing texture *count* never moved it; sharing the page did.
+		 *
+		 * The tightest gate in the suite on purpose. Any regression that separates chrome from glyphs again -
+		 * a font that misses the shared packer, a page overflow - shows up here first and nowhere else.
 		 */
-		const val MAX_BUTTON_ROW_BINDS = 44
+		const val MAX_BUTTON_ROW_BINDS = 4
 		const val BUTTON_ROW_COUNT = 20
 
 		/**
@@ -206,7 +206,10 @@ class FrameBudgetTest {
 		 * Deterministic, no font rasterization involved, so pinned exactly rather than given headroom.
 		 */
 		const val MAX_SKIN_TEXTURES = 2
-		/** Every generated drawable must share one page; a second means something outgrew it. */
+		/**
+		 * One page for chrome *and* every rasterized glyph. A second page means the atlas overflowed, and the
+		 * batch starts flushing between whatever landed on each - which is the whole cost this design removes.
+		 */
 		const val MAX_ATLAS_PAGES = 1
 	}
 }

@@ -23,6 +23,7 @@ import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.api.graphics.physicalPixelsPerUnit
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import kotlin.math.roundToInt
@@ -208,11 +209,27 @@ class MetaFontProvider : FontProvider {
 	}
 
 	private fun disposeFont(font: BitmapFont) {
-		// The font owns its glyph atlas textures (we never pass a shared packer); incremental FreeType font data
-		// additionally holds a PixmapPacker whose pixmaps must be released separately.
+		// font.dispose() is safe: generateFont sets setOwnsTexture(parameter.packer == null), so a shared-packer
+		// font does not own the page and will not free it.
 		font.dispose()
-		(font.data as? Disposable)?.dispose()
+		// data.dispose() is NOT safe here, and this is a genuine trap in libGDX rather than a subtlety of ours:
+		// FreeTypeBitmapFontData.dispose() disposes its `packer` field unconditionally, and generateFont assigns
+		// that field whenever `incremental` is set - not only when it created the packer itself. Calling it would
+		// have the first disposed font destroy the atlas every other font and the entire skin draw from.
+		if (!usesSharedPacker) (font.data as? Disposable)?.dispose()
 	}
+
+	/**
+	 * The atlas glyphs are packed into, or null when there is no skin to share one with.
+	 *
+	 * Resolved per call rather than cached: the skin is rebuilt between tests and after a teardown, and a stale
+	 * packer would hand FreeType a page whose texture is gone.
+	 */
+	private fun sharedGlyphPacker(): com.badlogic.gdx.graphics.g2d.PixmapPacker? =
+		runCatching { MetaSkin.sharedPacker() }.getOrNull().also { usesSharedPacker = it != null }
+
+	/** Whether the fonts currently in the caches were packed into a shared atlas. See [disposeFont]. */
+	private var usesSharedPacker = false
 
 	override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) {
 		spriteBatch.color = Color.WHITE
@@ -370,6 +387,10 @@ class MetaFontProvider : FontProvider {
 	): FreeTypeFontGenerator.FreeTypeFontParameter {
 		return FreeTypeFontGenerator.FreeTypeFontParameter().apply {
 			incremental = true
+			// Glyphs go on the skin's atlas page. Without this, a widget's background and its text come from
+			// different textures and SpriteBatch flushes between them, so a row of buttons costs two draw calls
+			// each no matter how few textures exist in total.
+			packer = sharedGlyphPacker()
 			// FreeType rasterizes anti-aliased coverage into the oversampled atlas. Linear filtering preserves that
 			// coverage when the atlas is reduced back to logical size or enlarged by the world camera.
 			minFilter = Texture.TextureFilter.Linear

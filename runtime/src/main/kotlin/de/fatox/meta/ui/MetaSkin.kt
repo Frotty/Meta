@@ -62,10 +62,11 @@ object MetaSkin {
 
 	private const val INSTALLED_COLOR = "meta.skin.installed"
 	/**
-	 * One page holds every generated patch with room to spare: roughly 132k pixels of content against 262k here.
-	 * A second page would simply mean a second bind, so overflow degrades rather than breaks.
+	 * Sized for chrome *and* glyphs, because they share it - see [sharedPacker]. The chrome is about 132k pixels;
+	 * the rest is headroom for every font size an application rasterizes, including the extra sets a UI-scale
+	 * change adds. Overflow spills to a second page, which costs a bind rather than breaking anything.
 	 */
-	private const val ATLAS_PAGE_SIZE = 512
+	private const val ATLAS_PAGE_SIZE = 2048
 	/**
 	 * Two pixels, with duplicated borders, so linear filtering cannot sample a neighbour.
 	 *
@@ -179,6 +180,17 @@ object MetaSkin {
 
 	/** How many atlas pages the generated chrome occupies. One means every patch shares a texture. */
 	val atlasPageCount: Int get() = packer?.pages?.size ?: 0
+
+	/**
+	 * The page that generated chrome lives on, so glyphs can be packed beside it.
+	 *
+	 * This is the whole draw-call story. Scene2d draws a widget's background then its text, so with chrome and
+	 * glyphs on separate textures the batch flushes between the two - twenty buttons cost forty draw calls against
+	 * only two textures. Sharing one page means there is nothing to switch to and the screen collapses to one.
+	 *
+	 * Null until the skin has been installed. [MetaFontProvider] passes it to FreeType; nothing else should.
+	 */
+	internal fun sharedPacker(): PixmapPacker = requirePacker()
 
 	fun skin(): Skin = activeSkin ?: error("MetaSkin has not been initialized")
 
