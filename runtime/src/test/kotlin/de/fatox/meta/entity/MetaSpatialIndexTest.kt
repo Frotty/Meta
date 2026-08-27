@@ -214,6 +214,32 @@ class MetaSpatialIndexTest {
 	}
 
 	@Test
+	fun `an entity is never left linked to a cell it has left`() {
+		// The failure a cached-bounds fast path produced: the cached edges are `cell * cellSize` while membership
+		// is `floor(x / cellSize)`, two different float computations that disagree near boundaries. A search found
+		// 82,201 coordinates where the box said "still here" and the cell had changed, leaving the entity linked
+		// to the wrong cell so a query at its real position missed it.
+		//
+		// Walks coordinates across boundaries at cell sizes that do not divide evenly in binary, where the two
+		// computations are most likely to part company.
+		for (cellSize in floatArrayOf(0.1f, 0.3f, 0.7f, 3.3f, 7.7f)) {
+			val index = MetaSpatialIndex(cellSize = cellSize)
+			val xs = FloatArray(1)
+			val ys = FloatArray(1)
+			var coordinate = -20f
+			while (coordinate < 20f) {
+				xs[0] = coordinate
+				ys[0] = coordinate
+				index.update(xs, ys, 1)
+				var found = false
+				index.forEachInBounds(coordinate, coordinate, coordinate, coordinate, margin = 0f) { found = true }
+				assertTrue(found) { "cellSize=$cellSize: the entity at $coordinate could not find itself" }
+				coordinate = Math.nextUp(coordinate + cellSize / 3f)
+			}
+		}
+	}
+
+	@Test
 	fun `spanning cost survives coordinates that overflow an int cell index`() {
 		// The method exists to warn a caller off a ruinous query, so it is the one place an arithmetic wrap is
 		// worst: subtracting Int cell indices near the extremes produces a small or negative span, telling the

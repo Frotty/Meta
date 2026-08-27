@@ -14,8 +14,8 @@ enum class MetaSpatialPlane {
 /**
  * Which entities are near a place, maintained by updating rather than rebuilding.
  *
- * Entities are filed into grid cells and stay there. [update] asks four float compares per entity - "is it still
- * inside the cell it was in?" - and re-files only the few that crossed a boundary. Nothing is re-sorted, nothing is
+ * Entities are filed into grid cells and stay there. [update] computes each entity's cell and compares it with the
+ * one it was filed under, re-filing only the few that crossed a boundary. Nothing is re-sorted, nothing is
  * reallocated, and a scene where most things are still costs almost nothing to maintain.
  *
  * A structure rebuilt every frame spends longer filing entities than a linear scan spends testing them, which makes
@@ -94,19 +94,6 @@ class MetaSpatialIndex(
 	private var bucketOfSlot = IntArray(0)
 	private var filed = BooleanArray(0)
 
-	/**
-	 * The world-space bounds of the cell each entity was filed into.
-	 *
-	 * Redundant with [cellX]/[cellY] and kept anyway, because it makes the per-frame question cheap. Asking "which
-	 * cell is this in now" costs a multiply, a floor and an int conversion per axis; asking "is it still inside the
-	 * box it was in" is four float compares that vectorize and never leave the FPU. The first form measured slower
-	 * per entity than the trivial cull it exists to avoid, which made the whole index a loss.
-	 */
-	private var boundMinX = FloatArray(0)
-	private var boundMaxX = FloatArray(0)
-	private var boundMinY = FloatArray(0)
-	private var boundMaxY = FloatArray(0)
-
 	/** How many slots the index currently holds. */
 	var size: Int = 0
 		private set
@@ -158,26 +145,18 @@ class MetaSpatialIndex(
 
 		var moved = 0
 		for (slot in 0 until count) {
-			val x = horizontal[slot]
-			val y = vertical[slot]
-			// The whole point: for most entities on most frames these four compares are the entire cost, and they
-			// vectorize. Only an entity that has actually left its cell pays for the arithmetic below.
-			if (filed[slot] &&
-				x >= boundMinX[slot] && x < boundMaxX[slot] &&
-				y >= boundMinY[slot] && y < boundMaxY[slot]
-			) {
-				continue
-			}
-			val cx = cellOf(x)
-			val cy = cellOf(y)
-			// The float bounds are a fast approximation and can be wrong in one direction: they can claim an
-			// entity moved when it did not. A cell interval is two adjacent cell edges rounded to Float, and past
-			// 2^24 those round to the same value - at cellSize 1 and x = 20,000,000 the interval is empty, so the
-			// test above fails forever and a stationary entity is unlinked and relinked every frame. At
-			// Int.MAX_VALUE the upper edge wraps negative and inverts it outright.
+			// Compute the cell and compare it. An earlier version cached each entity's cell as float bounds and
+			// asked "is it still inside the box", which was 11us/frame cheaper at 6,000 entities and wrong: the
+			// cached edges are `cell * cellSize` while membership is `floor(x / cellSize)`, two different float
+			// computations that disagree near boundaries. A search over 2.9M probes found 82,201 coordinates where
+			// the box said "still here" and the cell had actually changed - the entity stayed linked to the wrong
+			// cell and queries missed it, which is the one thing a broad-phase may never do.
 			//
-			// Confirming against the cell itself costs a floor per apparently-moved entity, which is the rare
-			// case, and makes the fast path an optimisation rather than the source of truth.
+			// Math.floor is intrinsified and this loop vectorizes, so the exact form costs about 10us per frame at
+			// that size. Cheap enough that buying it back with four extra arrays and a rounding hazard was a bad
+			// trade twice over.
+			val cx = cellOf(horizontal[slot])
+			val cy = cellOf(vertical[slot])
 			if (filed[slot] && cellX[slot] == cx && cellY[slot] == cy) continue
 			if (filed[slot]) unlink(slot)
 			link(slot, cx, cy)
@@ -270,10 +249,6 @@ class MetaSpatialIndex(
 		cellX[slot] = x
 		cellY[slot] = y
 		bucketOfSlot[slot] = bucket
-		boundMinX[slot] = x * cellSize
-		boundMaxX[slot] = (x + 1) * cellSize
-		boundMinY[slot] = y * cellSize
-		boundMaxY[slot] = (y + 1) * cellSize
 		filed[slot] = true
 	}
 
@@ -334,10 +309,6 @@ class MetaSpatialIndex(
 		cellY = cellY.copyOf(grown)
 		bucketOfSlot = bucketOfSlot.copyOf(grown)
 		filed = filed.copyOf(grown)
-		boundMinX = boundMinX.copyOf(grown)
-		boundMaxX = boundMaxX.copyOf(grown)
-		boundMinY = boundMinY.copyOf(grown)
-		boundMaxY = boundMaxY.copyOf(grown)
 	}
 
 	companion object {

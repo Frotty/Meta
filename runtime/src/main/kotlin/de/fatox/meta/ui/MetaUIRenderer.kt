@@ -113,13 +113,17 @@ class MetaUIRenderer : UIRenderer {
 	private var lastReportedScrollFocus: Actor? = null
 
 	/**
-	 * The scale this renderer last chose for itself, or NaN before it has chosen one.
+	 * True once anything other than this renderer has written [uiScale].
 	 *
-	 * Recorded so an automatic re-evaluation can tell its own previous answer from a value a game or a settings
-	 * slider put there. Moving a window between monitors of different density has to re-suggest a scale; silently
-	 * overwriting a scale the player chose would be worse than not following the monitor at all.
+	 * Provenance, not value. Comparing against the last automatic scale looked equivalent and is not: a player who
+	 * selects the value the renderer had already chosen - or returns to it later - is indistinguishable from
+	 * nobody having chosen anything, and the next monitor change would overwrite a deliberate choice. Recording
+	 * *who* wrote it cannot make that mistake.
 	 */
-	private var lastAutomaticScale: Float = Float.NaN
+	private var scaleChosenByUser = false
+
+	/** Set only while this renderer is assigning [uiScale], so its own write is not mistaken for a user's. */
+	private var applyingAutomaticScale = false
 
 	override val uiScale: Signal<Float> = signal(1f) { a, b -> abs(a - b) < 0.001f }
 
@@ -227,6 +231,9 @@ class MetaUIRenderer : UIRenderer {
 		// change (e.g. a settings slider), and seed the default from the display. Games may override uiScale.value
 		// afterwards with a user-chosen / persisted value.
 		reactiveScope.subscribe(uiScale) {
+			// Any write not made by applySuggestedScale is somebody else's choice, and from here on the renderer
+			// stops re-suggesting. This is the only place every write passes through.
+			if (!applyingAutomaticScale) scaleChosenByUser = true
 			applyViewport(Gdx.graphics.width, Gdx.graphics.height)
 			// Fonts are rasterized per scale: walk the stage so every widget that caches a font re-fetches it from
 			// the (now regenerated) provider, then release the orphaned old-scale fonts. Order matters: dispose only
@@ -254,17 +261,18 @@ class MetaUIRenderer : UIRenderer {
 	/**
 	 * Re-evaluates the automatic scale, unless something else has set one.
 	 *
-	 * The override test is "is the current value still exactly what I last put there" rather than a flag, because
-	 * a flag has to be maintained at every write site and this cannot drift out of step with reality. Reading back
-	 * after assigning matters too: [uiScale] treats changes below a thousandth as no change, so what it holds is
-	 * not always what was offered.
+	 * A scale the game or the player set is left alone. That is decided by who wrote the value rather than by what
+	 * the value is, because the two are not the same question: choosing the scale the renderer had already picked,
+	 * or returning to it later, is a deliberate choice that value comparison cannot see.
 	 */
 	private fun applySuggestedScale() {
-		val current = uiScale.peek()
-		val chosenByUs = lastAutomaticScale.isNaN() || current == lastAutomaticScale
-		if (!chosenByUs) return
-		uiScale.value = suggestedUiScale()
-		lastAutomaticScale = uiScale.peek()
+		if (scaleChosenByUser) return
+		applyingAutomaticScale = true
+		try {
+			uiScale.value = suggestedUiScale()
+		} finally {
+			applyingAutomaticScale = false
+		}
 	}
 
 	override fun armStartupTransition(durationSeconds: Float, delayFrames: Int) {
