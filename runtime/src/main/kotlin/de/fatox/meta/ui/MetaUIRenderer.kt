@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.MonitorHandler
 import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
@@ -23,6 +24,7 @@ import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.FocusRenderer
 import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.ReactiveScope
@@ -48,6 +50,7 @@ fun suggestedUiScale(): Float = suggestedUiScale(
 	backBufferWidth = Gdx.graphics.backBufferWidth,
 	backBufferHeight = Gdx.graphics.backBufferHeight,
 	density = Gdx.graphics.density,
+	osContentScale = runCatching { MetaInject.inject<MonitorHandler>().osContentScale }.getOrDefault(1f),
 )
 
 internal fun suggestedUiScale(
@@ -56,13 +59,22 @@ internal fun suggestedUiScale(
 	backBufferWidth: Int,
 	backBufferHeight: Int,
 	density: Float,
+	osContentScale: Float = 1f,
 ): Float {
 	if (logicalWidth <= 0 || logicalHeight <= 0 || backBufferWidth <= 0 || backBufferHeight <= 0) return 1f
 	val contentScaleX = backBufferWidth.toFloat() / logicalWidth
 	val contentScaleY = backBufferHeight.toFloat() / logicalHeight
-	// OS scaling already makes logical pixels larger. Applying Meta scaling too would double-scale the UI.
+	// The framebuffer is already bigger than the window, so the platform is scaling for us - macOS Retina. Scaling
+	// again here would double it.
 	if (contentScaleX > 1.1f || contentScaleY > 1.1f) return 1f
-	// Resolution or EDID density alone is ambiguous; require both, and reject implausible EDID values.
+	// Windows is the opposite case and the one that used to fall through to "no scaling". A DPI-aware process gets
+	// a framebuffer exactly the size it asked for, so the ratio above is always 1.0 no matter what the display
+	// settings say - the window is simply physically smaller on a dense panel. The OS scale is the only signal
+	// that the user asked for a larger interface, and matching it is what every other application on the desktop
+	// does. Clamped because a bad platform reading should not make the UI unusable in either direction.
+	if (osContentScale > 1.05f) return osContentScale.coerceIn(1f, MAX_OS_CONTENT_SCALE)
+	// No OS scaling to follow. Resolution or EDID density alone is ambiguous, so require both and reject
+	// implausible EDID values.
 	if (density !in 1.4f..4f) return 1f
 	return when {
 		backBufferWidth >= 5120 && backBufferHeight >= 2880 && density >= 2f -> 1.5f
@@ -70,6 +82,9 @@ internal fun suggestedUiScale(
 		else -> 1f
 	}
 }
+
+/** Windows offers up to 350% in its own settings; beyond that a reading is more likely wrong than extreme. */
+private const val MAX_OS_CONTENT_SCALE = 4f
 
 class MetaUIRenderer : UIRenderer {
 	private var focusedActor: Actor? = null
@@ -215,7 +230,9 @@ class MetaUIRenderer : UIRenderer {
 		val g = Gdx.graphics
 		log.debug {
 			"UI scale = ${uiScale.value} | logical ${g.width}x${g.height} | backbuffer ${g.backBufferWidth}x" +
-				"${g.backBufferHeight} | contentScale ${g.backBufferWidth.toFloat() / g.width} | density ${g.density}"
+				"${g.backBufferHeight} | contentScale ${g.backBufferWidth.toFloat() / g.width} | density " +
+				"${g.density} | osScale ${runCatching { MetaInject.inject<MonitorHandler>().osContentScale }
+					.getOrDefault(1f)}"
 		}
 	}
 
