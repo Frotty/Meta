@@ -23,6 +23,8 @@ import de.fatox.meta.api.ui.WindowConfig
 import de.fatox.meta.api.model.MetaAudioVideoData
 import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.assets.MetaData
+import de.fatox.meta.concurrent.MetaJobs
+import de.fatox.meta.concurrent.MetaThreads
 import de.fatox.meta.assets.load
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -105,6 +107,20 @@ abstract class Meta(
 
 	final override fun create() {
 		instance = this
+		// Claimed before anything else runs, so every later guard has an owner to compare against. This is the
+		// render thread: libGDX calls create() on it and calls render() on it forever after.
+		MetaThreads.claimMainThread()
+		// Before anything else resolves a service. The platform handlers are constructor arguments, but engine code
+		// reaches them through the injection graph rather than through `instance`: a static singleton is not
+		// resolvable in a unit test, and reaching for one was why MetaAudioVideoData, MultisampleFBO and the sound
+		// system had no coverage. Registered first so MetaModule's No*Handler defaults find these already present
+		// and leave them alone, and so a game's own `injection()` can still replace one deliberately.
+		MetaInject.global {
+			singleton<WindowHandler> { windowHandler }
+			singleton<MonitorHandler> { monitorHandler }
+			singleton<SoundHandler> { soundHandler }
+			singleton<GraphicsHandler> { graphicsHandler }
+		}
 		MetaInject.injection()
 		MetaModule.initialize()
 		uiManager.windowHandler = windowHandler
@@ -129,9 +145,28 @@ abstract class Meta(
 		changeScreen(firstScreen)
 	}
 
+	/**
+	 * Applies finished background work, then renders the frame.
+	 *
+	 * Here rather than in `UIRenderer.update()` because that is called by each screen and a screen may not call it
+	 * at all - a drain point a consumer can forget is not a drain point. Before `super.render()`, so a result that
+	 * rebuilds UI is visible in the frame that follows it rather than the one after.
+	 *
+	 * An override that does not call `super.render()` stops background results being applied; if you need to take
+	 * over the frame, call [MetaJobs.drainCompletions] yourself.
+	 */
+	override fun render() {
+		MetaJobs.drainCompletions()
+		super.render()
+	}
+
 	override fun dispose() {
+		// Before the services background work might still be holding: a job that wakes up after its asset provider
+		// is gone would fail in a way nobody can act on.
+		MetaJobs.shutdown()
 		uiManager.dispose()
 		assetProvider.dispose()
+		MetaThreads.releaseMainThread()
 	}
 
 	@Suppress("unused")
@@ -143,9 +178,11 @@ abstract class Meta(
 		/**
 		 * The running application, or null when there is none.
 		 *
-		 * An application may use Meta's UI layer, asset pipeline or [de.fatox.meta.api.SplashScreen] without
-		 * adopting this class, in which case [instance] is never assigned and reading it throws. Engine code that
-		 * only wants the window or the screen timing when they exist reads this instead.
+		 * A consuming game extends this class, so in a running game [instance] is always assigned. This exists for
+		 * the case where it is not: a unit test, which never boots an application. Engine code should not reach for
+		 * either accessor to find a service - platform handlers live in the injection graph precisely so that a
+		 * test can supply them. [canChangeScreen] is the one legitimate caller, because "no application" genuinely
+		 * means "nothing to throttle".
 		 */
 		@JvmStatic
 		val instanceOrNull: Meta?
