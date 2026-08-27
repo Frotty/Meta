@@ -40,6 +40,12 @@ dependencies {
 tasks {
 	test {
 		useJUnitPlatform()
+		// The frame-cost gates belong to perfCheck alone. Left in, they ran twice per build, and a budget
+		// regression failed this step instead of the one named for it - so CI reported "a test broke" and never
+		// reached the step whose whole purpose is to say which budget moved.
+		filter {
+			excludeTestsMatching 'de.fatox.meta.perf.*'
+		}
 	}
 }
 

@@ -1,6 +1,5 @@
 package de.fatox.meta.concurrent
 
-import com.badlogic.gdx.Gdx
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.error
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -124,8 +123,16 @@ object MetaJobs {
 				if (job.isCancelled) return@submit
 				completions.add {
 					if (!job.isCancelled) {
-						onDone(result)
-						job.markComplete()
+						// The job has to reach a terminal state even when the caller's completion throws.
+						// Leaving it RUNNING keeps isActive true forever, so its MetaJobScope retains it through
+						// every later sweep - a slow leak in exactly the code that exists to prevent leaks.
+						try {
+							onDone(result)
+							job.markComplete()
+						} catch (completionFailure: Throwable) {
+							job.markFailed(completionFailure)
+							throw completionFailure
+						}
 					}
 				}
 				completed.incrementAndGet()
@@ -141,6 +148,16 @@ object MetaJobs {
 		}
 		job.attach(future)
 		return job
+	}
+
+	/**
+	 * Queues [block] for the main thread. Backs [onMainThread]; see there for why this is not `postRunnable`.
+	 *
+	 * Safe from any thread, including before an application exists: the block waits in the queue until something
+	 * drains it, rather than running on the caller.
+	 */
+	fun postToMainThread(block: () -> Unit) {
+		completions.add(block)
 	}
 
 	/**
@@ -215,7 +232,14 @@ fun MetaJobs.ioAndForget(scope: MetaJobScope? = null, work: () -> Unit): MetaJob
 fun MetaJobs.computeAndForget(scope: MetaJobScope? = null, work: () -> Unit): MetaJob =
 	compute(scope, work) { }
 
-/** Posts [block] to run on the main thread on a later frame, through the same drain path as job results. */
+/**
+ * Queues [block] to run on the main thread on a later frame, through the same bounded drain as job results.
+ *
+ * Not `Gdx.app.postRunnable`: that queue is drained by libGDX in one go at a point the frame does not choose, so a
+ * burst posted through it lands entirely in one frame and defeats [MetaJobs.DEFAULT_DRAIN_BUDGET]. And it is not a
+ * direct call when no application is running either - a function named `onMainThread` that executes on whichever
+ * worker happened to call it is worse than one that throws.
+ */
 fun onMainThread(block: () -> Unit) {
-	if (Gdx.app != null) Gdx.app.postRunnable(block) else block()
+	MetaJobs.postToMainThread(block)
 }

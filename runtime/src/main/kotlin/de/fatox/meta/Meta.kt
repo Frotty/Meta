@@ -25,6 +25,7 @@ import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.concurrent.MetaJobs
 import de.fatox.meta.concurrent.MetaThreads
+import de.fatox.meta.entity.MetaEntityWorld
 import de.fatox.meta.assets.load
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -158,6 +159,9 @@ abstract class Meta(
 	override fun render() {
 		MetaJobs.drainCompletions()
 		super.render()
+		// After the frame, so the tally covers exactly one frame's transform accesses. Without this it accumulates
+		// for the life of the application and eventually reports ordinary gameplay as a bulk loop.
+		MetaEntityWorld.endFrame()
 	}
 
 	override fun dispose() {

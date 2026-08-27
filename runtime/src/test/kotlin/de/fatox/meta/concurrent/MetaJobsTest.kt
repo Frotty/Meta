@@ -223,6 +223,58 @@ class MetaJobsTest {
 	}
 
 	@Test
+	fun `a signal written from a worker thread throws instead of corrupting the graph`() {
+		// The protection MetaThreads advertises, wired to the funnel it names. Without it a worker's write runs the
+		// dependent effects on that worker, mutating scene2d from off the render thread with nothing to show for it
+		// until something breaks frames later somewhere else.
+		val signal = de.fatox.meta.reactive.signal(0)
+		val primitive = de.fatox.meta.reactive.intSignal(0)
+		val thrown = AtomicReference<Throwable>()
+		val primitiveThrown = AtomicReference<Throwable>()
+
+		val worker = Thread({
+			thrown.set(runCatching { signal.value = 1 }.exceptionOrNull())
+			primitiveThrown.set(runCatching { primitive.intValue = 1 }.exceptionOrNull())
+		}, "signal-writer")
+		worker.start()
+		worker.join(5_000)
+
+		assertTrue(thrown.get() is WrongThreadException, "A generic signal write from a worker must throw")
+		assertTrue(primitiveThrown.get() is WrongThreadException, "A primitive signal write from a worker must throw")
+		// The values must be untouched: the guard has to reject before mutating, not after.
+		assertEquals(0, signal.value)
+		assertEquals(0, primitive.intValue)
+	}
+
+	@Test
+	fun `a completion that throws still reaches a terminal state`() {
+		// Otherwise the job stays RUNNING forever, isActive never clears, and its scope retains it through every
+		// later sweep - a leak in the code whose job is preventing leaks.
+		val scope = MetaJobScope()
+		MetaJobs.onJobFailure = { }
+		val job = scope.io(work = { "value" }) { error("completion blew up") }
+
+		assertTrue(pumpUntil { !job.isActive }, "Job never left RUNNING after its completion threw")
+		assertTrue(job.isFailed)
+		assertNotNull(job.failure)
+		assertEquals("completion blew up", job.failure!!.message)
+		scope.dispose()
+	}
+
+	@Test
+	fun `onMainThread queues rather than running on the caller`() {
+		// A helper named onMainThread that executes on whichever worker called it is worse than one that throws.
+		val ranOn = AtomicReference<Thread>()
+		val worker = Thread({ onMainThread { ranOn.set(Thread.currentThread()) } }, "poster")
+		worker.start()
+		worker.join(5_000)
+
+		assertNull(ranOn.get(), "The block ran on the posting thread instead of waiting for the main thread")
+		MetaJobs.drainCompletions()
+		assertEquals(Thread.currentThread(), ranOn.get(), "The block must run on the main thread once drained")
+	}
+
+	@Test
 	fun `draining from a worker thread is refused`() {
 		val thrown = AtomicReference<Throwable>()
 		val worker = Thread({ thrown.set(runCatching { MetaJobs.drainCompletions() }.exceptionOrNull()) }, "drainer")
