@@ -127,6 +127,15 @@ class MetaEntityWorldTest {
 		assertThrows(IllegalStateException::class.java) {
 			world.store.forEachSlot { world.remove(world.entities.get(0)) }
 		}
+
+		// Throwing is not enough: the refusal has to happen before anything is modified. remove() swaps and shrinks
+		// the entity list first, so a guard that only fired inside store.release left the list reordered and one
+		// short against an untouched store - the world corrupted on the way out of its own safety check. Asserting
+		// only the exception passes either way, which is what made this silent.
+		world.validate()
+		assertEquals(4, world.size)
+		assertEquals(4, world.store.count)
+		assertFalse(extra.isBound, "The refused add must not have bound its entity")
 	}
 
 	@Test

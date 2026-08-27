@@ -140,6 +140,14 @@ object MetaJobs {
 				Thread.currentThread().interrupt()
 				job.markCancelled()
 			} catch (failure: Throwable) {
+				// Interruption does not always arrive as InterruptedException. Cancelling a job blocked in NIO
+				// surfaces as ClosedByInterruptException, an IOException, and lands here. Reporting that would fire
+				// the game's failure handler during ordinary screen teardown - a spurious error toast every time a
+				// scope with a pending file read is disposed, which is how an error handler stops being trusted.
+				if (job.isCancelled) {
+					Thread.interrupted() // clear the flag so the pooled carrier thread is reusable
+					return@submit
+				}
 				failed.incrementAndGet()
 				job.markFailed(failure)
 				// Reported on the main thread, not swallowed on a worker where nothing would ever see it.

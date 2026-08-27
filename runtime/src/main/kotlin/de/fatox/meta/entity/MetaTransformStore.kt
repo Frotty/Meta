@@ -86,7 +86,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 * "nothing renders" is a genuinely hard thing to trace back to a defaulted array.
 	 */
 	internal fun allocate(entity: MetaEntity): Int {
-		check(!iterating) { "Cannot add an entity while a system is iterating this store" }
+		checkMutable("add an entity")
 		if (count == capacity) grow()
 		val slot = count++
 		owners[slot] = entity
@@ -103,7 +103,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 * The moved entity is told its new slot here, which is why nothing outside this class may hold a raw index.
 	 */
 	internal fun release(slot: Int) {
-		check(!iterating) { "Cannot remove an entity while a system is iterating this store" }
+		checkMutable("remove an entity")
 		require(slot in 0 until count) { "Slot $slot is not live (count=$count)" }
 		val last = count - 1
 		if (slot != last) {
@@ -118,6 +118,17 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		}
 		owners[last] = null
 		count = last
+	}
+
+	/**
+	 * Throws if a system is walking this store, naming [action].
+	 *
+	 * Public so a caller that mutates more than the columns can refuse *before* it changes anything of its own.
+	 * [MetaEntityWorld.remove] has to: it swaps its own entity list first, so discovering the problem inside
+	 * [release] would leave the list shortened and reordered against a store that never changed.
+	 */
+	fun checkMutable(action: String) {
+		check(!iterating) { "Cannot $action while a system is iterating this store" }
 	}
 
 	/** The entity in [slot], for diagnostics. Null outside the live range. */
@@ -154,7 +165,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 
 	/** Releases every entity and empties the store. Entities are unbound and must be re-added to be used again. */
 	fun clear() {
-		check(!iterating) { "Cannot clear this store while a system is iterating it" }
+		checkMutable("clear the store")
 		for (slot in 0 until count) {
 			owners[slot]?.unbind()
 			owners[slot] = null

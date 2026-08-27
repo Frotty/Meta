@@ -275,6 +275,37 @@ class MetaJobsTest {
 	}
 
 	@Test
+	fun `cancellation surfacing as an IOException is not reported as a failure`() {
+		// Interruption does not always arrive as InterruptedException: cancelling a job blocked in NIO throws
+		// ClosedByInterruptException, an IOException. Reporting that fires the game's failure handler during
+		// ordinary teardown - a spurious error every time a scope with a pending read is disposed.
+		val scope = MetaJobScope()
+		val reported = AtomicReference<Throwable>()
+		MetaJobs.onJobFailure = { reported.set(it) }
+		val entered = CountDownLatch(1)
+		val failuresBefore = MetaJobs.failedCount
+
+		val job = scope.io(work = {
+			entered.countDown()
+			try {
+				Thread.sleep(10_000)
+			} catch (interrupted: InterruptedException) {
+				// Re-thrown as the checked exception NIO would raise, so the generic catch handles it.
+				throw java.nio.channels.ClosedByInterruptException()
+			}
+			"never"
+		}) { }
+
+		assertTrue(entered.await(5, TimeUnit.SECONDS), "The job never started")
+		scope.dispose()
+
+		pumpUntil(timeoutMillis = 1_000) { false }
+		assertNull(reported.get(), "Cancelling a blocked job reported a spurious failure")
+		assertEquals(failuresBefore, MetaJobs.failedCount, "Cancellation must not count as a failure")
+		assertTrue(job.isCancelled)
+	}
+
+	@Test
 	fun `draining from a worker thread is refused`() {
 		val thrown = AtomicReference<Throwable>()
 		val worker = Thread({ thrown.set(runCatching { MetaJobs.drainCompletions() }.exceptionOrNull()) }, "drainer")

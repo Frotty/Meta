@@ -70,6 +70,10 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 	 */
 	fun remove(entity: MetaEntity): Boolean {
 		if (!entity.isBound || entity.store !== store) return false
+		// Before either structure changes. The entity list is swapped and shrunk below, so letting `release`
+		// discover the iteration would leave the list reordered and one shorter against a store that never moved -
+		// the guard would throw and corrupt the world on its way out.
+		store.checkMutable("remove an entity")
 		val slot = entity.slot
 		val last = liveEntities.size - 1
 		// Mirror the store's swap so entities and slots stay in lockstep; the store patches the moved entity.
