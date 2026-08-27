@@ -174,6 +174,21 @@ class MetaSpatialIndexTest {
 	}
 
 	@Test
+	fun `spanning cost survives coordinates that overflow an int cell index`() {
+		// The method exists to warn a caller off a ruinous query, so it is the one place an arithmetic wrap is
+		// worst: subtracting Int cell indices near the extremes produces a small or negative span, telling the
+		// caller a multi-billion-cell walk is cheap.
+		val index = MetaSpatialIndex(cellSize = 1f)
+		index.update(floatArrayOf(0f), floatArrayOf(0f), 1)
+
+		val span = index.cellsSpanned(-2_000_000_000f, -2_000_000_000f, 2_000_000_000f, 2_000_000_000f, margin = 0f)
+		assertTrue(span > 1_000_000_000L) { "cellsSpanned reported $span for a multi-billion-cell query" }
+
+		// And a tight query still reports something small, so the fix did not simply saturate everything.
+		assertTrue(index.cellsSpanned(0f, 0f, 4f, 4f, margin = 0f) < 100L)
+	}
+
+	@Test
 	fun `construction arguments are validated rather than silently wrong`() {
 		assertThrows(IllegalArgumentException::class.java) { MetaSpatialIndex(cellSize = 0f) }
 		assertThrows(IllegalArgumentException::class.java) { MetaSpatialIndex(cellSize = -8f) }

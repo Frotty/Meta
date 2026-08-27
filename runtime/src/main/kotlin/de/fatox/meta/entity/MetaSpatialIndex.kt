@@ -229,8 +229,15 @@ class MetaSpatialIndex(
 		margin: Float,
 	): Long {
 		if (size == 0) return 0
-		val across = (cellIndexOf(maxHorizontal + margin) - cellIndexOf(minHorizontal - margin) + 1).toLong()
-		val down = (cellIndexOf(maxVertical + margin) - cellIndexOf(minVertical - margin) + 1).toLong()
+		// Widened to Long before subtracting, not after. Cell indices reach into the billions for a small cell
+		// size and a far-flung coordinate, and an Int subtraction there wraps - so this method could report a
+		// small or negative span for exactly the multi-billion-cell query it exists to warn about.
+		val across = cellIndexOf(maxHorizontal + margin).toLong() - cellIndexOf(minHorizontal - margin).toLong() + 1L
+		val down = cellIndexOf(maxVertical + margin).toLong() - cellIndexOf(minVertical - margin).toLong() + 1L
+		if (across <= 0L || down <= 0L) return 0
+		// The product overflows too once both axes are large; saturate rather than wrap, since every caller is
+		// asking "is this too big" and a wrapped answer says no.
+		if (across > Long.MAX_VALUE / down) return Long.MAX_VALUE
 		return across * down
 	}
 

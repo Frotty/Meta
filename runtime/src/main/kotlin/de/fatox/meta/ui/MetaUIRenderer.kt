@@ -112,6 +112,15 @@ class MetaUIRenderer : UIRenderer {
 	private var lastScrollHoverPane: Actor? = null
 	private var lastReportedScrollFocus: Actor? = null
 
+	/**
+	 * The scale this renderer last chose for itself, or NaN before it has chosen one.
+	 *
+	 * Recorded so an automatic re-evaluation can tell its own previous answer from a value a game or a settings
+	 * slider put there. Moving a window between monitors of different density has to re-suggest a scale; silently
+	 * overwriting a scale the player chose would be worse than not following the monitor at all.
+	 */
+	private var lastAutomaticScale: Float = Float.NaN
+
 	override val uiScale: Signal<Float> = signal(1f) { a, b -> abs(a - b) < 0.001f }
 
 	// The stage's world size already is physical-pixels ÷ unitsPerPixel (= ÷ uiScale) — i.e. UI units.
@@ -225,7 +234,7 @@ class MetaUIRenderer : UIRenderer {
 			stage.root.refreshFontsRecursively()
 			fontProvider.disposeOrphanedFonts()
 		}
-		uiScale.value = suggestedUiScale()
+		applySuggestedScale()
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
 		val g = Gdx.graphics
 		log.debug {
@@ -238,8 +247,24 @@ class MetaUIRenderer : UIRenderer {
 
 	override fun refreshStartupDisplay() {
 		if (!loaded || disposed) return
-		uiScale.value = suggestedUiScale()
+		applySuggestedScale()
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
+	}
+
+	/**
+	 * Re-evaluates the automatic scale, unless something else has set one.
+	 *
+	 * The override test is "is the current value still exactly what I last put there" rather than a flag, because
+	 * a flag has to be maintained at every write site and this cannot drift out of step with reality. Reading back
+	 * after assigning matters too: [uiScale] treats changes below a thousandth as no change, so what it holds is
+	 * not always what was offered.
+	 */
+	private fun applySuggestedScale() {
+		val current = uiScale.peek()
+		val chosenByUs = lastAutomaticScale.isNaN() || current == lastAutomaticScale
+		if (!chosenByUs) return
+		uiScale.value = suggestedUiScale()
+		lastAutomaticScale = uiScale.peek()
 	}
 
 	override fun armStartupTransition(durationSeconds: Float, delayFrames: Int) {
@@ -343,6 +368,10 @@ class MetaUIRenderer : UIRenderer {
 	}
 
 	override fun resize(width: Int, height: Int) {
+		// A window dragged onto a monitor with different scaling arrives here, and on Windows that is the only
+		// notification: the framebuffer matches the window on both monitors, so nothing about the size says the
+		// density changed. Re-suggesting here is what makes the setting followed rather than sampled once.
+		applySuggestedScale()
 		applyViewport(width, height)
 		toastManager.resize()
 	}

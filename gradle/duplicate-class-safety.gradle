@@ -14,6 +14,12 @@ def duplicateClassTask = tasks.register('verifyNoDuplicateClasses') {
 	group = 'verification'
 	description = 'Rejects the same fully-qualified class name being produced by more than one module.'
 
+	// Depend on the classes, do not merely declare them as inputs. An input file tree is something to *watch*,
+	// not something to build: on a clean checkout this task ran in a second, scanned empty directories and passed
+	// the exact collision it exists to reject. The task paths are strings so they resolve lazily - this file is
+	// applied before the java plugin reaches the subprojects.
+	dependsOn(subprojects.collect { module -> "${module.path}:classes" })
+
 	def moduleOutputs = subprojects.collectEntries { module ->
 		[(module.name): module.fileTree("build/classes/kotlin/main") { include '**/*.class' }]
 	}
@@ -21,6 +27,7 @@ def duplicateClassTask = tasks.register('verifyNoDuplicateClasses') {
 
 	doLast {
 		def ownersByClass = [:].withDefault { [] as Set }
+		def scanned = 0
 		moduleOutputs.each { moduleName, tree ->
 			tree.visit { detail ->
 				if (detail.isDirectory()) return
@@ -30,8 +37,20 @@ def duplicateClassTask = tasks.register('verifyNoDuplicateClasses') {
 					.replaceAll(/\.class$/, '')
 					.replace('/', '.')
 				if (className.contains('$')) return
+				scanned++
 				ownersByClass[className] << moduleName
 			}
+		}
+
+		// A guard that finds nothing to inspect has to say so rather than report success. Wiring is the thing most
+		// likely to rot here - a renamed output directory, a module that stops producing Kotlin - and every one of
+		// those failures looks exactly like "no duplicates found".
+		if (scanned == 0) {
+			throw new GradleException(
+				"verifyNoDuplicateClasses found no compiled classes to inspect, so it verified nothing. " +
+					"Expected class files under <module>/build/classes/kotlin/main. Check that this task still " +
+					"depends on the modules' `classes` tasks and that the output layout has not moved."
+			)
 		}
 
 		def collisions = ownersByClass.findAll { className, owners -> owners.size() > 1 }
