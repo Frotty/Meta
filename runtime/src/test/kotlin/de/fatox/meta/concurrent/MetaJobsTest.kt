@@ -336,6 +336,37 @@ class MetaJobsTest {
 	}
 
 	@Test
+	fun `a cancel racing a failure never produces both`() {
+		// The narrow window the previous fix left open: isCancelled was checked, then cancel() landed, then
+		// markFailed's CAS lost - so the job ended CANCELLED while the failure had already been counted and queued.
+		// Gating on the CAS makes the transition the single decision, so the two outcomes are mutually exclusive.
+		// Repeated because it is a race: one pass proves nothing.
+		MetaJobs.onJobFailure = { }
+		repeat(60) {
+			val scope = MetaJobScope()
+			val started = CountDownLatch(1)
+			val failuresBefore = MetaJobs.failedCount
+			val job = scope.io(work = {
+				started.countDown()
+				Thread.sleep(2)
+				throw java.nio.channels.ClosedByInterruptException()
+			}) { }
+			started.await(5, TimeUnit.SECONDS)
+			scope.dispose()
+
+			val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2)
+			while (job.isActive && System.nanoTime() < deadline) Thread.sleep(1)
+			MetaJobs.drainCompletions()
+
+			assertFalse(job.isCancelled && job.isFailed, "A job reported both cancelled and failed")
+			// Whichever way the race went, the counter must agree with the state the job settled in.
+			val counted = MetaJobs.failedCount - failuresBefore
+			val expected = if (job.isFailed) 1L else 0L
+			assertEquals(expected, counted, "failedCount disagreed with the job's terminal state")
+		}
+	}
+
+	@Test
 	fun `draining from a worker thread is refused`() {
 		val thrown = AtomicReference<Throwable>()
 		val worker = Thread({ thrown.set(runCatching { MetaJobs.drainCompletions() }.exceptionOrNull()) }, "drainer")

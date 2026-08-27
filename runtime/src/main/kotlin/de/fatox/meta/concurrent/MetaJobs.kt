@@ -130,11 +130,12 @@ object MetaJobs {
 							onDone(result)
 							job.markComplete()
 						} catch (completionFailure: Throwable) {
-							// Counted here too. The increment used to live only in the worker-side catch, so a job
-							// whose main-thread application threw reported isFailed while failedCount ignored it -
-							// two answers to the same question, in the numbers a profiler reads.
-							failed.incrementAndGet()
-							job.markFailed(completionFailure)
+							// Counted here too, and on the same terms as the worker-side path: only a job that
+							// actually became FAILED is counted. The increment used to live only in that other
+							// catch, so a job whose main-thread application threw reported isFailed while
+							// failedCount ignored it - two answers to the same question, in the numbers a profiler
+							// reads.
+							if (job.markFailed(completionFailure)) failed.incrementAndGet()
 							throw completionFailure
 						}
 					}
@@ -148,12 +149,15 @@ object MetaJobs {
 				// surfaces as ClosedByInterruptException, an IOException, and lands here. Reporting that would fire
 				// the game's failure handler during ordinary screen teardown - a spurious error toast every time a
 				// scope with a pending file read is disposed, which is how an error handler stops being trusted.
-				if (job.isCancelled) {
+				//
+				// Gated on the CAS rather than on a prior isCancelled check: cancel() can land between checking and
+				// failing, which left the job CANCELLED while this path had already committed to reporting. The
+				// transition is the decision.
+				if (!job.markFailed(failure)) {
 					Thread.interrupted() // clear the flag so the pooled carrier thread is reusable
 					return@submit
 				}
 				failed.incrementAndGet()
-				job.markFailed(failure)
 				// Reported on the main thread, not swallowed on a worker where nothing would ever see it.
 				completions.add { reportFailure(failure) }
 			}

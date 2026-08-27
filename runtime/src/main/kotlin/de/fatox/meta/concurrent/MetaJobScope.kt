@@ -56,9 +56,19 @@ class MetaJob internal constructor() {
 		state.set(State.CANCELLED)
 	}
 
-	internal fun markFailed(cause: Throwable) {
+	/**
+	 * Records [cause] and reports whether this job actually became FAILED.
+	 *
+	 * The return value is the only race-free answer to "should this failure be counted and reported". Checking
+	 * `isCancelled` first and then failing is a TOCTOU: `cancel()` can land between the two, leaving the job
+	 * CANCELLED while the caller has already decided to report. Only the CAS knows which one won.
+	 *
+	 * [failure] is set either way, so a job cancelled out of a blocking call still carries what it threw on the way
+	 * out - useful when diagnosing a teardown, and never surfaced as an error because reporting follows the CAS.
+	 */
+	internal fun markFailed(cause: Throwable): Boolean {
 		failure = cause
-		state.compareAndSet(State.RUNNING, State.FAILED)
+		return state.compareAndSet(State.RUNNING, State.FAILED)
 	}
 
 	private enum class State { RUNNING, COMPLETE, CANCELLED, FAILED }
