@@ -17,6 +17,7 @@ import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.math.MathUtils
 import de.fatox.meta.Meta
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.use
 import de.fatox.meta.api.ui.UIRenderer
@@ -28,6 +29,9 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 private val splashLog = MetaLoggerFactory.logger {}
+
+/** Resolved per call, not cached: see MetaAudioVideoData for why a lazy delegate is wrong across test graphs. */
+private val windowHandler: WindowHandler get() = de.fatox.meta.injection.MetaInject.inject()
 
 /**
  * How much of itself the startup screen shows.
@@ -240,8 +244,9 @@ data class SplashCallbacks(
  * is advanced in slices between the UI resources and the fade-out instead of blocking [onLoaded]. Whatever is left in
  * [onLoaded] runs while the panel is gone, so keep it to handing over the first screen.
  *
- * Does not require the application to extend [Meta]. Everything it draws with comes from the injection graph, so a
- * game that only adopts Meta's UI layer can still show it.
+ * Everything it draws with - the shared `SpriteBatch`, the asset provider, the UI renderer, the window handler -
+ * comes from the injection graph rather than from [Meta.instance]. That is what lets the phase machine be driven
+ * frame by frame in a unit test instead of only by launching the editor and watching it.
  */
 class SplashScreen private constructor(
 	private val onLoaded: () -> Unit,
@@ -358,10 +363,9 @@ class SplashScreen private constructor(
 		createTextures()
 		createText()
 		updateProjection()
-		// Null when the application does not extend Meta: this screen only needs the shared SpriteBatch, the asset
-		// provider and the UI renderer, all of which come from the injection graph, so a game that uses Meta's UI
-		// layer without its Game class can show it. There is then no window handler to raise.
-		Meta.instanceOrNull?.windowHandler?.focus()
+		// From the injection graph, like everything else this screen uses. Meta.create() registers the
+		// application's handler; MetaModule's NoWindowHandler stands in for a harness that has no window to raise.
+		windowHandler.focus()
 	}
 
 	override fun dispose() {

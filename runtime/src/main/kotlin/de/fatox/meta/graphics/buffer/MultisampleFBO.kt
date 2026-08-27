@@ -26,7 +26,8 @@ import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.IntArray
-import de.fatox.meta.Meta
+import de.fatox.meta.api.GraphicsHandler
+import de.fatox.meta.injection.MetaInject.Companion.inject
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.error
 
@@ -42,6 +43,9 @@ private val log = MetaLoggerFactory.logger {}
  *
  * @author mzechner, realitix
  */
+/** Resolved per call, not cached: see MetaAudioVideoData for why a lazy delegate is wrong across test graphs. */
+private val graphicsHandler: GraphicsHandler get() = inject()
+
 class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>) : MetaFrameBuffer, Disposable {
 	/**
 	 * the color buffer texture
@@ -154,7 +158,7 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	 * Override this method in a derived class to set up the backing texture as you like.
 	 */
 	fun createTexture(attachmentSpec: FrameBufferTextureAttachmentSpec): Int {
-		return Meta.instance.graphicsHandler.createTexture(this, attachmentSpec)
+		return graphicsHandler.createTexture(this, attachmentSpec)
 	}
 
 	/**
@@ -165,7 +169,7 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	}
 
 	fun build() {
-		Meta.instance.graphicsHandler.build(this)
+		graphicsHandler.build(this)
 	}
 
 	/**

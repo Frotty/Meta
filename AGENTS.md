@@ -121,8 +121,13 @@ Allocation rate is the primary controllable JVM game-runtime cost.
 - GL-thread startup work of the application's own — its faces, atlases or a pre-built scene — belongs in
   `SplashCallbacks.startupLoad`, which the splash advances in budgeted slices while the panel animates. Anything left
   in `onLoaded` blocks a frame with the panel already gone, so keep that to handing over the first screen.
-- `SplashScreen` does not require extending `Meta`; read `Meta.instanceOrNull` rather than `Meta.instance` in engine
-  code that must work for an application which only adopts the UI layer.
+- A consuming application extends `Meta`. Using isolated pieces without it is not supported: `MetaAudioVideoData` and
+  `MultisampleFBO` always needed it, so the previous "UI layer only" allowance was true of one class and false of the
+  rest.
+- Reach platform handlers (`WindowHandler`, `MonitorHandler`, `SoundHandler`, `GraphicsHandler`) through the injection
+  graph, never through `Meta.instance`. `Meta.create` registers the application's own; `MetaModule` supplies `No*`
+  defaults, and `MetaHeadlessUi` registers them for tests. A static singleton is not resolvable in a unit test, which
+  is why the display, FBO and sound paths had no coverage.
 - Use `AssetProvider.load` with frame-budgeted updates. Avoid `finish()` and unqueued `getResource()` on animated
   loading paths.
 - Commons Compress is an XPK implementation detail. Public APIs expose Meta/libGDX types; use
