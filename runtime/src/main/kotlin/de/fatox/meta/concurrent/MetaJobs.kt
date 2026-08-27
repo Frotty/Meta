@@ -122,20 +122,20 @@ object MetaJobs {
 				// job runs, and applying the result then would touch actors that are already disposed.
 				if (job.isCancelled) return@submit
 				completions.add {
-					if (!job.isCancelled) {
-						// The job has to reach a terminal state even when the caller's completion throws.
-						// Leaving it RUNNING keeps isActive true forever, so its MetaJobScope retains it through
-						// every later sweep - a slow leak in exactly the code that exists to prevent leaks.
+					// Claim the completion before running it. Checking isCancelled and then calling back is
+					// check-then-act: a cancel landing between the two applies the result to its owner and still
+					// leaves the handle reporting cancelled. Winning this transition is what makes the two
+					// mutually exclusive.
+					if (job.tryBeginApplying()) {
 						try {
 							onDone(result)
-							job.markComplete()
+							job.finishApplied()
 						} catch (completionFailure: Throwable) {
-							// Counted here too, and on the same terms as the worker-side path: only a job that
-							// actually became FAILED is counted. The increment used to live only in that other
-							// catch, so a job whose main-thread application threw reported isFailed while
-							// failedCount ignored it - two answers to the same question, in the numbers a profiler
-							// reads.
-							if (job.markFailed(completionFailure)) failed.incrementAndGet()
+							// A job must reach a terminal state even when the caller's completion throws; leaving
+							// it live keeps isActive true forever and its MetaJobScope retains it through every
+							// later sweep. Counted only if this transition wins, so isFailed and failedCount can
+							// never disagree.
+							if (job.tryFail(completionFailure)) failed.incrementAndGet()
 							throw completionFailure
 						}
 					}
@@ -153,13 +153,13 @@ object MetaJobs {
 				// Gated on the CAS rather than on a prior isCancelled check: cancel() can land between checking and
 				// failing, which left the job CANCELLED while this path had already committed to reporting. The
 				// transition is the decision.
-				if (!job.markFailed(failure)) {
+				if (!job.tryFail(failure)) {
 					Thread.interrupted() // clear the flag so the pooled carrier thread is reusable
 					return@submit
 				}
 				failed.incrementAndGet()
 				// Reported on the main thread, not swallowed on a worker where nothing would ever see it.
-				completions.add { reportFailure(failure) }
+				completions.add(FailureReport(failure))
 			}
 		}
 		job.attach(future)
@@ -194,8 +194,15 @@ object MetaJobs {
 			try {
 				completion.run()
 			} catch (failure: Throwable) {
-				// One bad completion must not strand the ones queued behind it.
-				reportFailure(failure)
+				// One bad completion must not strand the ones queued behind it. But a *failure report* that throws
+				// must not be reported through the same handler: onJobFailure is documented as somewhere a game may
+				// rethrow into its own crash path, and re-reporting ran the handler twice and replaced the original
+				// worker failure with the handler's own exception.
+				if (completion is FailureReport) {
+					log.error(failure) { "The job failure handler threw while reporting ${completion.cause}" }
+				} else {
+					reportFailure(failure)
+				}
 			}
 		}
 		return applied
@@ -225,6 +232,11 @@ object MetaJobs {
 		runCatching { ioExecutor.shutdownNow() }
 		runCatching { computeExecutor.shutdownNow() }
 		completions.clear()
+	}
+
+	/** Marks a queued entry as a failure report, so the drain never reports the reporter's own exception. */
+	private class FailureReport(val cause: Throwable) : Runnable {
+		override fun run() = reportFailure(cause)
 	}
 
 	private object ComputeThreadFactory : ThreadFactory {

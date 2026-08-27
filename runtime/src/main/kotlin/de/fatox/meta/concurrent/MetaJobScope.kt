@@ -22,7 +22,13 @@ class MetaJob internal constructor() {
 		if (state.get() == State.CANCELLED) future.cancel(true)
 	}
 
-	/** Why it stopped, if it failed. Null while running, when complete, or when cancelled. */
+	/**
+	 * What it threw, if anything - including when it was cancelled out of a blocking call.
+	 *
+	 * Recorded independently of the terminal state so a teardown can be read afterwards. A cancelled job carrying a
+	 * `ClosedByInterruptException` is informative, and it is never surfaced as an error because reporting follows
+	 * the transition, not this field.
+	 */
 	@Volatile
 	var failure: Throwable? = null
 		private set
@@ -31,47 +37,61 @@ class MetaJob internal constructor() {
 	val isComplete: Boolean get() = state.get() == State.COMPLETE
 	val isFailed: Boolean get() = state.get() == State.FAILED
 
-	/** True while the job may still do work or apply a result. */
-	val isActive: Boolean get() = state.get() == State.RUNNING
+	/** True while this job may still do work or apply a result - RUNNING, or mid-callback. */
+	val isActive: Boolean get() = state.get().let { it == State.RUNNING || it == State.APPLYING }
 
 	/**
 	 * Stops the job and suppresses its result.
 	 *
 	 * Safe from any thread and safe to call repeatedly. Interrupts the worker if it is running, which a blocking
 	 * read will notice; a tight CPU loop will not, so long compute jobs should check [isCancelled] themselves.
+	 *
+	 * Loses to a completion that has already begun applying: once the callback is running, its owner may already
+	 * have been updated, and reporting "cancelled" then would be a lie. Returns whether cancellation actually won.
 	 */
-	fun cancel() {
-		// Only RUNNING may become CANCELLED. getAndSet overwrote COMPLETE and FAILED, and that happened routinely:
-		// the most recently registered job stays tracked until another registration sweeps it, so disposing a scope
-		// re-labelled the job that had just succeeded. Any handle still held then stopped reporting what happened.
-		if (!state.compareAndSet(State.RUNNING, State.CANCELLED)) return
+	fun cancel(): Boolean {
+		if (!state.compareAndSet(State.RUNNING, State.CANCELLED)) return false
 		future.get()?.cancel(true)
+		return true
 	}
 
-	internal fun markComplete() {
-		state.compareAndSet(State.RUNNING, State.COMPLETE)
-	}
+	/**
+	 * Claims the right to run this job's completion, moving RUNNING -> APPLYING.
+	 *
+	 * The claim is what makes application and cancellation mutually exclusive. Checking `isCancelled` and then
+	 * calling the callback is check-then-act: a cancel landing in between applies the result to its owner *and*
+	 * leaves the handle reporting cancelled. Winning this CAS is the only safe basis for running the callback.
+	 */
+	internal fun tryBeginApplying(): Boolean = state.compareAndSet(State.RUNNING, State.APPLYING)
 
-	internal fun markCancelled() {
-		state.set(State.CANCELLED)
+	/** Settles a claimed completion that ran cleanly. */
+	internal fun finishApplied() {
+		state.compareAndSet(State.APPLYING, State.COMPLETE)
 	}
 
 	/**
 	 * Records [cause] and reports whether this job actually became FAILED.
 	 *
-	 * The return value is the only race-free answer to "should this failure be counted and reported". Checking
-	 * `isCancelled` first and then failing is a TOCTOU: `cancel()` can land between the two, leaving the job
-	 * CANCELLED while the caller has already decided to report. Only the CAS knows which one won.
-	 *
-	 * [failure] is set either way, so a job cancelled out of a blocking call still carries what it threw on the way
-	 * out - useful when diagnosing a teardown, and never surfaced as an error because reporting follows the CAS.
+	 * The return value is the only race-free answer to "should this failure be counted and reported". Both RUNNING
+	 * (a worker threw) and APPLYING (a completion threw) may fail; a job already CANCELLED or settled may not.
 	 */
-	internal fun markFailed(cause: Throwable): Boolean {
+	internal fun tryFail(cause: Throwable): Boolean {
 		failure = cause
-		return state.compareAndSet(State.RUNNING, State.FAILED)
+		return state.compareAndSet(State.RUNNING, State.FAILED) ||
+			state.compareAndSet(State.APPLYING, State.FAILED)
 	}
 
-	private enum class State { RUNNING, COMPLETE, CANCELLED, FAILED }
+	internal fun markCancelled() {
+		state.compareAndSet(State.RUNNING, State.CANCELLED)
+	}
+
+	/**
+	 * RUNNING and APPLYING are the two live states; the other three are terminal and reached exactly once.
+	 *
+	 * APPLYING exists so that "the callback has started" is representable. Without it, application and cancellation
+	 * could only be ordered by a check, and every check-then-act pair in this file turned out to be a race.
+	 */
+	private enum class State { RUNNING, APPLYING, COMPLETE, CANCELLED, FAILED }
 }
 
 /**

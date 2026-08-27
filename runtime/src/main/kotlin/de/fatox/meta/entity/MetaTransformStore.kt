@@ -41,8 +41,13 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	/**
 	 * Position, velocity, rotation and scale, one component per column.
 	 *
-	 * `@JvmField` so a system reads a field rather than calling a getter, and public so a system can hoist them
-	 * into locals before a hot loop - which is the whole point of the layout:
+	 * Readable and element-mutable by anyone; replaceable only by [grow]. A public setter let a caller assign
+	 * `store.x = FloatArray(0)`, or swap one column without `capacity`, `count` or the others - after which the
+	 * next access reads unrelated data or lands out of bounds, possibly once [MetaEntityWorld.remove] has already
+	 * shortened its entity list.
+	 *
+	 * That costs nothing at the only place it matters. A system hoists these into locals *once* before its loop,
+	 * so the getter runs once per system per frame rather than per element:
 	 *
 	 * ```kotlin
 	 * val px = store.x; val vx = store.vx
@@ -52,14 +57,22 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 * They are reallocated when the store grows, so hoist them *inside* the frame that uses them and never cache
 	 * one across frames. [forEachSlot] exists so a system does not have to remember that.
 	 */
-	@JvmField var x: FloatArray = FloatArray(initialCapacity)
-	@JvmField var y: FloatArray = FloatArray(initialCapacity)
-	@JvmField var z: FloatArray = FloatArray(initialCapacity)
-	@JvmField var vx: FloatArray = FloatArray(initialCapacity)
-	@JvmField var vy: FloatArray = FloatArray(initialCapacity)
-	@JvmField var vz: FloatArray = FloatArray(initialCapacity)
-	@JvmField var rotation: FloatArray = FloatArray(initialCapacity)
-	@JvmField var scale: FloatArray = FloatArray(initialCapacity)
+	var x: FloatArray = FloatArray(initialCapacity)
+		private set
+	var y: FloatArray = FloatArray(initialCapacity)
+		private set
+	var z: FloatArray = FloatArray(initialCapacity)
+		private set
+	var vx: FloatArray = FloatArray(initialCapacity)
+		private set
+	var vy: FloatArray = FloatArray(initialCapacity)
+		private set
+	var vz: FloatArray = FloatArray(initialCapacity)
+		private set
+	var rotation: FloatArray = FloatArray(initialCapacity)
+		private set
+	var scale: FloatArray = FloatArray(initialCapacity)
+		private set
 
 	/** Which entity owns each slot, so a swap can patch the moved one. Also what makes a slot printable. */
 	private var owners: Array<MetaEntity?> = arrayOfNulls(initialCapacity)
