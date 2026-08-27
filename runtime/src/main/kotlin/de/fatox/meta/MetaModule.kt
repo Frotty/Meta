@@ -11,6 +11,14 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram.POSITION_ATTRIBUTE
 import com.badlogic.gdx.graphics.glutils.ShaderProgram.TEXCOORD_ATTRIBUTE
 import com.badlogic.gdx.utils.Json
 import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.GraphicsHandler
+import de.fatox.meta.api.MonitorHandler
+import de.fatox.meta.api.NoGraphicsHandler
+import de.fatox.meta.api.NoMonitorHandler
+import de.fatox.meta.api.NoSoundHandler
+import de.fatox.meta.api.NoWindowHandler
+import de.fatox.meta.api.SoundHandler
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.entity.EntityManager
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIManager
@@ -38,6 +46,14 @@ object MetaModule {
 
 	init {
 		MetaInject.global {
+			// "default" is putIfAbsent, so these stand in only when nothing supplied a real one. Meta.create()
+			// registers the application's handlers before this runs, so a real game never sees these; they exist so
+			// engine code can resolve a handler unconditionally instead of testing for an application that may not
+			// have one yet.
+			singleton<WindowHandler>("default") { NoWindowHandler }
+			singleton<MonitorHandler>("default") { NoMonitorHandler }
+			singleton<SoundHandler>("default") { NoSoundHandler }
+			singleton<GraphicsHandler>("default") { NoGraphicsHandler }
 			singleton<FontProvider>("default") { MetaFontProvider() }
 			singleton { MetaSoundPlayer() }
 			singleton<FocusRenderer> { DefaultFocusRenderer() }

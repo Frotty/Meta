@@ -2,7 +2,7 @@ package de.fatox.meta.sound
 
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.math.Vector2
-import de.fatox.meta.Meta
+import de.fatox.meta.api.SoundHandler
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 
 object UninitializedSound : Sound {
@@ -41,13 +41,18 @@ object UninitializedSound : Sound {
 	override fun setPan(soundId: Long, pan: Float, volume: Float): Unit = Unit
 }
 
+/** Resolved per call, not cached: see MetaAudioVideoData for why a lazy delegate is wrong across test graphs. */
+private val soundHandler: SoundHandler get() = de.fatox.meta.injection.MetaInject.inject()
+
 class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
 	val soundName: String = soundName.replace("/".toRegex(), "\\\\")
 	var sound: Sound = UninitializedSound
 		set(value) {
 			field = value
 
-			this.durationMs = (Meta.instance.soundHandler.duration(value) * 1000L).toLong()
+			// The handler comes from the injection graph, which Meta.create() populates. Duration only feeds
+			// repeat cooldowns, and NoSoundHandler answers zero, so a platform without one still plays sound.
+			this.durationMs = (soundHandler.duration(value) * 1000L).toLong()
 		}
 	var isLooping: Boolean = false
 	var audibleRange: Float = DEFAULT_SOUND_RANGE

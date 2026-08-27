@@ -2,7 +2,8 @@ package de.fatox.meta.api.model
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Graphics
-import de.fatox.meta.Meta
+import de.fatox.meta.api.MonitorHandler
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.assets.MetaData
@@ -13,6 +14,16 @@ import de.fatox.meta.reactive.signal
 import org.slf4j.Logger
 
 private val log: Logger = MetaLoggerFactory.logger {}
+
+/**
+ * The platform handlers, resolved from the injection graph rather than from `Meta.instance`.
+ *
+ * Deliberately a getter and not a `by lazyInject()`: a lazy delegate caches the first handler it ever sees, and a
+ * test suite that clears and rebuilds the graph between cases would then keep a dead one. Every use below is a
+ * display change or a monitor query - never a per-frame path - so resolving each time costs nothing that matters.
+ */
+private val windowHandler: WindowHandler get() = inject()
+private val monitorHandler: MonitorHandler get() = inject()
 
 /** Application-lifetime source of truth for audio/video settings. Persisted data is a snapshot, never live state. */
 object MetaAudioVideoState {
@@ -62,11 +73,11 @@ object MetaDisplayTransition {
 				if (!Gdx.graphics.isFullscreen && expected != null && !matchesExpectedBounds(expected)) {
 					log.warn(
 						"Display transition geometry drifted to {}x{} at {},{}; reapplying {}x{} at {},{}",
-						Gdx.graphics.width, Gdx.graphics.height, Meta.instance.windowHandler.x, Meta.instance.windowHandler.y,
+						Gdx.graphics.width, Gdx.graphics.height, windowHandler.x, windowHandler.y,
 						expected[2], expected[3], expected[0], expected[1],
 					)
 					Gdx.graphics.setWindowedMode(expected[2], expected[3])
-					Meta.instance.windowHandler.modify(expected[0], expected[1])
+					windowHandler.modify(expected[0], expected[1])
 					// Let the repair's callbacks drain too; the transition guard remains active throughout.
 					Gdx.app.postRunnable { finish(expected) }
 				} else {
@@ -79,8 +90,8 @@ object MetaDisplayTransition {
 	private fun matchesExpectedBounds(expected: IntArray): Boolean =
 		Gdx.graphics.width == expected[2] &&
 			Gdx.graphics.height == expected[3] &&
-			Meta.instance.windowHandler.x == expected[0] &&
-			Meta.instance.windowHandler.y == expected[1]
+			windowHandler.x == expected[0] &&
+			windowHandler.y == expected[1]
 
 	private fun finish(expected: IntArray?) {
 		inProgress = false
@@ -90,8 +101,8 @@ object MetaDisplayTransition {
 			Gdx.graphics.isFullscreen,
 			Gdx.graphics.width,
 			Gdx.graphics.height,
-			Meta.instance.windowHandler.x,
-			Meta.instance.windowHandler.y,
+			windowHandler.x,
+			windowHandler.y,
 			expected?.let { "${it[2]}x${it[3]} at ${it[0]},${it[1]}" } ?: "dynamic",
 		)
 	}
@@ -121,7 +132,7 @@ data class MetaDisplayMode(
 }
 
 private inline val Graphics.DisplayMode.monitorIndex
-	get() = Meta.instance.monitorHandler.monitorIndex(this)
+	get() = monitorHandler.monitorIndex(this)
 
 fun Graphics.DisplayMode.toMetaDisplayMode(): MetaDisplayMode = MetaDisplayMode(this)
 
@@ -176,8 +187,8 @@ object MetaWindowBounds {
 private fun getCurrentMonitor(): Graphics.Monitor {
 	val graphics = Gdx.graphics
 	val monitors = graphics.monitors
-	val windowX = Meta.instance.windowHandler.x
-	val windowY = Meta.instance.windowHandler.y
+	val windowX = windowHandler.x
+	val windowY = windowHandler.y
 	val windowWidth = graphics.width.coerceAtLeast(1)
 	val windowHeight = graphics.height.coerceAtLeast(1)
 	val windowRight = windowX + windowWidth
@@ -257,14 +268,14 @@ data class MetaAudioVideoData(
 
 	fun captureWindowedBounds() {
 		if (fullscreen || usesBorderlessPresentation() || Gdx.graphics.isFullscreen) return
-		if (Meta.instance.windowHandler.isMaximized) {
+		if (windowHandler.isMaximized) {
 			maximized = true
 			metaDisplayMode = Gdx.graphics.getDisplayMode(getCurrentMonitor()).toMetaDisplayMode()
 			windowedBoundsInitialized = true
 			return
 		}
-		x = Meta.instance.windowHandler.x
-		y = Meta.instance.windowHandler.y
+		x = windowHandler.x
+		y = windowHandler.y
 		width = Gdx.graphics.width
 		height = Gdx.graphics.height
 		maximized = false
@@ -296,7 +307,7 @@ data class MetaAudioVideoData(
 			metaDisplayMode = mode.toMetaDisplayMode()
 			Gdx.graphics.setUndecorated(true)
 			Gdx.graphics.setWindowedMode(mode.width, mode.height)
-			Meta.instance.windowHandler.modify(monitor.virtualX, monitor.virtualY)
+			windowHandler.modify(monitor.virtualX, monitor.virtualY)
 			expectedBounds = intArrayOf(monitor.virtualX, monitor.virtualY, mode.width, mode.height)
 		} else {
 			val restored = safeWindowedBounds()
@@ -306,9 +317,9 @@ data class MetaAudioVideoData(
 			height = restored[3]
 			Gdx.graphics.setUndecorated(false)
 			Gdx.graphics.setWindowedMode(width, height)
-			Meta.instance.windowHandler.modify(x, y)
+			windowHandler.modify(x, y)
 			if (maximized) {
-				Meta.instance.windowHandler.maximize()
+				windowHandler.maximize()
 			} else {
 				expectedBounds = intArrayOf(x, y, width, height)
 			}
@@ -317,7 +328,7 @@ data class MetaAudioVideoData(
 		// LWJGL3 treats 0 as "never sleep" (uncapped); map any non-positive value to that.
 		// Applied regardless of vsync so the cap takes effect immediately if vsync is toggled off.
 		Gdx.graphics.setForegroundFPS(if (maxFps > 0) maxFps else 0)
-		Meta.instance.windowHandler.focus()
+		windowHandler.focus()
 		MetaDisplayTransition.finishAfterCallbacks(expectedBounds)
 	}
 

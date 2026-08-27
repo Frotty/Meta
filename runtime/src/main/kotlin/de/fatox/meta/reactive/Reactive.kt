@@ -1,5 +1,7 @@
 package de.fatox.meta.reactive
 
+import de.fatox.meta.concurrent.MetaThreads
+
 /**
  * A tiny, dependency-free fine-grained reactivity core - `signal` / `computed` / `effect` / `batch` / `untracked`
  * - in the spirit of SolidJS / Angular & Preact signals. It exists so the client can have ONE ground truth for a
@@ -504,6 +506,9 @@ private class SignalNode<T>(initial: T, private val equals: (T, T) -> Boolean) :
 			return current
 		}
 		set(newValue) {
+			// Before the equality check, not inside it: reading `current` to compare is itself the race, and a
+			// write that happens to match must still be reported rather than passing silently.
+			MetaThreads.assertMain("write a signal")
 			if (equals(current, newValue)) return
 			current = newValue
 			version++
@@ -524,6 +529,7 @@ private class BooleanSignalNode(initial: Boolean, private val equals: BooleanEqu
 			return current
 		}
 		set(newValue) {
+			MetaThreads.assertMain("write a signal")
 			if (equals.areEqual(current, newValue)) return
 			current = newValue
 			publishPrimitiveChange()
@@ -541,6 +547,7 @@ private class IntSignalNode(initial: Int, private val equals: IntEquality) : Rea
 			return current
 		}
 		set(newValue) {
+			MetaThreads.assertMain("write a signal")
 			if (equals.areEqual(current, newValue)) return
 			current = newValue
 			publishPrimitiveChange()
@@ -558,6 +565,7 @@ private class LongSignalNode(initial: Long, private val equals: LongEquality) : 
 			return current
 		}
 		set(newValue) {
+			MetaThreads.assertMain("write a signal")
 			if (equals.areEqual(current, newValue)) return
 			current = newValue
 			publishPrimitiveChange()
@@ -576,6 +584,7 @@ private class FloatSignalNode(initial: Float, private val equals: FloatEquality)
 			return current
 		}
 		set(newValue) {
+			MetaThreads.assertMain("write a signal")
 			if (equals.areEqual(current, newValue)) return
 			current = newValue
 			publishPrimitiveChange()
@@ -594,6 +603,7 @@ private class DoubleSignalNode(initial: Double, private val equals: DoubleEquali
 			return current
 		}
 		set(newValue) {
+			MetaThreads.assertMain("write a signal")
 			if (equals.areEqual(current, newValue)) return
 			current = newValue
 			publishPrimitiveChange()

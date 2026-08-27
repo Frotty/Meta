@@ -40,5 +40,34 @@ dependencies {
 tasks {
 	test {
 		useJUnitPlatform()
+		// The frame-cost gates belong to perfCheck alone. Left in, they ran twice per build, and a budget
+		// regression failed this step instead of the one named for it - so CI reported "a test broke" and never
+		// reached the step whose whole purpose is to say which budget moved.
+		filter {
+			excludeTestsMatching 'de.fatox.meta.perf.*'
+		}
 	}
+}
+
+/**
+ * Deterministic frame-cost gates, separated from the ordinary suite so a budget regression reads as its own
+ * failure rather than as "a test broke".
+ *
+ * These assert on counts - texture binds, draw calls, bytes allocated per frame - never on durations, so they are
+ * stable on a shared CI runner. See FrameBudgetTest for why that distinction is the whole design.
+ */
+tasks.register('perfCheck', Test) {
+	group = 'verification'
+	description = 'Runs the frame-cost budget gates (draw calls, texture binds, per-frame allocation).'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform()
+	filter { includeTestsMatching 'de.fatox.meta.perf.*' }
+	// Counting allocations means the measurement must not be perturbed by the measurer, and a shared daemon
+	// carries JIT state from whatever ran before it.
+	forkEvery = 0
+	testLogging { showStandardStreams = true }
+	// Never satisfied from the up-to-date check or the build cache. These gates measure what this JVM on this
+	// machine actually did; replaying a previous run's verdict would report a pass nobody observed.
+	outputs.upToDateWhen { false }
 }

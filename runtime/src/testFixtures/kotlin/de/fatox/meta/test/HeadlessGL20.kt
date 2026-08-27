@@ -43,6 +43,9 @@ object HeadlessGL20 {
 
 	private val stub: GL20 by lazy {
 		Proxy.newProxyInstance(GL20::class.java.classLoader, arrayOf(GL20::class.java)) { _, method, args ->
+			// Every call libGDX makes passes through here, which makes this the one place that can count them
+			// without instrumenting Meta. Costs a single boolean test when nothing is recording.
+			GlCallRecorder.observe(method.name)
 			if (method.name in successQueries) reportSuccess(args)
 			when (method.returnType) {
 				Int::class.javaPrimitiveType -> if (method.name in handleFactories) nextHandle.getAndIncrement() else 0

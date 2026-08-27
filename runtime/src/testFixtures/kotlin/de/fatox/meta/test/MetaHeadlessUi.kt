@@ -10,6 +10,14 @@ import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.GraphicsHandler
+import de.fatox.meta.api.MonitorHandler
+import de.fatox.meta.api.NoGraphicsHandler
+import de.fatox.meta.api.NoMonitorHandler
+import de.fatox.meta.api.NoSoundHandler
+import de.fatox.meta.api.NoWindowHandler
+import de.fatox.meta.api.SoundHandler
+import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
@@ -170,6 +178,15 @@ object MetaHeadlessUi {
 			// `init` registers a global processor, so a select box cannot be built
 			// without something answering for the interface. See LayoutOnlyInput.
 			MetaInject.global(clear = true) {
+				// Platform handlers. Engine code resolves these from the graph rather than from `Meta.instance`,
+				// so a harness must supply them - `MetaModule`'s own defaults run from an object initialiser and
+				// therefore exactly once per classloader, which a cleared graph does not bring back. Registering
+				// the No* implementations here is what lets a consuming game test a screen that plays a sound or
+				// reads display settings without standing up a whole Meta application.
+				singleton<WindowHandler> { NoWindowHandler }
+				singleton<MonitorHandler> { NoMonitorHandler }
+				singleton<SoundHandler> { NoSoundHandler }
+				singleton<GraphicsHandler> { NoGraphicsHandler }
 				singleton<AssetProvider> { MetaAssetProvider() }
 				singleton("default") { FontInfo() }
 				singleton<FontProvider>("default", fontProvider)

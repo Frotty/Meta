@@ -35,6 +35,12 @@ jobs:
       - name: Test
         run: ./gradlew :runtime:test --no-daemon --stacktrace
 
+      # Deterministic frame-cost gates: texture binds, draw calls and bytes allocated per frame. These are counts,
+      # not timings, so a noisy shared runner cannot flake them - which is what makes them safe to block a merge on.
+      # Run as their own step so a budget regression is legible in the job list rather than buried in the suite.
+      - name: Frame budgets
+        run: ./gradlew :runtime:perfCheck --no-daemon --stacktrace
+
       - name: Publish test report
         if: always()
         uses: actions/upload-artifact@v4
