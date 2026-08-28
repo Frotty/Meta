@@ -108,13 +108,48 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	private var customStateCount = 0
 
 	/**
-	 * The buffers handed to [MetaEntityState]. One pair per store, refilled per entity.
+	 * The buffers handed to [MetaEntityState], as a stack indexed by how deeply the passes are nested.
 	 *
 	 * Fixed windows rather than offsets into the flat arrays: an entity that writes past its share gets an
 	 * out-of-bounds here instead of quietly overwriting the next entity's state.
+	 *
+	 * A stack rather than one pair, because a hook is allowed to read the world and every read that walks custom
+	 * state - [MetaEntityWorld.digest], [captureInto] - borrows these too. A single pair meant a hook reading one
+	 * field, digesting, and then reading another took the second from whichever entity the digest visited last:
+	 * corrupt state restored silently, in the middle of a rollback. Depth rarely passes two, and the buffers are
+	 * allocated once and kept.
 	 */
-	private val customScratchInts = IntArray(MetaEntityState.INTS)
-	private val customScratchFloats = FloatArray(MetaEntityState.FLOATS)
+	private var customScratchInts = arrayOf(IntArray(MetaEntityState.INTS))
+	private var customScratchFloats = arrayOf(FloatArray(MetaEntityState.FLOATS))
+
+	/** How many custom-state passes are currently on the stack. */
+	private var customScratchDepth = 0
+
+	/**
+	 * Runs [body] with a scratch pair no other pass on the stack is holding.
+	 *
+	 * Inline so the loops below stay ordinary loops; the depth is released in a `finally`, so a hook that throws
+	 * cannot leave the stack raised and quietly hand every later pass a deeper buffer than it needs.
+	 */
+	private inline fun <R> withCustomScratch(body: (ints: IntArray, floats: FloatArray) -> R): R {
+		val depth = customScratchDepth++
+		return try {
+			ensureScratchDepth(depth)
+			body(customScratchInts[depth], customScratchFloats[depth])
+		} finally {
+			customScratchDepth--
+		}
+	}
+
+	/** Grows the stack to cover [depth], which only happens the first time the passes nest that far. */
+	private fun ensureScratchDepth(depth: Int) {
+		if (depth < customScratchInts.size) return
+		val ints = customScratchInts
+		val floats = customScratchFloats
+		customScratchInts = Array(depth + 1) { if (it < ints.size) ints[it] else IntArray(MetaEntityState.INTS) }
+		customScratchFloats =
+			Array(depth + 1) { if (it < floats.size) floats[it] else FloatArray(MetaEntityState.FLOATS) }
+	}
 
 	/** How many entities this store can hold before it grows. Grows by doubling; never shrinks. */
 	val currentCapacity: Int get() = capacity
@@ -264,19 +299,25 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		snapshot.hasCustomState = customStateCount > 0
 		if (customStateCount == 0) return
 		snapshot.ensureCustomCapacity()
-		val ints = customScratchInts
-		val floats = customScratchFloats
-		for (slot in 0 until count) {
-			java.util.Arrays.fill(ints, 0)
-			java.util.Arrays.fill(floats, 0f)
-			val entity = owners[slot] as? MetaEntityState
-			entity?.captureState(ints, floats)
-			System.arraycopy(ints, 0, snapshot.customInts, slot * MetaEntityState.INTS, MetaEntityState.INTS)
-			System.arraycopy(floats, 0, snapshot.customFloats, slot * MetaEntityState.FLOATS, MetaEntityState.FLOATS)
-			// Taken now, not read back at digest time: an implementation is free to derive a mask from mutable
-			// state, and a retained snapshot must keep hashing the world it captured.
-			snapshot.customExcludedInts[slot] = entity?.digestExcludedInts ?: 0
-			snapshot.customExcludedFloats[slot] = entity?.digestExcludedFloats ?: 0
+		withCustomScratch { ints, floats ->
+			for (slot in 0 until count) {
+				java.util.Arrays.fill(ints, 0)
+				java.util.Arrays.fill(floats, 0f)
+				val entity = owners[slot] as? MetaEntityState
+				entity?.captureState(ints, floats)
+				System.arraycopy(ints, 0, snapshot.customInts, slot * MetaEntityState.INTS, MetaEntityState.INTS)
+				System.arraycopy(
+					floats,
+					0,
+					snapshot.customFloats,
+					slot * MetaEntityState.FLOATS,
+					MetaEntityState.FLOATS,
+				)
+				// Taken now, not read back at digest time: an implementation is free to derive a mask from
+				// mutable state, and a retained snapshot must keep hashing the world it captured.
+				snapshot.customExcludedInts[slot] = entity?.digestExcludedInts ?: 0
+				snapshot.customExcludedFloats[slot] = entity?.digestExcludedFloats ?: 0
+			}
 		}
 	}
 
@@ -349,25 +390,25 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 */
 	internal fun restoreCustomState(snapshot: MetaWorldSnapshot) {
 		if (customStateCount == 0 || !snapshot.hasCustomState) return
-		val ints = customScratchInts
-		val floats = customScratchFloats
 		// Structure locked, traversal left open: a swap-remove would move the last entity into a slot the cursor
 		// has already passed and it would never be handed its state back, but a hook reading its neighbours is
 		// exactly what the contract promises.
 		inRestoreHook = true
 		try {
-			for (slot in 0 until count) {
-				val entity = owners[slot]
-				if (entity !is MetaEntityState) continue
-				System.arraycopy(snapshot.customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
-				System.arraycopy(
-					snapshot.customFloats,
-					slot * MetaEntityState.FLOATS,
-					floats,
-					0,
-					MetaEntityState.FLOATS,
-				)
-				entity.restoreState(ints, floats)
+			withCustomScratch { ints, floats ->
+				for (slot in 0 until count) {
+					val entity = owners[slot]
+					if (entity !is MetaEntityState) continue
+					System.arraycopy(snapshot.customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
+					System.arraycopy(
+						snapshot.customFloats,
+						slot * MetaEntityState.FLOATS,
+						floats,
+						0,
+						MetaEntityState.FLOATS,
+					)
+					entity.restoreState(ints, floats)
+				}
 			}
 		} finally {
 			inRestoreHook = false
@@ -404,24 +445,24 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	internal fun digestCustomState(hash: Long): Long {
 		if (customStateCount == 0) return hash
 		var running = hash
-		val ints = customScratchInts
-		val floats = customScratchFloats
-		for (slot in 0 until count) {
-			val entity = owners[slot]
-			if (entity !is MetaEntityState) continue
-			java.util.Arrays.fill(ints, 0)
-			java.util.Arrays.fill(floats, 0f)
-			entity.captureState(ints, floats)
-			running = mixCustomWindow(
-				running,
-				slot,
-				ints,
-				0,
-				floats,
-				0,
-				entity.digestExcludedInts,
-				entity.digestExcludedFloats,
-			)
+		withCustomScratch { ints, floats ->
+			for (slot in 0 until count) {
+				val entity = owners[slot]
+				if (entity !is MetaEntityState) continue
+				java.util.Arrays.fill(ints, 0)
+				java.util.Arrays.fill(floats, 0f)
+				entity.captureState(ints, floats)
+				running = mixCustomWindow(
+					running,
+					slot,
+					ints,
+					0,
+					floats,
+					0,
+					entity.digestExcludedInts,
+					entity.digestExcludedFloats,
+				)
+			}
 		}
 		return running
 	}

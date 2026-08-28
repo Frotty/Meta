@@ -475,6 +475,47 @@ class MetaEntityStateTest {
 	}
 
 	@Test
+	fun `a hook that digests between reading two fields still reads its own state`() {
+		// Reading the world is now allowed, and digest and capture borrow the same scratch the hook is currently
+		// holding. A hook that reads one field, digests, then reads another would take the second from whichever
+		// entity the digest visited last - restoring corrupt state, silently, in the middle of a rollback.
+		class Interleaving(val id: Int) : MetaEntity(), MetaEntityState {
+			var world: MetaEntityWorld? = null
+			var first = -1
+			var second = -1
+			var digestSeen = 0L
+
+			override fun captureState(ints: IntArray, floats: FloatArray) {
+				ints[0] = id
+				ints[1] = id * 100
+			}
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) {
+				first = ints[0]
+				// Anything that walks every entity through the shared scratch will do; digest is the one a game
+				// reaches for, to log or compare mid-rollback.
+				digestSeen = world?.digest() ?: 0L
+				second = ints[1]
+			}
+		}
+
+		val world = MetaEntityWorld()
+		val entities = (0 until 5).map { world.add(Interleaving(it).also { e -> e.world = world }) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+		world.restoreFrom(snapshot)
+
+		for (entity in entities) {
+			assertEquals(entity.id, entity.first) { "Entity ${entity.id} read the wrong first field" }
+			assertEquals(entity.id * 100, entity.second) {
+				"Entity ${entity.id} read ${entity.second} after digesting, not ${entity.id * 100} - the nested " +
+					"read overwrote the buffer it was holding"
+			}
+		}
+		assertNotEquals(0L, entities[0].digestSeen)
+	}
+
+	@Test
 	fun `a throwing restore hook leaves the world structurally consistent`() {
 		// Same hazard reached the ordinary way: an implementation that validates a captured value and rejects it.
 		class Picky : MetaEntity(), MetaEntityState {
