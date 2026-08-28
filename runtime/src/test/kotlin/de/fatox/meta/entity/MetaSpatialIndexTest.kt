@@ -263,6 +263,112 @@ class MetaSpatialIndexTest {
 		assertThrows(IllegalArgumentException::class.java) { MetaSpatialIndex(cellSize = 8f, bucketCount = 1000) }
 	}
 
+	@Test
+	fun `query order depends on the current state and not on how it was reached`() {
+		// Two indices holding the same entities at the same positions must enumerate them the same way. The chain
+		// is intrusive and linking pushes at the head, so without an explicit order the sequence a query produces
+		// records the *history* of re-filing rather than the state - and two runs of a game that agree on every
+		// position disagree on draw order, on which of two overlapping sprites wins, and on anything the caller
+		// accumulates in visitation order. That is the class of bug that reproduces once a week and never in a test.
+		val random = Random(SEED)
+
+		repeat(SCENES) {
+			val count = random.nextInt(50, 300)
+			val xs = FloatArray(count) { random.nextInt(-500, 500).toFloat() + random.nextFloat() }
+			val ys = FloatArray(count) { random.nextInt(-500, 500).toFloat() + random.nextFloat() }
+
+			val direct = MetaSpatialIndex(cellSize = 64f)
+			direct.update(xs, ys, count)
+
+			// The same final scene, reached after four frames of wandering, so most entities have been unlinked
+			// and re-linked a different number of times and land in their chains in a different order.
+			val wandered = MetaSpatialIndex(cellSize = 64f)
+			val wanderX = FloatArray(count)
+			val wanderY = FloatArray(count)
+			repeat(4) {
+				for (slot in 0 until count) {
+					wanderX[slot] = random.nextInt(-500, 500).toFloat() + random.nextFloat()
+					wanderY[slot] = random.nextInt(-500, 500).toFloat() + random.nextFloat()
+				}
+				wandered.update(wanderX, wanderY, count)
+			}
+			xs.copyInto(wanderX)
+			ys.copyInto(wanderY)
+			wandered.update(wanderX, wanderY, count)
+
+			assertEquals(visitOrder(direct), visitOrder(wandered)) {
+				"Two indices with identical contents enumerated them in different orders"
+			}
+		}
+	}
+
+	/** The slots a full-scene query visits, in the order it visits them. */
+	private fun visitOrder(index: MetaSpatialIndex): List<Int> {
+		val seen = ArrayList<Int>()
+		index.forEachInBounds(-600f, -600f, 600f, 600f, margin = 0f) { slot -> seen.add(slot) }
+		return seen
+	}
+
+	@Test
+	fun `a query nested inside another query's action is correct at both levels`() {
+		// The gather buffer is shared, so nesting is where a naive scratch array corrupts the outer walk silently -
+		// the outer loop keeps reading indices the inner query has overwritten. A neighbour lookup per visible entity
+		// is an ordinary thing to write, so this must work rather than merely be documented against.
+		//
+		// Checked against the same queries run on their own rather than against a linear scan, because that is the
+		// property at issue: nesting must change nothing. A scan would instead re-derive the broad phase's deliberate
+		// over-reporting and test that.
+		val random = Random(SEED)
+		val count = 400
+		val xs = FloatArray(count) { random.nextInt(-400, 400).toFloat() }
+		val ys = FloatArray(count) { random.nextInt(-400, 400).toFloat() }
+		val index = MetaSpatialIndex(cellSize = 32f)
+		index.update(xs, ys, count)
+
+		val standalone = (0 until count).map { slot ->
+			val seen = ArrayList<Int>()
+			index.forEachInBounds(xs[slot], ys[slot], xs[slot], ys[slot], margin = 40f) { seen.add(it) }
+			seen
+		}
+
+		val outer = ArrayList<Int>()
+		val nested = HashMap<Int, List<Int>>()
+		index.forEachInBounds(-500f, -500f, 500f, 500f, margin = 0f) { slot ->
+			outer.add(slot)
+			val seen = ArrayList<Int>()
+			index.forEachInBounds(xs[slot], ys[slot], xs[slot], ys[slot], margin = 40f) { seen.add(it) }
+			nested[slot] = seen
+		}
+
+		// The outer walk saw every entity, in order, despite 400 nested queries writing into the same buffer.
+		assertEquals((0 until count).toList(), outer)
+		for (slot in 0 until count) {
+			assertEquals(standalone[slot], nested[slot]) { "Nesting changed the result of the query at slot $slot" }
+		}
+		// Non-trivial: a nesting bug that returned nothing would otherwise pass the comparison above.
+		assertTrue(standalone.sumOf { it.size } > count) { "The nested queries were too small to prove anything" }
+		assertEquals(0, index.visitTop) { "The gather stack was left raised after nested queries" }
+	}
+
+	@Test
+	fun `an action that throws does not leave the gather stack raised`() {
+		// Without the `finally`, an exception escaping the action strands the high-water mark. Nothing fails then;
+		// the buffer simply grows a slice per throw and never gives it back, which surfaces days later as memory
+		// that climbs whenever some rare exception fires. Cheap to get right, invisible to get wrong.
+		val index = MetaSpatialIndex(cellSize = 32f)
+		index.update(FloatArray(50) { it.toFloat() }, FloatArray(50) { it.toFloat() }, 50)
+
+		repeat(20) {
+			assertThrows(IllegalStateException::class.java) {
+				index.forEachInBounds(-100f, -100f, 100f, 100f, margin = 0f) { error("caller blew up") }
+			}
+		}
+
+		assertEquals(0, index.visitTop) { "The gather stack was left raised after an action threw" }
+		// And the index still answers correctly afterwards rather than returning a stale slice.
+		assertEquals(50, index.forEachInBounds(-100f, -100f, 100f, 100f, margin = 0f) { })
+	}
+
 	private companion object {
 		const val SEED = 20260827L
 		const val SCENES = 25

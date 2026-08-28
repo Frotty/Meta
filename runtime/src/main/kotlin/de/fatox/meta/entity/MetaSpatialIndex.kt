@@ -94,6 +94,18 @@ class MetaSpatialIndex(
 	private var bucketOfSlot = IntArray(0)
 	private var filed = BooleanArray(0)
 
+	/**
+	 * Slots gathered by the query in progress, and how far up the stack it has filled.
+	 *
+	 * A stack rather than a per-query buffer so a query nested inside another query's action costs nothing and
+	 * needs no re-entrancy rule; `forEachInBounds` raises the mark, fills above it, and lowers it in a `finally`.
+	 * Not index state - it holds nothing between queries, and [clear] deliberately leaves it alone.
+	 *
+	 * Internal only because `forEachInBounds` is inline.
+	 */
+	@PublishedApi internal var visitBuffer = IntArray(0)
+	@PublishedApi internal var visitTop = 0
+
 	/** How many slots the index currently holds. */
 	var size: Int = 0
 		private set
@@ -167,10 +179,22 @@ class MetaSpatialIndex(
 	}
 
 	/**
-	 * Visits every entity whose origin lies within the given area, widened by [margin].
+	 * Visits every entity in the cells the given area overlaps, widened by [margin].
 	 *
-	 * [margin] must cover the largest extent among the entities being queried; see the class docs. Iteration order
-	 * is unspecified. Do not add or remove entities from inside [action] - update afterwards instead.
+	 * This is a **broad phase**: the walk is by cell, and no entity is ever tested against the rectangle itself, so
+	 * the result is a conservative superset - entities in an overlapping cell but outside the area are visited. That
+	 * is the point, since the caller's own test is the expensive one being avoided. Nothing inside the area is ever
+	 * missed. A caller needing exactness applies its own test to what arrives.
+	 *
+	 * Entities arrive in **ascending slot order**, always, whatever route they took to their current cells. That is
+	 * a guarantee rather than an implementation detail - see [gatherInBounds] for why an incremental index cannot
+	 * offer it for free, and what it costs.
+	 *
+	 * Ascending slot order is also the order [MetaTransformStore] holds its columns in, so a caller reading
+	 * `store.x[slot]` walks forward through memory instead of jumping about it.
+	 *
+	 * [margin] must cover the largest extent among the entities being queried; see the class docs. Queries may be
+	 * nested - the gather buffer is a stack. Do not add or remove entities from inside [action]; update afterwards.
 	 *
 	 * @return how many entities were visited.
 	 */
@@ -182,8 +206,57 @@ class MetaSpatialIndex(
 		margin: Float,
 		action: (slot: Int) -> Unit,
 	): Int {
-		if (size == 0) return 0
-		var visited = 0
+		val start = gatherInBounds(minHorizontal, minVertical, maxHorizontal, maxVertical, margin)
+		val end = visitTop
+		try {
+			var cursor = start
+			// `visitBuffer` is re-read each step on purpose: a nested query inside `action` may grow it, and a
+			// reference hoisted out of the loop would then be the old array.
+			while (cursor < end) {
+				action(visitBuffer[cursor])
+				cursor++
+			}
+		} finally {
+			// In `finally` so an action that throws - or a caller that returns out of the lambda - cannot leave
+			// the stack raised and leak a slice of the buffer for the rest of the process.
+			visitTop = start
+		}
+		return end - start
+	}
+
+	/**
+	 * Collects the slots in bounds onto the visit stack and sorts them, returning where this query's slice starts.
+	 *
+	 * Public only because [forEachInBounds] is inline; call that instead.
+	 *
+	 * ### Why the sort is not optional
+	 *
+	 * Cell membership is an intrusive chain and [link] pushes at the head, so the sequence a walk produces encodes
+	 * the *order entities were filed*, not where they are now. Two indices holding identical entities at identical
+	 * positions enumerate them differently if they arrived by different routes - and a game is exactly that: the
+	 * same scene reached by a different path every run. The caller sees it as draw order that shifts between runs,
+	 * as a different sprite winning an overlap, as an accumulation that does not reproduce. Nothing throws.
+	 *
+	 * Keeping the chains sorted instead would push the cost onto [link], which runs on every entity that crosses a
+	 * cell boundary and is the operation this whole design exists to keep at four array writes. Sorting here
+	 * charges the query, whose result set is small by construction - that is what the index is for - and the walk
+	 * order it produces is a pure function of which slots are in bounds.
+	 *
+	 * ### The stack
+	 *
+	 * One buffer with a high-water mark rather than a buffer per query, so nesting a query inside another query's
+	 * action works without allocating and without a re-entrancy rule the caller has to remember.
+	 */
+	@PublishedApi
+	internal fun gatherInBounds(
+		minHorizontal: Float,
+		minVertical: Float,
+		maxHorizontal: Float,
+		maxVertical: Float,
+		margin: Float,
+	): Int {
+		val start = visitTop
+		if (size == 0) return start
 		val fromX = cellIndexOf(minHorizontal - margin)
 		val toX = cellIndexOf(maxHorizontal + margin)
 		val fromY = cellIndexOf(minVertical - margin)
@@ -195,14 +268,20 @@ class MetaSpatialIndex(
 					// The bucket may hold entities from an unrelated cell that hashed the same way; reject those
 					// rather than handing back a false positive the caller cannot recognise.
 					if (cellXOf(slot) == x && cellYOf(slot) == y) {
-						visited++
-						action(slot)
+						if (visitTop == visitBuffer.size) growVisitBuffer()
+						visitBuffer[visitTop++] = slot
 					}
 					slot = nextOf(slot)
 				}
 			}
 		}
-		return visited
+		// Primitive sort: no boxing, no comparator, and no allocation.
+		java.util.Arrays.sort(visitBuffer, start, visitTop)
+		return start
+	}
+
+	private fun growVisitBuffer() {
+		visitBuffer = visitBuffer.copyOf(maxOf(MIN_CAPACITY, visitBuffer.size * 2))
 	}
 
 	/**
