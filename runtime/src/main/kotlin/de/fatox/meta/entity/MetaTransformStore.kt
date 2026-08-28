@@ -90,6 +90,16 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	private var iterating = false
 
 	/**
+	 * Set while a [MetaEntityState] hook pass is running, which forbids structural change but not reading.
+	 *
+	 * A separate flag from [iterating] rather than a reuse of it, because the two rules differ. `iterating` also
+	 * refuses a *nested traversal*, which is right for systems and wrong here: both hooks are promised a readable
+	 * world, and [forEachSlot] is how the store is read - so sharing the flag made a hook that inspects its
+	 * neighbours throw, and that is ordinary reconciliation code, not a mistake.
+	 */
+	private var inRestoreHook = false
+
+	/**
 	 * How many live entities implement [MetaEntityState], so a capture can skip the whole pass when none do.
 	 *
 	 * Counted as entities come and go rather than scanned for, because the scan's worst case is exactly the case
@@ -162,6 +172,11 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 */
 	fun checkMutable(action: String) {
 		check(!iterating) { "Cannot $action while a system is iterating this store" }
+		check(!inRestoreHook) {
+			"Cannot $action from a MetaEntityState hook. The pass walks slots, so removing an entity swaps the " +
+				"last one into a slot already visited and it is silently skipped. Record what you want to change " +
+				"and act on it once MetaEntityWorld.restoreFrom has returned."
+		}
 	}
 
 	/** The entity in [slot], for diagnostics. Null outside the live range. */
@@ -336,10 +351,10 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		if (customStateCount == 0 || !snapshot.hasCustomState) return
 		val ints = customScratchInts
 		val floats = customScratchFloats
-		// Locked for the same reason the notification pass is: this walks slots, and a swap-remove moves the last
-		// entity into a slot the cursor has already passed, so that entity would silently never be handed its
-		// state back and would keep whatever the rollback was meant to undo.
-		beginIteration()
+		// Structure locked, traversal left open: a swap-remove would move the last entity into a slot the cursor
+		// has already passed and it would never be handed its state back, but a hook reading its neighbours is
+		// exactly what the contract promises.
+		inRestoreHook = true
 		try {
 			for (slot in 0 until count) {
 				val entity = owners[slot]
@@ -355,7 +370,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 				entity.restoreState(ints, floats)
 			}
 		} finally {
-			endIteration()
+			inRestoreHook = false
 		}
 	}
 
@@ -369,14 +384,14 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 */
 	internal fun notifyRestored() {
 		if (customStateCount == 0) return
-		// Locked for the same reason forEachSlot locks: this walks slots, and a swap-remove moves the last entity
-		// into a slot the cursor has already passed, so that entity would silently never be reconciled and would
-		// keep the stale derived state this pass exists to refresh. Refusing loudly beats half-supporting it.
-		beginIteration()
+		// Structure locked, traversal left open, for the reasons on `inRestoreHook`: a swap-remove would move the
+		// last entity into a slot already passed and it would never be reconciled, keeping exactly the stale
+		// state this pass exists to refresh - while a hook reading its neighbours is the whole point of it.
+		inRestoreHook = true
 		try {
 			for (slot in 0 until count) (owners[slot] as? MetaEntityState)?.onRestored()
 		} finally {
-			endIteration()
+			inRestoreHook = false
 		}
 	}
 

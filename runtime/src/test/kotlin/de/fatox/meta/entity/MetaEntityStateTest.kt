@@ -436,6 +436,45 @@ class MetaEntityStateTest {
 	}
 
 	@Test
+	fun `a restore hook may traverse the store it is promised it can read`() {
+		// Both hooks are documented as seeing a readable world, and forEachSlot is the documented way to read the
+		// store - so blocking it with the same flag that blocks structural change made the contract contradict
+		// itself, and any reconciliation that inspects its neighbours would abort every rollback.
+		class Neighbourly : MetaEntity(), MetaEntityState {
+			var seenDuringRestore = -1
+			var seenDuringReconcile = -1
+
+			override fun captureState(ints: IntArray, floats: FloatArray) = Unit
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) {
+				var visited = 0
+				store?.forEachSlot { visited++ }
+				seenDuringRestore = visited
+			}
+
+			override fun onRestored() {
+				var visited = 0
+				store?.forEachSlot { visited++ }
+				seenDuringReconcile = visited
+			}
+		}
+
+		val world = MetaEntityWorld()
+		val entities = (0 until 7).map { world.add(Neighbourly()) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+		world.remove(entities[3])
+
+		world.restoreFrom(snapshot)
+
+		for (entity in entities) {
+			assertEquals(7, entity.seenDuringRestore) { "A restore hook could not walk the store" }
+			assertEquals(7, entity.seenDuringReconcile) { "A reconciliation hook could not walk the store" }
+		}
+		world.validate()
+	}
+
+	@Test
 	fun `a throwing restore hook leaves the world structurally consistent`() {
 		// Same hazard reached the ordinary way: an implementation that validates a captured value and rejects it.
 		class Picky : MetaEntity(), MetaEntityState {
