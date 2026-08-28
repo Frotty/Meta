@@ -276,6 +276,12 @@ class MetaUIRenderer : UIRenderer {
 		if (!loaded || disposed) return
 		applySuggestedScale()
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
+		// The same pixel-scale check `resize` makes, because this is a second way in and startup is where the
+		// display is most likely to move. An application restores its saved display mode from `onLoaded`, the
+		// splash calls this immediately afterwards, and the splash's own `resize` does not forward to the renderer
+		// - so on a mode change that alters the back-buffer ratio without altering the logical scale, this is the
+		// only chance to notice before the first screen is handed over holding faces from the old atlas.
+		if (pixelScaleChanged()) regenerateForPixelScale()
 	}
 
 	/**
