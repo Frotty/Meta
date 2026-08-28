@@ -226,6 +226,17 @@ object MetaSkin {
 			val bounds = rect.bounds
 			val region = TextureRegion(rect.page.texture, bounds.x, bounds.y, bounds.width, bounds.height)
 			val existing = skin.optional(entry.name, Drawable::class.java) as? BaseDrawable ?: continue
+			// Read the metrics off the drawable rather than out of the record. What packDrawable captured is what
+			// the *generator* asked for, and several drawables are reconfigured after installation - the menu bar
+			// and menu items are packed with no padding and then given 8/2 and 8/4 with larger minimums. Restoring
+			// the recorded values would quietly revert that, changing menu geometry on the first scale change.
+			// Taking the live values also survives any reconfiguration added later without this needing to know.
+			val padLeft = existing.leftWidth
+			val padRight = existing.rightWidth
+			val padTop = existing.topHeight
+			val padBottom = existing.bottomHeight
+			val minWidth = existing.minWidth
+			val minHeight = existing.minHeight
 			val splits = entry.splits
 			when {
 				existing is NinePatchDrawable && splits != null ->
@@ -233,14 +244,14 @@ object MetaSkin {
 				existing is TextureRegionDrawable -> existing.region = region
 				else -> continue
 			}
-			// setPatch copies padding and minimum size out of the patch, so the configured values have to go back
-			// on afterwards or every rebuilt widget silently changes size.
-			existing.leftWidth = entry.padLeft
-			existing.rightWidth = entry.padRight
-			existing.topHeight = entry.padTop
-			existing.bottomHeight = entry.padBottom
-			existing.minWidth = entry.minWidth
-			existing.minHeight = entry.minHeight
+			// setPatch copies padding and minimum size out of the patch, so they have to go back on afterwards or
+			// every rebuilt widget silently changes size.
+			existing.leftWidth = padLeft
+			existing.rightWidth = padRight
+			existing.topHeight = padTop
+			existing.bottomHeight = padBottom
+			existing.minWidth = minWidth
+			existing.minHeight = minHeight
 		}
 
 		// After the re-point, so nothing is drawing from a texture that has been deleted.

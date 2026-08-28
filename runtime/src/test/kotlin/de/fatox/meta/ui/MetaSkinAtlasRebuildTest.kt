@@ -59,6 +59,35 @@ class MetaSkinAtlasRebuildTest {
 	}
 
 	@Test
+	fun `drawables reconfigured after installation keep their metrics`() {
+		// The menu bar and menu items are packed with no padding and then given their real metrics afterwards by
+		// configureToolbarDrawables/configureMenuItemDrawables. Restoring what was recorded at pack time would
+		// quietly revert that on the first scale change, so menu geometry would differ before and after - and
+		// nothing about the menus would look obviously broken, just wrong.
+		val skin = MetaSkin.skin()
+		val names = arrayOf("meta.menu.item", "meta.menu.item.over", "meta.menu.bar.over", "meta.menu.bar.selected")
+		val before = names.map { name ->
+			val d = skin.getDrawable(name)
+			floatArrayOf(d.leftWidth, d.rightWidth, d.topHeight, d.bottomHeight, d.minWidth, d.minHeight)
+		}
+		// Sanity: these must actually differ from the packed defaults, or this test proves nothing.
+		assertTrue(before[0][0] > 0f) { "meta.menu.item has no configured padding; this test would be vacuous" }
+
+		MetaSkin.rebuildAtlas()
+
+		names.forEachIndexed { index, name ->
+			val d = skin.getDrawable(name)
+			val was = before[index]
+			assertEquals(was[0], d.leftWidth, "$name leftWidth changed across a rebuild")
+			assertEquals(was[1], d.rightWidth, "$name rightWidth changed across a rebuild")
+			assertEquals(was[2], d.topHeight, "$name topHeight changed across a rebuild")
+			assertEquals(was[3], d.bottomHeight, "$name bottomHeight changed across a rebuild")
+			assertEquals(was[4], d.minWidth, "$name minWidth changed across a rebuild")
+			assertEquals(was[5], d.minHeight, "$name minHeight changed across a rebuild")
+		}
+	}
+
+	@Test
 	fun `repeated rebuilds with glyphs in between stay on one page`() {
 		val fonts = MetaInject.inject<FontProvider>("default")
 		// Each pass rasterizes a fresh set of glyph sizes into the shared atlas, as a scale change does. Without a
