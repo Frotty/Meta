@@ -59,6 +59,25 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 	/** The frame this was taken at. Meta never reads it; it is here so a caller's ring buffer need not parallel it. */
 	var frame: Int = -1
 
+	/**
+	 * True while a restore is reading this snapshot and its hooks may run.
+	 *
+	 * The flag lives on the snapshot rather than on the store so that *every* way of writing it is covered by one
+	 * check. Guarding only the entry point that happened to be reported left the others open: a hook that gets
+	 * hold of the snapshot being restored can reach it through [copyFrom] or [releaseRetainedEntities] just as
+	 * easily as through a capture, and each would overwrite the windows the slots not yet visited still read.
+	 */
+	internal var borrowed = false
+
+	/** Throws if a restore is reading this snapshot, naming [action]. */
+	internal fun checkWritable(action: String) {
+		check(!borrowed) {
+			"Cannot $action while this snapshot is being restored from. Its windows are still being read, so " +
+				"overwriting them would leave every entity not yet visited holding its pre-rollback state. Use a " +
+				"different snapshot, or wait until MetaEntityWorld.restoreFrom has returned."
+		}
+	}
+
 	internal var x = FloatArray(initialCapacity)
 	internal var y = FloatArray(initialCapacity)
 	internal var z = FloatArray(initialCapacity)
@@ -125,6 +144,7 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 	 * without re-reading the world.
 	 */
 	fun copyFrom(other: MetaWorldSnapshot) {
+		checkWritable("copy into this snapshot")
 		ensureCapacity(other.count)
 		val previousCount = count
 		System.arraycopy(other.x, 0, x, 0, other.count)
@@ -153,6 +173,7 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 
 	/** Drops the entity references this is keeping alive, without giving up the buffers. */
 	fun releaseRetainedEntities() {
+		checkWritable("release this snapshot's entities")
 		java.util.Arrays.fill(owners, 0, count, null)
 		count = 0
 	}

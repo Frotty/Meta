@@ -125,14 +125,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	/** How many custom-state passes are currently on the stack. */
 	private var customScratchDepth = 0
 
-	/**
-	 * The snapshot a restore is currently reading from, while its hooks run.
-	 *
-	 * The per-depth scratch protects the buffers handed to a hook; nothing protected the source being read. A
-	 * hook capturing into that same snapshot overwrote the windows of every slot not yet visited with live,
-	 * half-restored values, and those entities then quietly kept their pre-rollback state.
-	 */
-	private var restoreSource: MetaWorldSnapshot? = null
+
 
 	/**
 	 * Runs [body] with a scratch pair no other pass on the stack is holding.
@@ -279,11 +272,9 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 * Column at a time with `System.arraycopy`, which is an intrinsic and moves the whole run at memory speed.
 	 */
 	internal fun captureInto(snapshot: MetaWorldSnapshot) {
-		check(snapshot !== restoreSource) {
-			"Cannot capture into the snapshot currently being restored from. Its windows are still being read, so " +
-				"overwriting them here would leave every entity not yet visited holding its pre-rollback state. " +
-				"Capture into a different snapshot, or wait until MetaEntityWorld.restoreFrom has returned."
-		}
+		// The per-depth scratch protects the buffers handed to a hook; this protects the snapshot being read from.
+		// The flag lives on the snapshot so capture, copyFrom and releaseRetainedEntities all answer to one check.
+		snapshot.checkWritable("capture into this snapshot")
 		snapshot.ensureCapacity(count)
 		val previousCount = snapshot.count
 		System.arraycopy(x, 0, snapshot.x, 0, count)
@@ -405,12 +396,12 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	internal fun runRestoreHooks(snapshot: MetaWorldSnapshot) {
 		// One entry point for both passes so the source is protected across the whole window a caller's code can
 		// run in, rather than only the pass that happens to read it.
-		restoreSource = snapshot
+		snapshot.borrowed = true
 		try {
 			restoreCustomState(snapshot)
 			notifyRestored()
 		} finally {
-			restoreSource = null
+			snapshot.borrowed = false
 		}
 	}
 

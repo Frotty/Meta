@@ -558,6 +558,50 @@ class MetaEntityStateTest {
 	}
 
 	@Test
+	fun `every way of writing the snapshot being restored is refused`() {
+		// captureInto was the instance; "this snapshot is being read" is the class. copyFrom and
+		// releaseRetainedEntities write the same arrays, so guarding one entry point left the others open.
+		class Writer(val write: (MetaWorldSnapshot) -> Unit) : MetaEntity(), MetaEntityState {
+			var target: MetaWorldSnapshot? = null
+
+			override fun captureState(ints: IntArray, floats: FloatArray) = Unit
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) {
+				target?.let(write)
+			}
+		}
+
+		val donor = MetaWorldSnapshot()
+		MetaEntityWorld().also { it.add(Plain(0)) }.captureInto(donor)
+
+		for (write in listOf<Pair<String, (MetaWorldSnapshot) -> Unit>>(
+			"copyFrom" to { it.copyFrom(donor) },
+			"releaseRetainedEntities" to { it.releaseRetainedEntities() },
+		)) {
+			val world = MetaEntityWorld()
+			repeat(4) { world.add(Writer(write.second)) }
+			val snapshot = MetaWorldSnapshot()
+			world.captureInto(snapshot)
+			for (index in 0 until world.size) (world.entityAt(index) as Writer).target = snapshot
+
+			assertThrows(IllegalStateException::class.java, { world.restoreFrom(snapshot) }, write.first)
+			world.validate()
+			assertEquals(4, world.size)
+		}
+
+		// Writing a snapshot that is not the one being restored stays legal.
+		val world = MetaEntityWorld()
+		repeat(3) { world.add(Writer({ it.copyFrom(donor) })) }
+		val active = MetaWorldSnapshot()
+		val spare = MetaWorldSnapshot()
+		world.captureInto(active)
+		for (index in 0 until world.size) (world.entityAt(index) as Writer).target = spare
+		world.restoreFrom(active)
+		world.validate()
+		assertEquals(1, spare.count)
+	}
+
+	@Test
 	fun `a throwing restore hook leaves the world structurally consistent`() {
 		// Same hazard reached the ordinary way: an implementation that validates a captured value and rejects it.
 		class Picky : MetaEntity(), MetaEntityState {
