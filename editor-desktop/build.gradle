@@ -69,6 +69,6 @@ jar {
 		attributes 'Main-Class': application.mainClass.get()
 	}
 	doLast {
-		file(archiveFile.get().asFile).setExecutable(true, false)
+		archiveFile.get().asFile.setExecutable(true, false)
 	}
 }
