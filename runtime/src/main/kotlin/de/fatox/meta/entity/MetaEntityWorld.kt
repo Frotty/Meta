@@ -157,6 +157,11 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 		liveEntities.clear()
 		liveEntities.ensureCapacity(snapshot.count)
 		for (slot in 0 until snapshot.count) liveEntities.add(snapshot.owners[slot])
+		// Last, and that ordering is the contract: MetaEntityState.onRestored is promised a fully restored world,
+		// and this list is part of the world. Firing these inside the store's restore would hand a callback the
+		// restored columns through a stale `size` and `entityAt` - still listing what the rollback killed, and
+		// still missing what it brought back.
+		store.notifyRestored()
 	}
 
 	/**

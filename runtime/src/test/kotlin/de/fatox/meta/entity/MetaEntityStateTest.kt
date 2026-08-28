@@ -222,6 +222,71 @@ class MetaEntityStateTest {
 	}
 
 	@Test
+	fun `reconciliation sees the rebuilt world, not just the restored columns`() {
+		// The store's columns and the world's entity list are restored by different objects, so "the whole world
+		// is back" has two halves. A callback firing between them sees restored transforms through a stale list:
+		// still holding what the rollback killed, still missing what it brought back. Reading store.count would
+		// not notice - it is set by the first half - so this reads the world the way a game actually would.
+		class Watcher(val id: Int) : MetaEntity(), MetaEntityState {
+			var world: MetaEntityWorld? = null
+			var sizeSeen = -1
+			var idsSeen: List<Int> = emptyList()
+
+			override fun captureState(ints: IntArray, floats: FloatArray) {
+				ints[0] = id
+			}
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) = Unit
+
+			override fun onRestored() {
+				val world = world ?: return
+				sizeSeen = world.size
+				idsSeen = (0 until world.size).map { (world.entityAt(it) as Watcher).id }
+			}
+		}
+
+		val world = MetaEntityWorld()
+		val watchers = (0 until 6).map { world.add(Watcher(it)).also { w -> w.world = world } }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		// Both directions at once: two die and one is born, so a stale list is wrong in both.
+		world.remove(watchers[1])
+		world.remove(watchers[4])
+		val newborn = Watcher(99).also { it.world = world }
+		world.add(newborn)
+
+		world.restoreFrom(snapshot)
+
+		for (watcher in watchers) {
+			assertEquals(6, watcher.sizeSeen) {
+				"Watcher ${watcher.id} reconciled against a world of ${watcher.sizeSeen}, not the restored 6"
+			}
+			assertEquals(listOf(0, 1, 2, 3, 4, 5), watcher.idsSeen) {
+				"Watcher ${watcher.id} saw ${watcher.idsSeen} - a list that does not match the restored world"
+			}
+		}
+		// The entity the rollback undid is not reconciled at all, because it is not in the world any more.
+		assertEquals(-1, newborn.sizeSeen) { "An entity removed by the rollback was still reconciled" }
+	}
+
+	@Test
+	fun `digesting a snapshot with custom state repeatedly allocates nothing`() {
+		assumeTrue(AllocationProbe.isSupported, "This JVM cannot report per-thread allocation")
+		val world = MetaEntityWorld()
+		repeat(500) { world.add(Stateful(it, health = it, fuse = it * 0.5f)) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		// Peer verification hashes retained snapshots every frame, so this runs as often as capture does.
+		val bytes = AllocationProbe.measure(warmup = 50, iterations = 20) { snapshot.digest(MetaTransformColumns.ALL) }
+
+		assertTrue(bytes <= 0) {
+			"Digesting a snapshot allocated $bytes bytes per call, in the one path this class exists to keep free"
+		}
+	}
+
+	@Test
 	fun `capturing custom state allocates nothing`() {
 		assumeTrue(AllocationProbe.isSupported, "This JVM cannot report per-thread allocation")
 		val world = MetaEntityWorld()

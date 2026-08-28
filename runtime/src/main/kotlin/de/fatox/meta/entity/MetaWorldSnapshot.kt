@@ -152,14 +152,22 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 		if (!hasCustomState) return hash
 		// Values from the capture; exclusion masks from the entities, which is where they are declared. A mask is
 		// a property of the type rather than of the moment, so reading it live cannot disagree with the capture.
-		val ints = IntArray(MetaEntityState.INTS)
-		val floats = FloatArray(MetaEntityState.FLOATS)
+		//
+		// Read straight out of the flat arrays at an offset rather than copied into a window first. A peer check
+		// hashes retained snapshots every frame, so a per-call pair of scratch arrays would be steady garbage in
+		// the one path this class exists to keep allocation-free.
 		for (slot in 0 until count) {
 			val entity = owners[slot]
 			if (entity !is MetaEntityState) continue
-			System.arraycopy(customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
-			System.arraycopy(customFloats, slot * MetaEntityState.FLOATS, floats, 0, MetaEntityState.FLOATS)
-			hash = mixCustomWindow(hash, ints, floats, entity.digestExcludedInts, entity.digestExcludedFloats)
+			hash = mixCustomWindow(
+				hash,
+				customInts,
+				slot * MetaEntityState.INTS,
+				customFloats,
+				slot * MetaEntityState.FLOATS,
+				entity.digestExcludedInts,
+				entity.digestExcludedFloats,
+			)
 		}
 		return hash
 	}
@@ -241,19 +249,21 @@ private fun mixFloats(start: Long, column: FloatArray, count: Int): Long {
 internal fun mixCustomWindow(
 	start: Long,
 	ints: IntArray,
+	intOffset: Int,
 	floats: FloatArray,
+	floatOffset: Int,
 	excludedInts: Int,
 	excludedFloats: Int,
 ): Long {
 	var hash = start
 	for (index in 0 until MetaEntityState.INTS) {
 		if (excludedInts ushr index and 1 != 0) continue
-		hash = hash xor ints[index].toLong()
+		hash = hash xor ints[intOffset + index].toLong()
 		hash *= MetaWorldSnapshot.FNV_PRIME_64
 	}
 	for (index in 0 until MetaEntityState.FLOATS) {
 		if (excludedFloats ushr index and 1 != 0) continue
-		hash = hash xor java.lang.Float.floatToRawIntBits(floats[index]).toLong()
+		hash = hash xor java.lang.Float.floatToRawIntBits(floats[floatOffset + index]).toLong()
 		hash *= MetaWorldSnapshot.FNV_PRIME_64
 	}
 	return hash

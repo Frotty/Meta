@@ -316,26 +316,30 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		restoreCustomFrom(snapshot)
 	}
 
-	/**
-	 * Hands each entity its own state back, then lets every one of them reconcile.
-	 *
-	 * Two passes, because [MetaEntityState.onRestored] is specified to run once the whole world is back: anything
-	 * reading a neighbour - a bar that tracks the entity it belongs to, a link spanning several - would otherwise
-	 * see half a world still holding the future it is being rolled back from.
-	 */
+	/** Hands each entity its own state back. Reconciliation is a separate pass; see [notifyRestored]. */
 	private fun restoreCustomFrom(snapshot: MetaWorldSnapshot) {
-		if (customStateCount == 0) return
-		if (snapshot.hasCustomState) {
-			val ints = customScratchInts
-			val floats = customScratchFloats
-			for (slot in 0 until count) {
-				val entity = owners[slot]
-				if (entity !is MetaEntityState) continue
-				System.arraycopy(snapshot.customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
-				System.arraycopy(snapshot.customFloats, slot * MetaEntityState.FLOATS, floats, 0, MetaEntityState.FLOATS)
-				entity.restoreState(ints, floats)
-			}
+		if (customStateCount == 0 || !snapshot.hasCustomState) return
+		val ints = customScratchInts
+		val floats = customScratchFloats
+		for (slot in 0 until count) {
+			val entity = owners[slot]
+			if (entity !is MetaEntityState) continue
+			System.arraycopy(snapshot.customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
+			System.arraycopy(snapshot.customFloats, slot * MetaEntityState.FLOATS, floats, 0, MetaEntityState.FLOATS)
+			entity.restoreState(ints, floats)
 		}
+	}
+
+	/**
+	 * Lets every entity reconcile, once the whole world is back.
+	 *
+	 * A separate pass called by [MetaEntityWorld.restoreFrom], and called by it *last*, because the world these
+	 * callbacks are promised is not complete until its entity list has been rebuilt too. Firing them at the end of
+	 * the restore above would show a callback the restored columns through a still-stale `size` and `entityAt` -
+	 * so an entity killed by the rollback would still be listed, and one resurrected by it would not be.
+	 */
+	internal fun notifyRestored() {
+		if (customStateCount == 0) return
 		for (slot in 0 until count) (owners[slot] as? MetaEntityState)?.onRestored()
 	}
 
@@ -356,7 +360,15 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 			java.util.Arrays.fill(ints, 0)
 			java.util.Arrays.fill(floats, 0f)
 			entity.captureState(ints, floats)
-			running = mixCustomWindow(running, ints, floats, entity.digestExcludedInts, entity.digestExcludedFloats)
+			running = mixCustomWindow(
+				running,
+				ints,
+				0,
+				floats,
+				0,
+				entity.digestExcludedInts,
+				entity.digestExcludedFloats,
+			)
 		}
 		return running
 	}
