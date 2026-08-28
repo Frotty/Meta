@@ -130,6 +130,9 @@ class MetaUIRenderer : UIRenderer {
 	/** Set only while this renderer is assigning [uiScale], so its own write is not mistaken for a user's. */
 	private var applyingAutomaticScale = false
 
+	/** The pixel scale the current faces were rasterized at, so a back-buffer change can be noticed. */
+	private var lastPixelScale: Float = Float.NaN
+
 	private val backingUiScale: Signal<Float> = signal(1f) { a, b -> abs(a - b) < 0.001f }
 
 	/**
@@ -256,14 +259,7 @@ class MetaUIRenderer : UIRenderer {
 		// afterwards with a user-chosen / persisted value.
 		reactiveScope.subscribe(backingUiScale) {
 			applyViewport(Gdx.graphics.width, Gdx.graphics.height)
-			// Order is the whole of this block. The atlas moves to a fresh page *first*, so the glyphs rasterized
-			// below land on the new one; the previous scale's glyphs go with the page that is dropped, which is the
-			// only way this atlas reclaims anything - PixmapPacker cannot free a region.
-			MetaSkin.rebuildAtlas()
-			// Then the stage walk, so every widget that caches a font re-fetches it from the regenerated provider.
-			stage.root.refreshFontsRecursively()
-			// And only then the old faces, once nothing on stage still references them.
-			fontProvider.disposeOrphanedFonts()
+			regenerateForPixelScale()
 		}
 		applySuggestedScale()
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
@@ -405,7 +401,49 @@ class MetaUIRenderer : UIRenderer {
 		// density changed. Re-suggesting here is what makes the setting followed rather than sampled once.
 		applySuggestedScale()
 		applyViewport(width, height)
+		// The logical scale is not the whole story. Fonts are rasterized at logical scale times the back-buffer
+		// ratio, and on macOS that ratio changes between a Retina and a non-Retina monitor while the logical scale
+		// stays put - so the move produces no signal at all through uiScale, and a manual scale suppresses it
+		// outright. Left alone, on-stage widgets keep fonts rasterized for the old pixel ratio and draw blurred.
+		//
+		// Worse than blurred, in fact: the provider orphans its caches the moment anything asks for a font at the
+		// new ratio, and a later disposeOrphanedFonts would free faces those widgets are still drawing from.
+		if (pixelScaleChanged()) regenerateForPixelScale()
 		toastManager.resize()
+	}
+
+	/**
+	 * The scale fonts are actually rasterized at: the logical scale times the back-buffer ratio.
+	 *
+	 * Mirrors `MetaFontProvider.physicalUiScale`, which is the number that decides whether cached faces are stale.
+	 */
+	private fun currentPixelScale(): Float {
+		val graphics = Gdx.graphics
+		val contentScale = if (graphics.width > 0) graphics.backBufferWidth.toFloat() / graphics.width else 1f
+		return (uiScale.peek() * contentScale).coerceAtLeast(0.01f)
+	}
+
+	private fun pixelScaleChanged(): Boolean {
+		val current = currentPixelScale()
+		if (lastPixelScale.isNaN() || abs(current - lastPixelScale) > 0.001f) {
+			lastPixelScale = current
+			return true
+		}
+		return false
+	}
+
+	/**
+	 * Moves the atlas to a fresh page, re-fetches every widget's font, then releases the old faces.
+	 *
+	 * The order is the whole of it. The atlas moves first so the glyphs rasterized during the walk land on the new
+	 * page and the previous set goes with the page that is dropped - the only way this atlas reclaims anything,
+	 * since PixmapPacker cannot free a region. Disposal is last, once nothing on stage still references a face.
+	 */
+	private fun regenerateForPixelScale() {
+		lastPixelScale = currentPixelScale()
+		MetaSkin.rebuildAtlas()
+		stage.root.refreshFontsRecursively()
+		fontProvider.disposeOrphanedFonts()
 	}
 
 	override fun getCamera(): Camera {
