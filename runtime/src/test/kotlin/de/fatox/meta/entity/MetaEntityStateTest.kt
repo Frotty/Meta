@@ -271,6 +271,40 @@ class MetaEntityStateTest {
 	}
 
 	@Test
+	fun `a retained snapshot keeps hashing the world it captured when a mask changes`() {
+		// Nothing stops an implementation deriving an exclusion mask from mutable state - a debug toggle, a
+		// per-machine setting. Reading it live at digest time would make a stored snapshot answer differently
+		// depending on when it was asked, so a late desync check would report on a world that never existed.
+		class Shifting(var excludeHealth: Boolean) : MetaEntity(), MetaEntityState {
+			var health = 42
+
+			override fun captureState(ints: IntArray, floats: FloatArray) {
+				ints[0] = health
+			}
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) {
+				health = ints[0]
+			}
+
+			override val digestExcludedInts: Int get() = if (excludeHealth) 1 else 0
+		}
+
+		val world = MetaEntityWorld()
+		val entity = world.add(Shifting(excludeHealth = false))
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+		val captured = snapshot.digest()
+
+		entity.excludeHealth = true
+
+		assertEquals(captured, snapshot.digest()) {
+			"A retained snapshot's digest moved when the live entity's exclusion mask changed"
+		}
+		// The live world is entitled to disagree - it is being hashed as it is now, and now the mask differs.
+		assertNotEquals(captured, world.digest())
+	}
+
+	@Test
 	fun `digesting a snapshot with custom state repeatedly allocates nothing`() {
 		assumeTrue(AllocationProbe.isSupported, "This JVM cannot report per-thread allocation")
 		val world = MetaEntityWorld()

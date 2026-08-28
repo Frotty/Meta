@@ -131,7 +131,8 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 	 * collection pauses that are indistinguishable, to a player, from the network problems the rollback exists to
 	 * hide.
 	 *
-	 * Your entities' own fields are not captured and cannot be - see [MetaWorldSnapshot]. Capture them beside this.
+	 * An entity's own fields come too if it implements [MetaEntityState]; without that hook only its transform is
+	 * captured, and the rest is the caller's to keep. See [MetaEntityState] for what fits and what it costs.
 	 */
 	fun captureInto(snapshot: MetaWorldSnapshot) {
 		store.captureInto(snapshot)

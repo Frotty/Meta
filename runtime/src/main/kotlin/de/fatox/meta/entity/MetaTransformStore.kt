@@ -254,9 +254,14 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		for (slot in 0 until count) {
 			java.util.Arrays.fill(ints, 0)
 			java.util.Arrays.fill(floats, 0f)
-			(owners[slot] as? MetaEntityState)?.captureState(ints, floats)
+			val entity = owners[slot] as? MetaEntityState
+			entity?.captureState(ints, floats)
 			System.arraycopy(ints, 0, snapshot.customInts, slot * MetaEntityState.INTS, MetaEntityState.INTS)
 			System.arraycopy(floats, 0, snapshot.customFloats, slot * MetaEntityState.FLOATS, MetaEntityState.FLOATS)
+			// Taken now, not read back at digest time: an implementation is free to derive a mask from mutable
+			// state, and a retained snapshot must keep hashing the world it captured.
+			snapshot.customExcludedInts[slot] = entity?.digestExcludedInts ?: 0
+			snapshot.customExcludedFloats[slot] = entity?.digestExcludedFloats ?: 0
 		}
 	}
 

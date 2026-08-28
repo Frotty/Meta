@@ -37,10 +37,11 @@ object MetaTransformColumns {
  * whole add/remove history and cannot be re-derived from positions. Restore it and every entity keeps its own
  * transform; skip it and entities silently trade places, each reading a neighbour's position.
  *
- * It does **not** hold your entities' own fields. `health`, state machines, inventories - those are yours, and a
- * library that tried to capture them would have to serialize or reflect over the object graph every frame, which
- * is exactly what a rollback engine cannot afford. Capture them alongside this, the way the rest of a level is
- * already captured.
+ * An entity's own fields - `health`, a state machine, an ammo count - come too, but only through
+ * [MetaEntityState]: sixteen ints and eight floats per entity, written by hand. The ceiling is the point. A
+ * library capturing those fields automatically would have to serialize or reflect over the object graph every
+ * frame, which is exactly what a rollback engine cannot afford, so an entity needing more than fits should hold
+ * an index into a table the game snapshots itself.
  *
  * ### It keeps entities alive on purpose
  *
@@ -77,6 +78,17 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 	internal var customInts = IntArray(0)
 	internal var customFloats = FloatArray(0)
 
+	/**
+	 * Each entity's exclusion masks as they stood at capture, one entry per slot.
+	 *
+	 * Captured rather than read back off the entity, so [digest] is a function of this snapshot alone. Nothing
+	 * stops an implementation deriving a mask from mutable state, and if one does, reading it live would change
+	 * the hash of an already-retained snapshot - which turns a stored history into something that answers
+	 * differently depending on when it is asked, and makes a late desync check report on a world that never was.
+	 */
+	internal var customExcludedInts = IntArray(0)
+	internal var customExcludedFloats = IntArray(0)
+
 	/** Whether [customInts] and [customFloats] describe the captured world. */
 	internal var hasCustomState = false
 
@@ -88,6 +100,8 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 		if (customInts.size >= x.size * MetaEntityState.INTS) return
 		customInts = customInts.copyOf(x.size * MetaEntityState.INTS)
 		customFloats = customFloats.copyOf(x.size * MetaEntityState.FLOATS)
+		customExcludedInts = customExcludedInts.copyOf(x.size)
+		customExcludedFloats = customExcludedFloats.copyOf(x.size)
 	}
 
 	internal fun ensureCapacity(required: Int) {
@@ -130,6 +144,8 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 			ensureCustomCapacity()
 			System.arraycopy(other.customInts, 0, customInts, 0, other.count * MetaEntityState.INTS)
 			System.arraycopy(other.customFloats, 0, customFloats, 0, other.count * MetaEntityState.FLOATS)
+			System.arraycopy(other.customExcludedInts, 0, customExcludedInts, 0, other.count)
+			System.arraycopy(other.customExcludedFloats, 0, customExcludedFloats, 0, other.count)
 		}
 		count = other.count
 		frame = other.frame
@@ -150,23 +166,22 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 	fun digest(columns: Int = MetaTransformColumns.SIMULATION, seed: Long = FNV_OFFSET_64): Long {
 		var hash = digestColumns(columns, seed, count, x, y, z, vx, vy, vz, rotation, scale)
 		if (!hasCustomState) return hash
-		// Values from the capture; exclusion masks from the entities, which is where they are declared. A mask is
-		// a property of the type rather than of the moment, so reading it live cannot disagree with the capture.
+		// Values and masks both from the capture, so this depends on nothing outside the snapshot. Only whether a
+		// slot holds a stateful entity is read live, and that is its type, which cannot change under us.
 		//
 		// Read straight out of the flat arrays at an offset rather than copied into a window first. A peer check
 		// hashes retained snapshots every frame, so a per-call pair of scratch arrays would be steady garbage in
 		// the one path this class exists to keep allocation-free.
 		for (slot in 0 until count) {
-			val entity = owners[slot]
-			if (entity !is MetaEntityState) continue
+			if (owners[slot] !is MetaEntityState) continue
 			hash = mixCustomWindow(
 				hash,
 				customInts,
 				slot * MetaEntityState.INTS,
 				customFloats,
 				slot * MetaEntityState.FLOATS,
-				entity.digestExcludedInts,
-				entity.digestExcludedFloats,
+				customExcludedInts[slot],
+				customExcludedFloats[slot],
 			)
 		}
 		return hash
