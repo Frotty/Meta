@@ -56,8 +56,20 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 	var count: Int = 0
 		internal set
 
-	/** The frame this was taken at. Meta never reads it; it is here so a caller's ring buffer need not parallel it. */
+	/**
+	 * The frame this was taken at. Meta never reads it; it is here so a caller's ring buffer need not parallel it.
+	 *
+	 * Refused while this snapshot is being restored from, even though nothing in Meta depends on it. An ordinary
+	 * save helper stamps the frame and then captures: the stamp would land, the capture behind it would be
+	 * refused, and a caller that swallowed the refusal would keep a history entry labelled with a tick it does not
+	 * hold - which a later rollback then selects on. "Borrowed" covering all of the object but one field is a rule
+	 * nobody can hold in their head.
+	 */
 	var frame: Int = -1
+		set(value) {
+			checkWritable("stamp a frame on this snapshot")
+			field = value
+		}
 
 	/**
 	 * True while a restore is reading this snapshot and its hooks may run.

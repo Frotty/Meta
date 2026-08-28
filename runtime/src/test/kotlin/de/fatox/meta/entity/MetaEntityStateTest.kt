@@ -589,6 +589,24 @@ class MetaEntityStateTest {
 			assertEquals(4, world.size)
 		}
 
+		// The frame stamp counts as a write. Meta never reads it, so it corrupts nothing here - but it lives on an
+		// object Meta has declared off limits, and an ordinary save helper stamps the frame before capturing. It
+		// would land, the capture behind it would be refused, and a caller swallowing that leaves a history entry
+		// labelled with a tick it does not hold. "Borrowed" has to mean the whole object or it means very little.
+		run {
+			val stamping = MetaEntityWorld()
+			repeat(3) { stamping.add(Writer({ it.frame = 999 })) }
+			val snapshot = MetaWorldSnapshot()
+			stamping.captureInto(snapshot)
+			snapshot.frame = 7
+			for (index in 0 until stamping.size) (stamping.entityAt(index) as Writer).target = snapshot
+
+			assertThrows(IllegalStateException::class.java) { stamping.restoreFrom(snapshot) }
+
+			assertEquals(7, snapshot.frame) { "The frame stamp landed on a snapshot that was being restored from" }
+			stamping.validate()
+		}
+
 		// Writing a snapshot that is not the one being restored stays legal.
 		val world = MetaEntityWorld()
 		repeat(3) { world.add(Writer({ it.copyFrom(donor) })) }
@@ -599,6 +617,49 @@ class MetaEntityStateTest {
 		world.restoreFrom(active)
 		world.validate()
 		assertEquals(1, spare.count)
+	}
+
+	@Test
+	fun `every way of restructuring the world from a hook is refused`() {
+		// remove was tested; clear and a re-entrant restore route through the same checkMutable, so they were
+		// covered by inference rather than by anything that would notice if that stopped being true. Written out
+		// because this contract has produced a finding every round, and inference is what kept missing them.
+		class Restructuring(val act: (MetaEntityWorld, MetaWorldSnapshot) -> Unit) : MetaEntity(), MetaEntityState {
+			var world: MetaEntityWorld? = null
+			var snapshot: MetaWorldSnapshot? = null
+
+			override fun captureState(ints: IntArray, floats: FloatArray) = Unit
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) {
+				val world = world ?: return
+				val snapshot = snapshot ?: return
+				act(world, snapshot)
+			}
+		}
+
+		val cases = listOf<Pair<String, (MetaEntityWorld, MetaWorldSnapshot) -> Unit>>(
+			"clear" to { world, _ -> world.clear() },
+			"add" to { world, _ -> world.add(Plain(99)) },
+			"re-entrant restore" to { world, snapshot -> world.restoreFrom(snapshot) },
+		)
+
+		for ((name, act) in cases) {
+			val world = MetaEntityWorld()
+			repeat(3) { world.add(Restructuring(act)) }
+			val snapshot = MetaWorldSnapshot()
+			world.captureInto(snapshot)
+			for (index in 0 until world.size) {
+				(world.entityAt(index) as Restructuring).also {
+					it.world = world
+					it.snapshot = snapshot
+				}
+			}
+
+			assertThrows(IllegalStateException::class.java, { world.restoreFrom(snapshot) }, name)
+			// Refused before anything moved, in every case.
+			world.validate()
+			assertEquals(3, world.size, name)
+		}
 	}
 
 	@Test
