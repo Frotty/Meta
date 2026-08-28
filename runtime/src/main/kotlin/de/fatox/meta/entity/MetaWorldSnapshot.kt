@@ -176,6 +176,7 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 			if (owners[slot] !is MetaEntityState) continue
 			hash = mixCustomWindow(
 				hash,
+				slot,
 				customInts,
 				slot * MetaEntityState.INTS,
 				customFloats,
@@ -263,6 +264,7 @@ private fun mixFloats(start: Long, column: FloatArray, count: Int): Long {
  */
 internal fun mixCustomWindow(
 	start: Long,
+	slot: Int,
 	ints: IntArray,
 	intOffset: Int,
 	floats: FloatArray,
@@ -271,6 +273,12 @@ internal fun mixCustomWindow(
 	excludedFloats: Int,
 ): Long {
 	var hash = start
+	// The slot first, because plain entities are skipped and the loop would otherwise hash the *sequence* of
+	// stateful windows rather than where they sit. Two worlds that differ only in which entity carries the state
+	// would then agree whenever the transform columns could not tell them apart either - which is precisely when
+	// the two entities' transforms match, and precisely the desync worth catching.
+	hash = hash xor slot.toLong()
+	hash *= MetaWorldSnapshot.FNV_PRIME_64
 	for (index in 0 until MetaEntityState.INTS) {
 		if (excludedInts ushr index and 1 != 0) continue
 		hash = hash xor ints[intOffset + index].toLong()

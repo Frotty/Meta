@@ -367,6 +367,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 			entity.captureState(ints, floats)
 			running = mixCustomWindow(
 				running,
+				slot,
 				ints,
 				0,
 				floats,

@@ -271,6 +271,38 @@ class MetaEntityStateTest {
 	}
 
 	@Test
+	fun `which slot owns the custom state is part of the digest`() {
+		// Skipping plain slots made the custom digest a hash of the *sequence* of stateful windows rather than of
+		// where they sit, so moving the state to a different entity was invisible as long as the two entities'
+		// transforms matched - which is exactly the case where the transform digest cannot separate them either.
+		// Two peers could then attach the same gameplay state to different entities and agree.
+		fun world(statefulFirst: Boolean): MetaEntityWorld {
+			val world = MetaEntityWorld()
+			if (statefulFirst) {
+				world.add(Stateful(0, health = 5))
+				world.add(Plain(1))
+			} else {
+				world.add(Plain(1))
+				world.add(Stateful(0, health = 5))
+			}
+			// Identical transforms, so nothing else in the digest can tell these two worlds apart.
+			for (index in 0 until world.size) world.entityAt(index).setPosition(0f, 0f, 0f)
+			return world
+		}
+
+		assertNotEquals(world(statefulFirst = true).digest(), world(statefulFirst = false).digest()) {
+			"Moving custom state to a different slot did not change the digest"
+		}
+
+		// The same must hold for a captured snapshot, which digests through a separate path.
+		val first = MetaWorldSnapshot().also { world(statefulFirst = true).captureInto(it) }
+		val second = MetaWorldSnapshot().also { world(statefulFirst = false).captureInto(it) }
+		assertNotEquals(first.digest(), second.digest()) {
+			"A snapshot's digest did not distinguish which slot owned the custom state"
+		}
+	}
+
+	@Test
 	fun `a retained snapshot keeps hashing the world it captured when a mask changes`() {
 		// Nothing stops an implementation deriving an exclusion mask from mutable state - a debug toggle, a
 		// per-machine setting. Reading it live at digest time would make a stored snapshot answer differently
