@@ -87,6 +87,7 @@ object MetaSkin {
 	private const val NANOS_PER_MILLI = 1_000_000L
 	private var activeSkin: Skin? = null
 	private var packer: PixmapPacker? = null
+	private var atlasGeneration = 0
 	private val atlasEntries = Array<PendingDrawable>()
 	private var installActions: Array<() -> Unit>? = null
 	private var installCursor = 0
@@ -259,10 +260,12 @@ object MetaSkin {
 		for (index in 0 until stalePages.size) stalePages[index].texture?.dispose()
 		previous.dispose()
 		packer = replacement
+		atlasGeneration++
 	}
 
 	/** How many atlas pages the generated chrome occupies. One means every patch shares a texture. */
 	val atlasPageCount: Int get() = packer?.pages?.size ?: 0
+	internal val currentAtlasGeneration: Int get() = atlasGeneration
 
 	/**
 	 * The page that generated chrome lives on, so glyphs can be packed beside it.

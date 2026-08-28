@@ -103,4 +103,18 @@ class MetaSkinAtlasRebuildTest {
 		val drawable: Drawable? = MetaSkin.skin().optional("meta.button.up", Drawable::class.java)
 		assertNotNull(drawable, "The chrome did not survive repeated rebuilds")
 	}
+
+	@Test
+	fun `cached fonts are regenerated after an atlas rebuild`() {
+		val fonts = MetaInject.inject<FontProvider>("default")
+		val before = fonts.getFont(24, FontType.REGULAR)
+		val generationBefore = fonts.fontGeneration
+
+		MetaSkin.rebuildAtlas()
+		fonts.disposeOrphanedFonts()
+
+		val after = fonts.getFont(24, FontType.REGULAR)
+		assertTrue(fonts.fontGeneration > generationBefore, "The atlas rebuild did not invalidate font caches")
+		assertTrue(after !== before, "The cached font still points at the previous atlas")
+	}
 }

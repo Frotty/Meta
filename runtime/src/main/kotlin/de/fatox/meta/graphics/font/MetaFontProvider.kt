@@ -133,6 +133,7 @@ class MetaFontProvider : FontProvider {
 
 	/** The UI scale the currently-cached fonts were rasterized for; if it changes, fonts are regenerated crisply. */
 	private var generationScale = 1f
+	private var generatedAtlasGeneration = -1
 
 	/**
 	 * Fonts dropped from the caches by a scale change. Live widgets may still reference them until they refresh
@@ -145,6 +146,7 @@ class MetaFontProvider : FontProvider {
 
 	override fun getFont(size: Int, type: FontType): BitmapFont {
 		refreshScaleIfChanged()
+		invalidateIfAtlasRebuilt()
 		val bitmapFonts = when(type) {
 			FontType.REGULAR -> normalFontMap
 			FontType.BOLD -> boldFontMap
@@ -178,10 +180,32 @@ class MetaFontProvider : FontProvider {
 		fontMap.clear()
 	}
 
+	private fun invalidateIfAtlasRebuilt() {
+		val currentGeneration = MetaSkin.currentAtlasGeneration
+		if (generatedAtlasGeneration == currentGeneration) return
+		if (generatedAtlasGeneration >= 0) invalidateForAtlasRebuild()
+		generatedAtlasGeneration = currentGeneration
+	}
+
+	/**
+	 * Drops fonts that were generated against the previous shared skin atlas. The atlas rebuild is independent of UI
+	 * scale, so [refreshScaleIfChanged] cannot detect this invalidation by itself.
+	 */
+	internal fun invalidateForAtlasRebuild() {
+		fontGeneration++
+		orphanFonts(normalFontMap)
+		orphanFonts(monoFontMap)
+		orphanFonts(boldFontMap)
+		orphanFonts(iconFontMap)
+	}
+
 	override fun disposeOrphanedFonts() {
 		// Force the scale check even if no widget called getFont since the change (e.g. an empty stage): anything
 		// still cached for a stale scale is unreferenced by on-stage widgets at this point and safe to release.
 		refreshScaleIfChanged()
+		// The renderer calls this after its refresh walk. An empty stage, or a stage whose font widgets are detached,
+		// has no getFont call to observe a shared atlas rebuild, so observe it here before releasing old faces.
+		invalidateIfAtlasRebuilt()
 		for (i in 0 until orphanedFonts.size) disposeFont(orphanedFonts.get(i))
 		orphanedFonts.clear()
 	}
