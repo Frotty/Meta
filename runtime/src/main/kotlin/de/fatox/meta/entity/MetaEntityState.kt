@@ -20,7 +20,7 @@ package de.fatox.meta.entity
  *
  *     override fun restoreState(ints: IntArray, floats: FloatArray) {
  *         health = ints[0]
- *         floats[0].let { fuse = it }
+ *         fuse = floats[0]
  *     }
  * }
  * ```
@@ -38,11 +38,13 @@ interface MetaEntityState {
 	/**
 	 * Reads them back. Called once per entity during [MetaEntityWorld.restoreFrom].
 	 *
-	 * Set your own fields and nothing else: adding or removing an entity from here throws. The columns already
-	 * hold the restored population while the world's entity list does not, so a structural change would be
-	 * applied to two different views of the same world. If a restored value means an entity should go, record
-	 * that here and act on it once [MetaEntityWorld.restoreFrom] has returned - [onRestored] is no good either,
-	 * for the same reason.
+	 * Set your own fields and nothing else: adding or removing an entity from here throws. The pass walks slots,
+	 * and removing an entity swaps the last one into a slot already visited, which would leave a live entity
+	 * silently never handed its state back. If a restored value means an entity should go, record that here and
+	 * act on it once [MetaEntityWorld.restoreFrom] has returned - [onRestored] is no good either, for the same
+	 * reason.
+	 *
+	 * Throwing from here is allowed and leaves the world structurally sound; only custom state is half-applied.
 	 */
 	fun restoreState(ints: IntArray, floats: FloatArray)
 

@@ -428,6 +428,42 @@ class MetaEntityStateTest {
 
 		// The lock is released, so the store is not wedged for everything that follows.
 		world.store.checkMutable("add an entity")
+		// And the world is still structurally sound. A hook throwing - this guard, or a caller's own validation -
+		// must not leave the columns holding the snapshot's population while the entity list holds the old one:
+		// size would disagree with count, and a later removal would swap the wrong list slot.
+		world.validate()
+		assertEquals(world.store.count, world.size)
+	}
+
+	@Test
+	fun `a throwing restore hook leaves the world structurally consistent`() {
+		// Same hazard reached the ordinary way: an implementation that validates a captured value and rejects it.
+		class Picky : MetaEntity(), MetaEntityState {
+			var explode = false
+
+			override fun captureState(ints: IntArray, floats: FloatArray) = Unit
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) {
+				if (explode) error("that value is not acceptable")
+			}
+		}
+
+		val world = MetaEntityWorld()
+		val entities = (0 until 5).map { world.add(Picky()) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		// Change the population, so a half-applied restore is visibly wrong rather than coincidentally fine.
+		world.remove(entities[1])
+		world.remove(entities[3])
+		entities.forEach { it.explode = true }
+
+		assertThrows(IllegalStateException::class.java) { world.restoreFrom(snapshot) }
+
+		world.validate()
+		assertEquals(5, world.size)
+		assertEquals(5, world.store.count)
+		for ((slot, entity) in entities.withIndex()) assertEquals(entity, world.entityAt(slot))
 	}
 
 	@Test

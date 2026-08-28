@@ -318,18 +318,27 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		}
 		count = snapshot.count
 		customStateCount = rebuiltCustomStateCount
-		restoreCustomFrom(snapshot)
 	}
 
-	/** Hands each entity its own state back. Reconciliation is a separate pass; see [notifyRestored]. */
-	private fun restoreCustomFrom(snapshot: MetaWorldSnapshot) {
+	/**
+	 * Hands each entity its own state back. Reconciliation is a separate pass again; see [notifyRestored].
+	 *
+	 * Called by [MetaEntityWorld.restoreFrom] *after* it has rebuilt its entity list, not from [restoreFrom]
+	 * above. These are caller callbacks and a caller callback can throw - validating a captured value and
+	 * rejecting it is an ordinary thing to write. Running them from inside the store's restore meant such a throw
+	 * escaped with the columns already holding the snapshot's population and the world's list still holding the
+	 * old one: `size` disagreed with `count`, `validate` failed, and a later removal swapped the wrong list slot.
+	 *
+	 * Ordering it after the rebuild makes the structure whole before any of a caller's code runs, so the worst a
+	 * throw can now do is leave custom state half-applied - which is the caller's own to reason about.
+	 */
+	internal fun restoreCustomState(snapshot: MetaWorldSnapshot) {
 		if (customStateCount == 0 || !snapshot.hasCustomState) return
 		val ints = customScratchInts
 		val floats = customScratchFloats
-		// Locked for the same reason the notification pass is, and with more at stake: the columns already hold
-		// the snapshot's population while MetaEntityWorld's entity list is still the pre-restore one, so a removal
-		// here would update the two against different slot layouts - and the list rebuild that follows re-adds
-		// every snapshot owner regardless, leaving size, count, owners and bindings disagreeing four ways.
+		// Locked for the same reason the notification pass is: this walks slots, and a swap-remove moves the last
+		// entity into a slot the cursor has already passed, so that entity would silently never be handed its
+		// state back and would keep whatever the rollback was meant to undo.
 		beginIteration()
 		try {
 			for (slot in 0 until count) {
