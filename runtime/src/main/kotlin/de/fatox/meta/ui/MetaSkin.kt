@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.NinePatch
+import com.badlogic.gdx.graphics.g2d.PixmapPacker
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.scenes.scene2d.ui.Button
@@ -14,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.SelectBox
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
+import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
@@ -59,6 +61,21 @@ object MetaSkin {
 	private const val WINDOW_BACKGROUND = "meta.window.background"
 
 	private const val INSTALLED_COLOR = "meta.skin.installed"
+	/**
+	 * Sized for chrome *and* glyphs, because they share it - see [sharedPacker]. The chrome is about 132k pixels;
+	 * the rest is headroom for every font size an application rasterizes, including the extra sets a UI-scale
+	 * change adds. Overflow spills to a second page, which costs a bind rather than breaking anything.
+	 */
+	private const val ATLAS_PAGE_SIZE = 2048
+	/**
+	 * Two pixels, with duplicated borders, so linear filtering cannot sample a neighbour.
+	 *
+	 * Not optional. A nine-patch stretches its middle band and a 1x1 solid is magnified enormously; without padded,
+	 * duplicated edges both would pull in whatever was packed next to them - the classic atlas bleed, which shows
+	 * up as a faint wrong-coloured fringe rather than as anything that looks like a bug.
+	 */
+	private const val ATLAS_PADDING = 2
+	private const val ATLAS_TEXTURE_PREFIX = "meta.atlas.page"
 	private const val PATCH_SIZE = 32
 	private const val SHAPE_AA_SAMPLES = 4
 	private const val DEPTH_EDGE_THICKNESS = 1.4f
@@ -69,9 +86,194 @@ object MetaSkin {
 	private const val LOADING_RING_PIXMAP_SIZE = 64
 	private const val NANOS_PER_MILLI = 1_000_000L
 	private var activeSkin: Skin? = null
+	private var packer: PixmapPacker? = null
+	private val atlasEntries = Array<PendingDrawable>()
 	private var installActions: Array<() -> Unit>? = null
 	private var installCursor = 0
 	private var collectingInstallActions = false
+
+	/**
+	 * A drawable whose pixels are packed but whose region cannot exist yet.
+	 *
+	 * Rasterizing and uploading are separated because the page texture does not exist until every patch has been
+	 * packed into it. Each generator records one of these; [finalizeAtlas] turns the lot into drawables in one pass
+	 * after the single upload.
+	 */
+	private class PendingDrawable(
+		val name: String,
+		/** Nine-patch splits as left/right/top/bottom, or null for a plain region drawable. */
+		val splits: IntArray?,
+		val padLeft: Float,
+		val padRight: Float,
+		val padTop: Float,
+		val padBottom: Float,
+		val minWidth: Float,
+		val minHeight: Float,
+	)
+
+	private fun requirePacker(): PixmapPacker =
+		packer ?: PixmapPacker(ATLAS_PAGE_SIZE, ATLAS_PAGE_SIZE, Pixmap.Format.RGBA8888, ATLAS_PADDING, true)
+			.also { packer = it }
+
+	/**
+	 * Packs [pixmap] into the shared atlas and records how to build its drawable.
+	 *
+	 * Takes ownership of [pixmap]: the packer blits it into a page, so the source is disposed here.
+	 */
+	private fun packDrawable(
+		name: String,
+		pixmap: Pixmap,
+		splits: IntArray? = null,
+		padLeft: Float = 0f,
+		padRight: Float = 0f,
+		padTop: Float = 0f,
+		padBottom: Float = 0f,
+		minWidth: Float = 1f,
+		minHeight: Float = 1f,
+	) {
+		requirePacker().pack(name, pixmap)
+		pixmap.dispose()
+		atlasEntries.add(
+			PendingDrawable(name, splits, padLeft, padRight, padTop, padBottom, minWidth, minHeight),
+		)
+	}
+
+	/**
+	 * Uploads the atlas and builds every drawable from it.
+	 *
+	 * This is the whole point of the change. Every generated drawable used to own a private `Texture`, and
+	 * `SpriteBatch` flushes on each texture change - so a plain six-row screen cost 37 texture binds and therefore
+	 * 37 draw calls, one per drawn quad. One page means one bind for all of the chrome.
+	 *
+	 * The page textures are registered with the skin so its `dispose()` releases them, exactly as the per-drawable
+	 * textures were. `PixmapPacker.dispose()` only frees page images that never became a texture, so the two do not
+	 * overlap.
+	 */
+	private fun finalizeAtlas(skin: Skin) {
+		val packer = requirePacker()
+		packer.updatePageTextures(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear, false)
+		val pages = packer.pages
+		for (index in 0 until pages.size) {
+			pages[index].texture?.let { skin.add("$ATLAS_TEXTURE_PREFIX$index", it) }
+		}
+		for (index in 0 until atlasEntries.size) {
+			val pending = atlasEntries[index]
+			val rect = checkNotNull(packer.getRect(pending.name)) { "Nothing was packed for ${pending.name}" }
+			val bounds = rect.bounds
+			val region = TextureRegion(rect.page.texture, bounds.x, bounds.y, bounds.width, bounds.height)
+			val splits = pending.splits
+			val drawable: BaseDrawable = if (splits == null) {
+				TextureRegionDrawable(region)
+			} else {
+				NinePatchDrawable(NinePatch(region, splits[0], splits[1], splits[2], splits[3]))
+			}
+			drawable.leftWidth = pending.padLeft
+			drawable.rightWidth = pending.padRight
+			drawable.topHeight = pending.padTop
+			drawable.bottomHeight = pending.padBottom
+			drawable.minWidth = pending.minWidth
+			drawable.minHeight = pending.minHeight
+			skin.add(pending.name, drawable, Drawable::class.java)
+		}
+		// Deliberately not cleared. A rebuild needs to know what is on the page and how each drawable was
+		// configured, and re-deriving that would mean re-running the generators - which is the 32ms this exists
+		// to avoid.
+	}
+
+	/**
+	 * Moves the chrome onto a fresh page and re-points the existing drawables at it.
+	 *
+	 * Glyphs share this atlas, and `PixmapPacker` cannot reclaim a region - so every UI-scale change leaves the
+	 * previous scale's glyph pixels resident forever. Enough changes spill onto a second page, and a second page
+	 * means the batch starts flushing between whatever landed on each, undoing the reason the atlas exists.
+	 *
+	 * The chrome is copied rather than re-rasterized. Its pixels do not depend on scale - nine-patches are
+	 * stretched at draw time from a fixed 32x32 source - so regenerating them would repeat 32ms of shape sampling
+	 * to arrive at the bytes already sitting in the old page's pixmap. Copying is a few hundred kilobytes of blit.
+	 *
+	 * Crucially the *drawable objects* are kept and re-pointed. Every live widget's style holds references to
+	 * them, so replacing them would need a restyle pass across the whole tree; mutating what they draw from needs
+	 * nothing. Callers see no change beyond the pixels coming from a different texture.
+	 *
+	 * Call before regenerating fonts, so the new glyphs are packed into the new page rather than the old one.
+	 */
+	fun rebuildAtlas() {
+		val previous = packer ?: return
+		val skin = activeSkin ?: return
+		if (atlasEntries.size == 0) return
+
+		val replacement = PixmapPacker(ATLAS_PAGE_SIZE, ATLAS_PAGE_SIZE, Pixmap.Format.RGBA8888, ATLAS_PADDING, true)
+		for (index in 0 until atlasEntries.size) {
+			val entry = atlasEntries[index]
+			val rect = previous.getRect(entry.name) ?: continue
+			val source = rect.page.pixmap ?: continue
+			val bounds = rect.bounds
+			val copy = Pixmap(bounds.width, bounds.height, Pixmap.Format.RGBA8888)
+			copy.setBlending(Pixmap.Blending.None)
+			copy.drawPixmap(source, 0, 0, bounds.x, bounds.y, bounds.width, bounds.height)
+			replacement.pack(entry.name, copy)
+			copy.dispose()
+		}
+		replacement.updatePageTextures(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear, false)
+
+		val pages = replacement.pages
+		for (index in 0 until pages.size) {
+			pages[index].texture?.let { skin.add("$ATLAS_TEXTURE_PREFIX$index", it) }
+		}
+		for (index in 0 until atlasEntries.size) {
+			val entry = atlasEntries[index]
+			val rect = replacement.getRect(entry.name) ?: continue
+			val bounds = rect.bounds
+			val region = TextureRegion(rect.page.texture, bounds.x, bounds.y, bounds.width, bounds.height)
+			val existing = skin.optional(entry.name, Drawable::class.java) as? BaseDrawable ?: continue
+			// Read the metrics off the drawable rather than out of the record. What packDrawable captured is what
+			// the *generator* asked for, and several drawables are reconfigured after installation - the menu bar
+			// and menu items are packed with no padding and then given 8/2 and 8/4 with larger minimums. Restoring
+			// the recorded values would quietly revert that, changing menu geometry on the first scale change.
+			// Taking the live values also survives any reconfiguration added later without this needing to know.
+			val padLeft = existing.leftWidth
+			val padRight = existing.rightWidth
+			val padTop = existing.topHeight
+			val padBottom = existing.bottomHeight
+			val minWidth = existing.minWidth
+			val minHeight = existing.minHeight
+			val splits = entry.splits
+			when {
+				existing is NinePatchDrawable && splits != null ->
+					existing.patch = NinePatch(region, splits[0], splits[1], splits[2], splits[3])
+				existing is TextureRegionDrawable -> existing.region = region
+				else -> continue
+			}
+			// setPatch copies padding and minimum size out of the patch, so they have to go back on afterwards or
+			// every rebuilt widget silently changes size.
+			existing.leftWidth = padLeft
+			existing.rightWidth = padRight
+			existing.topHeight = padTop
+			existing.bottomHeight = padBottom
+			existing.minWidth = minWidth
+			existing.minHeight = minHeight
+		}
+
+		// After the re-point, so nothing is drawing from a texture that has been deleted.
+		val stalePages = previous.pages
+		for (index in 0 until stalePages.size) stalePages[index].texture?.dispose()
+		previous.dispose()
+		packer = replacement
+	}
+
+	/** How many atlas pages the generated chrome occupies. One means every patch shares a texture. */
+	val atlasPageCount: Int get() = packer?.pages?.size ?: 0
+
+	/**
+	 * The page that generated chrome lives on, so glyphs can be packed beside it.
+	 *
+	 * This is the whole draw-call story. Scene2d draws a widget's background then its text, so with chrome and
+	 * glyphs on separate textures the batch flushes between the two - twenty buttons cost forty draw calls against
+	 * only two textures. Sharing one page means there is nothing to switch to and the screen collapses to one.
+	 *
+	 * Null until the skin has been installed. [MetaFontProvider] passes it to FreeType; nothing else should.
+	 */
+	internal fun sharedPacker(): PixmapPacker = requirePacker()
 
 	fun skin(): Skin = activeSkin ?: error("MetaSkin has not been initialized")
 
@@ -95,8 +297,19 @@ object MetaSkin {
 		installActions = null
 		installCursor = 0
 		collectingInstallActions = false
+		atlasEntries.clear()
+		// Every page texture, not only the ones finalizeAtlas registered with the skin. Glyphs are packed into this
+		// same atlas as they are rasterized, so a font can create a page *after* finalization - and such a page has
+		// no owner at all: the skin never saw it, and PixmapPacker.dispose() deliberately leaves alone any page
+		// that already has a texture. Texture.dispose() returns early once its handle is zero, so disposing the
+		// registered pages here as well and again through the skin is harmless.
+		packer?.pages?.let { pages ->
+			for (index in 0 until pages.size) pages[index].texture?.dispose()
+		}
 		activeSkin?.dispose()
 		activeSkin = null
+		packer?.dispose()
+		packer = null
 	}
 
 	fun install(skin: Skin) {
@@ -132,6 +345,11 @@ object MetaSkin {
 		actions.add { addPalette(skin) }
 		addPanelDrawables(skin)
 		addControlDrawables(skin)
+		// Order matters and is the whole structure of the install: the steps above only rasterize and pack, so no
+		// drawable exists until the atlas is uploaded. Everything that reads one has to come after that.
+		actions.add { finalizeAtlas(skin) }
+		actions.add { configureToolbarDrawables(skin) }
+		actions.add { configureMenuItemDrawables(skin) }
 		actions.add {
 			addStyles(skin)
 			skin.add(INSTALLED_COLOR, Color.WHITE.cpy())
@@ -206,14 +424,7 @@ object MetaSkin {
 		pixmap.setColor(Color.CLEAR)
 		pixmap.fillCircle(center, center, 22)
 		pixmap.fillTriangle(center, center, center - 15, LOADING_RING_PIXMAP_SIZE, center + 15, LOADING_RING_PIXMAP_SIZE)
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$LOADING_RING.texture", texture)
-		skin.add(LOADING_RING, TextureRegionDrawable(TextureRegion(texture)).apply {
-			minWidth = 1f
-			minHeight = 1f
-		}, Drawable::class.java)
+		packDrawable(LOADING_RING, pixmap, minWidth = 1f, minHeight = 1f)
 	}
 
 	private fun addControlDrawables(skin: Skin) {
@@ -267,11 +478,9 @@ object MetaSkin {
 		rounded(skin, "meta.menu.bar.open", TRANSPARENT, null, radius = 5, border = 0, padding = 0f)
 		rounded(skin, "meta.menu.bar.over", MetaColor.TERTIARY_HOVER, null, radius = 5, border = 0, padding = 0f)
 		rounded(skin, "meta.menu.bar.selected", MetaColor.SELECTION_FILL, MetaColor.ACCENT, radius = 5, border = 1, padding = 0f)
-		deferOrConfigureToolbarDrawables(skin)
 		rounded(skin, "meta.menu.item", TRANSPARENT, null, radius = 4, border = 0, padding = 0f)
 		rounded(skin, "meta.menu.item.over", MetaColor.TERTIARY_HOVER, null, radius = 4, border = 0, padding = 0f)
 		rounded(skin, "meta.menu.item.selected", MetaColor.SELECTION_FILL, null, radius = 4, border = 0, padding = 0f)
-		deferOrConfigureMenuItemDrawables(skin)
 		solid(skin, "meta.cursor", MetaColor.TEXT, minWidth = 2f, minHeight = 20f)
 
 		rounded(skin, "meta.scroll.track", Color.valueOf("20212666"), null, radius = 3, border = 0, padding = 0f, minWidth = 6f, minHeight = 6f)
@@ -559,20 +768,13 @@ object MetaSkin {
 				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
 			}
 		}
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$name.texture", texture)
 		val split = radius + 2
-		val drawable = NinePatchDrawable(NinePatch(texture, split, split, split, split)).apply {
-			leftWidth = padding
-			rightWidth = padding
-			topHeight = padding
-			bottomHeight = padding
-			this.minWidth = minWidth
-			this.minHeight = minHeight
-		}
-		skin.add(name, drawable, Drawable::class.java)
+		packDrawable(
+			name, pixmap,
+			splits = intArrayOf(split, split, split, split),
+			padLeft = padding, padRight = padding, padTop = padding, padBottom = padding,
+			minWidth = minWidth, minHeight = minHeight,
+		)
 	}
 
 	private fun segmentedRounded(
@@ -609,19 +811,13 @@ object MetaSkin {
 				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
 			}
 		}
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$name.texture", texture)
 		val split = radius.toInt() + 2
-		skin.add(name, NinePatchDrawable(NinePatch(texture, split, split, split, split)).apply {
-			leftWidth = 8f
-			rightWidth = 8f
-			topHeight = 8f
-			bottomHeight = 8f
-			minWidth = 24f
-			minHeight = 24f
-		}, Drawable::class.java)
+		packDrawable(
+			name, pixmap,
+			splits = intArrayOf(split, split, split, split),
+			padLeft = 8f, padRight = 8f, padTop = 8f, padBottom = 8f,
+			minWidth = 24f, minHeight = 24f,
+		)
 	}
 
 	/** Angular window frame used as Meta's restrained signature silhouette. */
@@ -658,19 +854,13 @@ object MetaSkin {
 				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
 			}
 		}
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$name.texture", texture)
 		val split = cut + 2
-		skin.add(name, NinePatchDrawable(NinePatch(texture, split, split, split, split)).apply {
-			leftWidth = padding
-			rightWidth = padding
-			topHeight = padding
-			bottomHeight = padding
-			minWidth = 32f
-			minHeight = 32f
-		}, Drawable::class.java)
+		packDrawable(
+			name, pixmap,
+			splits = intArrayOf(split, split, split, split),
+			padLeft = padding, padRight = padding, padTop = padding, padBottom = padding,
+			minWidth = 32f, minHeight = 32f,
+		)
 	}
 
 	private fun configureToolbarDrawable(drawable: Drawable) {
@@ -682,8 +872,7 @@ object MetaSkin {
 		drawable.minHeight = 24f
 	}
 
-	private fun deferOrConfigureToolbarDrawables(skin: Skin) {
-		if (deferInstall { deferOrConfigureToolbarDrawables(skin) }) return
+	private fun configureToolbarDrawables(skin: Skin) {
 		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.open"))
 		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.over"))
 		configureToolbarDrawable(skin.getDrawable("meta.menu.bar.selected"))
@@ -698,8 +887,7 @@ object MetaSkin {
 		drawable.minHeight = 28f
 	}
 
-	private fun deferOrConfigureMenuItemDrawables(skin: Skin) {
-		if (deferInstall { deferOrConfigureMenuItemDrawables(skin) }) return
+	private fun configureMenuItemDrawables(skin: Skin) {
 		configureMenuItemDrawable(skin.getDrawable("meta.menu.item"))
 		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.over"))
 		configureMenuItemDrawable(skin.getDrawable("meta.menu.item.selected"))
@@ -710,14 +898,7 @@ object MetaSkin {
 		val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		pixmap.drawPixel(0, 0, Color.rgba8888(color))
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$name.texture", texture)
-		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
-			this.minWidth = minWidth
-			this.minHeight = minHeight
-		}, Drawable::class.java)
+		packDrawable(name, pixmap, minWidth = minWidth, minHeight = minHeight)
 	}
 
 	internal fun focusedButtonStyle(base: Button.ButtonStyle): Button.ButtonStyle {
@@ -847,20 +1028,13 @@ object MetaSkin {
 				if (pixel.a > 0f) pixmap.drawPixel(x, y, Color.rgba8888(pixel))
 			}
 		}
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$name.texture", texture)
 		val split = radius + 2
-		val drawable = NinePatchDrawable(NinePatch(texture, split, split, split, 0)).apply {
-			leftWidth = padding
-			rightWidth = padding
-			topHeight = padding
-			bottomHeight = padding * 0.5f
-			minWidth = 28f
-			minHeight = 30f
-		}
-		skin.add(name, drawable, Drawable::class.java)
+		packDrawable(
+			name, pixmap,
+			splits = intArrayOf(split, split, split, 0),
+			padLeft = padding, padRight = padding, padTop = padding, padBottom = padding * 0.5f,
+			minWidth = 28f, minHeight = 30f,
+		)
 	}
 
 	private fun checkbox(
@@ -890,14 +1064,7 @@ object MetaSkin {
 			else -> MetaColor.BORDER_STRONG
 		}
 		drawRoundedPixels(pixmap, fill, stroke, radius = 5 * scale, border = 2 * scale)
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$name.texture", texture)
-		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
-			minWidth = ICON_SIZE.toFloat()
-			minHeight = ICON_SIZE.toFloat()
-		}, Drawable::class.java)
+		packDrawable(name, pixmap, minWidth = ICON_SIZE.toFloat(), minHeight = ICON_SIZE.toFloat())
 	}
 
 	/** Supersampled solid circle rendered at [ICON_PIXMAP_SCALE], for knobs that must never nine-patch-stretch. */
@@ -907,14 +1074,7 @@ object MetaSkin {
 		val pixmap = Pixmap(size, size, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		drawRoundedPixels(pixmap, fill, stroke, radius = size / 2, border = border * ICON_PIXMAP_SCALE)
-		val texture = Texture(pixmap)
-		pixmap.dispose()
-		texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-		skin.add("$name.texture", texture)
-		skin.add(name, TextureRegionDrawable(TextureRegion(texture)).apply {
-			minWidth = diameter.toFloat()
-			minHeight = diameter.toFloat()
-		}, Drawable::class.java)
+		packDrawable(name, pixmap, minWidth = diameter.toFloat(), minHeight = diameter.toFloat())
 	}
 
 	private fun drawRoundedPixels(pixmap: Pixmap, fill: Color, stroke: Color, radius: Int, border: Int) {

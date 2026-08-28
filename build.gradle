@@ -10,6 +10,7 @@ buildscript {
 ext.metaJava25JvmArgs = ['-XX:+UseCompactObjectHeaders', '--enable-native-access=ALL-UNNAMED']
 
 apply from: "$rootDir/gradle/iteration-safety.gradle"
+apply from: "$rootDir/gradle/duplicate-class-safety.gradle"
 
 allprojects {
 	apply plugin: 'eclipse'

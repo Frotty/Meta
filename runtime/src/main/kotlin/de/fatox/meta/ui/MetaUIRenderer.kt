@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import de.fatox.meta.api.MetaInputProcessor
+import de.fatox.meta.api.MonitorHandler
 import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
@@ -23,6 +24,7 @@ import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.ui.FocusRenderer
 import de.fatox.meta.api.ui.UIRenderer
+import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.ReactiveScope
@@ -48,6 +50,7 @@ fun suggestedUiScale(): Float = suggestedUiScale(
 	backBufferWidth = Gdx.graphics.backBufferWidth,
 	backBufferHeight = Gdx.graphics.backBufferHeight,
 	density = Gdx.graphics.density,
+	osContentScale = runCatching { MetaInject.inject<MonitorHandler>().osContentScale }.getOrDefault(1f),
 )
 
 internal fun suggestedUiScale(
@@ -56,13 +59,22 @@ internal fun suggestedUiScale(
 	backBufferWidth: Int,
 	backBufferHeight: Int,
 	density: Float,
+	osContentScale: Float = 1f,
 ): Float {
 	if (logicalWidth <= 0 || logicalHeight <= 0 || backBufferWidth <= 0 || backBufferHeight <= 0) return 1f
 	val contentScaleX = backBufferWidth.toFloat() / logicalWidth
 	val contentScaleY = backBufferHeight.toFloat() / logicalHeight
-	// OS scaling already makes logical pixels larger. Applying Meta scaling too would double-scale the UI.
+	// The framebuffer is already bigger than the window, so the platform is scaling for us - macOS Retina. Scaling
+	// again here would double it.
 	if (contentScaleX > 1.1f || contentScaleY > 1.1f) return 1f
-	// Resolution or EDID density alone is ambiguous; require both, and reject implausible EDID values.
+	// Windows is the opposite case and the one that used to fall through to "no scaling". A DPI-aware process gets
+	// a framebuffer exactly the size it asked for, so the ratio above is always 1.0 no matter what the display
+	// settings say - the window is simply physically smaller on a dense panel. The OS scale is the only signal
+	// that the user asked for a larger interface, and matching it is what every other application on the desktop
+	// does. Clamped because a bad platform reading should not make the UI unusable in either direction.
+	if (osContentScale > 1.05f) return osContentScale.coerceIn(1f, MAX_OS_CONTENT_SCALE)
+	// No OS scaling to follow. Resolution or EDID density alone is ambiguous, so require both and reject
+	// implausible EDID values.
 	if (density !in 1.4f..4f) return 1f
 	return when {
 		backBufferWidth >= 5120 && backBufferHeight >= 2880 && density >= 2f -> 1.5f
@@ -70,6 +82,9 @@ internal fun suggestedUiScale(
 		else -> 1f
 	}
 }
+
+/** Windows offers up to 350% in its own settings; beyond that a reading is more likely wrong than extreme. */
+private const val MAX_OS_CONTENT_SCALE = 4f
 
 class MetaUIRenderer : UIRenderer {
 	private var focusedActor: Actor? = null
@@ -97,7 +112,47 @@ class MetaUIRenderer : UIRenderer {
 	private var lastScrollHoverPane: Actor? = null
 	private var lastReportedScrollFocus: Actor? = null
 
-	override val uiScale: Signal<Float> = signal(1f) { a, b -> abs(a - b) < 0.001f }
+	/**
+	 * True once anything other than this renderer has written [uiScale].
+	 *
+	 * Provenance, not value. Comparing against the last automatic scale looked equivalent and is not: a player who
+	 * selects the value the renderer had already chosen - or returns to it later - is indistinguishable from
+	 * nobody having chosen anything, and the next monitor change would overwrite a deliberate choice. Recording
+	 * *who* wrote it cannot make that mistake.
+	 *
+	 * `internal` so a test can assert it. Whether a write was recorded is otherwise invisible - the case that
+	 * matters most is the one where the value does not change - and a regression here is silent until someone's
+	 * chosen scale is overwritten by moving a window.
+	 */
+	internal var scaleChosenByUser = false
+		private set
+
+	/** Set only while this renderer is assigning [uiScale], so its own write is not mistaken for a user's. */
+	private var applyingAutomaticScale = false
+
+	/** The pixel scale the current faces were rasterized at, so a back-buffer change can be noticed. */
+	private var lastPixelScale: Float = Float.NaN
+
+	private val backingUiScale: Signal<Float> = signal(1f) { a, b -> abs(a - b) < 0.001f }
+
+	/**
+	 * Wrapped so provenance is recorded at the write, not at the change.
+	 *
+	 * A signal suppresses a write equal to its current value - it returns before notifying - so a subscription
+	 * never sees a player committing the scale that was already in effect. Watching for changes therefore misses
+	 * the one case where the difference between "chosen" and "defaulted" matters most, and the next monitor
+	 * transition would overwrite that choice. Every write lands here whether or not it changes anything.
+	 */
+	override val uiScale: Signal<Float> = object : Signal<Float> {
+		override var value: Float
+			get() = backingUiScale.value
+			set(newValue) {
+				if (!applyingAutomaticScale) scaleChosenByUser = true
+				backingUiScale.value = newValue
+			}
+
+		override fun peek(): Float = backingUiScale.peek()
+	}
 
 	// The stage's world size already is physical-pixels ÷ unitsPerPixel (= ÷ uiScale) — i.e. UI units.
 	override val uiWidth: Float get() = stage.width
@@ -202,27 +257,48 @@ class MetaUIRenderer : UIRenderer {
 		// HiDPI: every consumer gets DPI-correct UI by default (no per-game wiring). Re-apply live on any uiScale
 		// change (e.g. a settings slider), and seed the default from the display. Games may override uiScale.value
 		// afterwards with a user-chosen / persisted value.
-		reactiveScope.subscribe(uiScale) {
+		reactiveScope.subscribe(backingUiScale) {
 			applyViewport(Gdx.graphics.width, Gdx.graphics.height)
-			// Fonts are rasterized per scale: walk the stage so every widget that caches a font re-fetches it from
-			// the (now regenerated) provider, then release the orphaned old-scale fonts. Order matters: dispose only
-			// after the walk, when nothing on stage references them anymore. Rare event - allocation is acceptable.
-			stage.root.refreshFontsRecursively()
-			fontProvider.disposeOrphanedFonts()
+			regenerateForPixelScale()
 		}
-		uiScale.value = suggestedUiScale()
+		applySuggestedScale()
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
 		val g = Gdx.graphics
 		log.debug {
 			"UI scale = ${uiScale.value} | logical ${g.width}x${g.height} | backbuffer ${g.backBufferWidth}x" +
-				"${g.backBufferHeight} | contentScale ${g.backBufferWidth.toFloat() / g.width} | density ${g.density}"
+				"${g.backBufferHeight} | contentScale ${g.backBufferWidth.toFloat() / g.width} | density " +
+				"${g.density} | osScale ${runCatching { MetaInject.inject<MonitorHandler>().osContentScale }
+					.getOrDefault(1f)}"
 		}
 	}
 
 	override fun refreshStartupDisplay() {
 		if (!loaded || disposed) return
-		uiScale.value = suggestedUiScale()
+		applySuggestedScale()
 		applyViewport(Gdx.graphics.width, Gdx.graphics.height)
+		// The same pixel-scale check `resize` makes, because this is a second way in and startup is where the
+		// display is most likely to move. An application restores its saved display mode from `onLoaded`, the
+		// splash calls this immediately afterwards, and the splash's own `resize` does not forward to the renderer
+		// - so on a mode change that alters the back-buffer ratio without altering the logical scale, this is the
+		// only chance to notice before the first screen is handed over holding faces from the old atlas.
+		if (pixelScaleChanged()) regenerateForPixelScale()
+	}
+
+	/**
+	 * Re-evaluates the automatic scale, unless something else has set one.
+	 *
+	 * A scale the game or the player set is left alone. That is decided by who wrote the value rather than by what
+	 * the value is, because the two are not the same question: choosing the scale the renderer had already picked,
+	 * or returning to it later, is a deliberate choice that value comparison cannot see.
+	 */
+	private fun applySuggestedScale() {
+		if (scaleChosenByUser) return
+		applyingAutomaticScale = true
+		try {
+			uiScale.value = suggestedUiScale()
+		} finally {
+			applyingAutomaticScale = false
+		}
 	}
 
 	override fun armStartupTransition(durationSeconds: Float, delayFrames: Int) {
@@ -326,8 +402,54 @@ class MetaUIRenderer : UIRenderer {
 	}
 
 	override fun resize(width: Int, height: Int) {
+		// A window dragged onto a monitor with different scaling arrives here, and on Windows that is the only
+		// notification: the framebuffer matches the window on both monitors, so nothing about the size says the
+		// density changed. Re-suggesting here is what makes the setting followed rather than sampled once.
+		applySuggestedScale()
 		applyViewport(width, height)
+		// The logical scale is not the whole story. Fonts are rasterized at logical scale times the back-buffer
+		// ratio, and on macOS that ratio changes between a Retina and a non-Retina monitor while the logical scale
+		// stays put - so the move produces no signal at all through uiScale, and a manual scale suppresses it
+		// outright. Left alone, on-stage widgets keep fonts rasterized for the old pixel ratio and draw blurred.
+		//
+		// Worse than blurred, in fact: the provider orphans its caches the moment anything asks for a font at the
+		// new ratio, and a later disposeOrphanedFonts would free faces those widgets are still drawing from.
+		if (pixelScaleChanged()) regenerateForPixelScale()
 		toastManager.resize()
+	}
+
+	/**
+	 * The scale fonts are actually rasterized at: the logical scale times the back-buffer ratio.
+	 *
+	 * Mirrors `MetaFontProvider.physicalUiScale`, which is the number that decides whether cached faces are stale.
+	 */
+	private fun currentPixelScale(): Float {
+		val graphics = Gdx.graphics
+		val contentScale = if (graphics.width > 0) graphics.backBufferWidth.toFloat() / graphics.width else 1f
+		return (uiScale.peek() * contentScale).coerceAtLeast(0.01f)
+	}
+
+	private fun pixelScaleChanged(): Boolean {
+		val current = currentPixelScale()
+		if (lastPixelScale.isNaN() || abs(current - lastPixelScale) > 0.001f) {
+			lastPixelScale = current
+			return true
+		}
+		return false
+	}
+
+	/**
+	 * Moves the atlas to a fresh page, re-fetches every widget's font, then releases the old faces.
+	 *
+	 * The order is the whole of it. The atlas moves first so the glyphs rasterized during the walk land on the new
+	 * page and the previous set goes with the page that is dropped - the only way this atlas reclaims anything,
+	 * since PixmapPacker cannot free a region. Disposal is last, once nothing on stage still references a face.
+	 */
+	private fun regenerateForPixelScale() {
+		lastPixelScale = currentPixelScale()
+		MetaSkin.rebuildAtlas()
+		stage.root.refreshFontsRecursively()
+		fontProvider.disposeOrphanedFonts()
 	}
 
 	override fun getCamera(): Camera {

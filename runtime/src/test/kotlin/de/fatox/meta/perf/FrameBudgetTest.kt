@@ -138,6 +138,32 @@ class FrameBudgetTest {
 				"Each one is a texture the UI must bind separately, so this is the ceiling on how well any Meta " +
 				"screen can batch. $counts"
 		}
+		assertTrue(MetaSkin.atlasPageCount <= MAX_ATLAS_PAGES) {
+			"The generated chrome spilled onto ${MetaSkin.atlasPageCount} atlas pages (budget $MAX_ATLAS_PAGES). " +
+				"Every page is a separate bind, so this is the ceiling on batching for the chrome."
+		}
+	}
+
+	@Test
+	fun `a row of text buttons stays within its alternation budget`() {
+		val stage = toastStage()
+		val root = metaFlexColumn(gap = MetaSpacing.SM) {
+			setSize(REFERENCE_WIDTH, REFERENCE_HEIGHT)
+			for (index in 0 until BUTTON_ROW_COUNT) addItem(MetaTextButton("Apply $index"))
+		}
+		stage.addActor(root)
+		root.setSize(REFERENCE_WIDTH, REFERENCE_HEIGHT)
+		stage.act(FRAME)
+		root.validate()
+		repeat(WARM_FRAMES) { stage.draw() }
+
+		val counts = GlCallRecorder.record { stage.draw() }
+
+		// Isolates alternation from texture count: these buttons use two textures between them, and every switch
+		// from skin patch to glyphs and back flushes the batch.
+		assertTrue(counts.textureBinds <= MAX_BUTTON_ROW_BINDS) {
+			"$BUTTON_ROW_COUNT buttons bound ${counts.textureBinds} textures (budget $MAX_BUTTON_ROW_BINDS). $counts"
+		}
 	}
 
 	private companion object {
@@ -150,22 +176,40 @@ class FrameBudgetTest {
 		const val ALLOC_ITERATIONS = 50
 
 		/**
-		 * Measured at 37 on 2026-08-27, before any atlas work.
+		 * Measured at 7, from 37 before any atlas work and 31 with the chrome alone on a page.
 		 *
-		 * That is one draw call per drawn quad - the reference screen does not batch at all, because every generated
-		 * skin drawable owns a private texture. Packing the skin and the font atlases should take this into single
-		 * digits; tighten this budget to match when it does.
+		 * The last step was the one that mattered: chrome and glyphs share a page, so a widget's background and its
+		 * text come from the same texture and there is nothing for the batch to switch to. What remains is real
+		 * work - the text fields clip, and clipping flushes.
 		 */
-		const val MAX_TEXTURE_BINDS = 45
-		const val MAX_DRAW_CALLS = 45
+		const val MAX_TEXTURE_BINDS = 12
+		const val MAX_DRAW_CALLS = 12
 		const val MAX_SHADER_SWITCHES = 2
 
 		/**
-		 * Measured at exactly 85 on 2026-08-27: one 32x32 texture per generated drawable.
+		 * Twenty text buttons in one draw call, measured at 1. It was 40.
 		 *
-		 * Deterministic - no font involved - so this is pinned at the observed value rather than given headroom.
-		 * A single packed atlas page should bring it to 1-2.
+		 * This case exists because it isolates alternation from everything else: twenty buttons used two textures
+		 * between them and still cost forty draw calls, because scene2d draws each background then its text and the
+		 * batch flushed on every switch. Reducing texture *count* never moved it; sharing the page did.
+		 *
+		 * The tightest gate in the suite on purpose. Any regression that separates chrome from glyphs again -
+		 * a font that misses the shared packer, a page overflow - shows up here first and nowhere else.
 		 */
-		const val MAX_SKIN_TEXTURES = 85
+		const val MAX_BUTTON_ROW_BINDS = 4
+		const val BUTTON_ROW_COUNT = 20
+
+		/**
+		 * Two: one atlas page holding all 84 generated drawables, plus the default `BitmapFont` that `addStyles`
+		 * creates when a skin supplies none. Was 85 - one private 32x32 texture per drawable.
+		 *
+		 * Deterministic, no font rasterization involved, so pinned exactly rather than given headroom.
+		 */
+		const val MAX_SKIN_TEXTURES = 2
+		/**
+		 * One page for chrome *and* every rasterized glyph. A second page means the atlas overflowed, and the
+		 * batch starts flushing between whatever landed on each - which is the whole cost this design removes.
+		 */
+		const val MAX_ATLAS_PAGES = 1
 	}
 }
