@@ -123,6 +123,72 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 		}
 	}
 
+	/**
+	 * Copies every transform and slot binding into [snapshot], growing it once if it is too small.
+	 *
+	 * The half of a rollback engine that saves. Allocation-free once the snapshot has been sized, because a
+	 * rollback engine captures every frame and a per-frame allocation of the whole scene's transforms produces
+	 * collection pauses that are indistinguishable, to a player, from the network problems the rollback exists to
+	 * hide.
+	 *
+	 * An entity's own fields come too if it implements [MetaEntityState]; without that hook only its transform is
+	 * captured, and the rest is the caller's to keep. See [MetaEntityState] for what fits and what it costs.
+	 */
+	fun captureInto(snapshot: MetaWorldSnapshot) {
+		store.captureInto(snapshot)
+	}
+
+	/**
+	 * Puts the world back exactly as [snapshot] found it: columns, count, and which entity holds which slot.
+	 *
+	 * Entities added since the capture are unbound and leave the world; entities removed since are added back from
+	 * the references the snapshot kept alive. Both directions matter, because a rollback runs backwards over
+	 * spawns as readily as over deaths.
+	 *
+	 * Refuses while a system is iterating the store, and refuses before changing anything, so a caller that gets
+	 * this wrong sees an exception rather than half a world.
+	 *
+	 * Derived structures are not restored and do not need to be: rebuild a [MetaSpatialIndex] by calling
+	 * [MetaSpatialIndex.update] afterwards, which produces query results identical to the index you would have had
+	 * without the rollback.
+	 */
+	fun restoreFrom(snapshot: MetaWorldSnapshot) {
+		// Throws before touching anything, so the entity list below is never left disagreeing with the columns.
+		store.restoreFrom(snapshot)
+		liveEntities.clear()
+		liveEntities.ensureCapacity(snapshot.count)
+		for (slot in 0 until snapshot.count) liveEntities.add(snapshot.owners[slot])
+		// Both callback passes run only now, with the columns and the list agreeing. They are caller code and
+		// caller code throws - a hook validating a captured value and rejecting it is ordinary - so running either
+		// before this point let an exception escape with the columns restored and the list not: size disagreeing
+		// with count, validate failing, and a later removal swapping the wrong list slot. The structure is whole
+		// before any of it runs, so the worst a throw leaves behind is half-applied custom state.
+		// Both passes, in order, with the snapshot protected against a hook capturing over it. onRestored is
+		// promised a fully restored world and this list is part of the world, which is why neither pass can run
+		// from inside the store's restore: a callback would see the restored columns through a stale `size` and
+		// `entityAt`, still listing what the rollback killed and still missing what it brought back.
+		store.runRestoreHooks(snapshot)
+	}
+
+	/**
+	 * A 64-bit hash of this world's transforms, for detecting that two peers have diverged.
+	 *
+	 * FNV-1a over raw IEEE-754 bits in slot order; see [MetaWorldSnapshot.digest] for why each of those words is
+	 * load-bearing. Compare it against a peer's, or against the same frame replayed, and an inequality is a desync
+	 * - though not, on its own, a location. Digest the columns your simulation actually decides outcomes with:
+	 * [MetaTransformColumns.SIMULATION] by default, because a scale a game tweens for a hit flash is a false
+	 * positive rather than a divergence.
+	 *
+	 * Hashes the world **as it is now, under the policy in force now** - which is not the same question a
+	 * [MetaWorldSnapshot.digest] answers about a snapshot taken earlier. The two agree whenever the exclusion
+	 * masks have not moved, which is the only supported case; see [MetaEntityState.digestExcludedInts] for why a
+	 * mask that changes mid-match is a problem in its own right rather than a rollback artefact.
+	 */
+	fun digest(
+		columns: Int = MetaTransformColumns.SIMULATION,
+		seed: Long = MetaWorldSnapshot.FNV_OFFSET_64,
+	): Long = store.digestCustomState(digestWorldColumns(store, columns, seed))
+
 	companion object {
 		/**
 		 * Warns once when transforms are read through [MetaEntity] often enough to look like a bulk loop.

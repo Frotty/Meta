@@ -89,6 +89,70 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	/** Guards against structural change during a [forEachSlot] walk, which would skip or double-visit entities. */
 	private var iterating = false
 
+	/**
+	 * Set while a [MetaEntityState] hook pass is running, which forbids structural change but not reading.
+	 *
+	 * A separate flag from [iterating] rather than a reuse of it, because the two rules differ. `iterating` also
+	 * refuses a *nested traversal*, which is right for systems and wrong here: both hooks are promised a readable
+	 * world, and [forEachSlot] is how the store is read - so sharing the flag made a hook that inspects its
+	 * neighbours throw, and that is ordinary reconciliation code, not a mistake.
+	 */
+	private var inRestoreHook = false
+
+	/**
+	 * How many live entities implement [MetaEntityState], so a capture can skip the whole pass when none do.
+	 *
+	 * Counted as entities come and go rather than scanned for, because the scan's worst case is exactly the case
+	 * worth keeping free: a game not using the hook would pay an instanceof per entity per frame to learn nothing.
+	 */
+	private var customStateCount = 0
+
+	/**
+	 * The buffers handed to [MetaEntityState], as a stack indexed by how deeply the passes are nested.
+	 *
+	 * Fixed windows rather than offsets into the flat arrays: an entity that writes past its share gets an
+	 * out-of-bounds here instead of quietly overwriting the next entity's state.
+	 *
+	 * A stack rather than one pair, because a hook is allowed to read the world and every read that walks custom
+	 * state - [MetaEntityWorld.digest], [captureInto] - borrows these too. A single pair meant a hook reading one
+	 * field, digesting, and then reading another took the second from whichever entity the digest visited last:
+	 * corrupt state restored silently, in the middle of a rollback. Depth rarely passes two, and the buffers are
+	 * allocated once and kept.
+	 */
+	private var customScratchInts = arrayOf(IntArray(MetaEntityState.INTS))
+	private var customScratchFloats = arrayOf(FloatArray(MetaEntityState.FLOATS))
+
+	/** How many custom-state passes are currently on the stack. */
+	private var customScratchDepth = 0
+
+
+
+	/**
+	 * Runs [body] with a scratch pair no other pass on the stack is holding.
+	 *
+	 * Inline so the loops below stay ordinary loops; the depth is released in a `finally`, so a hook that throws
+	 * cannot leave the stack raised and quietly hand every later pass a deeper buffer than it needs.
+	 */
+	private inline fun <R> withCustomScratch(body: (ints: IntArray, floats: FloatArray) -> R): R {
+		val depth = customScratchDepth++
+		return try {
+			ensureScratchDepth(depth)
+			body(customScratchInts[depth], customScratchFloats[depth])
+		} finally {
+			customScratchDepth--
+		}
+	}
+
+	/** Grows the stack to cover [depth], which only happens the first time the passes nest that far. */
+	private fun ensureScratchDepth(depth: Int) {
+		if (depth < customScratchInts.size) return
+		val ints = customScratchInts
+		val floats = customScratchFloats
+		customScratchInts = Array(depth + 1) { if (it < ints.size) ints[it] else IntArray(MetaEntityState.INTS) }
+		customScratchFloats =
+			Array(depth + 1) { if (it < floats.size) floats[it] else FloatArray(MetaEntityState.FLOATS) }
+	}
+
 	/** How many entities this store can hold before it grows. Grows by doubling; never shrinks. */
 	val currentCapacity: Int get() = capacity
 
@@ -103,6 +167,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		if (count == capacity) grow()
 		val slot = count++
 		owners[slot] = entity
+		if (entity is MetaEntityState) customStateCount++
 		x[slot] = 0f; y[slot] = 0f; z[slot] = 0f
 		vx[slot] = 0f; vy[slot] = 0f; vz[slot] = 0f
 		rotation[slot] = 0f
@@ -118,6 +183,8 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	internal fun release(slot: Int) {
 		checkMutable("remove an entity")
 		require(slot in 0 until count) { "Slot $slot is not live (count=$count)" }
+		// Read before the swap below overwrites it with the entity moving down.
+		if (owners[slot] is MetaEntityState) customStateCount--
 		val last = count - 1
 		if (slot != last) {
 			x[slot] = x[last]; y[slot] = y[last]; z[slot] = z[last]
@@ -142,6 +209,11 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 */
 	fun checkMutable(action: String) {
 		check(!iterating) { "Cannot $action while a system is iterating this store" }
+		check(!inRestoreHook) {
+			"Cannot $action from a MetaEntityState hook. The pass walks slots, so removing an entity swaps the " +
+				"last one into a slot already visited and it is silently skipped. Record what you want to change " +
+				"and act on it once MetaEntityWorld.restoreFrom has returned."
+		}
 	}
 
 	/** The entity in [slot], for diagnostics. Null outside the live range. */
@@ -190,11 +262,239 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 			owners[slot]?.unbind()
 			owners[slot] = null
 		}
+		customStateCount = 0
 		count = 0
 	}
 
-	private fun grow() {
-		val next = capacity * 2
+	/**
+	 * Copies the live columns and slot owners into [snapshot]. See [MetaEntityWorld.captureInto].
+	 *
+	 * Column at a time with `System.arraycopy`, which is an intrinsic and moves the whole run at memory speed.
+	 */
+	internal fun captureInto(snapshot: MetaWorldSnapshot) {
+		// The per-depth scratch protects the buffers handed to a hook; this protects the snapshot being read from.
+		// The flag lives on the snapshot so capture, copyFrom and releaseRetainedEntities all answer to one check.
+		snapshot.checkWritable("capture into this snapshot")
+		snapshot.ensureCapacity(count)
+		val previousCount = snapshot.count
+		System.arraycopy(x, 0, snapshot.x, 0, count)
+		System.arraycopy(y, 0, snapshot.y, 0, count)
+		System.arraycopy(z, 0, snapshot.z, 0, count)
+		System.arraycopy(vx, 0, snapshot.vx, 0, count)
+		System.arraycopy(vy, 0, snapshot.vy, 0, count)
+		System.arraycopy(vz, 0, snapshot.vz, 0, count)
+		System.arraycopy(rotation, 0, snapshot.rotation, 0, count)
+		System.arraycopy(scale, 0, snapshot.scale, 0, count)
+		System.arraycopy(owners, 0, snapshot.owners, 0, count)
+		// Anything the previous capture left past the new live range is cleared, so reusing a snapshot for a
+		// smaller scene cannot go on pinning entities it no longer describes.
+		if (previousCount > count) java.util.Arrays.fill(snapshot.owners, count, previousCount, null)
+		snapshot.count = count
+		captureCustomInto(snapshot)
+	}
+
+	/**
+	 * Collects [MetaEntityState] from whichever entities implement it.
+	 *
+	 * Every slot gets a window, implementer or not, so a mixed world stays a flat indexable array rather than
+	 * something a restore has to search. The scratch is zeroed per entity, so an implementation that writes three
+	 * ints does not inherit the previous entity's remaining thirteen.
+	 */
+	private fun captureCustomInto(snapshot: MetaWorldSnapshot) {
+		snapshot.hasCustomState = customStateCount > 0
+		if (customStateCount == 0) return
+		snapshot.ensureCustomCapacity()
+		withCustomScratch { ints, floats ->
+			for (slot in 0 until count) {
+				java.util.Arrays.fill(ints, 0)
+				java.util.Arrays.fill(floats, 0f)
+				val entity = owners[slot] as? MetaEntityState
+				entity?.captureState(ints, floats)
+				System.arraycopy(ints, 0, snapshot.customInts, slot * MetaEntityState.INTS, MetaEntityState.INTS)
+				System.arraycopy(
+					floats,
+					0,
+					snapshot.customFloats,
+					slot * MetaEntityState.FLOATS,
+					MetaEntityState.FLOATS,
+				)
+				// Taken now, not read back at digest time: an implementation is free to derive a mask from
+				// mutable state, and a retained snapshot must keep hashing the world it captured.
+				snapshot.customExcludedInts[slot] = entity?.digestExcludedInts ?: 0
+				snapshot.customExcludedFloats[slot] = entity?.digestExcludedFloats ?: 0
+			}
+		}
+	}
+
+	/**
+	 * Replaces the live columns, the count and every slot binding with [snapshot]'s.
+	 *
+	 * Every entity currently bound is unbound *first*, and only then is the snapshot's set bound. Done in one pass
+	 * each, that handles the three cases uniformly and without a set to test membership against: an entity in both
+	 * is rebound to its snapshot slot, an entity added since the capture is unbound and correctly leaves the
+	 * world, and an entity removed since is bound again from the reference the snapshot kept alive for exactly
+	 * this. Anything cheaper needs to ask "was this in the snapshot", which means hashing entities every frame.
+	 */
+	internal fun restoreFrom(snapshot: MetaWorldSnapshot) {
+		checkMutable("restore a snapshot")
+		// Every entity is checked before any of them is touched, so a snapshot belonging to another world is
+		// refused rather than half applied. Binding one of those would re-point it at this store while the world
+		// that still lists it carries on believing it owns it - two worlds, one entity, and the first symptom is
+		// somebody reading a transform that belongs to a different scene.
+		for (slot in 0 until snapshot.count) {
+			val entity = checkNotNull(snapshot.owners[slot]) {
+				"Snapshot slot $slot holds no entity, so the world cannot be restored from it. A snapshot must be " +
+					"filled by MetaEntityWorld.captureInto and its entity references left alone."
+			}
+			val owner = entity.store
+			check(owner == null || owner === this) {
+				"${entity::class.simpleName} in snapshot slot $slot still belongs to another world. Restore a " +
+					"snapshot into the world it was captured from, or clear the other world first."
+			}
+		}
+		ensureCapacityFor(snapshot.count)
+		for (slot in 0 until count) {
+			owners[slot]?.unbind()
+			owners[slot] = null
+		}
+		System.arraycopy(snapshot.x, 0, x, 0, snapshot.count)
+		System.arraycopy(snapshot.y, 0, y, 0, snapshot.count)
+		System.arraycopy(snapshot.z, 0, z, 0, snapshot.count)
+		System.arraycopy(snapshot.vx, 0, vx, 0, snapshot.count)
+		System.arraycopy(snapshot.vy, 0, vy, 0, snapshot.count)
+		System.arraycopy(snapshot.vz, 0, vz, 0, snapshot.count)
+		System.arraycopy(snapshot.rotation, 0, rotation, 0, snapshot.count)
+		System.arraycopy(snapshot.scale, 0, scale, 0, snapshot.count)
+		// Recounted rather than carried over: the snapshot's population is not this world's, so the tally that
+		// decides whether the custom passes run has to come from what is actually being bound.
+		var rebuiltCustomStateCount = 0
+		for (slot in 0 until snapshot.count) {
+			val entity = checkNotNull(snapshot.owners[slot]) {
+				"Snapshot slot $slot holds no entity, so the world cannot be restored from it. A snapshot must be " +
+					"filled by MetaEntityWorld.captureInto and its entity references left alone."
+			}
+			owners[slot] = entity
+			entity.bind(this, slot)
+			if (entity is MetaEntityState) rebuiltCustomStateCount++
+		}
+		count = snapshot.count
+		customStateCount = rebuiltCustomStateCount
+	}
+
+	/**
+	 * Hands each entity its own state back. Reconciliation is a separate pass again; see [notifyRestored].
+	 *
+	 * Called by [MetaEntityWorld.restoreFrom] *after* it has rebuilt its entity list, not from [restoreFrom]
+	 * above. These are caller callbacks and a caller callback can throw - validating a captured value and
+	 * rejecting it is an ordinary thing to write. Running them from inside the store's restore meant such a throw
+	 * escaped with the columns already holding the snapshot's population and the world's list still holding the
+	 * old one: `size` disagreed with `count`, `validate` failed, and a later removal swapped the wrong list slot.
+	 *
+	 * Ordering it after the rebuild makes the structure whole before any of a caller's code runs, so the worst a
+	 * throw can now do is leave custom state half-applied - which is the caller's own to reason about.
+	 */
+	internal fun runRestoreHooks(snapshot: MetaWorldSnapshot) {
+		// One entry point for both passes so the source is protected across the whole window a caller's code can
+		// run in, rather than only the pass that happens to read it.
+		snapshot.borrowed = true
+		try {
+			restoreCustomState(snapshot)
+			notifyRestored()
+		} finally {
+			snapshot.borrowed = false
+		}
+	}
+
+	private fun restoreCustomState(snapshot: MetaWorldSnapshot) {
+		if (customStateCount == 0 || !snapshot.hasCustomState) return
+		// Structure locked, traversal left open: a swap-remove would move the last entity into a slot the cursor
+		// has already passed and it would never be handed its state back, but a hook reading its neighbours is
+		// exactly what the contract promises.
+		inRestoreHook = true
+		try {
+			withCustomScratch { ints, floats ->
+				for (slot in 0 until count) {
+					val entity = owners[slot]
+					if (entity !is MetaEntityState) continue
+					System.arraycopy(snapshot.customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
+					System.arraycopy(
+						snapshot.customFloats,
+						slot * MetaEntityState.FLOATS,
+						floats,
+						0,
+						MetaEntityState.FLOATS,
+					)
+					entity.restoreState(ints, floats)
+				}
+			}
+		} finally {
+			inRestoreHook = false
+		}
+	}
+
+	/**
+	 * Lets every entity reconcile, once the whole world is back.
+	 *
+	 * A separate pass called by [MetaEntityWorld.restoreFrom], and called by it *last*, because the world these
+	 * callbacks are promised is not complete until its entity list has been rebuilt too. Firing them at the end of
+	 * the restore above would show a callback the restored columns through a still-stale `size` and `entityAt` -
+	 * so an entity killed by the rollback would still be listed, and one resurrected by it would not be.
+	 */
+	private fun notifyRestored() {
+		if (customStateCount == 0) return
+		// Structure locked, traversal left open, for the reasons on `inRestoreHook`: a swap-remove would move the
+		// last entity into a slot already passed and it would never be reconciled, keeping exactly the stale
+		// state this pass exists to refresh - while a hook reading its neighbours is the whole point of it.
+		inRestoreHook = true
+		try {
+			for (slot in 0 until count) (owners[slot] as? MetaEntityState)?.onRestored()
+		} finally {
+			inRestoreHook = false
+		}
+	}
+
+	/**
+	 * Mixes live [MetaEntityState] into [hash], skipping each entity's excluded indices.
+	 *
+	 * Read from the entities rather than from a snapshot, so this hashes the world as it is now - which is what a
+	 * peer comparison needs. [MetaEntityState.captureState] is required to be pure for exactly this reason.
+	 */
+	internal fun digestCustomState(hash: Long): Long {
+		if (customStateCount == 0) return hash
+		var running = hash
+		withCustomScratch { ints, floats ->
+			for (slot in 0 until count) {
+				val entity = owners[slot]
+				if (entity !is MetaEntityState) continue
+				java.util.Arrays.fill(ints, 0)
+				java.util.Arrays.fill(floats, 0f)
+				entity.captureState(ints, floats)
+				running = mixCustomWindow(
+					running,
+					slot,
+					ints,
+					0,
+					floats,
+					0,
+					entity.digestExcludedInts,
+					entity.digestExcludedFloats,
+				)
+			}
+		}
+		return running
+	}
+
+	private fun ensureCapacityFor(required: Int) {
+		if (required <= capacity) return
+		var next = maxOf(capacity, DEFAULT_CAPACITY)
+		while (next < required) next *= 2
+		growTo(next)
+	}
+
+	// maxOf rather than a bare double: a store constructed with capacity 0 would otherwise double to 0 forever.
+	private fun grow() = growTo(maxOf(capacity * 2, DEFAULT_CAPACITY))
+
+	private fun growTo(next: Int) {
 		x = x.copyOf(next); y = y.copyOf(next); z = z.copyOf(next)
 		vx = vx.copyOf(next); vy = vy.copyOf(next); vz = vz.copyOf(next)
 		rotation = rotation.copyOf(next)
