@@ -516,6 +516,48 @@ class MetaEntityStateTest {
 	}
 
 	@Test
+	fun `capturing into the snapshot being restored is refused`() {
+		// The per-depth scratch protects the buffers handed to a hook; it does nothing for the snapshot being read
+		// from. A hook capturing into that same snapshot overwrites the windows of every slot not yet visited with
+		// live, half-restored values, so those entities quietly keep their pre-rollback state. The restore reads
+		// its source while callbacks run, so the source has to be off limits to them.
+		class Recapturing : MetaEntity(), MetaEntityState {
+			var world: MetaEntityWorld? = null
+			var target: MetaWorldSnapshot? = null
+			var health = 0
+
+			override fun captureState(ints: IntArray, floats: FloatArray) {
+				ints[0] = health
+			}
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) {
+				health = ints[0]
+				target?.let { world?.captureInto(it) }
+			}
+		}
+
+		val world = MetaEntityWorld()
+		val entities = (0 until 5).map { world.add(Recapturing().also { it.world = world }) }
+		entities.forEachIndexed { index, entity -> entity.health = index + 1 }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		entities.forEach { it.target = snapshot }
+		assertThrows(IllegalStateException::class.java) { world.restoreFrom(snapshot) }
+
+		// Refused, not tolerated - and the world is still sound, as any throwing hook must leave it.
+		world.validate()
+		assertEquals(5, world.size)
+
+		// Capturing into a *different* snapshot from a hook stays legal; only the active source is protected.
+		val other = MetaWorldSnapshot()
+		entities.forEach { it.target = other }
+		world.restoreFrom(snapshot)
+		world.validate()
+		for ((index, entity) in entities.withIndex()) assertEquals(index + 1, entity.health)
+	}
+
+	@Test
 	fun `a throwing restore hook leaves the world structurally consistent`() {
 		// Same hazard reached the ordinary way: an implementation that validates a captured value and rejects it.
 		class Picky : MetaEntity(), MetaEntityState {

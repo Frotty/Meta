@@ -126,6 +126,15 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	private var customScratchDepth = 0
 
 	/**
+	 * The snapshot a restore is currently reading from, while its hooks run.
+	 *
+	 * The per-depth scratch protects the buffers handed to a hook; nothing protected the source being read. A
+	 * hook capturing into that same snapshot overwrote the windows of every slot not yet visited with live,
+	 * half-restored values, and those entities then quietly kept their pre-rollback state.
+	 */
+	private var restoreSource: MetaWorldSnapshot? = null
+
+	/**
 	 * Runs [body] with a scratch pair no other pass on the stack is holding.
 	 *
 	 * Inline so the loops below stay ordinary loops; the depth is released in a `finally`, so a hook that throws
@@ -270,6 +279,11 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 * Column at a time with `System.arraycopy`, which is an intrinsic and moves the whole run at memory speed.
 	 */
 	internal fun captureInto(snapshot: MetaWorldSnapshot) {
+		check(snapshot !== restoreSource) {
+			"Cannot capture into the snapshot currently being restored from. Its windows are still being read, so " +
+				"overwriting them here would leave every entity not yet visited holding its pre-rollback state. " +
+				"Capture into a different snapshot, or wait until MetaEntityWorld.restoreFrom has returned."
+		}
 		snapshot.ensureCapacity(count)
 		val previousCount = snapshot.count
 		System.arraycopy(x, 0, snapshot.x, 0, count)
@@ -388,7 +402,19 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 * Ordering it after the rebuild makes the structure whole before any of a caller's code runs, so the worst a
 	 * throw can now do is leave custom state half-applied - which is the caller's own to reason about.
 	 */
-	internal fun restoreCustomState(snapshot: MetaWorldSnapshot) {
+	internal fun runRestoreHooks(snapshot: MetaWorldSnapshot) {
+		// One entry point for both passes so the source is protected across the whole window a caller's code can
+		// run in, rather than only the pass that happens to read it.
+		restoreSource = snapshot
+		try {
+			restoreCustomState(snapshot)
+			notifyRestored()
+		} finally {
+			restoreSource = null
+		}
+	}
+
+	private fun restoreCustomState(snapshot: MetaWorldSnapshot) {
 		if (customStateCount == 0 || !snapshot.hasCustomState) return
 		// Structure locked, traversal left open: a swap-remove would move the last entity into a slot the cursor
 		// has already passed and it would never be handed its state back, but a hook reading its neighbours is
@@ -423,7 +449,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 * the restore above would show a callback the restored columns through a still-stale `size` and `entityAt` -
 	 * so an entity killed by the rollback would still be listed, and one resurrected by it would not be.
 	 */
-	internal fun notifyRestored() {
+	private fun notifyRestored() {
 		if (customStateCount == 0) return
 		// Structure locked, traversal left open, for the reasons on `inRestoreHook`: a swap-remove would move the
 		// last entity into a slot already passed and it would never be reconciled, keeping exactly the stale

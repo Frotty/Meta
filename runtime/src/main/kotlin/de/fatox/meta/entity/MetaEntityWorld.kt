@@ -163,12 +163,11 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 		// before this point let an exception escape with the columns restored and the list not: size disagreeing
 		// with count, validate failing, and a later removal swapping the wrong list slot. The structure is whole
 		// before any of it runs, so the worst a throw leaves behind is half-applied custom state.
-		store.restoreCustomState(snapshot)
-		// Last, and that ordering is the contract: MetaEntityState.onRestored is promised a fully restored world,
-		// and this list is part of the world. Firing these inside the store's restore would hand a callback the
-		// restored columns through a stale `size` and `entityAt` - still listing what the rollback killed, and
-		// still missing what it brought back.
-		store.notifyRestored()
+		// Both passes, in order, with the snapshot protected against a hook capturing over it. onRestored is
+		// promised a fully restored world and this list is part of the world, which is why neither pass can run
+		// from inside the store's restore: a callback would see the restored columns through a stale `size` and
+		// `entityAt`, still listing what the rollback killed and still missing what it brought back.
+		store.runRestoreHooks(snapshot)
 	}
 
 	/**
