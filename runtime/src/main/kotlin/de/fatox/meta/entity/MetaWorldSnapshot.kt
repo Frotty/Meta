@@ -279,6 +279,17 @@ internal fun mixCustomWindow(
 	// the two entities' transforms match, and precisely the desync worth catching.
 	hash = hash xor slot.toLong()
 	hash *= MetaWorldSnapshot.FNV_PRIME_64
+	// The masks themselves, because the loops below skip excluded indices and so mix a *sequence* of surviving
+	// values carrying no record of which fields they came from. Window [7, 9] excluding index 0 then presents the
+	// same sequence as [9, 7] excluding index 1, and a different named field is authoritative on each side.
+	//
+	// Framing the masks rather than tagging every value with its index: a collision needs the two masks to differ,
+	// so making any mask difference change the hash closes all of them - and costs two operations per entity
+	// instead of one per field.
+	hash = hash xor excludedInts.toLong()
+	hash *= MetaWorldSnapshot.FNV_PRIME_64
+	hash = hash xor excludedFloats.toLong()
+	hash *= MetaWorldSnapshot.FNV_PRIME_64
 	for (index in 0 until MetaEntityState.INTS) {
 		if (excludedInts ushr index and 1 != 0) continue
 		hash = hash xor ints[intOffset + index].toLong()

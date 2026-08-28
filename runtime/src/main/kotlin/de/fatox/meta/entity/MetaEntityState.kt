@@ -43,6 +43,10 @@ interface MetaEntityState {
 	 *
 	 * A second pass on purpose: anything that reads its neighbours - a health bar that follows the entity it
 	 * belongs to, a chain that spans several - would otherwise run while half the world is still the future.
+	 *
+	 * The world is **readable but not restructurable** here. Adding or removing an entity during this pass throws,
+	 * because the walk is by slot and a removal swaps the last entity into a slot already visited - which would
+	 * leave a live entity silently unreconciled, holding exactly the stale state this call exists to refresh.
 	 */
 	fun onRestored() {}
 

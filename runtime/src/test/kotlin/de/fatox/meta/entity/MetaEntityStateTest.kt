@@ -3,6 +3,7 @@ package de.fatox.meta.entity
 import de.fatox.meta.test.AllocationProbe
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
@@ -300,6 +301,71 @@ class MetaEntityStateTest {
 		assertNotEquals(first.digest(), second.digest()) {
 			"A snapshot's digest did not distinguish which slot owned the custom state"
 		}
+	}
+
+	@Test
+	fun `two windows differing only in which fields are excluded do not collide`() {
+		// Excluded indices are skipped, so the mixer saw a *sequence* of surviving values with no record of which
+		// fields they came from. [7, 9] excluding index 0 then presents the same sequence as [9, 7] excluding
+		// index 1 - a different field is authoritative on each side and the digests agreed.
+		//
+		// It takes two peers whose masks differ, which the previous round established is possible: a mask may be
+		// derived from configuration. Framing the mask itself settles it, and does so for every mask difference
+		// rather than only for the arrangements that happen to collide.
+		class Framed(val values: IntArray, override val digestExcludedInts: Int) : MetaEntity(), MetaEntityState {
+			override fun captureState(ints: IntArray, floats: FloatArray) {
+				values.copyInto(ints, 0, 0, values.size)
+			}
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) = Unit
+		}
+
+		fun digestOf(values: IntArray, excluded: Int): Pair<Long, Long> {
+			val world = MetaEntityWorld()
+			world.add(Framed(values, excluded))
+			val snapshot = MetaWorldSnapshot()
+			world.captureInto(snapshot)
+			return world.digest() to snapshot.digest()
+		}
+
+		val first = digestOf(intArrayOf(7, 9), excluded = 1 shl 0)
+		val second = digestOf(intArrayOf(9, 7), excluded = 1 shl 1)
+
+		assertNotEquals(first.first, second.first) {
+			"Two entities with different authoritative fields produced the same live digest"
+		}
+		assertNotEquals(first.second, second.second) {
+			"Two entities with different authoritative fields produced the same snapshot digest"
+		}
+	}
+
+	@Test
+	fun `reconciliation may not restructure the world it is reading`() {
+		// notifyRestored walks slots, and a swap-remove moves the last entity into the slot the cursor has already
+		// passed - so that entity would silently never be reconciled and would keep stale derived state. Meta's
+		// convention for this is to refuse rather than half-support it, the same way forEachSlot does.
+		class Suicidal : MetaEntity(), MetaEntityState {
+			var world: MetaEntityWorld? = null
+
+			override fun captureState(ints: IntArray, floats: FloatArray) = Unit
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) = Unit
+
+			override fun onRestored() {
+				world?.remove(this)
+			}
+		}
+
+		val world = MetaEntityWorld()
+		repeat(4) { world.add(Suicidal().also { it.world = world }) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		assertThrows(IllegalStateException::class.java) { world.restoreFrom(snapshot) }
+
+		// And the store is not left locked by the callback that threw, so the world stays usable.
+		world.store.checkMutable("add an entity")
+		assertEquals(4, world.size)
 	}
 
 	@Test

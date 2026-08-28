@@ -345,7 +345,15 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	 */
 	internal fun notifyRestored() {
 		if (customStateCount == 0) return
-		for (slot in 0 until count) (owners[slot] as? MetaEntityState)?.onRestored()
+		// Locked for the same reason forEachSlot locks: this walks slots, and a swap-remove moves the last entity
+		// into a slot the cursor has already passed, so that entity would silently never be reconciled and would
+		// keep the stale derived state this pass exists to refresh. Refusing loudly beats half-supporting it.
+		beginIteration()
+		try {
+			for (slot in 0 until count) (owners[slot] as? MetaEntityState)?.onRestored()
+		} finally {
+			endIteration()
+		}
 	}
 
 	/**
