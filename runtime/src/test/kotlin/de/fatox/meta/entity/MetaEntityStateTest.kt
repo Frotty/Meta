@@ -1,0 +1,329 @@
+package de.fatox.meta.entity
+
+import de.fatox.meta.test.AllocationProbe
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.Test
+
+/**
+ * The hook that carries an entity's own fields in the same snapshot as its transform.
+ *
+ * The failure this guards against is a game keeping two histories - transforms in Meta's snapshot, gameplay state
+ * in its own - that drift apart by one frame and desync in a way that looks like a physics bug.
+ */
+class MetaEntityStateTest {
+	private class Plain(val id: Int) : MetaEntity()
+
+	/** Carries gameplay state, one snapshot-only field, and records when it was reconciled. */
+	private class Stateful(
+		val id: Int,
+		var health: Int = 100,
+		var fuse: Float = 0f,
+		var localOnly: Int = 0,
+	) : MetaEntity(), MetaEntityState {
+		var restoredAt = -1
+		var neighboursWhenRestored = -1
+
+		override fun captureState(ints: IntArray, floats: FloatArray) {
+			ints[0] = health
+			ints[1] = localOnly
+			floats[0] = fuse
+		}
+
+		override fun restoreState(ints: IntArray, floats: FloatArray) {
+			health = ints[0]
+			localOnly = ints[1]
+			fuse = floats[0]
+		}
+
+		override fun onRestored() {
+			restoredAt = reconcileTick++
+			neighboursWhenRestored = store?.count ?: -1
+		}
+
+		/** Index 1 is per-machine, so it must survive a rollback and never reach a digest. */
+		override val digestExcludedInts: Int get() = 1 shl 1
+
+		companion object {
+			var reconcileTick = 0
+		}
+	}
+
+	@Test
+	fun `custom state rides along with the transform`() {
+		val world = MetaEntityWorld()
+		val entities = (0 until 20).map { world.add(Stateful(it, health = 100 - it, fuse = it * 0.5f)) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		for (entity in entities) {
+			entity.health = -1
+			entity.fuse = 999f
+		}
+		world.restoreFrom(snapshot)
+
+		for ((index, entity) in entities.withIndex()) {
+			assertEquals(100 - index, entity.health) { "Entity $index did not get its health back" }
+			assertEquals(index * 0.5f, entity.fuse) { "Entity $index did not get its fuse back" }
+		}
+	}
+
+	@Test
+	fun `custom state follows its entity through a slot permutation`() {
+		// The transform columns and the custom windows are both indexed by slot, so a restore that reunited an
+		// entity with the wrong window would hand it a neighbour's health while its position looked perfect.
+		val world = MetaEntityWorld()
+		val entities = (0 until 10).map { world.add(Stateful(it, health = it * 10)) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		world.remove(entities[2])
+		world.remove(entities[5])
+		for (entity in entities) entity.health = 0
+		world.restoreFrom(snapshot)
+
+		world.validate()
+		for ((index, entity) in entities.withIndex()) {
+			assertEquals(index * 10, entity.health) { "Entity $index came back with another entity's health" }
+			assertEquals(index, (world.entityAt(index) as Stateful).id)
+		}
+	}
+
+	@Test
+	fun `reconciliation runs only once the whole world is back`() {
+		// onRestored is specified to see a fully restored world, so anything reading a neighbour is safe. If it
+		// were called inside the restore loop the early entities would observe a half-rolled-back world.
+		Stateful.reconcileTick = 0
+		val world = MetaEntityWorld()
+		val entities = (0 until 12).map { world.add(Stateful(it)) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+		world.remove(entities[0])
+
+		world.restoreFrom(snapshot)
+
+		for (entity in entities) {
+			assertTrue(entity.restoredAt >= 0) { "Entity ${entity.id} was never reconciled" }
+			assertEquals(12, entity.neighboursWhenRestored) {
+				"Entity ${entity.id} was reconciled while the world still held " +
+					"${entity.neighboursWhenRestored} of 12 entities"
+			}
+		}
+	}
+
+	@Test
+	fun `an excluded index is restored but never digested`() {
+		val world = MetaEntityWorld()
+		val entity = world.add(Stateful(0, health = 50, localOnly = 7))
+		val before = world.digest()
+
+		// Per-machine state changing must not read as a divergence...
+		entity.localOnly = 4242
+		assertEquals(before, world.digest()) {
+			"A snapshot-only field changed the digest, which would desync peers that agree about the game"
+		}
+		// ...while shared state still does, so the exclusion did not switch custom state off wholesale.
+		entity.health = 49
+		assertNotEquals(before, world.digest())
+
+		// And the excluded field still round-trips, because a snapshot needs everything to restore correctly.
+		entity.localOnly = 7
+		entity.health = 50
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+		entity.localOnly = 0
+		world.restoreFrom(snapshot)
+		assertEquals(7, entity.localOnly) { "An excluded index was dropped from the snapshot as well" }
+	}
+
+	@Test
+	fun `a snapshot hashes the same as the world it came from with custom state`() {
+		val world = MetaEntityWorld()
+		repeat(15) { world.add(Stateful(it, health = it, fuse = it * 1.5f, localOnly = it * 3)) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		assertEquals(world.digest(MetaTransformColumns.ALL), snapshot.digest(MetaTransformColumns.ALL))
+		assertEquals(world.digest(), snapshot.digest())
+	}
+
+	@Test
+	fun `custom state changes the digest at all`() {
+		// Guards the whole feature against being wired up but inert - every other test here would still pass.
+		val world = MetaEntityWorld()
+		val entity = world.add(Stateful(0, health = 10))
+		val before = world.digest()
+		entity.health = 11
+		assertNotEquals(before, world.digest()) { "Custom state does not reach the digest" }
+	}
+
+	@Test
+	fun `entities without the hook are unaffected by those with it`() {
+		val world = MetaEntityWorld()
+		val plain = world.add(Plain(0))
+		val stateful = world.add(Stateful(1, health = 5))
+		plain.setPosition(3f, 4f, 5f)
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		plain.setPosition(0f, 0f, 0f)
+		stateful.health = 0
+		world.restoreFrom(snapshot)
+
+		assertEquals(3f, plain.x)
+		assertEquals(5, stateful.health)
+		world.validate()
+	}
+
+	@Test
+	fun `one entity's leftovers do not become another's state`() {
+		// The scratch buffers are shared between entities, so an implementation that writes fewer indices than the
+		// one before it would otherwise inherit the difference - and restore values it never captured.
+		class Sparse(val marker: Int) : MetaEntity(), MetaEntityState {
+			var seen = IntArray(MetaEntityState.INTS)
+
+			override fun captureState(ints: IntArray, floats: FloatArray) {
+				// Only index 0, deliberately.
+				ints[0] = marker
+			}
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) {
+				seen = ints.copyOf()
+			}
+		}
+
+		val world = MetaEntityWorld()
+		val greedy = world.add(Stateful(0, health = 77, localOnly = 88))
+		val sparse = world.add(Sparse(5))
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+		world.restoreFrom(snapshot)
+
+		assertEquals(5, sparse.seen[0])
+		for (index in 1 until MetaEntityState.INTS) {
+			assertEquals(0, sparse.seen[index]) {
+				"Index $index leaked from the previous entity's window (it held ${sparse.seen[index]})"
+			}
+		}
+		assertEquals(77, greedy.health)
+	}
+
+	@Test
+	fun `a world without the hook carries no custom footprint`() {
+		val world = MetaEntityWorld()
+		repeat(100) { world.add(Plain(it)) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		assertTrue(snapshot.customInts.isEmpty()) { "Buffers were reserved for a game that does not use the hook" }
+		assertTrue(!snapshot.hasCustomState)
+	}
+
+	@Test
+	fun `capturing custom state allocates nothing`() {
+		assumeTrue(AllocationProbe.isSupported, "This JVM cannot report per-thread allocation")
+		val world = MetaEntityWorld()
+		repeat(1_000) { world.add(Stateful(it, health = it)) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		val bytes = AllocationProbe.measure(warmup = 50, iterations = 20) { world.captureInto(snapshot) }
+
+		assertTrue(bytes <= 0) { "Capturing custom state allocated $bytes bytes per frame" }
+	}
+
+	// ---------------------------------------------------------------- differential
+
+	@Test
+	fun `a rolled back replay agrees with a straight run when entities carry their own state`() {
+		// The transform version of this test cannot catch a custom-state bug, because it has none to lose. Here
+		// health and fuse advance every frame, so a window restored to the wrong entity - or not at all - diverges.
+		//
+		// `localOnly` earns its keep here too: a pooled entity is respawned without resetting it, so it carries a
+		// value that depends on how many previous lives it had - which a replay genuinely changes. It is excluded
+		// from the digest, and this test passes *because* it is. Stop excluding it and this test fails, which is
+		// the property worth having: excluded state is allowed to diverge, and the digest is allowed not to care.
+		val straight = replay(rollbackEvery = 0, depth = 0)
+		for (depth in intArrayOf(1, 4, 6)) {
+			for (every in intArrayOf(3, 7)) {
+				val replayed = replay(rollbackEvery = every, depth = depth)
+				for (frame in straight.indices) {
+					assertEquals(straight[frame], replayed[frame]) {
+						"Digests diverged at frame $frame with depth $depth every $every frames"
+					}
+				}
+			}
+		}
+	}
+
+	private fun replay(rollbackEvery: Int, depth: Int): LongArray {
+		val world = MetaEntityWorld()
+		val pool = (0 until 48).map { Stateful(it) }
+		val history = Array(depth + 1) { MetaWorldSnapshot() }
+		val digests = LongArray(FRAMES)
+		var frame = 0
+		var frontier = 0
+		var lastRewoundAt = -1
+
+		while (frame < FRAMES) {
+			if (rollbackEvery > 0 &&
+				frame == frontier &&
+				frame > depth &&
+				frame % rollbackEvery == 0 &&
+				frame != lastRewoundAt
+			) {
+				lastRewoundAt = frame
+				val target = history[frame % history.size]
+				val rewindTo = target.frame
+				world.restoreFrom(target)
+				frame = rewindTo
+			}
+			history[frame % history.size].let {
+				world.captureInto(it)
+				it.frame = frame
+			}
+
+			val store = world.store
+			for (slot in 0 until store.count) {
+				store.x[slot] += store.vx[slot]
+				if (store.x[slot] > 60f || store.x[slot] < -60f) store.vx[slot] = -store.vx[slot]
+			}
+			for (index in 0 until world.size) {
+				val entity = world.entityAt(index) as Stateful
+				entity.health -= 1
+				entity.fuse += 0.25f
+				entity.localOnly = entity.localOnly xor frame
+			}
+			val roll = mix(frame)
+			val candidate = pool[(roll ushr 8) % pool.size]
+			if (!candidate.isBound) {
+				world.add(candidate)
+				candidate.setPosition((roll % 120) - 60f, 0f, 0f)
+				candidate.setVelocity(((roll ushr 12) % 5) - 2f, 0f, 0f)
+				candidate.health = 100
+				candidate.fuse = 0f
+			}
+			if (roll % 4 == 0 && world.size > 2) world.remove(world.entityAt((roll ushr 20) % world.size))
+
+			digests[frame] = world.digest(MetaTransformColumns.ALL)
+			frame++
+			if (frame > frontier) frontier = frame
+		}
+		if (rollbackEvery > 0) check(lastRewoundAt >= 0) { "This configuration never rewound, so it proves nothing" }
+		return digests
+	}
+
+	private fun mix(value: Int): Int {
+		var h = value * -0x61c88647
+		h = h xor (h ushr 15)
+		h *= -0x7ee3623b
+		h = h xor (h ushr 13)
+		return h and 0x7fffffff
+	}
+
+	private companion object {
+		const val FRAMES = 160
+	}
+}

@@ -171,7 +171,7 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 	fun digest(
 		columns: Int = MetaTransformColumns.SIMULATION,
 		seed: Long = MetaWorldSnapshot.FNV_OFFSET_64,
-	): Long = digestWorldColumns(store, columns, seed)
+	): Long = store.digestCustomState(digestWorldColumns(store, columns, seed))
 
 	companion object {
 		/**

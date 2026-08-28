@@ -68,8 +68,27 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 	internal var scale = FloatArray(initialCapacity)
 	internal var owners = arrayOfNulls<MetaEntity>(initialCapacity)
 
+	/**
+	 * Per-entity state from [MetaEntityState], laid out as `slot * MetaEntityState.INTS + index`.
+	 *
+	 * Empty until a world containing at least one such entity is captured, so a game that does not use the hook
+	 * carries none of the footprint - a window of snapshots would otherwise reserve it per frame for nothing.
+	 */
+	internal var customInts = IntArray(0)
+	internal var customFloats = FloatArray(0)
+
+	/** Whether [customInts] and [customFloats] describe the captured world. */
+	internal var hasCustomState = false
+
 	/** How many entities this can hold before it has to grow. */
 	val capacity: Int get() = x.size
+
+	/** Brings the custom-state buffers into existence, or up to the column capacity they trail. */
+	internal fun ensureCustomCapacity() {
+		if (customInts.size >= x.size * MetaEntityState.INTS) return
+		customInts = customInts.copyOf(x.size * MetaEntityState.INTS)
+		customFloats = customFloats.copyOf(x.size * MetaEntityState.FLOATS)
+	}
 
 	internal fun ensureCapacity(required: Int) {
 		if (required <= x.size) return
@@ -83,6 +102,8 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 		rotation = rotation.copyOf(grown)
 		scale = scale.copyOf(grown)
 		owners = owners.copyOf(grown)
+		// Only if they already exist: a game that does not use the hook never pays for them.
+		if (customInts.isNotEmpty()) ensureCustomCapacity()
 	}
 
 	/**
@@ -104,6 +125,12 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 		// Past the new live range, so copying a smaller state in cannot leave this pinning entities it no longer
 		// describes - a leak that would only show up as a scene whose footprint never falls.
 		if (previousCount > other.count) java.util.Arrays.fill(owners, other.count, previousCount, null)
+		hasCustomState = other.hasCustomState
+		if (other.hasCustomState) {
+			ensureCustomCapacity()
+			System.arraycopy(other.customInts, 0, customInts, 0, other.count * MetaEntityState.INTS)
+			System.arraycopy(other.customFloats, 0, customFloats, 0, other.count * MetaEntityState.FLOATS)
+		}
 		count = other.count
 		frame = other.frame
 	}
@@ -120,8 +147,22 @@ class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACI
 	 * Same algorithm as a digest taken straight off the world, so a snapshot and the world it was captured from
 	 * hash identically. See [MetaEntityWorld.digest].
 	 */
-	fun digest(columns: Int = MetaTransformColumns.SIMULATION, seed: Long = FNV_OFFSET_64): Long =
-		digestColumns(columns, seed, count, x, y, z, vx, vy, vz, rotation, scale)
+	fun digest(columns: Int = MetaTransformColumns.SIMULATION, seed: Long = FNV_OFFSET_64): Long {
+		var hash = digestColumns(columns, seed, count, x, y, z, vx, vy, vz, rotation, scale)
+		if (!hasCustomState) return hash
+		// Values from the capture; exclusion masks from the entities, which is where they are declared. A mask is
+		// a property of the type rather than of the moment, so reading it live cannot disagree with the capture.
+		val ints = IntArray(MetaEntityState.INTS)
+		val floats = FloatArray(MetaEntityState.FLOATS)
+		for (slot in 0 until count) {
+			val entity = owners[slot]
+			if (entity !is MetaEntityState) continue
+			System.arraycopy(customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
+			System.arraycopy(customFloats, slot * MetaEntityState.FLOATS, floats, 0, MetaEntityState.FLOATS)
+			hash = mixCustomWindow(hash, ints, floats, entity.digestExcludedInts, entity.digestExcludedFloats)
+		}
+		return hash
+	}
 
 	companion object {
 		/** FNV-1a 64-bit offset basis. */
@@ -185,6 +226,34 @@ private fun mixFloats(start: Long, column: FloatArray, count: Int): Long {
 		// would hide a peer that produced a different NaN - and a NaN turning up on one side only is exactly the
 		// divergence worth catching.
 		hash = hash xor java.lang.Float.floatToRawIntBits(column[slot]).toLong()
+		hash *= MetaWorldSnapshot.FNV_PRIME_64
+	}
+	return hash
+}
+
+/**
+ * Mixes one entity's custom window, skipping the indices its exclusion masks name.
+ *
+ * The excluded slots are skipped entirely rather than mixed as zero, so a game can add a snapshot-only field
+ * without changing the digest of every entity that already had one - which would otherwise invalidate a committed
+ * golden vector for a change that altered no simulation state at all.
+ */
+internal fun mixCustomWindow(
+	start: Long,
+	ints: IntArray,
+	floats: FloatArray,
+	excludedInts: Int,
+	excludedFloats: Int,
+): Long {
+	var hash = start
+	for (index in 0 until MetaEntityState.INTS) {
+		if (excludedInts ushr index and 1 != 0) continue
+		hash = hash xor ints[index].toLong()
+		hash *= MetaWorldSnapshot.FNV_PRIME_64
+	}
+	for (index in 0 until MetaEntityState.FLOATS) {
+		if (excludedFloats ushr index and 1 != 0) continue
+		hash = hash xor java.lang.Float.floatToRawIntBits(floats[index]).toLong()
 		hash *= MetaWorldSnapshot.FNV_PRIME_64
 	}
 	return hash

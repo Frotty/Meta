@@ -89,6 +89,23 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	/** Guards against structural change during a [forEachSlot] walk, which would skip or double-visit entities. */
 	private var iterating = false
 
+	/**
+	 * How many live entities implement [MetaEntityState], so a capture can skip the whole pass when none do.
+	 *
+	 * Counted as entities come and go rather than scanned for, because the scan's worst case is exactly the case
+	 * worth keeping free: a game not using the hook would pay an instanceof per entity per frame to learn nothing.
+	 */
+	private var customStateCount = 0
+
+	/**
+	 * The buffers handed to [MetaEntityState]. One pair per store, refilled per entity.
+	 *
+	 * Fixed windows rather than offsets into the flat arrays: an entity that writes past its share gets an
+	 * out-of-bounds here instead of quietly overwriting the next entity's state.
+	 */
+	private val customScratchInts = IntArray(MetaEntityState.INTS)
+	private val customScratchFloats = FloatArray(MetaEntityState.FLOATS)
+
 	/** How many entities this store can hold before it grows. Grows by doubling; never shrinks. */
 	val currentCapacity: Int get() = capacity
 
@@ -103,6 +120,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		if (count == capacity) grow()
 		val slot = count++
 		owners[slot] = entity
+		if (entity is MetaEntityState) customStateCount++
 		x[slot] = 0f; y[slot] = 0f; z[slot] = 0f
 		vx[slot] = 0f; vy[slot] = 0f; vz[slot] = 0f
 		rotation[slot] = 0f
@@ -118,6 +136,8 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 	internal fun release(slot: Int) {
 		checkMutable("remove an entity")
 		require(slot in 0 until count) { "Slot $slot is not live (count=$count)" }
+		// Read before the swap below overwrites it with the entity moving down.
+		if (owners[slot] is MetaEntityState) customStateCount--
 		val last = count - 1
 		if (slot != last) {
 			x[slot] = x[last]; y[slot] = y[last]; z[slot] = z[last]
@@ -190,6 +210,7 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 			owners[slot]?.unbind()
 			owners[slot] = null
 		}
+		customStateCount = 0
 		count = 0
 	}
 
@@ -214,6 +235,29 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		// smaller scene cannot go on pinning entities it no longer describes.
 		if (previousCount > count) java.util.Arrays.fill(snapshot.owners, count, previousCount, null)
 		snapshot.count = count
+		captureCustomInto(snapshot)
+	}
+
+	/**
+	 * Collects [MetaEntityState] from whichever entities implement it.
+	 *
+	 * Every slot gets a window, implementer or not, so a mixed world stays a flat indexable array rather than
+	 * something a restore has to search. The scratch is zeroed per entity, so an implementation that writes three
+	 * ints does not inherit the previous entity's remaining thirteen.
+	 */
+	private fun captureCustomInto(snapshot: MetaWorldSnapshot) {
+		snapshot.hasCustomState = customStateCount > 0
+		if (customStateCount == 0) return
+		snapshot.ensureCustomCapacity()
+		val ints = customScratchInts
+		val floats = customScratchFloats
+		for (slot in 0 until count) {
+			java.util.Arrays.fill(ints, 0)
+			java.util.Arrays.fill(floats, 0f)
+			(owners[slot] as? MetaEntityState)?.captureState(ints, floats)
+			System.arraycopy(ints, 0, snapshot.customInts, slot * MetaEntityState.INTS, MetaEntityState.INTS)
+			System.arraycopy(floats, 0, snapshot.customFloats, slot * MetaEntityState.FLOATS, MetaEntityState.FLOATS)
+		}
 	}
 
 	/**
@@ -255,6 +299,9 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		System.arraycopy(snapshot.vz, 0, vz, 0, snapshot.count)
 		System.arraycopy(snapshot.rotation, 0, rotation, 0, snapshot.count)
 		System.arraycopy(snapshot.scale, 0, scale, 0, snapshot.count)
+		// Recounted rather than carried over: the snapshot's population is not this world's, so the tally that
+		// decides whether the custom passes run has to come from what is actually being bound.
+		var rebuiltCustomStateCount = 0
 		for (slot in 0 until snapshot.count) {
 			val entity = checkNotNull(snapshot.owners[slot]) {
 				"Snapshot slot $slot holds no entity, so the world cannot be restored from it. A snapshot must be " +
@@ -262,8 +309,56 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 			}
 			owners[slot] = entity
 			entity.bind(this, slot)
+			if (entity is MetaEntityState) rebuiltCustomStateCount++
 		}
 		count = snapshot.count
+		customStateCount = rebuiltCustomStateCount
+		restoreCustomFrom(snapshot)
+	}
+
+	/**
+	 * Hands each entity its own state back, then lets every one of them reconcile.
+	 *
+	 * Two passes, because [MetaEntityState.onRestored] is specified to run once the whole world is back: anything
+	 * reading a neighbour - a bar that tracks the entity it belongs to, a link spanning several - would otherwise
+	 * see half a world still holding the future it is being rolled back from.
+	 */
+	private fun restoreCustomFrom(snapshot: MetaWorldSnapshot) {
+		if (customStateCount == 0) return
+		if (snapshot.hasCustomState) {
+			val ints = customScratchInts
+			val floats = customScratchFloats
+			for (slot in 0 until count) {
+				val entity = owners[slot]
+				if (entity !is MetaEntityState) continue
+				System.arraycopy(snapshot.customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
+				System.arraycopy(snapshot.customFloats, slot * MetaEntityState.FLOATS, floats, 0, MetaEntityState.FLOATS)
+				entity.restoreState(ints, floats)
+			}
+		}
+		for (slot in 0 until count) (owners[slot] as? MetaEntityState)?.onRestored()
+	}
+
+	/**
+	 * Mixes live [MetaEntityState] into [hash], skipping each entity's excluded indices.
+	 *
+	 * Read from the entities rather than from a snapshot, so this hashes the world as it is now - which is what a
+	 * peer comparison needs. [MetaEntityState.captureState] is required to be pure for exactly this reason.
+	 */
+	internal fun digestCustomState(hash: Long): Long {
+		if (customStateCount == 0) return hash
+		var running = hash
+		val ints = customScratchInts
+		val floats = customScratchFloats
+		for (slot in 0 until count) {
+			val entity = owners[slot]
+			if (entity !is MetaEntityState) continue
+			java.util.Arrays.fill(ints, 0)
+			java.util.Arrays.fill(floats, 0f)
+			entity.captureState(ints, floats)
+			running = mixCustomWindow(running, ints, floats, entity.digestExcludedInts, entity.digestExcludedFloats)
+		}
+		return running
 	}
 
 	private fun ensureCapacityFor(required: Int) {
