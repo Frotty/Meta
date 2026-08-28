@@ -178,6 +178,11 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 	 * - though not, on its own, a location. Digest the columns your simulation actually decides outcomes with:
 	 * [MetaTransformColumns.SIMULATION] by default, because a scale a game tweens for a hit flash is a false
 	 * positive rather than a divergence.
+	 *
+	 * Hashes the world **as it is now, under the policy in force now** - which is not the same question a
+	 * [MetaWorldSnapshot.digest] answers about a snapshot taken earlier. The two agree whenever the exclusion
+	 * masks have not moved, which is the only supported case; see [MetaEntityState.digestExcludedInts] for why a
+	 * mask that changes mid-match is a problem in its own right rather than a rollback artefact.
 	 */
 	fun digest(
 		columns: Int = MetaTransformColumns.SIMULATION,

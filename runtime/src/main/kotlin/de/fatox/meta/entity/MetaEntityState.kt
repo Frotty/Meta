@@ -71,6 +71,19 @@ interface MetaEntityState {
 	 *
 	 * Only the low [INTS] bits are read; anything above is ignored, so `-1` and `0xFFFF` mean the same thing and
 	 * hash the same way.
+	 *
+	 * ### Keep it stable for the lifetime of a match
+	 *
+	 * This is a **policy**, not state: it says which fields two peers must agree on, and both peers have to be
+	 * saying the same thing. Deriving it from configuration is fine; changing that configuration mid-match is not,
+	 * and the damage is not confined to rollback. Two peers whose masks drift apart are hashing different
+	 * questions, so they will disagree while their simulations match perfectly - and they *should*, because they
+	 * no longer agree on what authoritative means. Fix the policy when the match starts.
+	 *
+	 * A snapshot captures the masks in force when it was taken, so a retained history stays self-consistent even
+	 * if this rule is broken. That is damage control, not permission: [MetaEntityWorld.digest] hashes the live
+	 * world under the live policy, so a mask that moves makes the live digest and an older snapshot's disagree,
+	 * correctly and by design.
 	 */
 	val digestExcludedInts: Int get() = 0
 
