@@ -123,6 +123,56 @@ class MetaEntityWorld(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY
 		}
 	}
 
+	/**
+	 * Copies every transform and slot binding into [snapshot], growing it once if it is too small.
+	 *
+	 * The half of a rollback engine that saves. Allocation-free once the snapshot has been sized, because a
+	 * rollback engine captures every frame and a per-frame allocation of the whole scene's transforms produces
+	 * collection pauses that are indistinguishable, to a player, from the network problems the rollback exists to
+	 * hide.
+	 *
+	 * Your entities' own fields are not captured and cannot be - see [MetaWorldSnapshot]. Capture them beside this.
+	 */
+	fun captureInto(snapshot: MetaWorldSnapshot) {
+		store.captureInto(snapshot)
+	}
+
+	/**
+	 * Puts the world back exactly as [snapshot] found it: columns, count, and which entity holds which slot.
+	 *
+	 * Entities added since the capture are unbound and leave the world; entities removed since are added back from
+	 * the references the snapshot kept alive. Both directions matter, because a rollback runs backwards over
+	 * spawns as readily as over deaths.
+	 *
+	 * Refuses while a system is iterating the store, and refuses before changing anything, so a caller that gets
+	 * this wrong sees an exception rather than half a world.
+	 *
+	 * Derived structures are not restored and do not need to be: rebuild a [MetaSpatialIndex] by calling
+	 * [MetaSpatialIndex.update] afterwards, which produces query results identical to the index you would have had
+	 * without the rollback.
+	 */
+	fun restoreFrom(snapshot: MetaWorldSnapshot) {
+		// Throws before touching anything, so the entity list below is never left disagreeing with the columns.
+		store.restoreFrom(snapshot)
+		liveEntities.clear()
+		liveEntities.ensureCapacity(snapshot.count)
+		for (slot in 0 until snapshot.count) liveEntities.add(snapshot.owners[slot])
+	}
+
+	/**
+	 * A 64-bit hash of this world's transforms, for detecting that two peers have diverged.
+	 *
+	 * FNV-1a over raw IEEE-754 bits in slot order; see [MetaWorldSnapshot.digest] for why each of those words is
+	 * load-bearing. Compare it against a peer's, or against the same frame replayed, and an inequality is a desync
+	 * - though not, on its own, a location. Digest the columns your simulation actually decides outcomes with:
+	 * [MetaTransformColumns.SIMULATION] by default, because a scale a game tweens for a hit flash is a false
+	 * positive rather than a divergence.
+	 */
+	fun digest(
+		columns: Int = MetaTransformColumns.SIMULATION,
+		seed: Long = MetaWorldSnapshot.FNV_OFFSET_64,
+	): Long = digestWorldColumns(store, columns, seed)
+
 	companion object {
 		/**
 		 * Warns once when transforms are read through [MetaEntity] often enough to look like a bulk loop.

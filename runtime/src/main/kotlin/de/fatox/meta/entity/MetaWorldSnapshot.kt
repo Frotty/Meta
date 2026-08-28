@@ -1,0 +1,205 @@
+package de.fatox.meta.entity
+
+/**
+ * Which transform columns a digest covers.
+ *
+ * Rollback restores everything; a digest should not. A digest is what two peers compare to decide they have
+ * desynced, so a column that is presentation rather than simulation - a scale a game tweens for a hit flash, a
+ * rotation it derives from the camera - makes the check fire on machines that agree about the game perfectly well.
+ * Excluding such a column is not a weakening; including it is a false positive waiting to happen.
+ *
+ * Combine with `or`. [SIMULATION] is the usual answer.
+ */
+object MetaTransformColumns {
+	const val POSITION: Int = 1
+	const val VELOCITY: Int = 2
+	const val ROTATION: Int = 4
+	const val SCALE: Int = 8
+
+	/** Position and velocity: what almost always decides the outcome, and nothing that only decides the look. */
+	const val SIMULATION: Int = POSITION or VELOCITY
+
+	/** Every column. Correct when a game simulates rotation and scale rather than deriving them for display. */
+	const val ALL: Int = POSITION or VELOCITY or ROTATION or SCALE
+}
+
+/**
+ * A complete, reusable copy of a [MetaEntityWorld]'s transforms and slot bindings.
+ *
+ * Sized once and refilled, because rollback netcode captures every frame and keeps a window of them: a snapshot
+ * that allocated would put the whole scene's transforms into the nursery sixty times a second, and the resulting
+ * collection pause is indistinguishable from a network stall to everyone playing.
+ *
+ * ### What it holds, and what it deliberately does not
+ *
+ * The columns, the live count, and **which entity occupies which slot**. That last part is not bookkeeping:
+ * [MetaTransformStore] frees a slot by swapping the last entity into it, so slot assignment is a function of the
+ * whole add/remove history and cannot be re-derived from positions. Restore it and every entity keeps its own
+ * transform; skip it and entities silently trade places, each reading a neighbour's position.
+ *
+ * It does **not** hold your entities' own fields. `health`, state machines, inventories - those are yours, and a
+ * library that tried to capture them would have to serialize or reflect over the object graph every frame, which
+ * is exactly what a rollback engine cannot afford. Capture them alongside this, the way the rest of a level is
+ * already captured.
+ *
+ * ### It keeps entities alive on purpose
+ *
+ * Slots hold strong references, so an entity removed after this snapshot was taken is retained by it. That is
+ * required rather than incidental - rolling back to this frame has to be able to put that entity back - but it
+ * means a window of N snapshots pins every entity removed within those N frames. Bounded and intended, though
+ * worth knowing before wondering why a scene's footprint does not drop the instant something dies.
+ * [releaseRetainedEntities] drops them when a window is retired.
+ */
+class MetaWorldSnapshot(initialCapacity: Int = MetaTransformStore.DEFAULT_CAPACITY) {
+	/** How many entities the snapshot holds. */
+	var count: Int = 0
+		internal set
+
+	/** The frame this was taken at. Meta never reads it; it is here so a caller's ring buffer need not parallel it. */
+	var frame: Int = -1
+
+	internal var x = FloatArray(initialCapacity)
+	internal var y = FloatArray(initialCapacity)
+	internal var z = FloatArray(initialCapacity)
+	internal var vx = FloatArray(initialCapacity)
+	internal var vy = FloatArray(initialCapacity)
+	internal var vz = FloatArray(initialCapacity)
+	internal var rotation = FloatArray(initialCapacity)
+	internal var scale = FloatArray(initialCapacity)
+	internal var owners = arrayOfNulls<MetaEntity>(initialCapacity)
+
+	/** How many entities this can hold before it has to grow. */
+	val capacity: Int get() = x.size
+
+	internal fun ensureCapacity(required: Int) {
+		if (required <= x.size) return
+		val grown = maxOf(required, x.size * 2, MetaTransformStore.DEFAULT_CAPACITY)
+		x = x.copyOf(grown)
+		y = y.copyOf(grown)
+		z = z.copyOf(grown)
+		vx = vx.copyOf(grown)
+		vy = vy.copyOf(grown)
+		vz = vz.copyOf(grown)
+		rotation = rotation.copyOf(grown)
+		scale = scale.copyOf(grown)
+		owners = owners.copyOf(grown)
+	}
+
+	/**
+	 * Replaces this snapshot's contents with [other]'s, for a caller promoting one frame of a window to another
+	 * without re-reading the world.
+	 */
+	fun copyFrom(other: MetaWorldSnapshot) {
+		ensureCapacity(other.count)
+		val previousCount = count
+		System.arraycopy(other.x, 0, x, 0, other.count)
+		System.arraycopy(other.y, 0, y, 0, other.count)
+		System.arraycopy(other.z, 0, z, 0, other.count)
+		System.arraycopy(other.vx, 0, vx, 0, other.count)
+		System.arraycopy(other.vy, 0, vy, 0, other.count)
+		System.arraycopy(other.vz, 0, vz, 0, other.count)
+		System.arraycopy(other.rotation, 0, rotation, 0, other.count)
+		System.arraycopy(other.scale, 0, scale, 0, other.count)
+		System.arraycopy(other.owners, 0, owners, 0, other.count)
+		// Past the new live range, so copying a smaller state in cannot leave this pinning entities it no longer
+		// describes - a leak that would only show up as a scene whose footprint never falls.
+		if (previousCount > other.count) java.util.Arrays.fill(owners, other.count, previousCount, null)
+		count = other.count
+		frame = other.frame
+	}
+
+	/** Drops the entity references this is keeping alive, without giving up the buffers. */
+	fun releaseRetainedEntities() {
+		java.util.Arrays.fill(owners, 0, count, null)
+		count = 0
+	}
+
+	/**
+	 * A 64-bit hash of the simulation state held here, over the chosen [columns].
+	 *
+	 * Same algorithm as a digest taken straight off the world, so a snapshot and the world it was captured from
+	 * hash identically. See [MetaEntityWorld.digest].
+	 */
+	fun digest(columns: Int = MetaTransformColumns.SIMULATION, seed: Long = FNV_OFFSET_64): Long =
+		digestColumns(columns, seed, count, x, y, z, vx, vy, vz, rotation, scale)
+
+	companion object {
+		/** FNV-1a 64-bit offset basis. */
+		const val FNV_OFFSET_64: Long = -3750763034362895579L
+
+		/** FNV-1a 64-bit prime. */
+		const val FNV_PRIME_64: Long = 1099511628211L
+	}
+}
+
+/**
+ * FNV-1a over the raw IEEE-754 bits of the selected columns, in slot order.
+ *
+ * **Raw bits, not values**, so the check is bit-exact: a `Math.sin` where the other peer reached for `StrictMath`,
+ * or any other one-ulp divergence, changes the digest rather than hiding under an epsilon. That is the entire job.
+ *
+ * **Slot order, and nothing else.** Two peers running the same simulation from the same inputs perform the same
+ * allocations and removals, so their slot assignments agree - which is what makes slot order comparable at all. It
+ * also means a bug that reorders slots on one peer shows up here, which is wanted.
+ *
+ * The count is mixed first, so two states agreeing entity-for-entity over a common prefix still differ.
+ */
+private fun digestColumns(
+	columns: Int,
+	seed: Long,
+	count: Int,
+	x: FloatArray,
+	y: FloatArray,
+	z: FloatArray,
+	vx: FloatArray,
+	vy: FloatArray,
+	vz: FloatArray,
+	rotation: FloatArray,
+	scale: FloatArray,
+): Long {
+	var hash = seed
+	hash = hash xor count.toLong()
+	hash *= MetaWorldSnapshot.FNV_PRIME_64
+
+	// Column at a time: each is a contiguous scan, and the test against `columns` is hoisted out of the per-entity
+	// loop instead of being retested for every slot.
+	if (columns and MetaTransformColumns.POSITION != 0) {
+		hash = mixFloats(hash, x, count)
+		hash = mixFloats(hash, y, count)
+		hash = mixFloats(hash, z, count)
+	}
+	if (columns and MetaTransformColumns.VELOCITY != 0) {
+		hash = mixFloats(hash, vx, count)
+		hash = mixFloats(hash, vy, count)
+		hash = mixFloats(hash, vz, count)
+	}
+	if (columns and MetaTransformColumns.ROTATION != 0) hash = mixFloats(hash, rotation, count)
+	if (columns and MetaTransformColumns.SCALE != 0) hash = mixFloats(hash, scale, count)
+	return hash
+}
+
+private fun mixFloats(start: Long, column: FloatArray, count: Int): Long {
+	var hash = start
+	for (slot in 0 until count) {
+		// floatToRawIntBits, not floatToIntBits: the latter collapses every NaN to one canonical pattern, which
+		// would hide a peer that produced a different NaN - and a NaN turning up on one side only is exactly the
+		// divergence worth catching.
+		hash = hash xor java.lang.Float.floatToRawIntBits(column[slot]).toLong()
+		hash *= MetaWorldSnapshot.FNV_PRIME_64
+	}
+	return hash
+}
+
+internal fun digestWorldColumns(store: MetaTransformStore, columns: Int, seed: Long): Long = digestColumns(
+	columns,
+	seed,
+	store.count,
+	store.x,
+	store.y,
+	store.z,
+	store.vx,
+	store.vy,
+	store.vz,
+	store.rotation,
+	store.scale,
+)

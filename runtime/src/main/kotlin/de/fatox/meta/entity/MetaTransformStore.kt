@@ -193,8 +193,90 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		count = 0
 	}
 
-	private fun grow() {
-		val next = capacity * 2
+	/**
+	 * Copies the live columns and slot owners into [snapshot]. See [MetaEntityWorld.captureInto].
+	 *
+	 * Column at a time with `System.arraycopy`, which is an intrinsic and moves the whole run at memory speed.
+	 */
+	internal fun captureInto(snapshot: MetaWorldSnapshot) {
+		snapshot.ensureCapacity(count)
+		val previousCount = snapshot.count
+		System.arraycopy(x, 0, snapshot.x, 0, count)
+		System.arraycopy(y, 0, snapshot.y, 0, count)
+		System.arraycopy(z, 0, snapshot.z, 0, count)
+		System.arraycopy(vx, 0, snapshot.vx, 0, count)
+		System.arraycopy(vy, 0, snapshot.vy, 0, count)
+		System.arraycopy(vz, 0, snapshot.vz, 0, count)
+		System.arraycopy(rotation, 0, snapshot.rotation, 0, count)
+		System.arraycopy(scale, 0, snapshot.scale, 0, count)
+		System.arraycopy(owners, 0, snapshot.owners, 0, count)
+		// Anything the previous capture left past the new live range is cleared, so reusing a snapshot for a
+		// smaller scene cannot go on pinning entities it no longer describes.
+		if (previousCount > count) java.util.Arrays.fill(snapshot.owners, count, previousCount, null)
+		snapshot.count = count
+	}
+
+	/**
+	 * Replaces the live columns, the count and every slot binding with [snapshot]'s.
+	 *
+	 * Every entity currently bound is unbound *first*, and only then is the snapshot's set bound. Done in one pass
+	 * each, that handles the three cases uniformly and without a set to test membership against: an entity in both
+	 * is rebound to its snapshot slot, an entity added since the capture is unbound and correctly leaves the
+	 * world, and an entity removed since is bound again from the reference the snapshot kept alive for exactly
+	 * this. Anything cheaper needs to ask "was this in the snapshot", which means hashing entities every frame.
+	 */
+	internal fun restoreFrom(snapshot: MetaWorldSnapshot) {
+		checkMutable("restore a snapshot")
+		// Every entity is checked before any of them is touched, so a snapshot belonging to another world is
+		// refused rather than half applied. Binding one of those would re-point it at this store while the world
+		// that still lists it carries on believing it owns it - two worlds, one entity, and the first symptom is
+		// somebody reading a transform that belongs to a different scene.
+		for (slot in 0 until snapshot.count) {
+			val entity = checkNotNull(snapshot.owners[slot]) {
+				"Snapshot slot $slot holds no entity, so the world cannot be restored from it. A snapshot must be " +
+					"filled by MetaEntityWorld.captureInto and its entity references left alone."
+			}
+			val owner = entity.store
+			check(owner == null || owner === this) {
+				"${entity::class.simpleName} in snapshot slot $slot still belongs to another world. Restore a " +
+					"snapshot into the world it was captured from, or clear the other world first."
+			}
+		}
+		ensureCapacityFor(snapshot.count)
+		for (slot in 0 until count) {
+			owners[slot]?.unbind()
+			owners[slot] = null
+		}
+		System.arraycopy(snapshot.x, 0, x, 0, snapshot.count)
+		System.arraycopy(snapshot.y, 0, y, 0, snapshot.count)
+		System.arraycopy(snapshot.z, 0, z, 0, snapshot.count)
+		System.arraycopy(snapshot.vx, 0, vx, 0, snapshot.count)
+		System.arraycopy(snapshot.vy, 0, vy, 0, snapshot.count)
+		System.arraycopy(snapshot.vz, 0, vz, 0, snapshot.count)
+		System.arraycopy(snapshot.rotation, 0, rotation, 0, snapshot.count)
+		System.arraycopy(snapshot.scale, 0, scale, 0, snapshot.count)
+		for (slot in 0 until snapshot.count) {
+			val entity = checkNotNull(snapshot.owners[slot]) {
+				"Snapshot slot $slot holds no entity, so the world cannot be restored from it. A snapshot must be " +
+					"filled by MetaEntityWorld.captureInto and its entity references left alone."
+			}
+			owners[slot] = entity
+			entity.bind(this, slot)
+		}
+		count = snapshot.count
+	}
+
+	private fun ensureCapacityFor(required: Int) {
+		if (required <= capacity) return
+		var next = maxOf(capacity, DEFAULT_CAPACITY)
+		while (next < required) next *= 2
+		growTo(next)
+	}
+
+	// maxOf rather than a bare double: a store constructed with capacity 0 would otherwise double to 0 forever.
+	private fun grow() = growTo(maxOf(capacity * 2, DEFAULT_CAPACITY))
+
+	private fun growTo(next: Int) {
 		x = x.copyOf(next); y = y.copyOf(next); z = z.copyOf(next)
 		vx = vx.copyOf(next); vy = vy.copyOf(next); vz = vz.copyOf(next)
 		rotation = rotation.copyOf(next)
