@@ -87,7 +87,7 @@ object MetaSkin {
 	private const val NANOS_PER_MILLI = 1_000_000L
 	private var activeSkin: Skin? = null
 	private var packer: PixmapPacker? = null
-	private val pendingDrawables = Array<PendingDrawable>()
+	private val atlasEntries = Array<PendingDrawable>()
 	private var installActions: Array<() -> Unit>? = null
 	private var installCursor = 0
 	private var collectingInstallActions = false
@@ -133,7 +133,7 @@ object MetaSkin {
 	) {
 		requirePacker().pack(name, pixmap)
 		pixmap.dispose()
-		pendingDrawables.add(
+		atlasEntries.add(
 			PendingDrawable(name, splits, padLeft, padRight, padTop, padBottom, minWidth, minHeight),
 		)
 	}
@@ -156,8 +156,8 @@ object MetaSkin {
 		for (index in 0 until pages.size) {
 			pages[index].texture?.let { skin.add("$ATLAS_TEXTURE_PREFIX$index", it) }
 		}
-		for (index in 0 until pendingDrawables.size) {
-			val pending = pendingDrawables[index]
+		for (index in 0 until atlasEntries.size) {
+			val pending = atlasEntries[index]
 			val rect = checkNotNull(packer.getRect(pending.name)) { "Nothing was packed for ${pending.name}" }
 			val bounds = rect.bounds
 			val region = TextureRegion(rect.page.texture, bounds.x, bounds.y, bounds.width, bounds.height)
@@ -175,7 +175,79 @@ object MetaSkin {
 			drawable.minHeight = pending.minHeight
 			skin.add(pending.name, drawable, Drawable::class.java)
 		}
-		pendingDrawables.clear()
+		// Deliberately not cleared. A rebuild needs to know what is on the page and how each drawable was
+		// configured, and re-deriving that would mean re-running the generators - which is the 32ms this exists
+		// to avoid.
+	}
+
+	/**
+	 * Moves the chrome onto a fresh page and re-points the existing drawables at it.
+	 *
+	 * Glyphs share this atlas, and `PixmapPacker` cannot reclaim a region - so every UI-scale change leaves the
+	 * previous scale's glyph pixels resident forever. Enough changes spill onto a second page, and a second page
+	 * means the batch starts flushing between whatever landed on each, undoing the reason the atlas exists.
+	 *
+	 * The chrome is copied rather than re-rasterized. Its pixels do not depend on scale - nine-patches are
+	 * stretched at draw time from a fixed 32x32 source - so regenerating them would repeat 32ms of shape sampling
+	 * to arrive at the bytes already sitting in the old page's pixmap. Copying is a few hundred kilobytes of blit.
+	 *
+	 * Crucially the *drawable objects* are kept and re-pointed. Every live widget's style holds references to
+	 * them, so replacing them would need a restyle pass across the whole tree; mutating what they draw from needs
+	 * nothing. Callers see no change beyond the pixels coming from a different texture.
+	 *
+	 * Call before regenerating fonts, so the new glyphs are packed into the new page rather than the old one.
+	 */
+	fun rebuildAtlas() {
+		val previous = packer ?: return
+		val skin = activeSkin ?: return
+		if (atlasEntries.size == 0) return
+
+		val replacement = PixmapPacker(ATLAS_PAGE_SIZE, ATLAS_PAGE_SIZE, Pixmap.Format.RGBA8888, ATLAS_PADDING, true)
+		for (index in 0 until atlasEntries.size) {
+			val entry = atlasEntries[index]
+			val rect = previous.getRect(entry.name) ?: continue
+			val source = rect.page.pixmap ?: continue
+			val bounds = rect.bounds
+			val copy = Pixmap(bounds.width, bounds.height, Pixmap.Format.RGBA8888)
+			copy.setBlending(Pixmap.Blending.None)
+			copy.drawPixmap(source, 0, 0, bounds.x, bounds.y, bounds.width, bounds.height)
+			replacement.pack(entry.name, copy)
+			copy.dispose()
+		}
+		replacement.updatePageTextures(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear, false)
+
+		val pages = replacement.pages
+		for (index in 0 until pages.size) {
+			pages[index].texture?.let { skin.add("$ATLAS_TEXTURE_PREFIX$index", it) }
+		}
+		for (index in 0 until atlasEntries.size) {
+			val entry = atlasEntries[index]
+			val rect = replacement.getRect(entry.name) ?: continue
+			val bounds = rect.bounds
+			val region = TextureRegion(rect.page.texture, bounds.x, bounds.y, bounds.width, bounds.height)
+			val existing = skin.optional(entry.name, Drawable::class.java) as? BaseDrawable ?: continue
+			val splits = entry.splits
+			when {
+				existing is NinePatchDrawable && splits != null ->
+					existing.patch = NinePatch(region, splits[0], splits[1], splits[2], splits[3])
+				existing is TextureRegionDrawable -> existing.region = region
+				else -> continue
+			}
+			// setPatch copies padding and minimum size out of the patch, so the configured values have to go back
+			// on afterwards or every rebuilt widget silently changes size.
+			existing.leftWidth = entry.padLeft
+			existing.rightWidth = entry.padRight
+			existing.topHeight = entry.padTop
+			existing.bottomHeight = entry.padBottom
+			existing.minWidth = entry.minWidth
+			existing.minHeight = entry.minHeight
+		}
+
+		// After the re-point, so nothing is drawing from a texture that has been deleted.
+		val stalePages = previous.pages
+		for (index in 0 until stalePages.size) stalePages[index].texture?.dispose()
+		previous.dispose()
+		packer = replacement
 	}
 
 	/** How many atlas pages the generated chrome occupies. One means every patch shares a texture. */
@@ -214,7 +286,7 @@ object MetaSkin {
 		installActions = null
 		installCursor = 0
 		collectingInstallActions = false
-		pendingDrawables.clear()
+		atlasEntries.clear()
 		// Every page texture, not only the ones finalizeAtlas registered with the skin. Glyphs are packed into this
 		// same atlas as they are rasterized, so a font can create a page *after* finalization - and such a page has
 		// no owner at all: the skin never saw it, and PixmapPacker.dispose() deliberately leaves alone any page

@@ -256,10 +256,13 @@ class MetaUIRenderer : UIRenderer {
 		// afterwards with a user-chosen / persisted value.
 		reactiveScope.subscribe(backingUiScale) {
 			applyViewport(Gdx.graphics.width, Gdx.graphics.height)
-			// Fonts are rasterized per scale: walk the stage so every widget that caches a font re-fetches it from
-			// the (now regenerated) provider, then release the orphaned old-scale fonts. Order matters: dispose only
-			// after the walk, when nothing on stage references them anymore. Rare event - allocation is acceptable.
+			// Order is the whole of this block. The atlas moves to a fresh page *first*, so the glyphs rasterized
+			// below land on the new one; the previous scale's glyphs go with the page that is dropped, which is the
+			// only way this atlas reclaims anything - PixmapPacker cannot free a region.
+			MetaSkin.rebuildAtlas()
+			// Then the stage walk, so every widget that caches a font re-fetches it from the regenerated provider.
 			stage.root.refreshFontsRecursively()
+			// And only then the old faces, once nothing on stage still references them.
 			fontProvider.disposeOrphanedFonts()
 		}
 		applySuggestedScale()
