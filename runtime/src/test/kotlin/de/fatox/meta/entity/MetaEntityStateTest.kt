@@ -369,6 +369,68 @@ class MetaEntityStateTest {
 	}
 
 	@Test
+	fun `masks that exclude the same fields hash the same`() {
+		// Framing the raw Int made two spellings of "exclude everything" - -1 and 0xFFFF - different hashes, even
+		// though only the low INTS bits mean anything. Two peers whose authoritative state agrees perfectly would
+		// then report a desync over bits that name no field at all.
+		class Masked(override val digestExcludedInts: Int, override val digestExcludedFloats: Int) :
+			MetaEntity(), MetaEntityState {
+			override fun captureState(ints: IntArray, floats: FloatArray) {
+				ints[0] = 3
+				floats[0] = 1.5f
+			}
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) = Unit
+		}
+
+		fun digestOf(excludedInts: Int, excludedFloats: Int): Pair<Long, Long> {
+			val world = MetaEntityWorld()
+			world.add(Masked(excludedInts, excludedFloats))
+			val snapshot = MetaWorldSnapshot()
+			world.captureInto(snapshot)
+			return world.digest() to snapshot.digest()
+		}
+
+		val allBits = digestOf(-1, -1)
+		val exactBits = digestOf((1 shl MetaEntityState.INTS) - 1, (1 shl MetaEntityState.FLOATS) - 1)
+		assertEquals(allBits.first, exactBits.first) {
+			"Two spellings of the same exclusion produced different live digests"
+		}
+		assertEquals(allBits.second, exactBits.second) {
+			"Two spellings of the same exclusion produced different snapshot digests"
+		}
+
+		// A mask that genuinely names different fields must still differ, so this did not normalise it away.
+		assertNotEquals(allBits.first, digestOf(0, 0).first)
+	}
+
+	@Test
+	fun `restoring state may not restructure the world either`() {
+		// Same walk-by-slot hazard as reconciliation, and worse here: the store has already rebound the snapshot
+		// population while the world's entity list is still the pre-restore one, so a removal updates the two
+		// against different layouts and the list rebuild that follows re-adds every snapshot owner regardless.
+		class Meddling : MetaEntity(), MetaEntityState {
+			var world: MetaEntityWorld? = null
+
+			override fun captureState(ints: IntArray, floats: FloatArray) = Unit
+
+			override fun restoreState(ints: IntArray, floats: FloatArray) {
+				world?.remove(this)
+			}
+		}
+
+		val world = MetaEntityWorld()
+		repeat(4) { world.add(Meddling().also { it.world = world }) }
+		val snapshot = MetaWorldSnapshot()
+		world.captureInto(snapshot)
+
+		assertThrows(IllegalStateException::class.java) { world.restoreFrom(snapshot) }
+
+		// The lock is released, so the store is not wedged for everything that follows.
+		world.store.checkMutable("add an entity")
+	}
+
+	@Test
 	fun `a retained snapshot keeps hashing the world it captured when a mask changes`() {
 		// Nothing stops an implementation deriving an exclusion mask from mutable state - a debug toggle, a
 		// per-machine setting. Reading it live at digest time would make a stored snapshot answer differently

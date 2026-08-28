@@ -286,9 +286,13 @@ internal fun mixCustomWindow(
 	// Framing the masks rather than tagging every value with its index: a collision needs the two masks to differ,
 	// so making any mask difference change the hash closes all of them - and costs two operations per entity
 	// instead of one per field.
-	hash = hash xor excludedInts.toLong()
+	// Normalised to the bits that name a field, because the high bits name nothing: framing the raw Int made -1
+	// and 0xFFFF two differently-hashing spellings of "exclude every int".
+	val framedInts = excludedInts and MetaEntityState.INT_MASK
+	val framedFloats = excludedFloats and MetaEntityState.FLOAT_MASK
+	hash = hash xor framedInts.toLong()
 	hash *= MetaWorldSnapshot.FNV_PRIME_64
-	hash = hash xor excludedFloats.toLong()
+	hash = hash xor framedFloats.toLong()
 	hash *= MetaWorldSnapshot.FNV_PRIME_64
 	for (index in 0 until MetaEntityState.INTS) {
 		if (excludedInts ushr index and 1 != 0) continue

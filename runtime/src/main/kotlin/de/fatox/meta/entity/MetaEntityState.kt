@@ -35,7 +35,15 @@ interface MetaEntityState {
 	/** Writes this entity's rollback-relevant fields into the two buffers. Must not have side effects. */
 	fun captureState(ints: IntArray, floats: FloatArray)
 
-	/** Reads them back. Called once per entity during [MetaEntityWorld.restoreFrom]. */
+	/**
+	 * Reads them back. Called once per entity during [MetaEntityWorld.restoreFrom].
+	 *
+	 * Set your own fields and nothing else: adding or removing an entity from here throws. The columns already
+	 * hold the restored population while the world's entity list does not, so a structural change would be
+	 * applied to two different views of the same world. If a restored value means an entity should go, record
+	 * that here and act on it once [MetaEntityWorld.restoreFrom] has returned - [onRestored] is no good either,
+	 * for the same reason.
+	 */
 	fun restoreState(ints: IntArray, floats: FloatArray)
 
 	/**
@@ -58,6 +66,9 @@ interface MetaEntityState {
 	 * only cover state two peers are required to agree on bit-for-bit. Per-machine configuration or presentation
 	 * captured here would otherwise be a false desync waiting to happen. A bitmask rather than a list of indices
 	 * because a digest reads it per entity, and one `and` is cheaper than walking an array.
+	 *
+	 * Only the low [INTS] bits are read; anything above is ignored, so `-1` and `0xFFFF` mean the same thing and
+	 * hash the same way.
 	 */
 	val digestExcludedInts: Int get() = 0
 
@@ -70,5 +81,16 @@ interface MetaEntityState {
 
 		/** How many floats an entity may contribute. */
 		const val FLOATS: Int = 8
+
+		/**
+		 * The bits of an exclusion mask that name a field. Everything above is meaningless and normalised away.
+		 *
+		 * Without this, `-1` and `0xFFFF` are two spellings of "exclude every int" that hash differently, and two
+		 * peers whose authoritative state agrees perfectly report a desync over bits naming no field at all.
+		 *
+		 * Correct while the counts stay below 32; `1 shl 32` is `1` on the JVM, not `0`.
+		 */
+		internal const val INT_MASK: Int = (1 shl INTS) - 1
+		internal const val FLOAT_MASK: Int = (1 shl FLOATS) - 1
 	}
 }

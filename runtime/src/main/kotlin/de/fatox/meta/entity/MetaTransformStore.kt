@@ -326,12 +326,27 @@ class MetaTransformStore(initialCapacity: Int = DEFAULT_CAPACITY) {
 		if (customStateCount == 0 || !snapshot.hasCustomState) return
 		val ints = customScratchInts
 		val floats = customScratchFloats
-		for (slot in 0 until count) {
-			val entity = owners[slot]
-			if (entity !is MetaEntityState) continue
-			System.arraycopy(snapshot.customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
-			System.arraycopy(snapshot.customFloats, slot * MetaEntityState.FLOATS, floats, 0, MetaEntityState.FLOATS)
-			entity.restoreState(ints, floats)
+		// Locked for the same reason the notification pass is, and with more at stake: the columns already hold
+		// the snapshot's population while MetaEntityWorld's entity list is still the pre-restore one, so a removal
+		// here would update the two against different slot layouts - and the list rebuild that follows re-adds
+		// every snapshot owner regardless, leaving size, count, owners and bindings disagreeing four ways.
+		beginIteration()
+		try {
+			for (slot in 0 until count) {
+				val entity = owners[slot]
+				if (entity !is MetaEntityState) continue
+				System.arraycopy(snapshot.customInts, slot * MetaEntityState.INTS, ints, 0, MetaEntityState.INTS)
+				System.arraycopy(
+					snapshot.customFloats,
+					slot * MetaEntityState.FLOATS,
+					floats,
+					0,
+					MetaEntityState.FLOATS,
+				)
+				entity.restoreState(ints, floats)
+			}
+		} finally {
+			endIteration()
 		}
 	}
 
