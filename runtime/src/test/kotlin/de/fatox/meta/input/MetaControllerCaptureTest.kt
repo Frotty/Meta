@@ -13,6 +13,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -39,11 +40,16 @@ internal class MetaControllerCaptureTest {
 	 * the first test happened to leave the shared instance in the state the others also wanted.
 	 */
 	private val bindings = MetaUiInputBindings()
+	private val profiles = MetaUiInputProfiles()
 
 	@BeforeTest
 	fun setUp() {
-		global(clear = true) { singleton(bindings) }
+		global(clear = true) {
+			singleton(bindings)
+			singleton(profiles)
+		}
 		bindings.resetDefaults()
+		profiles.clearSecondary()
 		input = RecordingInput()
 		MetaControllerListener.metaInput = input
 		controller = FakeController()
@@ -57,6 +63,7 @@ internal class MetaControllerCaptureTest {
 		// and reverting that code showed up as a failure in an unrelated test rather than its own.
 		MetaControllerListener.clearCaptures()
 		MetaControllerListener.disconnected(controller)
+		MetaControllerListener.clearPlayerAssignments()
 		MetaControllerListener.metaInput = null
 		global(clear = true) {}
 	}
@@ -434,6 +441,103 @@ internal class MetaControllerCaptureTest {
 			"an unbound button kept the key down after the bound one was released",
 		)
 		MetaControllerListener.buttonUp(controller, unbound)
+	}
+
+	// ── Per-player routing ────────────────────────────────────────────────────────────────────────────────
+
+	@Test
+	fun `an assigned controller emits an action only the matching player can decode`() {
+		val playerTwo = MetaPlayer(1)
+		profiles[playerTwo].resetControllerDefaults()
+		MetaControllerListener.assignPlayer(controller, playerTwo)
+
+		MetaControllerListener.buttonDown(controller, controller.mapping.buttonA)
+
+		assertEquals(1, input.keysDown.size)
+		assertEquals(
+			MetaUiAction.CONFIRM,
+			MetaUiControllerKeys.actionFor(playerTwo, input.keysDown.single()),
+			"player two did not receive its controller action",
+		)
+		assertNull(
+			MetaUiControllerKeys.actionFor(MetaPlayer.ONE, input.keysDown.single()),
+			"player one's cursor could decode player two's controller",
+		)
+		MetaControllerListener.buttonUp(controller, controller.mapping.buttonA)
+	}
+
+	@Test
+	fun `controllers assigned to different players hold independent actions`() {
+		val playerTwo = MetaPlayer(1)
+		profiles[playerTwo].resetControllerDefaults()
+		val other = FakeController()
+		MetaControllerListener.assignPlayer(other, playerTwo)
+
+		MetaControllerListener.buttonDown(controller, controller.mapping.buttonA)
+		MetaControllerListener.buttonDown(other, other.mapping.buttonA)
+
+		assertEquals(Input.Keys.ENTER, input.keysDown[0])
+		assertEquals(MetaUiAction.CONFIRM, MetaUiControllerKeys.actionFor(playerTwo, input.keysDown[1]))
+		MetaControllerListener.buttonUp(controller, controller.mapping.buttonA)
+		assertEquals(listOf(Input.Keys.ENTER), input.keysUp, "player two's held action affected player one")
+		MetaControllerListener.buttonUp(other, other.mapping.buttonA)
+		assertEquals(2, input.keysUp.size)
+		MetaControllerListener.disconnected(other)
+	}
+
+	@Test
+	fun `a player-scoped capture leaves other players navigating`() {
+		val playerTwo = MetaPlayer(1)
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		profiles[playerTwo].setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		val other = FakeController()
+		MetaControllerListener.assignPlayer(other, playerTwo)
+		var captured = -1
+		val target: (Controller, Int) -> Unit = { _, code -> captured = code }
+		MetaControllerListener.captureButtons(playerTwo, target)
+
+		MetaControllerListener.buttonDown(controller, 3)
+		MetaControllerListener.buttonDown(other, 3)
+
+		assertEquals(listOf(Input.Keys.ENTER), input.keysDown, "the scoped capture suppressed player one")
+		assertEquals(3, captured, "the scoped capture missed its assigned controller")
+		assertFalse(MetaControllerListener.isCapturing(MetaPlayer.ONE))
+		assertTrue(MetaControllerListener.isCapturing(playerTwo))
+		MetaControllerListener.buttonUp(controller, 3)
+		MetaControllerListener.buttonUp(other, 3)
+		MetaControllerListener.releaseCapture(playerTwo, target)
+		MetaControllerListener.disconnected(other)
+	}
+
+	@Test
+	fun `stick navigation uses the assigned player's route`() {
+		val playerTwo = MetaPlayer(1)
+		profiles[playerTwo].resetControllerDefaults()
+		MetaControllerListener.assignPlayer(controller, playerTwo)
+		controller.axes[profiles[playerTwo].verticalAxis] = -1f
+
+		MetaControllerListener.axisMoved(controller, profiles[playerTwo].verticalAxis, -1f)
+
+		val down = input.keysDown.single()
+		assertEquals(MetaUiAction.NAVIGATE_UP, MetaUiControllerKeys.actionFor(playerTwo, down))
+		controller.axes[profiles[playerTwo].verticalAxis] = 0f
+		MetaControllerListener.axisMoved(controller, profiles[playerTwo].verticalAxis, 0f)
+		assertEquals(listOf(down), input.keysUp)
+	}
+
+	@Test
+	fun `reassigning a held controller releases the old player without leaking a new key up`() {
+		val playerTwo = MetaPlayer(1)
+		profiles[playerTwo].resetControllerDefaults()
+		MetaControllerListener.assignPlayer(controller, playerTwo)
+		val button = controller.mapping.buttonA
+		MetaControllerListener.buttonDown(controller, button)
+		val playerTwoKey = input.keysDown.single()
+
+		MetaControllerListener.clearPlayerAssignment(controller)
+		MetaControllerListener.buttonUp(controller, button)
+
+		assertEquals(listOf(playerTwoKey), input.keysUp, "the physical release escaped into player one's route")
 	}
 
 	// ── Doubles ───────────────────────────────────────────────────────────────

@@ -43,6 +43,7 @@ class MetaUiInputProfiles {
 		secondary.get(player.index)?.let { return it }
 		return MetaUiInputBindings().also {
 			it.clear()
+			it.axisNavigationEnabled = false
 			secondary.put(player.index, it)
 		}
 	}

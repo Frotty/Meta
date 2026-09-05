@@ -89,6 +89,35 @@ class CounterWindow : MetaWindow("Counter") {
 }
 ```
 
+For independent couch-co-op cursors, give each later player a profile and helper, then assign that player's pad.
+Player one keeps the traditional shared controller behaviour; later profiles start empty:
+
+```kotlin
+val two = MetaPlayer(1)
+val p2Bindings = inputProfiles[two].apply { resetControllerDefaults() }
+val p2Cursor = UiControlHelper(two, p2Bindings)
+p2Cursor.focusFirstIn(playerTwoPanel)
+MetaControllerListener.assignPlayer(playerTwoPad, two)
+
+// A player-specific rebind dialog ignores every other player's pad.
+MetaKeyRebindDialog(controllerPlayer = two)
+```
+
+Dispose screen-owned helpers when their screen exits. Reassigning or disconnecting a controller releases everything
+it held, so an action cannot stay pressed or leak into its new player.
+
+Screen changes can carry a typed destination through a reactive fade instead of burying navigation in a callback:
+
+```kotlin
+val transition = MetaScreenTransition<ScreenId>()
+reactiveScope.effect("screen transition") {
+    transition.finished()?.let { game.screen = screens[it] }
+}
+
+transition.fadeOutTo(ScreenId.GAME)
+// render: transition.advance(delta); drawBlackOverlay(transition.alpha())
+```
+
 Window chrome, dialog actions, scrolling, docking, pointer cursors, and nested scroll focus have runtime-owned
 defaults. Extend those primitives when a reusable behavior is missing instead of rebuilding them in a consumer.
 

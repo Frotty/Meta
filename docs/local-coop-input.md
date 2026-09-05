@@ -1,6 +1,6 @@
 # Local co-op UI input — design proposal
 
-**Status:** proposal, not implemented. Opened for a decision on shape before any code.
+**Status:** keyboard and assigned-controller routing implemented. Per-player focus rings remain optional future work.
 
 The goal: two players navigating Meta UI independently on **one machine**, including
 **one keyboard** — P1 on the arrows, P2 on WASD — without the game reaching around
@@ -267,10 +267,11 @@ focus in `MetaUIRenderer`, `MetaFocusSet`, the `MetaFocusable` overload, per-pla
 ring tint. **Not** required for the fighting-game select screen: cells that draw
 their own focus already bypass the renderer entirely (see blocker 4).
 
-**Slice 3 — controllers.** Pad-to-player assignment in `MetaControllerListener`,
-which today merges every device onto one stream on purpose. The raw-button capture
-added for `MetaKeyRebindDialog` needs the same player dimension, so a rebind screen
-can rebind *player two's* pad.
+**Slice 3 — controllers. Implemented.** `MetaControllerListener.assignPlayer` routes a pad through that player's
+profile. Player one retains ordinary canonical keys for compatibility; later players use private player-tagged UI
+events that only their `UiControlHelper` decodes. Stick and button holds are tracked per controller, reassignment and
+disconnect release the previous route, and `MetaKeyRebindDialog(controllerPlayer = ...)` scopes raw capture so a
+rebind screen can rebind *player two's* pad without swallowing player one's controller.
 
 Slice 1 is the whole feature for the keyboard case, and it is small: a value class,
 a profile registry, a player field on `UiControlHelper`, and not synthesising for
