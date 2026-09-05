@@ -2,6 +2,7 @@ package de.fatox.meta.api
 
 import com.badlogic.gdx.InputProcessor
 import de.fatox.meta.input.KeyListener
+import de.fatox.meta.input.MetaPlayer
 import de.fatox.meta.input.ScrollListener
 
 inline fun MetaInputProcessor.addGlobalKeyListener(
@@ -30,8 +31,21 @@ inline fun MetaInputProcessor.addScreenKeyListener(
 
 interface MetaInputProcessor : InputProcessor {
 	/**
-	 * The currently active exclusive input owner (top of the exclusive stack), or `null`. While non-null, ALL input
-	 * is routed to it and the normal screen/global processors (incl. the scene2d stage) are bypassed.
+	 * Dispatches a translated controller key while retaining which local player produced it.
+	 *
+	 * The default preserves custom processors written before player-scoped grabs existed. MetaInput overrides it so
+	 * an exclusive [de.fatox.meta.input.MetaControllerInputScope] can let non-target players continue normally.
+	 */
+	fun keyDownFromController(player: MetaPlayer, keycode: Int): Boolean = keyDown(keycode)
+
+	/** Controller counterpart to [keyDownFromController]. */
+	fun keyUpFromController(player: MetaPlayer, keycode: Int): Boolean = keyUp(keycode)
+
+	/**
+	 * The currently active exclusive input owner (top of the exclusive stack), or `null`. While non-null, all input
+	 * it accepts is routed to it and the normal screen/global processors (incl. the scene2d stage) are bypassed. A
+	 * [de.fatox.meta.input.MetaControllerInputScope] may decline other players' translated controller input; physical
+	 * keyboard, pointer and scroll input remain exclusive.
 	 *
 	 * Exclusive ownership is a STACK so a temporary grab (e.g. a key-rebind dialog) can be popped to restore the
 	 * previous owner instead of clobbering it. Prefer [pushExclusiveProcessor]/[popExclusiveProcessor]; the setter is

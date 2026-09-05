@@ -10,8 +10,22 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 internal class MetaUiInputBindingsTest {
+	@Test
+	fun `controller defaults restore stick navigation without adding keyboard keys`() {
+		val bindings = MetaUiInputBindings()
+
+		bindings.clear()
+		bindings.axisNavigationEnabled = false
+		assertFalse(bindings.axisNavigationEnabled)
+		bindings.resetControllerDefaults()
+		assertTrue(bindings.axisNavigationEnabled)
+		assertTrue(bindings.controllerBindingsFor(MetaUiAction.CONFIRM).isNotEmpty())
+		assertNull(bindings.actionForKey(Input.Keys.ENTER))
+	}
+
 	@Test
 	fun `keyboard UI bindings can be customized`() {
 		val bindings = MetaUiInputBindings()

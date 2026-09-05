@@ -31,6 +31,7 @@ import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.input.KeyListener
 import de.fatox.meta.input.MetaPlayer
 import de.fatox.meta.input.MetaUiAction
+import de.fatox.meta.input.MetaUiControllerKeys
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.input.MetaUiInputProfiles
 import de.fatox.meta.input.ScrollListener
@@ -43,6 +44,7 @@ import de.fatox.meta.test.GdxTestEnvironment
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotSame
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -93,6 +95,7 @@ internal class UiControlHelperTest {
 
 		assertNull(second.actionForKey(Input.Keys.UP), "player two inherited the arrows")
 		assertNull(second.actionForKey(Input.Keys.ENTER), "player two inherited confirm")
+		assertFalse(second.axisNavigationEnabled, "player two inherited stick navigation")
 		assertEquals(2, profiles.playerCount)
 	}
 
@@ -131,6 +134,36 @@ internal class UiControlHelperTest {
 		input.keyUp(Input.Keys.DOWN)
 		assertSame(leftBottom, helper.focusedActor.value, "player one's key did not move player one")
 		assertSame(rightBottom, second.focusedActor.value, "player one's key moved player two as well")
+	}
+
+	@Test
+	fun `a player-tagged controller action moves only its assigned cursor`() {
+		val profiles = MetaUiInputProfiles()
+		val two = MetaPlayer(1)
+		profiles[two].resetControllerDefaults()
+		val second = UiControlHelper(two, profiles[two])
+		val left = testRoot()
+		val leftTop = button(0f, 100f)
+		val leftBottom = button(0f, 0f)
+		left.addActor(leftTop)
+		left.addActor(leftBottom)
+		val right = testRoot()
+		val rightTop = button(300f, 100f)
+		val rightBottom = button(300f, 0f)
+		right.addActor(rightTop)
+		right.addActor(rightBottom)
+		stage.addActor(left)
+		stage.addActor(right)
+		helper.focusFirstIn(left, leftTop)
+		second.focusFirstIn(right, rightTop)
+		val controllerKey = MetaUiControllerKeys.keyFor(two, MetaUiAction.NAVIGATE_DOWN, profiles[two])
+
+		input.keyDown(controllerKey)
+		input.keyUp(controllerKey)
+
+		assertSame(rightBottom, second.focusedActor.value)
+		assertSame(leftTop, helper.focusedActor.value, "player two's controller action moved player one")
+		second.dispose()
 	}
 
 	@Test

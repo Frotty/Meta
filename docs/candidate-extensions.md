@@ -142,6 +142,10 @@ player two's confirm reaches player one's cursor as `ENTER`.
 
 ## 4. A screen fade / transition primitive
 
+**Done:** `MetaScreenTransition<T>` carries a typed pending destination through fade-out and publishes it through a
+reactive `finished` value only once the screen is fully covered. It also owns entry fades, immediate covered holds,
+and cancellation without storing a callback or screen reference.
+
 **In the game:** two of them. `Fade` (Kotlin, reactive — phases IDLE/IN/OUT, a
 pending intent carried through the fade so the navigation decision is a value
 rather than a callback) and `ScreenFade` (Java, imperative). The reactive one is
@@ -151,9 +155,6 @@ is the single place deciding where a completed fade leads.
 **Why it is generic:** Meta has `UIRenderer.armStartupTransition` for the
 startup cover and nothing for screen-to-screen. Any game with more than one
 screen needs this.
-
-**Open question:** the intent payload is typed `String?` in BabSky. A Meta
-version wants a generic parameter.
 
 ## 5. A material-routed collision sound system — mostly already here
 

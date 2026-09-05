@@ -21,6 +21,7 @@ import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.input.MetaPlayer
 import de.fatox.meta.input.MetaUiAction
+import de.fatox.meta.input.MetaUiControllerKeys
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.reactive.effect
@@ -219,7 +220,9 @@ class UiControlHelper @JvmOverloads constructor(
 	private val inputProcessor: InputProcessor = object : InputAdapter() {
 		override fun keyDown(keycode: Int): Boolean {
 			if (synthesizingCanonicalAction) return false
-			val action = uiBindings.actionForKey(keycode) ?: return false
+			val action = MetaUiControllerKeys.actionFor(player, keycode)
+				?: uiBindings.actionForKey(keycode)
+				?: return false
 			if (hasTextEditingFocus()) {
 				cancelRepeat(action)
 				return false
@@ -230,7 +233,9 @@ class UiControlHelper @JvmOverloads constructor(
 
 		override fun keyUp(keycode: Int): Boolean {
 			if (synthesizingCanonicalAction) return false
-			val action = uiBindings.actionForKey(keycode) ?: return false
+			val action = MetaUiControllerKeys.actionFor(player, keycode)
+				?: uiBindings.actionForKey(keycode)
+				?: return false
 			if (hasTextEditingFocus()) {
 				cancelRepeat(action)
 				return false

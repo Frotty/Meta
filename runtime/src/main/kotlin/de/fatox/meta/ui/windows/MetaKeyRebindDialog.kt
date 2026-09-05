@@ -6,6 +6,8 @@ import com.badlogic.gdx.controllers.Controller
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.input.MetaControllerListener
+import de.fatox.meta.input.MetaControllerInputScope
+import de.fatox.meta.input.MetaPlayer
 import de.fatox.meta.input.MetaRebindCapture
 import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.reactive.signal
@@ -59,6 +61,11 @@ class MetaKeyRebindDialog @JvmOverloads constructor(
 	 * swallowed - see [buttonTarget] for why ignoring it is not the same as switching it off.
 	 */
 	private val captureControllerButtons: Boolean = true,
+	/**
+	 * Limits controller capture to pads assigned to this player. Null keeps the legacy behaviour of accepting any
+	 * pad, which is appropriate for a single shared UI cursor.
+	 */
+	private val controllerPlayer: MetaPlayer? = null,
 ) : MetaDialog("Rebind Key", true) {
 
 	private val capturedSignal = signal<MetaRebindCapture?>(null)
@@ -102,7 +109,12 @@ class MetaKeyRebindDialog @JvmOverloads constructor(
 			rebindProcessor = RebindProcessor(this).also { metaInput.pushExclusiveProcessor(it) }
 		}
 		// Unconditional: see buttonTarget. Both modes need the pad captured; they differ in what they do with it.
-		MetaControllerListener.captureButtons(buttonTarget)
+		val player = controllerPlayer
+		if (player == null) {
+			MetaControllerListener.captureButtons(buttonTarget)
+		} else {
+			MetaControllerListener.captureButtons(player, buttonTarget)
+		}
 	}
 
 	/**
@@ -113,7 +125,12 @@ class MetaKeyRebindDialog @JvmOverloads constructor(
 	override fun onHidden() {
 		rebindProcessor?.let { metaInput.popExclusiveProcessor(it) }
 		rebindProcessor = null
-		MetaControllerListener.releaseCapture(buttonTarget)
+		val player = controllerPlayer
+		if (player == null) {
+			MetaControllerListener.releaseCapture(buttonTarget)
+		} else {
+			MetaControllerListener.releaseCapture(player, buttonTarget)
+		}
 	}
 
 	private fun finish(capture: MetaRebindCapture) {
@@ -128,7 +145,10 @@ class MetaKeyRebindDialog @JvmOverloads constructor(
 	 * is already released by the time this is installed, and there is no stale release to mistake for a choice.
 	 * Waiting for an up would also mean a held key never resolves.
 	 */
-	class RebindProcessor(private val dialog: MetaKeyRebindDialog) : InputAdapter() {
+	class RebindProcessor(private val dialog: MetaKeyRebindDialog) : InputAdapter(), MetaControllerInputScope {
+		override fun acceptsControllerInput(player: MetaPlayer): Boolean =
+			dialog.controllerPlayer == null || dialog.controllerPlayer == player
+
 		override fun keyDown(keycode: Int): Boolean {
 			if (keycode == dialog.cancelKeycode) {
 				dialog.close()

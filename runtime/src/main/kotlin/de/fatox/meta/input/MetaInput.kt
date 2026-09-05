@@ -109,7 +109,11 @@ class MetaInput : MetaInputProcessor {
 	override fun removeScreenScrollListener(scrollListener: ScrollListener): Boolean =
 		screenScrollListeners.removeValue(scrollListener, true)
 
-	override fun keyDown(keycode: Int): Boolean {
+	override fun keyDown(keycode: Int): Boolean = dispatchKeyDown(keycode, null)
+
+	override fun keyDownFromController(player: MetaPlayer, keycode: Int): Boolean = dispatchKeyDown(keycode, player)
+
+	private fun dispatchKeyDown(keycode: Int, controllerPlayer: MetaPlayer?): Boolean {
 		when (keycode) {
 			Input.Keys.CONTROL_LEFT -> isLeftCtrlDown = true
 			Input.Keys.CONTROL_RIGHT -> isRightCtrlDown = true
@@ -118,7 +122,7 @@ class MetaInput : MetaInputProcessor {
 		}
 
 		val exclusiveProcessor = exclusiveProcessor
-		if (exclusiveProcessor != null) {
+		if (exclusiveProcessor != null && exclusiveProcessor.acceptsControllerDispatch(controllerPlayer)) {
 			exclusiveProcessor.keyDown(keycode)
 			return false
 		}
@@ -135,7 +139,11 @@ class MetaInput : MetaInputProcessor {
 		return false
 	}
 
-	override fun keyUp(keycode: Int): Boolean {
+	override fun keyUp(keycode: Int): Boolean = dispatchKeyUp(keycode, null)
+
+	override fun keyUpFromController(player: MetaPlayer, keycode: Int): Boolean = dispatchKeyUp(keycode, player)
+
+	private fun dispatchKeyUp(keycode: Int, controllerPlayer: MetaPlayer?): Boolean {
 		when (keycode) {
 			Input.Keys.CONTROL_LEFT -> isLeftCtrlDown = false
 			Input.Keys.CONTROL_RIGHT -> isRightCtrlDown = false
@@ -144,7 +152,7 @@ class MetaInput : MetaInputProcessor {
 		}
 
 		val exclusiveProcessor = exclusiveProcessor
-		if (exclusiveProcessor != null) {
+		if (exclusiveProcessor != null && exclusiveProcessor.acceptsControllerDispatch(controllerPlayer)) {
 			exclusiveProcessor.keyUp(keycode)
 			return false
 		}

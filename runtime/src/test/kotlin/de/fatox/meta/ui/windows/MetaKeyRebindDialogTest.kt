@@ -6,6 +6,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.input.MetaControllerListener
+import de.fatox.meta.input.MetaPlayer
 import de.fatox.meta.input.MetaRebindCapture
 import de.fatox.meta.test.DispatchingInput
 import de.fatox.meta.test.MetaHeadlessUi
@@ -111,5 +112,20 @@ class MetaKeyRebindDialogTest {
 		assertTrue(MetaControllerListener.capturing, "keyboard-only mode left the pad translating into the grab")
 		assertNull(keyboardOnly.captured.value, "nothing was pressed yet")
 		keyboardOnly.close()
+	}
+
+	@Test
+	fun `a scoped dialog lets another player's controller bypass its exclusive grab`() {
+		dialog.close()
+		val scoped = MetaKeyRebindDialog(controllerPlayer = MetaPlayer(1))
+		stage.addActor(scoped)
+		scoped.show()
+
+		input.keyDownFromController(MetaPlayer.ONE, Input.Keys.ENTER)
+
+		assertNull(scoped.captured.value, "player one's controller was recorded as a keyboard binding")
+		assertTrue(input.exclusiveProcessor != null, "the non-target controller closed the scoped dialog")
+		input.keyDown(Input.Keys.F)
+		assertIs<MetaRebindCapture.Key>(scoped.captured.value, "physical keyboard input stopped reaching the grab")
 	}
 }

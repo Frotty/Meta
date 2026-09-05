@@ -78,13 +78,30 @@ class MetaUiInputBindings {
 	}
 
 	fun resetDefaults() {
+		resetKeyboardDefaults()
+		resetControllerDefaults()
+	}
+
+	/** Restores only the standard keyboard bindings, leaving controller configuration untouched. */
+	fun resetKeyboardDefaults() {
 		setKeyboardKeys(MetaUiAction.NAVIGATE_UP, Input.Keys.UP)
 		setKeyboardKeys(MetaUiAction.NAVIGATE_DOWN, Input.Keys.DOWN)
 		setKeyboardKeys(MetaUiAction.NAVIGATE_LEFT, Input.Keys.LEFT)
 		setKeyboardKeys(MetaUiAction.NAVIGATE_RIGHT, Input.Keys.RIGHT)
 		setKeyboardKeys(MetaUiAction.CONFIRM, Input.Keys.ENTER)
 		setKeyboardKeys(MetaUiAction.BACK, Input.Keys.ESCAPE)
+	}
 
+	/**
+	 * Restores only the standard controller bindings and stick navigation.
+	 *
+	 * This is the convenient setup for an additional player's controller-only profile: call `clear()`, then this,
+	 * without accidentally copying player one's keyboard keys into the profile.
+	 */
+	fun resetControllerDefaults() {
+		horizontalAxis = 0
+		verticalAxis = 1
+		axisNavigationEnabled = true
 		setControllerButtons(MetaUiAction.NAVIGATE_UP, MetaControllerButton.DPAD_UP)
 		setControllerButtons(MetaUiAction.NAVIGATE_DOWN, MetaControllerButton.DPAD_DOWN)
 		setControllerButtons(MetaUiAction.NAVIGATE_LEFT, MetaControllerButton.DPAD_LEFT)
