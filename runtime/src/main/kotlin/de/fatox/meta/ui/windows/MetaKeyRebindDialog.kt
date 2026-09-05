@@ -6,6 +6,7 @@ import com.badlogic.gdx.controllers.Controller
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.input.MetaControllerListener
+import de.fatox.meta.input.MetaControllerInputScope
 import de.fatox.meta.input.MetaPlayer
 import de.fatox.meta.input.MetaRebindCapture
 import de.fatox.meta.reactive.ReactiveValue
@@ -144,7 +145,10 @@ class MetaKeyRebindDialog @JvmOverloads constructor(
 	 * is already released by the time this is installed, and there is no stale release to mistake for a choice.
 	 * Waiting for an up would also mean a held key never resolves.
 	 */
-	class RebindProcessor(private val dialog: MetaKeyRebindDialog) : InputAdapter() {
+	class RebindProcessor(private val dialog: MetaKeyRebindDialog) : InputAdapter(), MetaControllerInputScope {
+		override fun acceptsControllerInput(player: MetaPlayer): Boolean =
+			dialog.controllerPlayer == null || dialog.controllerPlayer == player
+
 		override fun keyDown(keycode: Int): Boolean {
 			if (keycode == dialog.cancelKeycode) {
 				dialog.close()

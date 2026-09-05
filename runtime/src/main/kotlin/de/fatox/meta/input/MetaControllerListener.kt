@@ -139,7 +139,7 @@ object MetaControllerListener : ControllerListener {
 		}
 		suppressedDownButtons.remove(controller)
 		playerAssignments.remove(controller)
-		scratchKeys.forEachIntReentrant { key -> if (!anyInputHolds(key)) emitKeyUp(key) }
+		scratchKeys.forEachIntReentrant { key -> if (!anyInputHolds(key)) emitKeyUp(key, playerForKey(key)) }
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
@@ -152,7 +152,7 @@ object MetaControllerListener : ControllerListener {
 			return true
 		}
 		if (key == NO_KEY) return false
-		if (!alreadyDown) emitKeyDown(key)
+		if (!alreadyDown) emitKeyDown(key, playerOf(controller))
 		return true
 	}
 
@@ -162,7 +162,7 @@ object MetaControllerListener : ControllerListener {
 		if (captureFor(controller) != null) return true
 		val key = keyFor(controller, buttonCode)
 		if (key == NO_KEY) return false
-		if (!anyInputHolds(key)) emitKeyUp(key)
+		if (!anyInputHolds(key)) emitKeyUp(key, playerOf(controller))
 		return true
 	}
 
@@ -203,11 +203,11 @@ object MetaControllerListener : ControllerListener {
 		if (oldKey == newKey) return false
 
 		if (vertical) state.verticalKey = NO_KEY else state.horizontalKey = NO_KEY
-		if (oldKey != NO_KEY && !anyInputHolds(oldKey)) emitKeyUp(oldKey)
+		if (oldKey != NO_KEY && !anyInputHolds(oldKey)) emitKeyUp(oldKey, player)
 		if (newKey != NO_KEY) {
 			val alreadyDown = anyInputHolds(newKey)
 			if (vertical) state.verticalKey = newKey else state.horizontalKey = newKey
-			if (!alreadyDown) emitKeyDown(newKey)
+			if (!alreadyDown) emitKeyDown(newKey, player)
 		}
 		return true
 	}
@@ -232,7 +232,7 @@ object MetaControllerListener : ControllerListener {
 				state.verticalKey = NO_KEY
 			}
 		}
-		scratchKeys.forEachIntReentrant(::emitKeyUp)
+		scratchKeys.forEachIntReentrant { key -> emitKeyUp(key, playerForKey(key)) }
 	}
 
 	/** Releases one controller before its player identity changes; later physical releases are swallowed. */
@@ -249,7 +249,7 @@ object MetaControllerListener : ControllerListener {
 			if (state.horizontalKey != NO_KEY) scratchKeys.add(state.horizontalKey)
 			if (state.verticalKey != NO_KEY) scratchKeys.add(state.verticalKey)
 		}
-		scratchKeys.forEachIntReentrant { key -> if (!anyInputHolds(key)) emitKeyUp(key) }
+		scratchKeys.forEachIntReentrant { key -> if (!anyInputHolds(key)) emitKeyUp(key, playerForKey(key)) }
 	}
 
 	/** Whether a button or stick on any controller still holds this player-tagged key. */
@@ -293,12 +293,16 @@ object MetaControllerListener : ControllerListener {
 		return AxisState().also { axisStates.put(controller, it) }
 	}
 
-	private fun emitKeyDown(keycode: Int) {
-		if (keycode != NO_KEY) metaInput?.keyDown(keycode)
+	private fun playerForKey(keycode: Int): MetaPlayer = MetaUiControllerKeys.playerFor(keycode) ?: MetaPlayer.ONE
+
+	private fun emitKeyDown(keycode: Int, player: MetaPlayer) {
+		if (keycode == NO_KEY) return
+		metaInput?.keyDownFromController(player, keycode)
 	}
 
-	private fun emitKeyUp(keycode: Int) {
-		if (keycode != NO_KEY) metaInput?.keyUp(keycode)
+	private fun emitKeyUp(keycode: Int, player: MetaPlayer) {
+		if (keycode == NO_KEY) return
+		metaInput?.keyUpFromController(player, keycode)
 	}
 
 	private class AxisState {

@@ -29,6 +29,7 @@ import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.input.MetaUiInputBindings
+import de.fatox.meta.input.MetaUiInputProfiles
 import de.fatox.meta.ui.UiControlHelper
 import de.fatox.meta.ui.refreshFontsRecursively
 import de.fatox.meta.ui.MetaToastManager
@@ -200,6 +201,7 @@ object MetaHeadlessUi {
 				// manager holding stages or reactive scopes without ever calling dispose on it.
 				uiManager?.let { factory -> singleton<UIManager> { factory().also { own(it) } } }
 				singleton { MetaUiInputBindings() }
+				singleton { MetaUiInputProfiles() }
 				singleton("default") { UiControlHelper() }
 			}
 

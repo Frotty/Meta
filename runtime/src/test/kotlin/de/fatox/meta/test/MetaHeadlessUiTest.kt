@@ -5,6 +5,10 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.graphics.font.MetaFontProvider
+import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.input.MetaPlayer
+import de.fatox.meta.input.MetaUiInputBindings
+import de.fatox.meta.input.MetaUiInputProfiles
 import de.fatox.meta.ui.components.MetaFlexAlign
 import de.fatox.meta.ui.components.MetaFlexBox
 import de.fatox.meta.ui.components.MetaFlexDirection
@@ -15,6 +19,8 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /**
@@ -32,6 +38,14 @@ internal class MetaHeadlessUiTest {
 
 	@AfterEach
 	fun tearDown() = MetaHeadlessUi.dispose()
+
+	@Test
+	fun `the graph includes player input profiles for assigned-controller tests`() {
+		val profiles = MetaInject.inject<MetaUiInputProfiles>()
+
+		assertSame(MetaInject.inject<MetaUiInputBindings>(), profiles[MetaPlayer.ONE])
+		assertFalse(profiles[MetaPlayer(1)].axisNavigationEnabled)
+	}
 
 	@Test
 	fun `a stand-in font provider sees what the widgets ask for`() {

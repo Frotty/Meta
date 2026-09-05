@@ -4,6 +4,8 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputProcessor
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.input.KeyListener
+import de.fatox.meta.input.MetaPlayer
+import de.fatox.meta.input.acceptsControllerDispatch
 import de.fatox.meta.input.ScrollListener
 
 /**
@@ -171,9 +173,13 @@ class DispatchingInput : MetaInputProcessor {
 
 	// ── Dispatch ──────────────────────────────────────────────────────────────
 
-	override fun keyDown(keycode: Int): Boolean {
+	override fun keyDown(keycode: Int): Boolean = dispatchKeyDown(keycode, null)
+
+	override fun keyDownFromController(player: MetaPlayer, keycode: Int): Boolean = dispatchKeyDown(keycode, player)
+
+	private fun dispatchKeyDown(keycode: Int, controllerPlayer: MetaPlayer?): Boolean {
 		heldKeys.add(keycode)
-		grab()?.let {
+		grab()?.takeIf { it.acceptsControllerDispatch(controllerPlayer) }?.let {
 			it.keyDown(keycode)
 			return false
 		}
@@ -183,9 +189,13 @@ class DispatchingInput : MetaInputProcessor {
 		return false
 	}
 
-	override fun keyUp(keycode: Int): Boolean {
+	override fun keyUp(keycode: Int): Boolean = dispatchKeyUp(keycode, null)
+
+	override fun keyUpFromController(player: MetaPlayer, keycode: Int): Boolean = dispatchKeyUp(keycode, player)
+
+	private fun dispatchKeyUp(keycode: Int, controllerPlayer: MetaPlayer?): Boolean {
 		heldKeys.remove(keycode)
-		grab()?.let {
+		grab()?.takeIf { it.acceptsControllerDispatch(controllerPlayer) }?.let {
 			it.keyUp(keycode)
 			return false
 		}

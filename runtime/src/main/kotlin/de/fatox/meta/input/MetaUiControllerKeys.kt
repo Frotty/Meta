@@ -25,4 +25,9 @@ internal object MetaUiControllerKeys {
 		if (encoded / actionCount != player.index) return null
 		return MetaUiAction.entries.getOrNull(encoded % actionCount)
 	}
+
+	fun playerFor(keycode: Int): MetaPlayer? {
+		if (keycode < BASE) return null
+		return MetaPlayer((keycode - BASE) / actionCount)
+	}
 }
