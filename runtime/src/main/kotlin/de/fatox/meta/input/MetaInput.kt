@@ -6,15 +6,16 @@ import com.badlogic.gdx.InputProcessor
 import com.badlogic.gdx.controllers.Controllers
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.IntMap
+import com.badlogic.gdx.utils.SnapshotArray
 import de.fatox.meta.api.MetaInputProcessor
 
 class MetaInput : MetaInputProcessor {
-	private val globalKeyListeners = IntMap<Array<KeyListener>>()
-	private val screenKeyListeners = IntMap<Array<KeyListener>>()
-	private val globalProcessors = Array<InputProcessor>()
-	private val screenProcessors = Array<InputProcessor>()
-	private val globalScrollListeners = Array<ScrollListener>()
-	private val screenScrollListeners = Array<ScrollListener>()
+	private val globalKeyListeners = IntMap<SnapshotArray<KeyListener>>()
+	private val screenKeyListeners = IntMap<SnapshotArray<KeyListener>>()
+	private val globalProcessors = SnapshotArray.with<InputProcessor>()
+	private val screenProcessors = SnapshotArray.with<InputProcessor>()
+	private val globalScrollListeners = SnapshotArray.with<ScrollListener>()
+	private val screenScrollListeners = SnapshotArray.with<ScrollListener>()
 
 	// Exclusive input owners as a LIFO stack; the top receives all input. See MetaInputProcessor docs.
 	private val exclusiveProcessors = Array<InputProcessor>()
@@ -75,7 +76,7 @@ class MetaInput : MetaInputProcessor {
 
 	override fun addGlobalKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener): KeyListener {
 		if (!globalKeyListeners.containsKey(keycode)) {
-			globalKeyListeners.put(keycode, Array())
+			globalKeyListeners.put(keycode, SnapshotArray.with<KeyListener>())
 		}
 		keyListener.requiredLengthMillis = millisRequired
 		globalKeyListeners[keycode].add(keyListener)
@@ -87,7 +88,7 @@ class MetaInput : MetaInputProcessor {
 
 	override fun addScreenKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener): KeyListener {
 		if (!screenKeyListeners.containsKey(keycode)) {
-			screenKeyListeners.put(keycode, Array())
+			screenKeyListeners.put(keycode, SnapshotArray.with<KeyListener>())
 		}
 		keyListener.requiredLengthMillis = millisRequired
 		screenKeyListeners[keycode].add(keyListener)
@@ -127,15 +128,13 @@ class MetaInput : MetaInputProcessor {
 			return false
 		}
 		if (screenKeyListeners.containsKey(keycode)) {
-			val listeners = screenKeyListeners[keycode]
-			for (i in 0 until listeners.size) listeners[i].onDown()
+			screenKeyListeners[keycode].dispatchAll { it.onDown() }
 		}
 		if (globalKeyListeners.containsKey(keycode)) {
-			val listeners = globalKeyListeners[keycode]
-			for (i in 0 until listeners.size) listeners[i].onDown()
+			globalKeyListeners[keycode].dispatchAll { it.onDown() }
 		}
-		for (i in 0 until globalProcessors.size) globalProcessors[i].keyDown(keycode)
-		for (i in 0 until screenProcessors.size) screenProcessors[i].keyDown(keycode)
+		globalProcessors.dispatchAll { it.keyDown(keycode) }
+		screenProcessors.dispatchAll { it.keyDown(keycode) }
 		return false
 	}
 
@@ -157,15 +156,13 @@ class MetaInput : MetaInputProcessor {
 			return false
 		}
 		if (screenKeyListeners.containsKey(keycode)) {
-			val listeners = screenKeyListeners[keycode]
-			for (i in 0 until listeners.size) listeners[i].onUp()
+			screenKeyListeners[keycode].dispatchAll { it.onUp() }
 		}
 		if (globalKeyListeners.containsKey(keycode)) {
-			val listeners = globalKeyListeners[keycode]
-			for (i in 0 until listeners.size) listeners[i].onUp()
+			globalKeyListeners[keycode].dispatchAll { it.onUp() }
 		}
-		for (i in 0 until globalProcessors.size) globalProcessors[i].keyUp(keycode)
-		for (i in 0 until screenProcessors.size) screenProcessors[i].keyUp(keycode)
+		globalProcessors.dispatchAll { it.keyUp(keycode) }
+		screenProcessors.dispatchAll { it.keyUp(keycode) }
 		return false
 	}
 
@@ -175,12 +172,8 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.keyTyped(character)
 			return false
 		}
-		for (i in 0 until globalProcessors.size) {
-			globalProcessors[i].keyTyped(character)
-		}
-		for (i in 0 until screenProcessors.size) {
-			screenProcessors[i].keyTyped(character)
-		}
+		globalProcessors.dispatchAll { it.keyTyped(character) }
+		screenProcessors.dispatchAll { it.keyTyped(character) }
 		return false
 	}
 
@@ -190,8 +183,8 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.touchDown(screenX, screenY, pointer, button)
 			return true
 		}
-		for (i in 0 until globalProcessors.size) if (globalProcessors[i].touchDown(screenX, screenY, pointer, button)) return true
-		for (i in 0 until screenProcessors.size) if (screenProcessors[i].touchDown(screenX, screenY, pointer, button)) return true
+		if (globalProcessors.dispatchUntilHandled { it.touchDown(screenX, screenY, pointer, button) }) return true
+		if (screenProcessors.dispatchUntilHandled { it.touchDown(screenX, screenY, pointer, button) }) return true
 		return true
 	}
 
@@ -201,8 +194,8 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.touchUp(screenX, screenY, pointer, button)
 			return false
 		}
-		for (i in 0 until globalProcessors.size) if (globalProcessors[i].touchUp(screenX, screenY, pointer, button)) return true
-		for (i in 0 until screenProcessors.size) if (screenProcessors[i].touchUp(screenX, screenY, pointer, button)) return true
+		if (globalProcessors.dispatchUntilHandled { it.touchUp(screenX, screenY, pointer, button) }) return true
+		if (screenProcessors.dispatchUntilHandled { it.touchUp(screenX, screenY, pointer, button) }) return true
 		return false
 	}
 
@@ -218,8 +211,8 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.touchDragged(screenX, screenY, pointer)
 			return false
 		}
-		for (i in 0 until globalProcessors.size) if (globalProcessors[i].touchDragged(screenX, screenY, pointer)) return true
-		for (i in 0 until screenProcessors.size) if (screenProcessors[i].touchDragged(screenX, screenY, pointer)) return true
+		if (globalProcessors.dispatchUntilHandled { it.touchDragged(screenX, screenY, pointer) }) return true
+		if (screenProcessors.dispatchUntilHandled { it.touchDragged(screenX, screenY, pointer) }) return true
 		return true
 	}
 
@@ -229,8 +222,8 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.mouseMoved(screenX, screenY)
 			return false
 		}
-		for (i in 0 until globalProcessors.size) if (globalProcessors[i].mouseMoved(screenX, screenY)) return true
-		for (i in 0 until screenProcessors.size) if (screenProcessors[i].mouseMoved(screenX, screenY)) return true
+		if (globalProcessors.dispatchUntilHandled { it.mouseMoved(screenX, screenY) }) return true
+		if (screenProcessors.dispatchUntilHandled { it.mouseMoved(screenX, screenY) }) return true
 		return false
 	}
 
@@ -240,10 +233,31 @@ class MetaInput : MetaInputProcessor {
 			exclusiveProcessor.scrolled(amountX, amountY)
 			return true
 		}
-		for (i in 0 until globalScrollListeners.size) globalScrollListeners[i].onScroll()
-		for (i in 0 until screenScrollListeners.size) screenScrollListeners[i].onScroll()
-		for (i in 0 until globalProcessors.size) if (globalProcessors[i].scrolled(amountX, amountY)) return true
-		for (i in 0 until screenProcessors.size) if (screenProcessors[i].scrolled(amountX, amountY)) return true
+		globalScrollListeners.dispatchAll { it.onScroll() }
+		screenScrollListeners.dispatchAll { it.onScroll() }
+		if (globalProcessors.dispatchUntilHandled { it.scrolled(amountX, amountY) }) return true
+		if (screenProcessors.dispatchUntilHandled { it.scrolled(amountX, amountY) }) return true
 		return true
+	}
+
+	private inline fun <T> SnapshotArray<T>.dispatchAll(dispatch: (T) -> Unit) {
+		val snapshot = begin()
+		val count = size
+		try {
+			for (i in 0 until count) dispatch(snapshot[i])
+		} finally {
+			end()
+		}
+	}
+
+	private inline fun <T> SnapshotArray<T>.dispatchUntilHandled(dispatch: (T) -> Boolean): Boolean {
+		val snapshot = begin()
+		val count = size
+		return try {
+			for (i in 0 until count) if (dispatch(snapshot[i])) return true
+			false
+		} finally {
+			end()
+		}
 	}
 }
