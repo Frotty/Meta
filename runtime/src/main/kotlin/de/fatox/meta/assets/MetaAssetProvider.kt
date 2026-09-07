@@ -83,8 +83,10 @@ class MetaAssetProvider : AssetProvider {
 			for (childIndex in children.indices) {
 				val itrHandle = children[childIndex]
 				if (itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) {
-					// The provider owns the archive: its reader and buffers live until dispose().
-					val archive = XPKLoader.open(itrHandle)
+					// The provider owns the archive. Buffers are kept while a load phase is running, and a read
+					// outside one - a lazily constructed sound, say - cleans up after itself, because nothing pumps
+					// update() once the splash has finished.
+					val archive = XPKLoader.open(itrHandle, retainAfterRead = ::isLoadPhaseActive)
 					openArchives.add(archive)
 					val list = archive.entries
 					for (index in 0 until list.size) {
@@ -246,6 +248,16 @@ class MetaAssetProvider : AssetProvider {
 	 * past that they are a second full copy of the asset data in heap, alongside the GPU and OpenAL copies. Also
 	 * closes each archive's 7z reader, releasing its LZMA2 dictionary.
 	 */
+	/**
+	 * Whether asset loading is in flight, so archive reads are part of a burst worth caching for.
+	 *
+	 * Read from AssetManager's worker as well as the GL thread. Both fields are plain int reads and this is only a
+	 * retention hint - a stale answer costs one extra sweep or one late release, never wrong bytes - so it is
+	 * deliberately unsynchronised rather than adding a lock to the read path.
+	 */
+	private fun isLoadPhaseActive(): Boolean =
+		assetManager.queuedAssets > 0 || pendingFinalization.size > 0
+
 	private fun releaseArchiveCaches() {
 		for (index in 0 until openArchives.size) {
 			val archive = openArchives[index]

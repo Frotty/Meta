@@ -40,6 +40,26 @@ class XpkArchive internal constructor(
 	private val entryIsDirectory: BooleanArray,
 	/** Overridable so tests can exercise budget exhaustion without building a 64 MB archive. */
 	private val passthroughCacheBudget: Long = PASSTHROUGH_CACHE_BUDGET,
+	/**
+	 * Whether a completed read should keep its buffers, asked once per read.
+	 *
+	 * Retention pays for itself only while something is reading many entries in a row - during a load phase, where
+	 * dropping the cache between reads would re-sweep the solid stream each time. A lone read outside one, such as a
+	 * lazily constructed sound, gains nothing from retention and would otherwise pin its payload and the open 7z
+	 * decoder indefinitely: nothing pumps [MetaAssetProvider.update] after the splash finishes, so no later call would
+	 * arrive to clean up.
+	 *
+	 * Deciding here rather than at each call site is deliberate. Cleanup that depends on an external pump has to
+	 * enumerate every path that reaches a read, and this is the second such path to be found missing.
+	 *
+	 * Defaults to retaining, which is what a caller holding entries from [XPKLoader.open] wants - releasing after
+	 * every read would make reading N entries cost N sweeps. Such a caller releases explicitly, via
+	 * [releaseCachedEntries] or [dispose].
+	 *
+	 * Called while the archive lock is held, so it must not block or take locks of its own. It is a hint: a stale
+	 * answer costs an extra sweep or a late release, never wrong bytes.
+	 */
+	private val retainAfterRead: () -> Boolean = { true },
 ) : Disposable {
 	private val lock = Any()
 	private val cache = arrayOfNulls<ByteArray>(entryNames.size)
@@ -190,9 +210,12 @@ class XpkArchive internal constructor(
 			if (!requested) passthroughBytes += bytes.size
 		}
 
-		return cache[entryIndex] ?: throw GdxRuntimeException(
+		val bytes = cache[entryIndex] ?: throw GdxRuntimeException(
 			"XPK entry ${entryNames[entryIndex]} not found in $archivePath",
 		)
+		// The caller already owns this array, so dropping the cache does not take it away.
+		if (!retainAfterRead()) releaseLocked()
+		return bytes
 	}
 
 	private fun fitsInPassthroughBudget(size: Long): Boolean =
@@ -212,14 +235,19 @@ class XpkArchive internal constructor(
 	fun releaseCachedEntries() {
 		synchronized(lock) {
 			if (disposed) return
-			reader?.close()
-			reader = null
-			cursor = 0
-			cache.fill(null)
-			passthroughBytes = 0
-			retainedBytes = 0
-			unboundedCaching = false
+			releaseLocked()
 		}
+	}
+
+	/** Caller must hold [lock]. */
+	private fun releaseLocked() {
+		reader?.close()
+		reader = null
+		cursor = 0
+		cache.fill(null)
+		passthroughBytes = 0
+		retainedBytes = 0
+		unboundedCaching = false
 	}
 
 	/**

@@ -16,8 +16,17 @@ object XPKLoader {
 	 */
 	fun open(fileHandle: FileHandle): XpkArchive = open(fileHandle, PASSTHROUGH_CACHE_BUDGET)
 
-	/** Budget override for tests, which cannot afford to build an archive large enough to exhaust the real one. */
-	internal fun open(fileHandle: FileHandle, passthroughCacheBudget: Long): XpkArchive {
+	/**
+	 * Overrides for callers that own the archive's lifetime.
+	 *
+	 * The budget exists so tests can exercise exhaustion without building a 64 MB archive; [retainAfterRead] lets
+	 * [MetaAssetProvider] keep buffers only while a load phase is actually running - see [XpkArchive].
+	 */
+	internal fun open(
+		fileHandle: FileHandle,
+		passthroughCacheBudget: Long = PASSTHROUGH_CACHE_BUDGET,
+		retainAfterRead: () -> Boolean = { true },
+	): XpkArchive {
 		val fileBytes = readAndVerify(fileHandle)
 		restoreSignature(fileBytes)
 
@@ -43,6 +52,7 @@ object XPKLoader {
 			LongArray(sizes.size) { sizes[it] },
 			BooleanArray(directories.size) { directories[it] },
 			passthroughCacheBudget,
+			retainAfterRead,
 		)
 	}
 

@@ -387,6 +387,48 @@ class XPKLoaderTest {
 		assertEquals("a/../b", normalisedPath("a/../b"))
 	}
 
+	/**
+	 * A read outside a load phase must clean up after itself.
+	 *
+	 * Nothing pumps `MetaAssetProvider.update` once the splash finishes - `SplashScreen.kt:600` is its only call site
+	 * - so a lazily constructed asset, such as `MetaSoundSource.sound`, would otherwise pin its payload and the open
+	 * 7z decoder for the rest of the session. Tying cleanup to that pump meant enumerating every path that reaches a
+	 * read; the archive now decides per read instead.
+	 */
+	@Test
+	fun `reads outside a load phase release immediately, reads inside it retain`() {
+		val contents = (0 until 4).associate { index ->
+			"sfx/hit$index.ogg" to ByteArray(1_024) { (index * 5 + it).toByte() }
+		}
+		withArchive(contents) { file, expected ->
+			var loading = true
+			val archive = XPKLoader.open(file, retainAfterRead = { loading })
+			try {
+				val entries = archive.entries
+				entries[0].readBytes()
+				assertFalse(archive.isFullyReleased, "a read during a load phase should retain")
+
+				archive.releaseCachedEntries()
+				loading = false
+
+				// The gameplay-time read still returns the right bytes, and leaves nothing behind.
+				val handle = entries[entries.size - 1]
+				assertContentEquals(expected.getValue(handle.path()), handle.readBytes())
+				assertTrue(
+					archive.isFullyReleased,
+					"a read outside a load phase must not retain buffers or the 7z reader",
+				)
+				assertEquals(0L, archive.retainedEntryBytes)
+
+				// Repeatable: each subsequent read is self-contained.
+				assertContentEquals(expected.getValue(entries[1].path()), entries[1].readBytes())
+				assertTrue(archive.isFullyReleased)
+			} finally {
+				archive.dispose()
+			}
+		}
+	}
+
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */
 	private fun withArchive(
 		contents: Map<String, ByteArray>,
