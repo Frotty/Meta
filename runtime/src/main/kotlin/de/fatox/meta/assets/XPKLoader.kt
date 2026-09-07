@@ -26,7 +26,7 @@ object XPKLoader {
 		val directories = ArrayList<Boolean>()
 		// One header parse, then the reader is closed: the enumeration pass needs no entry payloads. Closing it also
 		// closes its channel view, which is why each reader gets a fresh one - see XpkArchive.restart.
-		SevenZFile.Builder().setSeekableByteChannel(XPKByteChannel(fileBytes)).get().use { file ->
+		SevenZFile.Builder().setSeekableByteChannel(XpkReadOnlyChannel(fileBytes)).get().use { file ->
 			var entry = file.nextEntry
 			while (entry != null) {
 				names.add(entry.name)

@@ -279,14 +279,47 @@ class XPKLoaderTest {
 			}
 		}
 
-		val empty = XPKByteChannel()
-		assertEquals(0L, empty.size(), "the parameterless channel must be empty, not negatively sized")
-		assertEquals(0, empty.array().size)
+		// XPKByteChannel keeps the growable write behaviour it always documented. The loader no longer uses it -
+		// it reads through the internal XpkReadOnlyChannel - so restoring the symbols without the behaviour would
+		// have turned a link error into a runtime one for anyone using it as the buffer it claimed to be.
+		val writable = XPKByteChannel()
+		writable.write(java.nio.ByteBuffer.wrap(byteArrayOf(1, 2, 3, 4)))
+		assertEquals(4L, writable.size())
+		assertEquals(listOf<Byte>(1, 2, 3, 4), writable.array().copyOf(4).toList())
+		writable.truncate(2L)
+		assertEquals(2L, writable.size())
 
 		val backing = ByteArray(HASH_LENGTH + 4) { it.toByte() }
 		val channel = XPKByteChannel(backing)
 		assertSame(backing, channel.array())
 		assertEquals(4L, channel.size(), "size() still excludes the hash trailer")
+	}
+
+	/**
+	 * An explicitly stored empty directory was recorded for `exists()` but never appeared in its parent's listing,
+	 * because listings only walked file entries.
+	 */
+	@Test
+	fun `explicitly stored empty directories appear in listings`() {
+		withArchive(
+			mapOf("assets/used.bin" to ByteArray(16) { 1 }),
+			directories = listOf("assets", "empty", "empty/deeper"),
+		) { file, _ ->
+			val archive = XPKLoader.open(file)
+			try {
+				val root = archive.entries[0].parent().parent()
+				assertEquals("", root.path())
+				assertEquals(listOf("assets", "empty"), root.list().map { it.path() }.sorted())
+
+				val empty = root.child("empty")
+				assertTrue(empty.exists())
+				assertTrue(empty.isDirectory)
+				assertEquals(listOf("empty/deeper"), empty.list().map { it.path() })
+				assertEquals(emptyList(), empty.child("deeper").list().map { it.path() })
+			} finally {
+				archive.dispose()
+			}
+		}
 	}
 
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */

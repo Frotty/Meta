@@ -67,14 +67,17 @@ class XpkArchive internal constructor(
 	private val byPath = ObjectMap<String, XPKFileHandle>(entryNames.size)
 	private val directories = ObjectSet<String>()
 
+	/** The same keys as [directories], in insertion order, so listings can iterate without a reusable iterator. */
+	private val directoryPaths = Array<String>()
+
 	init {
 		// The archive root is always a directory, even though no entry path names it. Without this, parent() on a
 		// top-level entry reports a handle that does not exist and lists nothing.
-		directories.add("")
+		addDirectory("")
 		for (index in entryNames.indices) {
 			val path = normalisedPath(entryNames[index])
 			if (entryIsDirectory[index]) {
-				directories.add(assetPathKey(path))
+				addDirectory(assetPathKey(path))
 				continue
 			}
 			val handle = XPKFileHandle(this, index, path)
@@ -83,10 +86,14 @@ class XpkArchive internal constructor(
 			// Every ancestor of a file entry is a directory, whether or not the archive stored it explicitly.
 			var separator = path.lastIndexOf('/')
 			while (separator > 0) {
-				directories.add(assetPathKey(path.substring(0, separator)))
+				addDirectory(assetPathKey(path.substring(0, separator)))
 				separator = path.lastIndexOf('/', separator - 1)
 			}
 		}
+	}
+
+	private fun addDirectory(key: String) {
+		if (directories.add(key)) directoryPaths.add(key)
 	}
 
 	/** Resolves an archive-relative path case-insensitively, or a non-existent handle when there is no such entry. */
@@ -100,14 +107,20 @@ class XpkArchive internal constructor(
 	/**
 	 * Immediate children of a directory path: file entries directly under it, then its direct subdirectories.
 	 *
-	 * Scans the entry table, which is fine because directory listing is a tooling and diagnostics path, never a
-	 * loading one. Inheriting libGDX's default [FileHandle.list] instead returned an empty array for every archive
-	 * directory, because it consults a `File` that does not exist on disk.
+	 * Both sources are needed. Walking only the file entries misses a directory the archive stored explicitly with
+	 * nothing under it, which would then satisfy `exists()` and `isDirectory()` while never appearing in its parent's
+	 * listing. Walking only the directory set misses the directories implied by file paths, which archives commonly
+	 * do not store at all.
+	 *
+	 * Scans both tables, which is fine because directory listing is a tooling and diagnostics path, never a loading
+	 * one. Inheriting libGDX's default [FileHandle.list] instead returned an empty array for every archive directory,
+	 * because it consults a `File` that does not exist on disk.
 	 */
 	internal fun childrenOf(path: String): kotlin.Array<FileHandle> {
 		val prefix = if (path.isEmpty()) "" else "${assetPathKey(normalisedPath(path))}/"
 		val children = Array<FileHandle>()
 		val seenDirectories = ObjectSet<String>()
+
 		for (index in 0 until entries.size) {
 			val candidate = entries[index]
 			val key = assetPathKey(candidate.path())
@@ -120,6 +133,17 @@ class XpkArchive internal constructor(
 				children.add(resolve(candidate.path().substring(0, prefix.length + separator)))
 			}
 		}
+
+		// Directories the archive recorded explicitly, including ones holding no files at all. Indexed rather than
+		// iterated: libGDX's reusable iterators are not nesting-safe, and this runs inside resolve().
+		for (index in 0 until directoryPaths.size) {
+			val directory = directoryPaths[index]
+			if (directory.isEmpty() || !directory.startsWith(prefix)) continue
+			val remainder = directory.substring(prefix.length)
+			if (remainder.isEmpty() || remainder.indexOf('/') >= 0) continue
+			if (seenDirectories.add(remainder)) children.add(resolve(directory))
+		}
+
 		return kotlin.Array(children.size) { children[it] }
 	}
 
@@ -207,7 +231,7 @@ class XpkArchive internal constructor(
 	private fun restart() {
 		val bytes = checkNotNull(fileBytes) { "XPK archive $archivePath was disposed" }
 		reader?.close()
-		reader = SevenZFile.Builder().setSeekableByteChannel(XPKByteChannel(bytes)).get()
+		reader = SevenZFile.Builder().setSeekableByteChannel(XpkReadOnlyChannel(bytes)).get()
 		cursor = 0
 		sweeps++
 	}

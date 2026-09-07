@@ -210,9 +210,14 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun update(millis: Int): Boolean {
 		if (millis <= 0) {
-			return assetManager.queuedAssets == 0 &&
+			// The zero-budget poll can be the call that observes completion: SplashScreen's loading budget drops to 0
+			// after a slow frame, and its return value is what advances the phase. Releasing only on the budgeted path
+			// would let the splash move on with entry buffers and the open 7z decoder still retained.
+			val polled = assetManager.queuedAssets == 0 &&
 				pendingFinalization.size == 0 &&
 				stagedTextureUploads.isEmpty
+			if (polled) releaseArchiveCaches()
+			return polled
 		}
 
 		if (!stagedTextureUploads.isEmpty) {
