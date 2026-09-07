@@ -331,28 +331,60 @@ class XPKLoaderTest {
 	fun `directory entries spelled with a trailing slash index the same as without`() {
 		withArchive(
 			mapOf("assets/used.bin" to ByteArray(16) { 2 }),
-			directories = listOf("empty/", "also/nested/", "/leading/", "dots/./inner/"),
+			directories = listOf("empty/", "also/nested/", "/leading/", "dots/./inner/", "terminal/."),
 		) { file, _ ->
 			val archive = XPKLoader.open(file)
 			try {
 				val root = archive.entries[0].parent().parent()
 				assertEquals(
-					listOf("also", "assets", "dots", "empty", "leading"),
+					listOf("also", "assets", "dots", "empty", "leading", "terminal"),
 					root.list().map { it.path() }.sorted(),
 				)
-				for (name in listOf("empty", "also", "leading", "dots")) {
+				for (name in listOf("empty", "also", "leading", "dots", "terminal")) {
 					val directory = root.child(name)
 					assertTrue(directory.exists(), "$name should exist")
 					assertTrue(directory.isDirectory, "$name should be a directory")
 				}
 				assertEquals(listOf("also/nested"), root.child("also").list().map { it.path() })
 				assertEquals(listOf("dots/inner"), root.child("dots").list().map { it.path() })
+				// `terminal/.` must be the directory `terminal`, not a child of it.
+				assertEquals(emptyList(), root.child("terminal").list().map { it.path() })
 				// A trailing slash on the lookup side resolves to the same entry.
 				assertSame(archive.entries[0], root.child("assets/").child("used.bin"))
 			} finally {
 				archive.dispose()
 			}
 		}
+	}
+
+	/**
+	 * The property that owns path normalisation, rather than a list of spellings someone remembered.
+	 *
+	 * The fast-path guard in `normalisedPath` was twice wrong by omission - it enumerated substrings to look for and
+	 * missed first a trailing separator and then a terminal `/.`, returning a non-canonical string unchanged. Asserting
+	 * that every output *is* canonical catches any spelling that slips past the guard, including ones not listed here.
+	 */
+	@Test
+	fun `normalisedPath always returns a canonical path`() {
+		val spellings = listOf(
+			"", ".", "/", "//", "./", "/.", "a", "a/b", "a/b/c.bin",
+			"a/", "/a", "/a/", "a//b", "a/./b", "./a", "a/.", "a/./", "a//./b//",
+			"///", "./.", "a/././b", "dir\\file.bin", "\\a\\b\\", "a/../b",
+		)
+		for (spelling in spellings) {
+			val result = normalisedPath(spelling)
+			assertFalse(result.startsWith("/"), "'$spelling' -> '$result' keeps a leading separator")
+			assertFalse(result.endsWith("/"), "'$spelling' -> '$result' keeps a trailing separator")
+			assertFalse(result.contains("//"), "'$spelling' -> '$result' keeps an empty segment")
+			assertFalse(result.contains("\\"), "'$spelling' -> '$result' keeps a backslash")
+			for (segment in result.split('/')) {
+				assertTrue(segment != ".", "'$spelling' -> '$result' keeps a dot segment")
+				assertTrue(segment.isNotEmpty() || result.isEmpty(), "'$spelling' -> '$result' keeps an empty segment")
+			}
+			assertEquals(result, normalisedPath(result), "'$spelling' -> '$result' is not a fixed point")
+		}
+		// `..` is left intact on purpose: entries resolve through a map, never the filesystem.
+		assertEquals("a/../b", normalisedPath("a/../b"))
 	}
 
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */

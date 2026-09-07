@@ -290,13 +290,7 @@ internal const val XPK_MISSING_ENTRY: Int = -1
  */
 internal fun normalisedPath(path: String): String {
 	val forwardSlashed = path.replace('\\', '/')
-	val needsWork = forwardSlashed.startsWith('/') ||
-		forwardSlashed.endsWith('/') ||
-		forwardSlashed.contains("//") ||
-		forwardSlashed.startsWith("./") ||
-		forwardSlashed.contains("/./") ||
-		forwardSlashed == "."
-	if (!needsWork) return forwardSlashed
+	if (isCanonicalPath(forwardSlashed)) return forwardSlashed
 
 	val builder = StringBuilder(forwardSlashed.length)
 	var start = 0
@@ -312,4 +306,31 @@ internal fun normalisedPath(path: String): String {
 		start = end + 1
 	}
 	return builder.toString()
+}
+
+/**
+ * Whether [value] is already in the form [normalisedPath] produces, so the rewrite and its allocation can be skipped.
+ *
+ * Derived from the same rule the parser applies - reject a leading or trailing separator, an empty segment, or a `.`
+ * segment - rather than from a list of substrings to look for. That list was the bug: it enumerated `./`, `/./` and
+ * a bare `.`, and missed a terminal `/.`, so `empty/.` slipped through unchanged and appeared in listings beside the
+ * `empty` it should have been. A guard written from the property cannot disagree with the parser about a spelling
+ * neither of us thought of.
+ *
+ * `..` is deliberately left alone. Entries are resolved through a map and never touch the filesystem, so it carries
+ * no traversal risk here, and collapsing it would alias two entries an archive kept distinct.
+ */
+private fun isCanonicalPath(value: String): Boolean {
+	if (value.isEmpty()) return true
+	if (value[0] == '/' || value[value.length - 1] == '/') return false
+	var start = 0
+	while (start < value.length) {
+		var end = value.indexOf('/', start)
+		if (end < 0) end = value.length
+		val length = end - start
+		if (length == 0) return false
+		if (length == 1 && value[start] == '.') return false
+		start = end + 1
+	}
+	return true
 }
