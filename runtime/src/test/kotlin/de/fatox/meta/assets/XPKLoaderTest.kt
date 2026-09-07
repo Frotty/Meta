@@ -229,6 +229,30 @@ class XPKLoaderTest {
 		}
 	}
 
+	/**
+	 * `getList` returns entries without the archive that owns them, so a consumer using it had no way to reach the
+	 * deterministic cleanup: the 7z reader and every cached buffer stayed pinned for as long as a handle lived.
+	 */
+	@Suppress("DEPRECATION")
+	@Test
+	fun `handles from getList still expose the archive that owns them`() {
+		val contents = mapOf("data/only.bin" to ByteArray(2_048) { it.toByte() })
+		withArchive(contents) { file, expected ->
+			val entries = XPKLoader.getList(file)
+			val handle = entries[0]
+			assertContentEquals(expected.getValue("data/only.bin"), handle.readBytes())
+
+			val owner = handle.archive
+			assertFalse(owner.isFullyReleased, "the read must have retained something")
+			owner.releaseCachedEntries()
+			assertTrue(owner.isFullyReleased, "a getList consumer can reach the cleanup")
+
+			// Still usable after release, then disposable.
+			assertContentEquals(expected.getValue("data/only.bin"), handle.readBytes())
+			owner.dispose()
+		}
+	}
+
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */
 	private fun withArchive(
 		contents: Map<String, ByteArray>,

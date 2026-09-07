@@ -15,7 +15,14 @@ import java.io.InputStream
  * instead of reporting a missing file.
  */
 class XPKFileHandle internal constructor(
-	private val archive: XpkArchive,
+	/**
+	 * The archive this entry belongs to, so a handle is never a dead end for ownership.
+	 *
+	 * [XPKLoader.getList] hands out handles without returning the archive, which would otherwise leave a consumer
+	 * unable to reach [XpkArchive.releaseCachedEntries] or [XpkArchive.dispose] - the open 7z reader and every cached
+	 * entry buffer would then be pinned for as long as any handle survived.
+	 */
+	val archive: XpkArchive,
 	private val entryIndex: Int,
 	/** Archive-relative path, always `/`-separated. */
 	private val entryPath: String,

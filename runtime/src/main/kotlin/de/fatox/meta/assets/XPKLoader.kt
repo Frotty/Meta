@@ -59,7 +59,17 @@ object XPKLoader {
 		}
 	}
 
-	/** Retained for consumers that need libGDX file handles for lazy entry reads. */
+	/**
+	 * Retained for consumers that need libGDX file handles for lazy entry reads.
+	 *
+	 * Prefer [open]: this returns the entries without the archive that owns them, so the caller has nothing obvious
+	 * to dispose. The handles do carry it - [XPKFileHandle.archive] - but the ownership is easy to miss, and an
+	 * undisposed archive pins its 7z reader and cached entry buffers for as long as any handle lives.
+	 */
+	@Deprecated(
+		"Use open(fileHandle), which returns the disposable archive that owns the entries.",
+		ReplaceWith("open(fileHandle).entries"),
+	)
 	fun getList(fileHandle: FileHandle): Array<XPKFileHandle> = open(fileHandle).entries
 
 	/**
