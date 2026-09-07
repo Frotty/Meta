@@ -322,6 +322,39 @@ class XPKLoaderTest {
 		}
 	}
 
+	/**
+	 * 7z flags a directory by attribute, not by spelling, and Commons Compress round-trips a `dir/` name verbatim -
+	 * verified against a real archive. A raw trailing slash in the key made `child("empty")` miss and hid the entry
+	 * from its parent's listing. A stored `also/nested/` must also register `also`, which the archive never names.
+	 */
+	@Test
+	fun `directory entries spelled with a trailing slash index the same as without`() {
+		withArchive(
+			mapOf("assets/used.bin" to ByteArray(16) { 2 }),
+			directories = listOf("empty/", "also/nested/", "/leading/", "dots/./inner/"),
+		) { file, _ ->
+			val archive = XPKLoader.open(file)
+			try {
+				val root = archive.entries[0].parent().parent()
+				assertEquals(
+					listOf("also", "assets", "dots", "empty", "leading"),
+					root.list().map { it.path() }.sorted(),
+				)
+				for (name in listOf("empty", "also", "leading", "dots")) {
+					val directory = root.child(name)
+					assertTrue(directory.exists(), "$name should exist")
+					assertTrue(directory.isDirectory, "$name should be a directory")
+				}
+				assertEquals(listOf("also/nested"), root.child("also").list().map { it.path() })
+				assertEquals(listOf("dots/inner"), root.child("dots").list().map { it.path() })
+				// A trailing slash on the lookup side resolves to the same entry.
+				assertSame(archive.entries[0], root.child("assets/").child("used.bin"))
+			} finally {
+				archive.dispose()
+			}
+		}
+	}
+
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */
 	private fun withArchive(
 		contents: Map<String, ByteArray>,

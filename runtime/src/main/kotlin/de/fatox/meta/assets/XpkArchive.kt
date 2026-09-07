@@ -78,17 +78,24 @@ class XpkArchive internal constructor(
 			val path = normalisedPath(entryNames[index])
 			if (entryIsDirectory[index]) {
 				addDirectory(assetPathKey(path))
+				// A stored directory's own ancestors need registering too: an archive may record `a/b/` without ever
+				// recording `a`, which would otherwise leave `a` unlistable and absent from the root.
+				addAncestorDirectories(path)
 				continue
 			}
 			val handle = XPKFileHandle(this, index, path)
 			entries.add(handle)
 			byPath.put(assetPathKey(path), handle)
-			// Every ancestor of a file entry is a directory, whether or not the archive stored it explicitly.
-			var separator = path.lastIndexOf('/')
-			while (separator > 0) {
-				addDirectory(assetPathKey(path.substring(0, separator)))
-				separator = path.lastIndexOf('/', separator - 1)
-			}
+			addAncestorDirectories(path)
+		}
+	}
+
+	/** Registers every ancestor of [path] as a directory, whether or not the archive stored it explicitly. */
+	private fun addAncestorDirectories(path: String) {
+		var separator = path.lastIndexOf('/')
+		while (separator > 0) {
+			addDirectory(assetPathKey(path.substring(0, separator)))
+			separator = path.lastIndexOf('/', separator - 1)
 		}
 	}
 
@@ -270,9 +277,39 @@ internal const val PASSTHROUGH_CACHE_BUDGET: Long = 64L * 1024 * 1024
 internal const val XPK_MISSING_ENTRY: Int = -1
 
 /**
- * XPK entry paths use `/`, matching how 7z stores them and how [assetPathKey] normalises them.
+ * Canonical form of an entry path: `/`-separated, no leading or trailing separator, no empty or `.` segments.
  *
- * The previous implementation rewrote them to `\` on the way out, which every consumer then had to undo - see the
+ * Archive metadata is not ours to trust. 7z stores whatever the packer wrote, and a directory is flagged by an
+ * attribute rather than by its spelling - a Commons Compress packer emitting `empty/` round-trips that trailing slash
+ * verbatim, which as a raw key made `child("empty")` miss and hid the directory from its parent's listing. Normalising
+ * once here, at the single point where archive names enter, is what keeps every lookup and listing agreeing, rather
+ * than each of them stripping separators defensively.
+ *
+ * The previous implementation rewrote paths to `\` on the way out, which every consumer then had to undo - see the
  * `replace('\\', '/')` that [MetaTextureAtlasLoader] carried to recover AssetManager keys.
  */
-internal fun normalisedPath(path: String): String = path.replace('\\', '/')
+internal fun normalisedPath(path: String): String {
+	val forwardSlashed = path.replace('\\', '/')
+	val needsWork = forwardSlashed.startsWith('/') ||
+		forwardSlashed.endsWith('/') ||
+		forwardSlashed.contains("//") ||
+		forwardSlashed.startsWith("./") ||
+		forwardSlashed.contains("/./") ||
+		forwardSlashed == "."
+	if (!needsWork) return forwardSlashed
+
+	val builder = StringBuilder(forwardSlashed.length)
+	var start = 0
+	while (start <= forwardSlashed.length) {
+		var end = forwardSlashed.indexOf('/', start)
+		if (end < 0) end = forwardSlashed.length
+		val length = end - start
+		val skip = length == 0 || (length == 1 && forwardSlashed[start] == '.')
+		if (!skip) {
+			if (builder.isNotEmpty()) builder.append('/')
+			builder.append(forwardSlashed, start, end)
+		}
+		start = end + 1
+	}
+	return builder.toString()
+}
