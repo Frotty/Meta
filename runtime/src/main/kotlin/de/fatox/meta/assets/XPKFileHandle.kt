@@ -1,68 +1,72 @@
 package de.fatox.meta.assets
 
+import com.badlogic.gdx.Files
 import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.GdxRuntimeException
 import java.io.InputStream
 
+/**
+ * A libGDX [FileHandle] over one XPK entry, or over a path the archive does not contain.
+ *
+ * A handle whose [entryIndex] is [XPK_MISSING_ENTRY] reports `exists() == false` and refuses reads. That distinction
+ * matters: the previous implementation answered a failed [child] or [parent] lookup with a handle that carried the
+ * *calling* entry's name and size, so a miss returned another entry's payload with `exists()` true and `length()` 0.
+ * Texture-atlas page resolution goes straight through [child], so a page-name mismatch fed atlas text to `Pixmap`
+ * instead of reporting a missing file.
+ */
 class XPKFileHandle internal constructor(
-	private val siblings: Array<XPKFileHandle>,
-	private var length: Int,
-	private val sevenZFile: XPKByteChannel,
-	private val entryName: String,
-	private val entrySize: Long,
-	val name: String,
-) : FileHandle() {
-	private val path: String = name.substringBeforeLast('\\')
-	private val fileName: String = name.substringAfterLast('\\')
-	val array: ByteArray? by lazy(LazyThreadSafetyMode.NONE) {
-		XPKLoader.loadEntry(sevenZFile, entryName, entrySize)
-	}
+	private val archive: XpkArchive,
+	private val entryIndex: Int,
+	/** Archive-relative path, always `/`-separated. */
+	private val entryPath: String,
+) : FileHandle(entryPath, Files.FileType.Internal) {
+	private val parentPath: String = entryPath.substringBeforeLast('/', missingDelimiterValue = "")
+	private val fileName: String = entryPath.substringAfterLast('/')
 
-	override fun exists(): Boolean = true
+	private val isMissing: Boolean get() = entryIndex == XPK_MISSING_ENTRY
 
-	override fun parent(): FileHandle {
-		val name = if (path != this.name) path else ""
+	/** Entry bytes, decompressed on first use, or `null` when this handle names no archive entry. */
+	val array: ByteArray? get() = if (isMissing) null else archive.bytesOf(entryIndex)
 
-		return XPKFileHandle(siblings, 0, sevenZFile, entryName, entrySize, name)
-	}
+	override fun exists(): Boolean = !isMissing || archive.isDirectory(entryPath)
 
-	override fun sibling(name: String?): FileHandle? =
-		siblings.firstOrNull {
-			assetPathKey(it.path) == assetPathKey(path) && assetPathKey(it.fileName) == assetPathKey(name.orEmpty())
-		}
+	override fun isDirectory(): Boolean = isMissing && archive.isDirectory(entryPath)
 
-	override fun read(): InputStream {
-		try {
-			return readBytes()!!.inputStream()
-		} catch (ex: Throwable) {
-			if (file() != null && file().isDirectory)
-				throw GdxRuntimeException("Cannot open a stream to a directory: $file ($type)", ex)
-			throw GdxRuntimeException("Error reading file: $file ($type)", ex)
-		}
-	}
+	override fun type(): Files.FileType = Files.FileType.Internal
 
-	override fun name(): String = name
+	override fun name(): String = fileName
 
-	override fun extension(): String = fileName.substringAfterLast('.')
+	override fun path(): String = entryPath
+
+	override fun pathWithoutExtension(): String = entryPath.substringBeforeLast('.')
+
+	override fun extension(): String = fileName.substringAfterLast('.', missingDelimiterValue = "")
 
 	override fun nameWithoutExtension(): String = fileName.substringBeforeLast('.')
 
-	override fun path(): String = name
+	override fun length(): Long = if (isMissing) 0L else archive.sizeOf(entryIndex)
 
-	override fun pathWithoutExtension(): String = name.substringBeforeLast('.')
+	override fun parent(): FileHandle = archive.resolve(parentPath)
 
-	override fun length(): Long = length.toLong()
+	override fun sibling(name: String?): FileHandle =
+		archive.resolve(if (parentPath.isEmpty()) name.orEmpty() else "$parentPath/${name.orEmpty()}")
 
-	override fun child(name: String): FileHandle? {
-		val search = if (path != name && path.isNotBlank()) "$path\\$name" else name
+	override fun child(name: String): FileHandle =
+		archive.resolve(if (entryPath.isEmpty()) name else "$entryPath/$name")
 
-		return siblings.firstOrNull {
-			assetPathKey(it.name) == assetPathKey(search)
-		} ?: XPKFileHandle(siblings, 0, sevenZFile, entryName, entrySize, search)
+	override fun readBytes(): ByteArray = array ?: throw GdxRuntimeException("XPK entry not found: $entryPath")
+
+	override fun readBytes(bytes: ByteArray, offset: Int, size: Int): Int {
+		val source = readBytes()
+		val copied = minOf(size, source.size)
+		source.copyInto(bytes, offset, 0, copied)
+		return copied
 	}
 
-	override fun toString(): String = name.replace('\\', '/')
+	override fun read(): InputStream {
+		if (isDirectory()) throw GdxRuntimeException("Cannot open a stream to a directory: $entryPath (${type()})")
+		return readBytes().inputStream()
+	}
 
-	override fun readBytes(): ByteArray? = array
+	override fun toString(): String = entryPath
 }

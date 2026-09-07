@@ -27,7 +27,6 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.api.extensions.warn
-import de.fatox.meta.assets.XPKLoader.getList
 
 private val log = MetaLoggerFactory.logger {}
 private val defaultTexParam: TextureParameter = TextureParameter().apply {
@@ -66,6 +65,7 @@ class MetaAssetProvider : AssetProvider {
 	private val animCache = IntMap<Array<out TextureRegion>>()
 	private val fileCache = ObjectMap<String, FileHandle>()
 	private val fileOrigins = ObjectMap<String, String>()
+	private val openArchives = Array<XpkArchive>()
 	private val pendingFinalization = Array<AssetDescriptor<*>>()
 	private val stagedTextureUploads = StagedTextureUploads()
 	private val resolver = MetaFileHandleResolver()
@@ -83,10 +83,15 @@ class MetaAssetProvider : AssetProvider {
 			for (childIndex in children.indices) {
 				val itrHandle = children[childIndex]
 				if (itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) {
-					val list = getList(itrHandle)
+					// The provider owns the archive: its reader and buffers live until dispose().
+					val archive = XPKLoader.open(itrHandle)
+					openArchives.add(archive)
+					val list = archive.entries
 					for (index in 0 until list.size) {
 						val file = list[index]
-						cacheFile(file.name(), file, itrHandle.path())
+						// path(), not name(): name() is the last path element, and packed assets must be keyed by
+						// the same archive-relative path that loadRawAssetsFromFolder uses for loose files.
+						cacheFile(file.path(), file, itrHandle.path())
 					}
 					log.debug { "Indexed ${list.size} assets from <${itrHandle.name()}>" }
 				}
@@ -298,6 +303,9 @@ class MetaAssetProvider : AssetProvider {
 		animCache.clear()
 		fileCache.clear()
 		fileOrigins.clear()
+		// Releases each archive's open 7z reader (and its decoder dictionary) plus its cached entry buffers.
+		for (index in 0 until openArchives.size) openArchives[index].dispose()
+		openArchives.clear()
 		assetManager.dispose()
 	}
 

@@ -63,7 +63,7 @@ internal class MetaTextureAtlasLoader(
 		val pages = atlasData.pages
 		for (index in 0 until pages.size) {
 			val page = pages[index]
-			page.texture = manager.get(page.textureFile.path().replace('\\', '/'), Texture::class.java)
+			page.texture = manager.get(page.textureFile.path(), Texture::class.java)
 		}
 		data = null
 		return TextureAtlas(atlasData)

@@ -1,0 +1,155 @@
+package de.fatox.meta.assets
+
+import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.utils.Disposable
+import com.badlogic.gdx.utils.GdxRuntimeException
+import com.badlogic.gdx.utils.ObjectMap
+import com.badlogic.gdx.utils.ObjectSet
+import org.apache.commons.compress.archivers.sevenz.SevenZFile
+
+/**
+ * One opened XPK archive: an entry index built once, and entry payloads served by a forward-sweeping reader.
+ *
+ * The archive is a solid stream, so reading entry *k* necessarily decompresses entries *0..k* in the same block.
+ * The previous implementation opened a fresh reader and re-swept from zero for every single entry, which made a full
+ * asset load quadratic - measured at 237x slower than one sequential pass over a 512-entry archive. This class keeps
+ * one reader positioned at a cursor and caches every entry the sweep passes over, so the work those entries already
+ * cost is not thrown away. Any access order therefore costs at most one pass: even reverse order caches everything on
+ * the first (backward) sweep and hits the cache from then on.
+ *
+ * Pass-through caching is bounded by [PASSTHROUGH_CACHE_BUDGET]; past it the sweep still decompresses (it has no
+ * choice) but stops retaining entries nobody asked for. Explicitly requested entries are always retained, matching
+ * the previous handle-level memoisation. Bounded, releasable per-entry buffers are a v2 concern - see
+ * `docs/xpk-format-audit.md` M2.
+ */
+class XpkArchive internal constructor(
+	/** Whole archive, signature already restored. Released on [dispose]. */
+	private var fileBytes: ByteArray?,
+	/** Archive path, for diagnostics only. */
+	private val archivePath: String,
+	private val entryNames: kotlin.Array<String>,
+	private val entrySizes: LongArray,
+	private val entryIsDirectory: BooleanArray,
+) : Disposable {
+	private val lock = Any()
+	private val cache = arrayOfNulls<ByteArray>(entryNames.size)
+
+	/** Index of the entry the open reader will yield next. */
+	private var cursor = 0
+	private var reader: SevenZFile? = null
+	private var passthroughBytes = 0L
+	private var disposed = false
+
+	/** File entries only, in archive order. Directory entries are indexed but never handed out. */
+	val entries: Array<XPKFileHandle> = Array(entryNames.size)
+
+	private val byPath = ObjectMap<String, XPKFileHandle>(entryNames.size)
+	private val directories = ObjectSet<String>()
+
+	init {
+		for (index in entryNames.indices) {
+			val path = normalisedPath(entryNames[index])
+			if (entryIsDirectory[index]) {
+				directories.add(assetPathKey(path))
+				continue
+			}
+			val handle = XPKFileHandle(this, index, path)
+			entries.add(handle)
+			byPath.put(assetPathKey(path), handle)
+			// Every ancestor of a file entry is a directory, whether or not the archive stored it explicitly.
+			var separator = path.lastIndexOf('/')
+			while (separator > 0) {
+				directories.add(assetPathKey(path.substring(0, separator)))
+				separator = path.lastIndexOf('/', separator - 1)
+			}
+		}
+	}
+
+	/** Resolves an archive-relative path case-insensitively, or a non-existent handle when there is no such entry. */
+	internal fun resolve(path: String): XPKFileHandle {
+		val normalised = normalisedPath(path)
+		return byPath[assetPathKey(normalised)] ?: XPKFileHandle(this, XPK_MISSING_ENTRY, normalised)
+	}
+
+	internal fun isDirectory(path: String): Boolean = directories.contains(assetPathKey(normalisedPath(path)))
+
+	internal fun sizeOf(entryIndex: Int): Long = entrySizes[entryIndex]
+
+	/** Decompresses one entry, sweeping the solid stream forward and retaining what it passes. */
+	internal fun bytesOf(entryIndex: Int): ByteArray = synchronized(lock) {
+		check(!disposed) { "XPK archive $archivePath was disposed" }
+		cache[entryIndex]?.let { return it }
+
+		if (reader == null || cursor > entryIndex) restart()
+		val active = reader ?: throw GdxRuntimeException("Could not open XPK archive $archivePath")
+
+		while (cursor <= entryIndex) {
+			val entry = active.nextEntry ?: break
+			val at = cursor++
+			if (entryIsDirectory[at]) continue
+			val requested = at == entryIndex
+			// Skipping still decompresses, so retaining a pass-through entry costs only the copy - until the budget
+			// is spent, after which unrequested entries are decompressed and dropped as before.
+			if (!requested && (cache[at] != null || passthroughBytes >= PASSTHROUGH_CACHE_BUDGET)) continue
+			val bytes = readEntry(active, entry.name, entrySizes[at])
+			cache[at] = bytes
+			if (!requested) passthroughBytes += bytes.size
+		}
+
+		return cache[entryIndex] ?: throw GdxRuntimeException(
+			"XPK entry ${entryNames[entryIndex]} not found in $archivePath",
+		)
+	}
+
+	/**
+	 * Rewinds the sweep. Each reader gets its own [XPKByteChannel] view, because closing a `SevenZFile` closes the
+	 * channel it was given - so a shared channel could be used exactly once.
+	 */
+	private fun restart() {
+		val bytes = checkNotNull(fileBytes) { "XPK archive $archivePath was disposed" }
+		reader?.close()
+		reader = SevenZFile.Builder().setSeekableByteChannel(XPKByteChannel(bytes)).get()
+		cursor = 0
+	}
+
+	private fun readEntry(file: SevenZFile, name: String, size: Long): ByteArray {
+		require(size in 0..Int.MAX_VALUE.toLong()) { "Invalid XPK entry size: $name ($size bytes)" }
+		val content = ByteArray(size.toInt())
+		var offset = 0
+		while (offset < content.size) {
+			val read = file.read(content, offset, content.size - offset)
+			if (read < 0) break
+			offset += read
+		}
+		check(offset == content.size) { "Unexpected end of XPK entry $name at $offset/${content.size}" }
+		return content
+	}
+
+	override fun dispose() {
+		synchronized(lock) {
+			if (disposed) return
+			disposed = true
+			reader?.close()
+			reader = null
+			cache.fill(null)
+			passthroughBytes = 0
+			fileBytes = null
+		}
+	}
+
+	private companion object {
+		/** How many bytes of never-requested entries a sweep may retain before it stops keeping them. */
+		const val PASSTHROUGH_CACHE_BUDGET = 64L * 1024 * 1024
+	}
+}
+
+/** Sentinel entry index for a handle that names a path its archive does not contain. */
+internal const val XPK_MISSING_ENTRY: Int = -1
+
+/**
+ * XPK entry paths use `/`, matching how 7z stores them and how [assetPathKey] normalises them.
+ *
+ * The previous implementation rewrote them to `\` on the way out, which every consumer then had to undo - see the
+ * `replace('\\', '/')` that [MetaTextureAtlasLoader] carried to recover AssetManager keys.
+ */
+internal fun normalisedPath(path: String): String = path.replace('\\', '/')
