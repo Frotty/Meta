@@ -253,6 +253,42 @@ class XPKLoaderTest {
 		}
 	}
 
+	/**
+	 * Locks the public members this rewrite would otherwise have dropped.
+	 *
+	 * A javap diff of the runtime jar against master found four public symbols removed without deprecation:
+	 * `XPKFileHandle.getName()`, `XPKByteChannel.array()`, the parameterless `XPKByteChannel()`, and the
+	 * `throws IOException` clauses on the channel's `read`/`write`/`position`. Downstream games resolve this module
+	 * from JitPack, so each was a break. Referencing them here means deleting one fails the build rather than a
+	 * consumer's.
+	 */
+	@Suppress("DEPRECATION")
+	@Test
+	fun `deprecated public members remain callable for downstream compatibility`() {
+		val contents = mapOf("ui/skin.json" to ByteArray(512) { it.toByte() })
+		withArchive(contents) { file, _ ->
+			val archive = XPKLoader.open(file)
+			try {
+				val handle = archive.entries[0]
+				// getName() used to carry the whole path, and still must - name() is the file name now.
+				assertEquals("ui/skin.json", handle.name)
+				assertEquals("ui/skin.json", handle.path())
+				assertEquals("skin.json", handle.name())
+			} finally {
+				archive.dispose()
+			}
+		}
+
+		val empty = XPKByteChannel()
+		assertEquals(0L, empty.size(), "the parameterless channel must be empty, not negatively sized")
+		assertEquals(0, empty.array().size)
+
+		val backing = ByteArray(HASH_LENGTH + 4) { it.toByte() }
+		val channel = XPKByteChannel(backing)
+		assertSame(backing, channel.array())
+		assertEquals(4L, channel.size(), "size() still excludes the hash trailer")
+	}
+
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */
 	private fun withArchive(
 		contents: Map<String, ByteArray>,

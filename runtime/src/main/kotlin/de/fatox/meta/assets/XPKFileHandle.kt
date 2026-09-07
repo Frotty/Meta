@@ -35,6 +35,20 @@ class XPKFileHandle internal constructor(
 	/** Entry bytes, decompressed on first use, or `null` when this handle names no archive entry. */
 	val array: ByteArray? get() = if (isMissing) null else archive.bytesOf(entryIndex)
 
+	/**
+	 * The full archive-relative path.
+	 *
+	 * Kept only for source and binary compatibility: this compiles to `getName()`, which is a different JVM method
+	 * from libGDX's [name], so a downstream consumer reading `handle.name` was bound to this one. It still means the
+	 * whole path, not the file name - [name] now returns the last element, as libGDX's contract requires. Separators
+	 * are `/` where they used to be `\`.
+	 */
+	@Deprecated(
+		"Ambiguous against FileHandle.name(). Use path() for the full path, or name() for the file name.",
+		ReplaceWith("path()"),
+	)
+	val name: String get() = entryPath
+
 	override fun exists(): Boolean = !isMissing || archive.isDirectory(entryPath)
 
 	override fun isDirectory(): Boolean = isMissing && archive.isDirectory(entryPath)

@@ -1,6 +1,7 @@
 package de.fatox.meta.assets
 
 import de.fatox.meta.api.crypto.HASH_LENGTH
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.ClosedChannelException
 import java.nio.channels.NonWritableChannelException
@@ -24,8 +25,25 @@ class XPKByteChannel(private val data: ByteArray) : SeekableByteChannel {
 	private var closed = false
 	private var position = 0
 
+	/**
+	 * Kept for binary compatibility with the parameterless constructor the previous default argument produced.
+	 *
+	 * That one left `size` at `-HASH_LENGTH`; this yields a valid empty channel instead of reinstating the defect.
+	 */
+	@Deprecated("An XPK channel is a view over archive bytes; construct it with them.")
+	constructor() : this(ByteArray(0))
+
+	/**
+	 * The backing array, whose length includes the hash trailer that [size] excludes.
+	 *
+	 * Retained for compatibility only - this hands out a mutable reference to bytes a decompressor is reading.
+	 */
+	@Deprecated("Exposes the archive's mutable backing store; hold your own reference to the bytes instead.")
+	fun array(): ByteArray = data
+
 	override fun position(): Long = position.toLong()
 
+	@Throws(IOException::class)
 	override fun position(newPosition: Long): SeekableByteChannel {
 		ensureOpen()
 		require(newPosition in 0..contentSize.toLong()) { "Position $newPosition outside 0..$contentSize" }
@@ -36,6 +54,7 @@ class XPKByteChannel(private val data: ByteArray) : SeekableByteChannel {
 	/** Archive content length, excluding the hash trailer. */
 	override fun size(): Long = contentSize.toLong()
 
+	@Throws(IOException::class)
 	override fun read(buf: ByteBuffer): Int {
 		ensureOpen()
 		val available = contentSize - position
@@ -46,6 +65,7 @@ class XPKByteChannel(private val data: ByteArray) : SeekableByteChannel {
 		return count
 	}
 
+	@Throws(IOException::class)
 	override fun write(src: ByteBuffer): Int = throw NonWritableChannelException()
 
 	override fun truncate(size: Long): SeekableByteChannel = throw NonWritableChannelException()
