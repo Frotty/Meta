@@ -429,6 +429,40 @@ class XPKLoaderTest {
 		}
 	}
 
+	/**
+	 * The legacy enumeration created a handle for every archive record, directories included, and `listEntryNames`
+	 * projected all of them. `XpkArchive.entries` is deliberately file-only, so sourcing the deprecated APIs from it
+	 * would silently drop directory records for archive tooling.
+	 */
+	@Suppress("DEPRECATION")
+	@Test
+	fun `legacy enumeration still reports directory records`() {
+		withArchive(
+			mapOf("pack/a.bin" to ByteArray(8) { 1 }),
+			directories = listOf("pack", "spare"),
+		) { file, _ ->
+			assertEquals(
+				listOf("pack", "pack/a.bin", "spare"),
+				XPKLoader.listEntryNames(file).toList().sorted(),
+			)
+
+			val legacy = XPKLoader.getList(file)
+			try {
+				assertEquals(3, legacy.size, "getList enumerated every record before this rewrite")
+				val directory = (0 until legacy.size).map { legacy[it] }.first { it.path() == "spare" }
+				assertTrue(directory.isDirectory)
+				assertEquals(0L, directory.length())
+				// Reading a directory record produced an empty array, not a failure.
+				assertEquals(0, directory.readBytes().size)
+
+				// The file-only surface is unchanged.
+				assertEquals(listOf("pack/a.bin"), legacy[0].archive.entries.let { e -> (0 until e.size).map { e[it].path() } })
+			} finally {
+				legacy[0].archive.dispose()
+			}
+		}
+	}
+
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */
 	private fun withArchive(
 		contents: Map<String, ByteArray>,

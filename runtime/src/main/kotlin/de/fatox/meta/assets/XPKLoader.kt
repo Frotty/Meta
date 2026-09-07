@@ -60,7 +60,7 @@ object XPKLoader {
 	fun listEntryNames(fileHandle: FileHandle): Array<String> {
 		val archive = open(fileHandle)
 		try {
-			val handles = archive.entries
+			val handles = archive.allEntries
 			val names = Array<String>(handles.size)
 			for (index in 0 until handles.size) names.add(handles[index].path())
 			return names
@@ -80,7 +80,7 @@ object XPKLoader {
 		"Use open(fileHandle), which returns the disposable archive that owns the entries.",
 		ReplaceWith("open(fileHandle).entries"),
 	)
-	fun getList(fileHandle: FileHandle): Array<XPKFileHandle> = open(fileHandle).entries
+	fun getList(fileHandle: FileHandle): Array<XPKFileHandle> = open(fileHandle).allEntries
 
 	/**
 	 * The first six bytes of the 7z signature are overwritten at pack time so a magic-byte scan does not find the

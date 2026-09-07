@@ -51,7 +51,7 @@ class XPKFileHandle internal constructor(
 
 	override fun exists(): Boolean = !isMissing || archive.isDirectory(entryPath)
 
-	override fun isDirectory(): Boolean = isMissing && archive.isDirectory(entryPath)
+	override fun isDirectory(): Boolean = archive.isDirectory(entryPath)
 
 	override fun type(): Files.FileType = Files.FileType.Internal
 

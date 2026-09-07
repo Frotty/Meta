@@ -84,6 +84,15 @@ class XpkArchive internal constructor(
 	/** File entries only, in archive order. Directory entries are indexed but never handed out. */
 	val entries: Array<XPKFileHandle> = Array(entryNames.size)
 
+	/**
+	 * Every archive record in order, directories included.
+	 *
+	 * Only the deprecated [XPKLoader.getList] and [XPKLoader.listEntryNames] use this. Both enumerated directory
+	 * records before this rewrite, so dropping them from those two would be a silent behaviour change for archive
+	 * tooling; [entries] is the file-only surface everything new should use.
+	 */
+	internal val allEntries: Array<XPKFileHandle> = Array(entryNames.size)
+
 	private val byPath = ObjectMap<String, XPKFileHandle>(entryNames.size)
 	private val directories = ObjectSet<String>()
 
@@ -96,6 +105,8 @@ class XpkArchive internal constructor(
 		addDirectory("")
 		for (index in entryNames.indices) {
 			val path = normalisedPath(entryNames[index])
+			val handle = XPKFileHandle(this, index, path)
+			allEntries.add(handle)
 			if (entryIsDirectory[index]) {
 				addDirectory(assetPathKey(path))
 				// A stored directory's own ancestors need registering too: an archive may record `a/b/` without ever
@@ -103,7 +114,6 @@ class XpkArchive internal constructor(
 				addAncestorDirectories(path)
 				continue
 			}
-			val handle = XPKFileHandle(this, index, path)
 			entries.add(handle)
 			byPath.put(assetPathKey(path), handle)
 			addAncestorDirectories(path)
@@ -179,6 +189,9 @@ class XpkArchive internal constructor(
 	/** Decompresses one entry, sweeping the solid stream forward and retaining what it passes. */
 	internal fun bytesOf(entryIndex: Int): ByteArray = synchronized(lock) {
 		check(!disposed) { "XPK archive $archivePath was disposed" }
+		// A directory record has no stream. The sweep skips it, so it would otherwise never resolve - and the legacy
+		// enumeration hands these out, where reading one previously produced an empty array.
+		if (entryIsDirectory[entryIndex]) return EMPTY_ENTRY
 		cache[entryIndex]?.let { return it }
 
 		if (reader == null) {
@@ -300,6 +313,9 @@ class XpkArchive internal constructor(
 
 /** How many bytes of never-requested entries a sweep may retain before it stops keeping them. */
 internal const val PASSTHROUGH_CACHE_BUDGET: Long = 64L * 1024 * 1024
+
+/** A directory record has no stream; reading one yields this. */
+private val EMPTY_ENTRY = ByteArray(0)
 
 /** Sentinel entry index for a handle that names a path its archive does not contain. */
 internal const val XPK_MISSING_ENTRY: Int = -1
