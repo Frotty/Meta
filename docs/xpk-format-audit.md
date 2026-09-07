@@ -91,14 +91,14 @@ before the first asset byte, even if three files are wanted.
 
 **M2 — Decompressed entries are cached forever with no eviction.** Same line as C3. After loading, both the
 compressed archive and every decompressed asset are live. Sounds are resident twice: raw Ogg bytes memoised on the
-handle, decoded PCM in OpenAL.
+handle, decoded PCM in OpenAL. *Retention is now bounded to one load phase — see §5, "Lifetime and handle contract".
+Per-entry lifetime remains a v2 item.*
 
-**M3 — `Thread.yield()` is not asynchrony.** Calls at
-[XPKLoader.kt:50](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:50),
-[:76](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:76),
-[:104](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:104) and
-[:112](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:112) bound no latency, guarantee nothing about
-scheduling, and add a scheduler hint per 64 KB. The work is still fully synchronous on whichever thread called in.
+**M3 — `Thread.yield()` is not asynchrony.** Four calls in `XPKLoader` (per 64 KB read and per 16 entries), one in
+`MetaAssetProvider.loadRawAssetsFromFolder` (per 64 files, on a worker thread with no deadline to meet) and one in
+`MetaAssetProvider.update` (on the GL thread, where it can only delay the frame it is in). None bounded any latency
+or guaranteed anything about scheduling; the work stayed fully synchronous on whichever thread called in. The frame
+budget is enforced by returning from `update`, not by yielding inside it. All six are removed.
 
 **M4 — The XXH64 trailer is a corruption check with zero tamper resistance.** It is unkeyed, non-cryptographic, and
 stored inside the file it protects, so anyone can recompute it. The failure message even prints the expected value
@@ -312,6 +312,12 @@ reactive state from a worker — `AGENTS.md` makes reactive writes GL-thread-onl
 **Lifetime.** Decompressed bytes must be a *transient* buffer released once the loader consumes them, not a permanent
 memo (M2). Return a pooled/`Arena`-scoped buffer with explicit release, and let a genuinely hot small asset opt into
 caching rather than caching everything by default.
+
+An interim fix is already in place: entries stay cached during a load phase, so a repeated read does not pay for
+another sweep, and `XpkArchive.releaseCachedEntries` drops every buffer and closes the 7z reader (releasing its LZMA2
+dictionary) as soon as `MetaAssetProvider.update` or `finish` sees the queue drain. That bounds retention to one load
+phase rather than the process lifetime. What v2 still owes is per-entry lifetime rather than per-phase, so a large
+archive never needs its whole working set resident at once.
 
 **Handle contract.** Fix `XPKFileHandle` to normalise on `/` throughout (M9), return a non-null missing-file handle
 whose `exists()` is `false` instead of aliasing another entry (C4), override `type()`, `isDirectory`, `list()`,

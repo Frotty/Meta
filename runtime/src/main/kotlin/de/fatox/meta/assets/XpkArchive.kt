@@ -19,8 +19,8 @@ import org.apache.commons.compress.archivers.sevenz.SevenZFile
  * the first (backward) sweep and hits the cache from then on.
  *
  * Pass-through caching is bounded by [PASSTHROUGH_CACHE_BUDGET]; past it the sweep still decompresses (it has no
- * choice) but stops retaining entries nobody asked for. Explicitly requested entries are always retained, matching
- * the previous handle-level memoisation. Bounded, releasable per-entry buffers are a v2 concern - see
+ * choice) but stops retaining entries nobody asked for. Requested entries are retained so a repeated read does not
+ * pay for another sweep, and [releaseCachedEntries] drops the lot once a load phase drains - see
  * `docs/xpk-format-audit.md` M2.
  */
 class XpkArchive internal constructor(
@@ -39,6 +39,7 @@ class XpkArchive internal constructor(
 	private var cursor = 0
 	private var reader: SevenZFile? = null
 	private var passthroughBytes = 0L
+	private var retainedBytes = 0L
 	private var disposed = false
 
 	/** File entries only, in archive order. Directory entries are indexed but never handed out. */
@@ -120,6 +121,7 @@ class XpkArchive internal constructor(
 			if (!requested && (cache[at] != null || passthroughBytes >= PASSTHROUGH_CACHE_BUDGET)) continue
 			val bytes = readEntry(active, entry.name, entrySizes[at])
 			cache[at] = bytes
+			retainedBytes += bytes.size
 			if (!requested) passthroughBytes += bytes.size
 		}
 
@@ -127,6 +129,38 @@ class XpkArchive internal constructor(
 			"XPK entry ${entryNames[entryIndex]} not found in $archivePath",
 		)
 	}
+
+	/**
+	 * Drops every cached entry payload and closes the open reader, keeping the archive usable.
+	 *
+	 * A game loads, then plays. Entry bytes are consumed once - decoded into a texture, a sound or a model - and then
+	 * only the decoded form is needed, so retaining them for the process lifetime means a second full copy of the
+	 * asset data sits in heap next to the GPU and OpenAL copies. Closing the reader also releases its LZMA2
+	 * dictionary, which is tens of megabytes at high presets.
+	 *
+	 * Cheap and idempotent when nothing is cached, so it is safe to call from a per-frame completion check. A later
+	 * read simply re-opens and sweeps again.
+	 */
+	fun releaseCachedEntries() {
+		synchronized(lock) {
+			if (disposed) return
+			reader?.close()
+			reader = null
+			cursor = 0
+			cache.fill(null)
+			passthroughBytes = 0
+			retainedBytes = 0
+		}
+	}
+
+	/**
+	 * True when nothing is retained, so callers can skip a redundant [releaseCachedEntries].
+	 *
+	 * Counted rather than scanned: this is polled from the per-frame completion check, and scanning the entry table
+	 * every frame would make the check itself scale with archive size.
+	 */
+	internal val isFullyReleased: Boolean
+		get() = synchronized(lock) { reader == null && retainedBytes == 0L }
 
 	/**
 	 * Rewinds the sweep. Each reader gets its own [XPKByteChannel] view, because closing a `SevenZFile` closes the
@@ -160,6 +194,7 @@ class XpkArchive internal constructor(
 			reader = null
 			cache.fill(null)
 			passthroughBytes = 0
+			retainedBytes = 0
 			fileBytes = null
 		}
 	}

@@ -102,7 +102,6 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun loadRawAssetsFromFolder(folder: FileHandle): Boolean {
-		var filesSinceYield = 0
 		// This helper function does all the recursion,
 		// always stripping out `rootFolderName` from the path.
 		fun loadFolderRecursively(currentFolder: FileHandle, rootFolderName: String) {
@@ -126,10 +125,6 @@ class MetaAssetProvider : AssetProvider {
 
 					// Store one portable lookup key; keep the actual source path on the handle.
 					cacheFile(relativePath, child, folder.path())
-					if (++filesSinceYield >= FILES_PER_YIELD) {
-						filesSinceYield = 0
-						Thread.yield()
-					}
 				}
 			}
 		}
@@ -234,8 +229,23 @@ class MetaAssetProvider : AssetProvider {
 		val complete = assetManager.update()
 		finalizeLoadedAssets(MAX_FINALIZATIONS_PER_UPDATE)
 		warnIfSlowStep("Asset loading step", millis, startedAt)
-		if (!complete) Thread.yield()
-		return complete && pendingFinalization.size == 0 && stagedTextureUploads.isEmpty
+		val drained = complete && pendingFinalization.size == 0 && stagedTextureUploads.isEmpty
+		if (drained) releaseArchiveCaches()
+		return drained
+	}
+
+	/**
+	 * Frees archive entry buffers once a load phase has drained.
+	 *
+	 * Decompressed entry bytes are only needed while a loader is turning them into a texture, sound or model. Held
+	 * past that they are a second full copy of the asset data in heap, alongside the GPU and OpenAL copies. Also
+	 * closes each archive's 7z reader, releasing its LZMA2 dictionary.
+	 */
+	private fun releaseArchiveCaches() {
+		for (index in 0 until openArchives.size) {
+			val archive = openArchives[index]
+			if (!archive.isFullyReleased) archive.releaseCachedEntries()
+		}
 	}
 
 	private fun warnIfSlowStep(label: String, requestedMillis: Int, startedAt: Long) {
@@ -294,6 +304,7 @@ class MetaAssetProvider : AssetProvider {
 		assetManager.finishLoading()
 		stagedTextureUploads.finish()
 		finalizeLoadedAssets(Int.MAX_VALUE)
+		releaseArchiveCaches()
 	}
 
 	override fun dispose() {
@@ -352,7 +363,6 @@ class MetaAssetProvider : AssetProvider {
 
 	private companion object {
 		const val MAX_FINALIZATIONS_PER_UPDATE = 1
-		const val FILES_PER_YIELD = 64
 		const val NANOS_PER_MILLI = 1_000_000L
 		const val SLOW_UPDATE_WARNING_MS = 8L
 	}

@@ -132,6 +132,42 @@ class XPKLoaderTest {
 		}
 	}
 
+	/**
+	 * Entry bytes used to be retained for the process lifetime, so a loaded game held a second full copy of its
+	 * asset data in heap. Releasing must free them and leave the archive usable.
+	 */
+	@Test
+	fun `releasing cached entries frees buffers and the archive still reads`() {
+		val contents = (0 until 6).associate { index ->
+			"data/entry$index.bin" to ByteArray(4_000 + index) { (index * 17 + it).toByte() }
+		}
+		withArchive(contents) { file, expected ->
+			val archive = XPKLoader.open(file)
+			try {
+				assertTrue(archive.isFullyReleased, "a freshly opened archive retains nothing")
+
+				val entries = archive.entries
+				for (index in 0 until entries.size) entries[index].readBytes()
+				assertFalse(archive.isFullyReleased, "reads must retain something to release")
+
+				archive.releaseCachedEntries()
+				assertTrue(archive.isFullyReleased, "release must drop every buffer and close the reader")
+
+				// A later read re-opens and sweeps again rather than failing.
+				for (index in 0 until entries.size) {
+					val handle = entries[index]
+					assertContentEquals(expected.getValue(handle.path()), handle.readBytes())
+				}
+
+				archive.releaseCachedEntries()
+				archive.releaseCachedEntries()
+				assertTrue(archive.isFullyReleased, "release is idempotent")
+			} finally {
+				archive.dispose()
+			}
+		}
+	}
+
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */
 	private fun withArchive(
 		contents: Map<String, ByteArray>,
