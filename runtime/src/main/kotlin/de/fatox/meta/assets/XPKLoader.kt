@@ -14,7 +14,10 @@ object XPKLoader {
 	 * Opens an archive and indexes its entries. The caller owns the returned [XpkArchive] and must dispose it;
 	 * [MetaAssetProvider] does so from its own `dispose`.
 	 */
-	fun open(fileHandle: FileHandle): XpkArchive {
+	fun open(fileHandle: FileHandle): XpkArchive = open(fileHandle, PASSTHROUGH_CACHE_BUDGET)
+
+	/** Budget override for tests, which cannot afford to build an archive large enough to exhaust the real one. */
+	internal fun open(fileHandle: FileHandle, passthroughCacheBudget: Long): XpkArchive {
 		val fileBytes = readAndVerify(fileHandle)
 		restoreSignature(fileBytes)
 
@@ -39,6 +42,7 @@ object XPKLoader {
 			names.toTypedArray(),
 			LongArray(sizes.size) { sizes[it] },
 			BooleanArray(directories.size) { directories[it] },
+			passthroughCacheBudget,
 		)
 	}
 

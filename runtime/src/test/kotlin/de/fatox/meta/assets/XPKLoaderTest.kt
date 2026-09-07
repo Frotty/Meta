@@ -168,6 +168,60 @@ class XPKLoaderTest {
 		}
 	}
 
+	/**
+	 * The budget check counted only bytes already cached, so an entry of any size was admitted whenever the budget
+	 * was not yet spent - one large video or model could overshoot the bound by its whole payload.
+	 */
+	@Test
+	fun `a pass-through entry larger than the budget is not retained`() {
+		val contents = (0 until 4).associate { index ->
+			"data/entry$index.bin" to ByteArray(4_000) { (index * 11 + it).toByte() }
+		}
+		withArchive(contents) { file, expected ->
+			// Budget smaller than any single entry: nothing may be retained on the way past.
+			val archive = XPKLoader.open(file, passthroughCacheBudget = 1_000L)
+			try {
+				val last = archive.entries[archive.entries.size - 1]
+				assertContentEquals(expected.getValue(last.path()), last.readBytes())
+				assertEquals(
+					last.length(),
+					archive.retainedEntryBytes,
+					"only the requested entry may be retained when every pass-through entry exceeds the budget",
+				)
+			} finally {
+				archive.dispose()
+			}
+		}
+	}
+
+	/**
+	 * With the budget spent, uncached entries sat behind the cursor, so a descending read rewound the solid stream
+	 * for every one of them - reinstating the quadratic behaviour this class exists to remove.
+	 */
+	@Test
+	fun `descending reads stay linear once the pass-through budget is spent`() {
+		val contents = (0 until 32).associate { index ->
+			"data/entry$index.bin" to ByteArray(2_000) { (index * 7 + it).toByte() }
+		}
+		withArchive(contents) { file, expected ->
+			val archive = XPKLoader.open(file, passthroughCacheBudget = 1_000L)
+			try {
+				val entries = archive.entries
+				for (index in entries.size - 1 downTo 0) {
+					val handle = entries[index]
+					assertContentEquals(expected.getValue(handle.path()), handle.readBytes())
+				}
+				// One sweep to serve the first (highest) request, one more once that rewind lifts the budget.
+				assertTrue(
+					archive.sweepCount <= 2,
+					"descending reads rewound ${archive.sweepCount} times over ${entries.size} entries",
+				)
+			} finally {
+				archive.dispose()
+			}
+		}
+	}
+
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */
 	private fun withArchive(
 		contents: Map<String, ByteArray>,

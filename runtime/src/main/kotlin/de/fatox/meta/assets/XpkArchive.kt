@@ -15,12 +15,19 @@ import org.apache.commons.compress.archivers.sevenz.SevenZFile
  * The previous implementation opened a fresh reader and re-swept from zero for every single entry, which made a full
  * asset load quadratic - measured at 237x slower than one sequential pass over a 512-entry archive. This class keeps
  * one reader positioned at a cursor and caches every entry the sweep passes over, so the work those entries already
- * cost is not thrown away. Any access order therefore costs at most one pass: even reverse order caches everything on
- * the first (backward) sweep and hits the cache from then on.
+ * cost is not thrown away.
  *
- * Pass-through caching is bounded by [PASSTHROUGH_CACHE_BUDGET]; past it the sweep still decompresses (it has no
- * choice) but stops retaining entries nobody asked for. Requested entries are retained so a repeated read does not
- * pay for another sweep, and [releaseCachedEntries] drops the lot once a load phase drains - see
+ * Two policies keep that linear without letting memory run away:
+ *
+ * - Pass-through caching stops at [PASSTHROUGH_CACHE_BUDGET], counting the *prospective* entry size so one oversized
+ *   payload cannot step over the bound on its own. Past the budget the sweep still decompresses - it has no choice -
+ *   but stops retaining entries nobody asked for.
+ * - A rewind for an uncached entry means the budget already declined to keep something the caller then wanted, and a
+ *   descending access order would repeat that for every remaining entry. The first rewind therefore lifts the budget
+ *   for this archive, trading the memory bound for the linearity guarantee. Worst-case retention is then the
+ *   archive's uncompressed size, which is what the old implementation reached anyway.
+ *
+ * [releaseCachedEntries] drops everything, and resets both policies, once a load phase drains - see
  * `docs/xpk-format-audit.md` M2.
  */
 class XpkArchive internal constructor(
@@ -31,6 +38,8 @@ class XpkArchive internal constructor(
 	private val entryNames: kotlin.Array<String>,
 	private val entrySizes: LongArray,
 	private val entryIsDirectory: BooleanArray,
+	/** Overridable so tests can exercise budget exhaustion without building a 64 MB archive. */
+	private val passthroughCacheBudget: Long = PASSTHROUGH_CACHE_BUDGET,
 ) : Disposable {
 	private val lock = Any()
 	private val cache = arrayOfNulls<ByteArray>(entryNames.size)
@@ -40,7 +49,17 @@ class XpkArchive internal constructor(
 	private var reader: SevenZFile? = null
 	private var passthroughBytes = 0L
 	private var retainedBytes = 0L
+
+	/** Set once a rewind proves the budget is costing more sweeps than it saves memory. */
+	private var unboundedCaching = false
+	private var sweeps = 0
 	private var disposed = false
+
+	/** Bytes of entry payload currently retained. Test observability for the release and budget contracts. */
+	internal val retainedEntryBytes: Long get() = synchronized(lock) { retainedBytes }
+
+	/** How many times the solid stream has been rewound. Test observability for the linear-access contract. */
+	internal val sweepCount: Int get() = synchronized(lock) { sweeps }
 
 	/** File entries only, in archive order. Directory entries are indexed but never handed out. */
 	val entries: Array<XPKFileHandle> = Array(entryNames.size)
@@ -108,7 +127,17 @@ class XpkArchive internal constructor(
 		check(!disposed) { "XPK archive $archivePath was disposed" }
 		cache[entryIndex]?.let { return it }
 
-		if (reader == null || cursor > entryIndex) restart()
+		if (reader == null) {
+			restart()
+		} else if (cursor > entryIndex) {
+			// Reaching here means an uncached entry sits behind the cursor, which only happens once the pass-through
+			// budget has declined to keep something. That is proof the budget cost more than it saved: a descending
+			// access order would otherwise re-decompress the prefix for every remaining entry, reinstating exactly the
+			// quadratic behaviour this class exists to remove. Trade the bound for linearity from here on;
+			// releaseCachedEntries reclaims the memory when the load phase drains.
+			unboundedCaching = true
+			restart()
+		}
 		val active = reader ?: throw GdxRuntimeException("Could not open XPK archive $archivePath")
 
 		while (cursor <= entryIndex) {
@@ -117,8 +146,10 @@ class XpkArchive internal constructor(
 			if (entryIsDirectory[at]) continue
 			val requested = at == entryIndex
 			// Skipping still decompresses, so retaining a pass-through entry costs only the copy - until the budget
-			// is spent, after which unrequested entries are decompressed and dropped as before.
-			if (!requested && (cache[at] != null || passthroughBytes >= PASSTHROUGH_CACHE_BUDGET)) continue
+			// is spent, after which unrequested entries are decompressed and dropped. The prospective size is part of
+			// the test: checking only what is already cached would admit one entry of any size, so a single large
+			// video or model could overshoot the bound by its whole payload.
+			if (!requested && (cache[at] != null || !fitsInPassthroughBudget(entrySizes[at]))) continue
 			val bytes = readEntry(active, entry.name, entrySizes[at])
 			cache[at] = bytes
 			retainedBytes += bytes.size
@@ -129,6 +160,9 @@ class XpkArchive internal constructor(
 			"XPK entry ${entryNames[entryIndex]} not found in $archivePath",
 		)
 	}
+
+	private fun fitsInPassthroughBudget(size: Long): Boolean =
+		unboundedCaching || passthroughBytes + size <= passthroughCacheBudget
 
 	/**
 	 * Drops every cached entry payload and closes the open reader, keeping the archive usable.
@@ -150,6 +184,7 @@ class XpkArchive internal constructor(
 			cache.fill(null)
 			passthroughBytes = 0
 			retainedBytes = 0
+			unboundedCaching = false
 		}
 	}
 
@@ -171,6 +206,7 @@ class XpkArchive internal constructor(
 		reader?.close()
 		reader = SevenZFile.Builder().setSeekableByteChannel(XPKByteChannel(bytes)).get()
 		cursor = 0
+		sweeps++
 	}
 
 	private fun readEntry(file: SevenZFile, name: String, size: Long): ByteArray {
@@ -198,12 +234,10 @@ class XpkArchive internal constructor(
 			fileBytes = null
 		}
 	}
-
-	private companion object {
-		/** How many bytes of never-requested entries a sweep may retain before it stops keeping them. */
-		const val PASSTHROUGH_CACHE_BUDGET = 64L * 1024 * 1024
-	}
 }
+
+/** How many bytes of never-requested entries a sweep may retain before it stops keeping them. */
+internal const val PASSTHROUGH_CACHE_BUDGET: Long = 64L * 1024 * 1024
 
 /** Sentinel entry index for a handle that names a path its archive does not contain. */
 internal const val XPK_MISSING_ENTRY: Int = -1
