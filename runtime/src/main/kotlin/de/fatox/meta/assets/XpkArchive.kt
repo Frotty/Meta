@@ -68,6 +68,9 @@ class XpkArchive internal constructor(
 	private val directories = ObjectSet<String>()
 
 	init {
+		// The archive root is always a directory, even though no entry path names it. Without this, parent() on a
+		// top-level entry reports a handle that does not exist and lists nothing.
+		directories.add("")
 		for (index in entryNames.indices) {
 			val path = normalisedPath(entryNames[index])
 			if (entryIsDirectory[index]) {

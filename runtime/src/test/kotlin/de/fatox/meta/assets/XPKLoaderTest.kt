@@ -126,6 +126,13 @@ class XPKLoaderTest {
 				assertEquals(listOf("a/b/c.bin"), entry.parent().list().map { it.path() })
 				assertEquals(listOf("a/b"), entry.parent().parent().list().map { it.path() })
 				assertEquals(emptyList(), entry.list().map { it.path() }, "a file entry has no children")
+
+				// The archive root is a directory even though no entry path names it.
+				val root = entry.parent().parent().parent()
+				assertEquals("", root.path())
+				assertTrue(root.exists(), "the archive root always exists")
+				assertTrue(root.isDirectory)
+				assertEquals(listOf("a"), root.list().map { it.path() })
 			} finally {
 				archive.dispose()
 			}
