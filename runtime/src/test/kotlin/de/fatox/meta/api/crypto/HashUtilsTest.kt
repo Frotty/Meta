@@ -25,6 +25,75 @@ private val testVectors = sequenceOf(
 )
 
 internal class HashUtilsTest {
+	/** XXH64 used to set the caller's limit and byte order and restore only the limit. */
+	@Test
+	fun `one-shot hash does not disturb the caller's buffer`() {
+		val input = ByteArray(200) { index -> (index * 7).toByte() }
+		val buffer = ByteBuffer.wrap(input).order(java.nio.ByteOrder.BIG_ENDIAN)
+		buffer.position(64)
+		buffer.limit(128)
+
+		val hash = XXH64(buffer, input.size, 0UL)
+
+		assertEquals(64, buffer.position(), "position must be untouched")
+		assertEquals(128, buffer.limit(), "limit must be untouched")
+		assertEquals(java.nio.ByteOrder.BIG_ENDIAN, buffer.order(), "byte order must be untouched")
+		// Hashing is over [0, length) regardless of the caller's window, so a fresh wrap agrees.
+		assertEquals(XXH64(ByteBuffer.wrap(input), input.size, 0UL), hash)
+	}
+
+	/**
+	 * The channel overload allocated a buffer the size of the channel, cast that size to Int, and honoured a single
+	 * read - so a short read or a non-zero starting position hashed trailing zeroes.
+	 */
+	@Test
+	fun `channel hash streams the whole channel and restores position`() {
+		for (length in intArrayOf(0, 1, 31, 32, 33, 65_536, 200_000)) {
+			val content = ByteArray(length) { index -> (index * 29 + length).toByte() }
+			// Hash trailers are not part of this contract, so pad past the channel's HASH_LENGTH accounting.
+			val backing = content + ByteArray(HASH_LENGTH)
+			val channel = ShortReadChannel(backing, contentLength = length)
+			channel.position(7L.coerceAtMost(length.toLong()))
+
+			val hashed = channel.hash()
+
+			assertEquals(content.hash(), hashed, "channel hash of $length bytes must match the array hash")
+			assertEquals(7L.coerceAtMost(length.toLong()), channel.position(), "caller position must be restored")
+		}
+	}
+
+	/** Returns at most 13 bytes per read, so a single-read implementation cannot pass. */
+	private class ShortReadChannel(
+		private val data: ByteArray,
+		private val contentLength: Int,
+	) : java.nio.channels.SeekableByteChannel {
+		private var pos = 0
+		private var open = true
+
+		override fun read(dst: ByteBuffer): Int {
+			val available = contentLength - pos
+			if (available <= 0) return -1
+			val count = minOf(dst.remaining(), available, 13)
+			dst.put(data, pos, count)
+			pos += count
+			return count
+		}
+
+		override fun write(src: ByteBuffer): Int = throw UnsupportedOperationException()
+		override fun position(): Long = pos.toLong()
+		override fun position(newPosition: Long): java.nio.channels.SeekableByteChannel {
+			pos = newPosition.toInt()
+			return this
+		}
+
+		override fun size(): Long = contentLength.toLong()
+		override fun truncate(size: Long): java.nio.channels.SeekableByteChannel = throw UnsupportedOperationException()
+		override fun isOpen(): Boolean = open
+		override fun close() {
+			open = false
+		}
+	}
+
 	@Test
 	fun `streaming hash matches one-shot hash across chunk boundaries`() {
 		val inputs = ArrayList<ByteArray>()

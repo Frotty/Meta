@@ -121,6 +121,11 @@ class XPKLoaderTest {
 				assertEquals("a/b/c.bin", entry.path())
 				assertTrue(entry.parent().isDirectory)
 				assertTrue(entry.parent().parent().exists())
+
+				// libGDX's default list() consults a File that does not exist, so it returned nothing here.
+				assertEquals(listOf("a/b/c.bin"), entry.parent().list().map { it.path() })
+				assertEquals(listOf("a/b"), entry.parent().parent().list().map { it.path() })
+				assertEquals(emptyList(), entry.list().map { it.path() }, "a file entry has no children")
 			} finally {
 				archive.dispose()
 			}

@@ -1,5 +1,6 @@
 package de.fatox.meta.assets
 
+import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.GdxRuntimeException
@@ -72,6 +73,32 @@ class XpkArchive internal constructor(
 	}
 
 	internal fun isDirectory(path: String): Boolean = directories.contains(assetPathKey(normalisedPath(path)))
+
+	/**
+	 * Immediate children of a directory path: file entries directly under it, then its direct subdirectories.
+	 *
+	 * Scans the entry table, which is fine because directory listing is a tooling and diagnostics path, never a
+	 * loading one. Inheriting libGDX's default [FileHandle.list] instead returned an empty array for every archive
+	 * directory, because it consults a `File` that does not exist on disk.
+	 */
+	internal fun childrenOf(path: String): kotlin.Array<FileHandle> {
+		val prefix = if (path.isEmpty()) "" else "${assetPathKey(normalisedPath(path))}/"
+		val children = Array<FileHandle>()
+		val seenDirectories = ObjectSet<String>()
+		for (index in 0 until entries.size) {
+			val candidate = entries[index]
+			val key = assetPathKey(candidate.path())
+			if (!key.startsWith(prefix)) continue
+			val remainder = key.substring(prefix.length)
+			val separator = remainder.indexOf('/')
+			if (separator < 0) {
+				children.add(candidate)
+			} else if (seenDirectories.add(remainder.substring(0, separator))) {
+				children.add(resolve(candidate.path().substring(0, prefix.length + separator)))
+			}
+		}
+		return kotlin.Array(children.size) { children[it] }
+	}
 
 	internal fun sizeOf(entryIndex: Int): Long = entrySizes[entryIndex]
 

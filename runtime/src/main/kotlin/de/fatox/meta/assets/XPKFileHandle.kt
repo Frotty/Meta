@@ -48,6 +48,9 @@ class XPKFileHandle internal constructor(
 
 	override fun parent(): FileHandle = archive.resolve(parentPath)
 
+	override fun list(): kotlin.Array<FileHandle> =
+		if (isDirectory()) archive.childrenOf(entryPath) else emptyArray()
+
 	override fun sibling(name: String?): FileHandle =
 		archive.resolve(if (parentPath.isEmpty()) name.orEmpty() else "$parentPath/${name.orEmpty()}")
 
