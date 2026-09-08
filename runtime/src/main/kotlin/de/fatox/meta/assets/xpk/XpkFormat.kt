@@ -192,13 +192,17 @@ internal object XpkFormat {
 	 * | --- | --- |
 	 * | footer, salt | constant |
 	 * | table of contents + block table | this budget, checked before either is read |
-	 * | arrays `XpkV2Archive.decode` derives | ~62% of the tables, since each row yields fewer bytes than it occupies |
+	 * | arrays `XpkV2Archive.decode` derives | at most 92.5% of the tables - see below |
 	 * | metadata digest, signature input | 32 bytes each, whatever the tables weigh |
 	 * | one decoded block | [MAX_BLOCK_RAW_SIZE], and only after the metadata verified |
 	 *
-	 * So a crafted archive costs at most this plus its derived arrays before it is rejected. 16 MB is around 250 000
-	 * entries - far past any real game archive, and an order of magnitude tighter than the count-based ceilings it
-	 * replaced.
+	 * The derived-array figure differs by table and the worse one governs: a 32-byte TOC row yields 20 bytes of
+	 * primitive arrays (62.5%), but a 40-byte block row yields 37 - offset, two sizes, codec, checksum and a 16-byte
+	 * nonce - which is 92.5%. An archive that is almost all block table is therefore the expensive case, giving a
+	 * peak near `budget * 1.925`, about 31 MB here.
+	 *
+	 * 16 MB was not chosen from that total; it is roughly 250 000 entries, far past any real game archive, and the
+	 * peak simply follows from it.
 	 */
 	const val MAX_METADATA_BYTES: Long = 16L * 1024 * 1024
 
