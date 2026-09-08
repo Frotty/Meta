@@ -428,6 +428,34 @@ class MetaDataTest {
 		}
 	}
 
+	/**
+	 * Quarantine names must not run out. A bounded counter leaves the damaged file at its live path once the numbers
+	 * are used up, and the caller's usual `load(...) ?: defaults().also { save(it) }` - `MetaUiInputProfilePersistence`
+	 * does exactly that - then overwrites the bytes quarantine exists to keep.
+	 */
+	@Test
+	fun `a damaged file is preserved even when many quarantine names are taken`() {
+		withMetaData { metaData, root ->
+			val key = MetaDataKey<TestSettings>("crowded.json")
+			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
+
+			root.child("crowded.json${MetaData.CORRUPT_SUFFIX}").writeString("older", false)
+			for (index in 0..40) root.child("crowded.json${MetaData.CORRUPT_SUFFIX}.$index").writeString("older", false)
+
+			val file = metaData.getCachedHandle(key)
+			file.writeString("{ truncated", false)
+			val damaged = file.readString()
+
+			val reopened = newMetaData(root)
+			assertNull(reopened.load(key, TestSettings::class))
+			// What the callers do on a null result, and what destroys the evidence if it was never moved aside.
+			reopened.save(key, TestSettings().apply { difficulty = "hard" })
+
+			val survivors = root.file().walkTopDown().filter { it.isFile && it.readText() == damaged }.toList()
+			assertTrue(survivors.isNotEmpty(), "the damaged bytes were lost once the numbered names were taken")
+		}
+	}
+
 	private fun newMetaData(root: FileHandle): MetaData = MetaData(root)
 
 	private fun withMetaData(block: (MetaData, FileHandle) -> Unit) {

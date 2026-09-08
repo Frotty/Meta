@@ -39,6 +39,9 @@ private val log = MetaLoggerFactory.logger {}
 class MetaData(root: FileHandle? = null) {
 	internal class CacheObj<T : Any>(var obj: T, var created: Long)
 
+	/** A staging file and the channel that created it, kept together so the name is never resolved twice. */
+	private class Scratch(val file: File, val channel: FileChannel)
+
 	private val gameName: String = canonicalAppStorageName(inject("gameName"))
 	private val fileHandleCache = ObjectMap<String, FileHandle>()
 	private val jsonCache = ObjectMap<String, CacheObj<Any>>()
@@ -151,15 +154,15 @@ class MetaData(root: FileHandle? = null) {
 
 		val scratch = createScratch(directory)
 		try {
-			FileChannel.open(scratch.toPath(), StandardOpenOption.WRITE).use { channel ->
+			scratch.channel.use { channel ->
 				val buffer = ByteBuffer.wrap(bytes)
 				while (buffer.hasRemaining()) channel.write(buffer)
 				channel.force(true)
 			}
-			carryPermissions(target, scratch)
+			carryPermissions(target, scratch.file)
 			try {
 				Files.move(
-					scratch.toPath(),
+					scratch.file.toPath(),
 					target.toPath(),
 					StandardCopyOption.ATOMIC_MOVE,
 					StandardCopyOption.REPLACE_EXISTING,
@@ -168,7 +171,7 @@ class MetaData(root: FileHandle? = null) {
 				// Some network and virtual filesystems refuse an atomic replace. A plain one still beats writing
 				// through the live file, and the flush above means the source was complete before either happened.
 				log.debug { "Atomic replace unavailable for ${target.name}; falling back to a plain move" }
-				Files.move(scratch.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+				Files.move(scratch.file.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
 			}
 			syncDirectory(directory)
 			// A directory's own entry lives in its parent, so a directory this save had to create is only durable
@@ -180,7 +183,7 @@ class MetaData(root: FileHandle? = null) {
 		} finally {
 			// A no-op once the move succeeded, and the reason a failed save leaves no half-written file behind for
 			// the next launch to read as corrupt.
-			scratch.delete()
+			scratch.file.delete()
 		}
 	}
 
@@ -228,19 +231,26 @@ class MetaData(root: FileHandle? = null) {
 	 * opened, and neither is a link planted where one would go. A predictable name opened with `TRUNCATE_EXISTING`
 	 * would have destroyed the first and written through the second.
 	 *
+	 * The channel the creation opened is the one handed back and written through. Creating the file and then
+	 * reopening it by name would be two chances to resolve that name, and only the first of them is exclusive.
+	 *
 	 * The name is a fixed length and owes nothing to the key, which is what keeps it inside a filesystem's 255-byte
 	 * component limit however long the key is - deriving it from the target meant a key that saved fine on its own
 	 * had a sibling too long to create. Creating the file here rather than asking `Files.createTempFile` for it is
 	 * what gives a new save the directory's umask.
 	 */
-	private fun createScratch(directory: File): File {
+	private fun createScratch(directory: File): Scratch {
 		var attempt = 0
 		while (true) {
 			val unique = java.lang.Long.toHexString(ThreadLocalRandom.current().nextLong())
 			val candidate = File(directory, "$SCRATCH_PREFIX$unique$SCRATCH_SUFFIX")
 			try {
-				Files.createFile(candidate.toPath())
-				return candidate
+				val channel = FileChannel.open(
+					candidate.toPath(),
+					StandardOpenOption.CREATE_NEW,
+					StandardOpenOption.WRITE,
+				)
+				return Scratch(candidate, channel)
 			} catch (failure: FileAlreadyExistsException) {
 				if (++attempt >= MAX_SCRATCH_ATTEMPTS) throw failure
 			}
@@ -446,9 +456,13 @@ class MetaData(root: FileHandle? = null) {
 		}
 
 		var candidate = File(file.parentFile, boundedName(file.name, CORRUPT_SUFFIX))
-		var attempt = 1
+		var attempt = 0
 		while (candidate.exists() && attempt < MAX_QUARANTINE_ATTEMPTS) {
-			candidate = File(file.parentFile, boundedName(file.name, "$CORRUPT_SUFFIX.$attempt"))
+			// Random rather than the next number in a sequence. A counter runs out, and running out here means the
+			// damaged file stays at its live path with nowhere to go - where the caller's usual `?: defaults()` save
+			// then overwrites the very bytes this exists to keep.
+			val unique = java.lang.Long.toHexString(ThreadLocalRandom.current().nextLong())
+			candidate = File(file.parentFile, boundedName(file.name, "$CORRUPT_SUFFIX.$unique"))
 			attempt++
 		}
 		if (candidate.exists()) {
