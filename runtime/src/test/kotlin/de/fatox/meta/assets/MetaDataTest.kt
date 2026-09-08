@@ -2,6 +2,8 @@ package de.fatox.meta.assets
 
 import com.badlogic.gdx.files.FileHandle
 import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.input.MetaUiInputBindings
+import de.fatox.meta.input.loadProfile
 import de.fatox.meta.test.GdxTestEnvironment
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
@@ -453,6 +455,21 @@ class MetaDataTest {
 
 			val survivors = root.file().walkTopDown().filter { it.isFile && it.readText() == damaged }.toList()
 			assertTrue(survivors.isNotEmpty(), "the damaged bytes were lost once the numbered names were taken")
+		}
+	}
+
+	/**
+	 * `load` answers `null` both for "nothing is stored" and for "this could not be read right now". Any caller that
+	 * writes defaults on `null` therefore destroys a good file whenever a read fails transiently - a scanner or a
+	 * sync client holding a brief lock. `loadProfile` was the one caller doing it.
+	 */
+	@Test
+	fun `loading an input profile does not write one`() {
+		withMetaData { metaData, root ->
+			MetaUiInputBindings().loadProfile(metaData)
+
+			val created = root.file().walkTopDown().filter { it.isFile }.toList()
+			assertTrue(created.isEmpty(), "loading wrote ${created.map { it.name }}")
 		}
 	}
 
