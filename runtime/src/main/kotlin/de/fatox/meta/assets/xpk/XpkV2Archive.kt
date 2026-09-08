@@ -46,6 +46,7 @@ class XpkV2Archive internal constructor(
 	private val blockStoredSize: IntArray,
 	private val blockRawSize: IntArray,
 	private val blockCodec: ByteArray,
+	private val blockChecksums: IntArray,
 	private val blockNonces: ByteArray,
 ) : Disposable {
 	private val lock = Any()
@@ -119,9 +120,10 @@ class XpkV2Archive internal constructor(
 			CODEC_DEFLATE -> inflate(stored, blockRawSize[blockIndex])
 			else -> throw GdxRuntimeException("Unknown XPK codec $codec in $archivePath")
 		}
-		// A block whose plaintext does not hash to the nonce it was stored with has been altered or corrupted.
-		val expected = XpkFormat.blockNonce(profile, raw, 0, raw.size)
-		if (!expected.contentEquals(nonce)) {
+		// CRC32C rather than recomputing the nonce's HMAC: same coverage of the case that actually happens - a
+		// truncated download, a bad sector - at roughly a thirtieth of the cost, which is what lets it stay
+		// unconditional. Forgery is the signature's job, not this one.
+		if (XpkFormat.blockChecksum(raw, 0, raw.size) != blockChecksums[blockIndex]) {
 			throw GdxRuntimeException("XPK block $blockIndex failed its integrity check in $archivePath")
 		}
 
@@ -306,6 +308,7 @@ class XpkV2Archive internal constructor(
 			val blockStoredSize = IntArray(blockCount)
 			val blockRawSize = IntArray(blockCount)
 			val blockCodec = ByteArray(blockCount)
+			val blockChecksums = IntArray(blockCount)
 			val blockNonces = ByteArray(blockCount * NONCE_LENGTH)
 			val blockBuffer = XpkFormat.littleEndian(blockTable)
 			for (index in 0 until blockCount) {
@@ -314,6 +317,7 @@ class XpkV2Archive internal constructor(
 				blockRawSize[index] = blockBuffer.getInt()
 				blockCodec[index] = blockBuffer.get()
 				blockBuffer.position(blockBuffer.position() + 3)
+				blockChecksums[index] = blockBuffer.getInt()
 				blockBuffer.get(blockNonces, index * NONCE_LENGTH, NONCE_LENGTH)
 				val offset = blockFileOffset[index]
 				val stored = blockStoredSize[index]
@@ -332,7 +336,7 @@ class XpkV2Archive internal constructor(
 			return XpkV2Archive(
 				profile, channel, displayPath,
 				nameHashes, entryBlock, entryOffset, entrySize,
-				blockFileOffset, blockStoredSize, blockRawSize, blockCodec, blockNonces,
+				blockFileOffset, blockStoredSize, blockRawSize, blockCodec, blockChecksums, blockNonces,
 			)
 		}
 

@@ -334,16 +334,21 @@ class XpkV2FormatTest {
 		val storedSize = row.getInt(8)
 		val codec = blockTable[16]
 		assertEquals(XpkFormat.CODEC_STORE, codec, "this forgery needs an uncompressed block")
-		val oldNonce = blockTable.copyOfRange(20, 20 + XpkFormat.NONCE_LENGTH)
+		val oldNonce = blockTable.copyOfRange(24, 24 + XpkFormat.NONCE_LENGTH)
 
 		val plaintext = forged.copyOfRange(blockOffset, blockOffset + storedSize)
 		XpkFormat.crypt(signing, oldNonce, plaintext, 0, plaintext.size)
 		plaintext[0] = (plaintext[0] + 1).toByte()
 
+		// Both derived from the altered plaintext, before it goes back under the cipher - exactly what the writer
+		// would have produced, so neither the nonce check nor the CRC can catch this. Only the signature can.
 		val newNonce = XpkFormat.blockNonce(signing, plaintext, 0, plaintext.size)
+		val newChecksum = XpkFormat.blockChecksum(plaintext, 0, plaintext.size)
+
 		XpkFormat.crypt(signing, newNonce, plaintext, 0, plaintext.size)
 		plaintext.copyInto(forged, blockOffset)
-		newNonce.copyInto(blockTable, 20)
+		newNonce.copyInto(blockTable, 24)
+		XpkFormat.littleEndian(blockTable).putInt(20, newChecksum)
 
 		XpkFormat.crypt(signing, blockTableNonce, blockTable, 0, blockTable.size)
 		blockTable.copyInto(forged, blockTableStart)

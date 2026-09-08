@@ -100,6 +100,7 @@ class XpkWriter(private val profile: XpkProfile) {
 		var stored: ByteArray = raw
 		var codec: Byte = CODEC_STORE
 		var nonce: ByteArray = ByteArray(NONCE_LENGTH)
+		var checksum: Int = 0
 		var fileOffset: Long = 0
 	}
 
@@ -186,6 +187,7 @@ class XpkWriter(private val profile: XpkProfile) {
 		val worthIt = deflated.size < block.raw.size * XpkFormat.STORE_RAW_RATIO
 		block.stored = if (worthIt) deflated else block.raw.copyOf()
 		block.codec = if (worthIt) CODEC_DEFLATE else CODEC_STORE
+		block.checksum = XpkFormat.blockChecksum(block.raw, 0, block.raw.size)
 		// Nonce from the *plaintext*, so an unchanged block is byte-identical after encryption in the next build.
 		block.nonce = XpkFormat.blockNonce(profile, block.raw, 0, block.raw.size)
 		XpkFormat.crypt(profile, block.nonce, block.stored, 0, block.stored.size)
@@ -260,6 +262,7 @@ class XpkWriter(private val profile: XpkProfile) {
 			buffer.putInt(block.raw.size)
 			buffer.put(block.codec)
 			buffer.put(ByteArray(3))
+			buffer.putInt(block.checksum)
 			buffer.put(block.nonce)
 		}
 		val bytes = buffer.array()
