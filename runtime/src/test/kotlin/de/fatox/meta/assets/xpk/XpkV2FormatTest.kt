@@ -1,0 +1,581 @@
+package de.fatox.meta.assets.xpk
+
+import com.badlogic.gdx.files.FileHandle
+import org.junit.jupiter.api.Test
+import java.io.File
+import java.nio.file.Files
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import kotlin.random.Random
+import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+private const val TOC_CHECKSUM_OFFSET = 8 + 4 + 4 + 4 + 2 + 2
+
+class XpkV2FormatTest {
+	@Test
+	fun `round trips every entry`() {
+		val contents = sampleContents()
+		withArchive(contents) { archive ->
+			assertEquals(contents.size, archive.entryCount)
+			for ((path, expected) in contents) {
+				val handle = archive.find(path) ?: error("missing $path")
+				assertEquals(expected.size.toLong(), handle.length(), "length of $path")
+				assertContentEquals(expected, handle.readBytes(), "bytes of $path")
+			}
+		}
+	}
+
+	@Test
+	fun `lookup is case and separator insensitive, and misses report absence`() {
+		withArchive(mapOf("ui/skin/panel.png" to ByteArray(64) { it.toByte() })) { archive ->
+			assertTrue(archive.find("ui/skin/panel.png") != null)
+			assertTrue(archive.find("UI/Skin/Panel.PNG") != null)
+			assertTrue(archive.find("ui\\skin\\panel.png") != null)
+			assertTrue(archive.find("./ui//skin/panel.png") != null)
+			assertNull(archive.find("ui/skin/missing.png"))
+
+			// A miss never stands in for another entry - v1's parent()/child() did, and fed one asset to another.
+			val handle = archive.find("ui/skin/panel.png")!!
+			val missing = handle.sibling("nope.png")
+			assertTrue(!missing.exists())
+			assertEquals(0L, missing.length())
+		}
+	}
+
+	/**
+	 * The property every measure in `docs/xpk-format-audit.md` §9 rests on. A packer that reshuffles or re-salts
+	 * between builds makes Steam re-download the archive whatever else is done.
+	 */
+	@Test
+	fun `packing the same content twice is byte identical`() {
+		val profile = testProfile()
+		val contents = sampleContents()
+
+		val first = pack(profile, contents)
+		val second = pack(profile, contents)
+		assertContentEquals(first, second, "identical inputs must produce identical bytes")
+
+		// Insertion order must not matter either: the layout is sorted by name hash.
+		val reordered = pack(profile, contents.entries.reversed().associate { it.key to it.value })
+		assertContentEquals(first, reordered, "insertion order must not change the output")
+	}
+
+	/**
+	 * Changing one entry must leave the other blocks byte-identical, so a chunk-matching patcher finds them again.
+	 *
+	 * This models what SteamPipe does - Valve's documentation says it "searches to find any such chunks that match
+	 * the previous build" - by chunking both builds on the archive's own 4 KB block alignment and measuring how much
+	 * of the old file is still present verbatim. It deliberately does not assert byte-position equality: exact offset
+	 * stability would need fixed-size slots, which for blocks compressing 2:1 would waste about half the archive.
+	 * What must hold is that unchanged content re-encrypts to the same bytes, which a per-build random nonce or a
+	 * non-deterministic layout would destroy.
+	 */
+	@Test
+	fun `changing one entry leaves the other blocks byte identical`() {
+		val profile = testProfile()
+		val contents = LinkedHashMap(sampleContents())
+		val before = pack(profile, contents)
+
+		contents["data/config.json"] = """{"tweaked":true}""".toByteArray()
+		val after = pack(profile, contents)
+
+		val reusable = chunks(after)
+		var matched = 0
+		var total = 0
+		for (chunk in chunks(before)) {
+			total++
+			if (reusable.contains(chunk)) matched++
+		}
+
+		assertTrue(
+			matched * 2 >= total,
+			"only $matched of $total 4 KB chunks survived a one-entry change; unchanged blocks must re-encrypt " +
+				"identically so a delta can reuse them",
+		)
+	}
+
+	/** The archive's own block alignment, which is the granularity a patcher can reuse at. */
+	private fun chunks(archive: ByteArray): Set<String> {
+		val size = XpkFormat.BLOCK_ALIGNMENT
+		val out = HashSet<String>()
+		var offset = 0
+		while (offset + size <= archive.size) {
+			out.add(String(archive, offset, size, Charsets.ISO_8859_1))
+			offset += size
+		}
+		return out
+	}
+
+	@Test
+	fun `identical payloads are stored once`() {
+		// Incompressible, and well over the 4 KB block alignment, so the saving is not hidden by padding.
+		val shared = Random(1).nextBytes(20_000)
+		val profile = testProfile()
+		val deduped = pack(profile, mapOf("a/one.bin" to shared, "b/two.bin" to shared, "c/three.bin" to shared))
+		val distinct = pack(
+			profile,
+			mapOf(
+				"a/one.bin" to shared,
+				"b/two.bin" to Random(2).nextBytes(20_000),
+				"c/three.bin" to Random(3).nextBytes(20_000),
+			),
+		)
+		assertTrue(
+			deduped.size + 2 * 20_000 <= distinct.size,
+			"three copies of one payload should cost about one (${deduped.size} vs ${distinct.size})",
+		)
+	}
+
+	@Test
+	fun `a wrong profile does not open the archive`() {
+		val contents = sampleContents()
+		val file = writeArchive(testProfile(), contents)
+		try {
+			val otherKey = XpkProfile.of(
+				rootKey = ByteArray(32) { 9 },
+				nameHashKey = ByteArray(32) { 8 },
+				profileId = 7,
+				footerMask = 0x0123_4567_89AB_CDEFuL.toLong(),
+			)
+			assertNull(XpkV2Archive.openOrNull(otherKey, FileHandle(file)), "a different key must not open it")
+
+			val otherId = XpkProfile.of(
+				rootKey = ByteArray(32) { 1 },
+				nameHashKey = ByteArray(32) { 2 },
+				profileId = 999,
+				footerMask = 0x5EED_5EED_5EED_5EEDuL.toLong(),
+			)
+			assertNull(XpkV2Archive.openOrNull(otherId, FileHandle(file)), "a different profile id must not open it")
+		} finally {
+			file.delete()
+		}
+	}
+
+	@Test
+	fun `a corrupted block is rejected rather than served`() {
+		val contents = mapOf("data/big.bin" to ByteArray(20_000) { (it % 251).toByte() })
+		val profile = testProfile()
+		val packed = pack(profile, contents)
+		// Flip a byte well inside the payload region, past the salt.
+		packed[XpkFormat.SALT_LENGTH + 64] = (packed[XpkFormat.SALT_LENGTH + 64] + 1).toByte()
+
+		val file = writeBytes(packed)
+		try {
+			val archive = XpkV2Archive.openOrNull(profile, FileHandle(file))
+			// The footer and TOC are intact, so the archive opens; the damaged block fails when it is read.
+			if (archive != null) {
+				archive.use {
+					assertFailsWith<Exception> { it.find("data/big.bin")!!.readBytes() }
+				}
+			}
+		} finally {
+			file.delete()
+		}
+	}
+
+	@Test
+	fun `a tampered table of contents fails signature verification`() {
+		val keys = ed25519()
+		val signing = XpkProfile.of(
+			rootKey = ByteArray(32) { 1 },
+			nameHashKey = ByteArray(32) { 2 },
+			profileId = 42,
+			footerMask = 0x5EED_5EED_5EED_5EEDuL.toLong(),
+			tocSigningKey = keys.public,
+		)
+		val contents = sampleContents()
+
+		// Signed by CI's key: opens and reads.
+		val signed = writeBytes(XpkWriter(signing).apply { addAll(contents) }.build(keys.private))
+		try {
+			XpkV2Archive.openOrNull(signing, FileHandle(signed))!!.use { archive ->
+				assertContentEquals(contents.getValue("data/config.json"), archive.find("data/config.json")!!.readBytes())
+			}
+		} finally {
+			signed.delete()
+		}
+
+		// Signed by somebody else's key: identified as this profile's, then fails to prove it.
+		val forged = writeBytes(XpkWriter(signing).apply { addAll(contents) }.build(ed25519().private))
+		try {
+			assertFailsWith<Exception> { XpkV2Archive.openOrNull(signing, FileHandle(forged)) }
+		} finally {
+			forged.delete()
+		}
+
+		// Unsigned, against a profile that demands a signature.
+		val unsigned = writeBytes(XpkWriter(signing).apply { addAll(contents) }.build())
+		try {
+			assertFailsWith<Exception> { XpkV2Archive.openOrNull(signing, FileHandle(unsigned)) }
+		} finally {
+			unsigned.delete()
+		}
+	}
+
+	@Test
+	fun `the archive carries no plaintext name or magic`() {
+		val contents = mapOf("textures/hero_diffuse.png" to ByteArray(2_048) { (it * 3).toByte() })
+		val packed = pack(testProfile(), contents)
+		val asLatin1 = String(packed, Charsets.ISO_8859_1)
+		assertTrue(!asLatin1.contains("hero_diffuse"), "entry names must not appear in the archive")
+		assertTrue(!asLatin1.contains("textures/"), "directory paths must not appear in the archive")
+		// 7z's signature, which v1 only partially masked.
+		assertTrue(!asLatin1.contains("7z¼¯'"), "no recognisable archive magic")
+	}
+
+	@Test
+	fun `blocks are laid into aligned pages`() {
+		// Enough distinct payload to need several blocks and cross a page boundary.
+		val contents = (0 until 40).associate { index ->
+			"pages/entry$index.bin" to Random(index).nextBytes(48_000)
+		}
+		val packed = pack(testProfile(), contents)
+		assertTrue(
+			packed.size > XpkFormat.PAGE_SIZE,
+			"test needs to cross a page boundary, archive was ${packed.size} bytes",
+		)
+	}
+
+	/** Reads touch one block, so nothing accumulates and there is no retention policy to get wrong. */
+	@Test
+	fun `reading many entries does not retain them`() {
+		val contents = (0 until 30).associate { index ->
+			"sfx/clip$index.bin" to ByteArray(1_500) { (index + it).toByte() }
+		}
+		withArchive(contents) { archive ->
+			// Reverse order: the worst case for anything that reads forward from a shared cursor.
+			for ((path, expected) in contents.entries.reversed()) {
+				assertContentEquals(expected, archive.find(path)!!.readBytes())
+			}
+			// Two reads of the same entry return equal but independent arrays - callers own what they get.
+			val handle = archive.find("sfx/clip3.bin")!!
+			val first = handle.readBytes()
+			val second = handle.readBytes()
+			assertContentEquals(first, second)
+			assertNotEquals(System.identityHashCode(first), System.identityHashCode(second))
+		}
+	}
+
+	/**
+	 * The footer is untrusted input: every length and count in it is attacker-controlled once a file is on disk.
+	 * A truncated or scrambled tail must read as "not mine", never as an out-of-bounds access.
+	 */
+	@Test
+	fun `a damaged or truncated footer is rejected without throwing`() {
+		val profile = testProfile()
+		val packed = pack(profile, sampleContents())
+
+		val cases = linkedMapOf(
+			"empty" to ByteArray(0),
+			"shorter than a footer" to packed.copyOf(8),
+			"salt only" to packed.copyOf(XpkFormat.SALT_LENGTH),
+			"truncated mid payload" to packed.copyOf(packed.size / 2),
+			"scrambled footer" to packed.copyOf().also { copy ->
+				for (index in copy.size - XpkFormat.FOOTER_LENGTH until copy.size) copy[index] = 0
+			},
+			"all zeroes" to ByteArray(packed.size),
+			"random noise" to Random(11).nextBytes(packed.size),
+			// Counts alone were not a memory bound: at the old ceilings these tables would come to over a gigabyte,
+			// and the arrays derived from them to several more, before any signature was checked.
+			"absurd metadata counts" to packed.copyOf().also { copy ->
+				val footerStart = copy.size - XpkFormat.FOOTER_LENGTH
+				val footer = copy.copyOfRange(footerStart, copy.size)
+				XpkFormat.maskFooter(testProfile(), footer, copy.size.toLong())
+				val fields = XpkFormat.littleEndian(footer)
+				fields.putInt(8, Int.MAX_VALUE / XpkFormat.TOC_ROW_LENGTH * XpkFormat.TOC_ROW_LENGTH)
+				fields.putInt(12, 1 shl 23)
+				fields.putInt(16, Int.MAX_VALUE / XpkFormat.TOC_ROW_LENGTH)
+				XpkFormat.maskFooter(testProfile(), footer, copy.size.toLong())
+				footer.copyInto(copy, footerStart)
+			},
+		)
+
+		for ((label, bytes) in cases) {
+			val file = writeBytes(bytes)
+			try {
+				val opened = XpkV2Archive.openOrNull(profile, FileHandle(file))
+				assertNull(opened, "'$label' must not open as an archive")
+			} finally {
+				file.delete()
+			}
+		}
+	}
+
+	/**
+	 * The threat this exists for: somebody holding the game-embedded symmetric key but not the CI signing key.
+	 *
+	 * They can decrypt and re-encrypt anything, so the signature has to cover every field that decides which bytes an
+	 * entry resolves to - not only the table of contents. The block table carries each block's offset and nonce, so
+	 * signing the TOC alone would let them re-point an entry and keep the original signature.
+	 */
+	@Test
+	fun `rewriting the block table breaks the signature`() {
+		val keys = ed25519()
+		val signing = signingProfile(keys.public)
+		// One incompressible entry, so the archive holds exactly one block and it is stored rather than deflated -
+		// the forgery below rewrites block plaintext, which a compressed stream would not survive.
+		val contents = mapOf("textures/hero.png" to Random(31).nextBytes(30_000))
+		val packed = XpkWriter(signing).apply { addAll(contents) }.build(keys.private)
+
+		// A real forgery, not a byte flip. Anything that merely corrupts a field is already caught by the bounds
+		// checks or the per-block nonce, and would pass this test without the signature covering the block table.
+		// This does what the attacker would: decrypt the block, alter it, recompute its nonce, re-encrypt, install
+		// the new nonce in the block table, and repair the footer checksum. Only the signature can stop it.
+		val forged = packed.copyOf()
+		val footerStart = forged.size - XpkFormat.FOOTER_LENGTH
+		val footer = forged.copyOfRange(footerStart, forged.size)
+		XpkFormat.maskFooter(signing, footer, forged.size.toLong())
+
+		val fields = XpkFormat.littleEndian(footer)
+		val tocStart = fields.getLong(0).toInt()
+		val tocLength = fields.getInt(8)
+		val blockCount = fields.getInt(12)
+		val blockTableStart = tocStart - blockCount * XpkFormat.BLOCK_ROW_LENGTH
+		val salt = forged.copyOfRange(0, XpkFormat.SALT_LENGTH)
+
+		val blockTable = forged.copyOfRange(blockTableStart, tocStart)
+		val blockTableNonce = XpkFormat.metadataNonce(signing, salt, XpkFormat.PURPOSE_BLOCK_TABLE)
+		XpkFormat.crypt(signing, blockTableNonce, blockTable, 0, blockTable.size)
+
+		val row = XpkFormat.littleEndian(blockTable)
+		val blockOffset = row.getLong(0).toInt()
+		val storedSize = row.getInt(8)
+		val codec = blockTable[16]
+		assertEquals(XpkFormat.CODEC_STORE, codec, "this forgery needs an uncompressed block")
+		val oldNonce = blockTable.copyOfRange(24, 24 + XpkFormat.NONCE_LENGTH)
+
+		val plaintext = forged.copyOfRange(blockOffset, blockOffset + storedSize)
+		XpkFormat.crypt(signing, oldNonce, plaintext, 0, plaintext.size)
+		plaintext[0] = (plaintext[0] + 1).toByte()
+
+		// Both derived from the altered plaintext, before it goes back under the cipher - exactly what the writer
+		// would have produced, so neither the nonce check nor the CRC can catch this. Only the signature can.
+		val newNonce = XpkFormat.blockNonce(signing, plaintext, 0, plaintext.size)
+		val newChecksum = XpkFormat.blockChecksum(plaintext, 0, plaintext.size)
+
+		XpkFormat.crypt(signing, newNonce, plaintext, 0, plaintext.size)
+		plaintext.copyInto(forged, blockOffset)
+		newNonce.copyInto(blockTable, 24)
+		XpkFormat.littleEndian(blockTable).putInt(20, newChecksum)
+
+		XpkFormat.crypt(signing, blockTableNonce, blockTable, 0, blockTable.size)
+		blockTable.copyInto(forged, blockTableStart)
+
+		val repaired = XpkFormat.metadataChecksum(
+			XpkFormat.metadataDigest(blockTable, forged.copyOfRange(tocStart, tocStart + tocLength)),
+		)
+		fields.putLong(TOC_CHECKSUM_OFFSET, repaired)
+		XpkFormat.maskFooter(signing, footer, forged.size.toLong())
+		footer.copyInto(forged, footerStart)
+
+		val file = writeBytes(forged)
+		try {
+			assertFailsWith<Exception>("a re-encrypted block with a repaired block table must not verify") {
+				XpkV2Archive.openOrNull(signing, FileHandle(file))
+			}
+		} finally {
+			file.delete()
+		}
+	}
+
+	/**
+	 * `rawSize` reaches `ByteArray(rawSize)`. Unchecked, a flipped field is a negative-size throw or an
+	 * out-of-memory kill rather than a rejected archive - and a development profile has no signature to catch it.
+	 */
+	@Test
+	fun `implausible block sizes are rejected rather than allocated`() {
+		assertTrue(XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, 1_024, 1_024))
+		assertTrue(XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, 1_024, 64 * 1_024))
+
+		assertTrue(!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, 1_024, -1), "negative rawSize")
+		assertTrue(!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, -1, 1_024), "negative storedSize")
+		// storedSize is allocated before anything is decoded, so capping only rawSize left this open.
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, XpkFormat.MAX_BLOCK_RAW_SIZE + 1, 1_024),
+			"an oversized stored block is allocated before it is decoded",
+		)
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, XpkFormat.MAX_BLOCK_RAW_SIZE + 1, 1_024),
+			"the same cap applies to a stored block",
+		)
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, 1_024, Int.MAX_VALUE),
+			"a 2 GB allocation from a 1 KB block is a decompression bomb",
+		)
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, 1_024, 4_096),
+			"a stored block's raw size is its stored size",
+		)
+		assertTrue(!XpkFormat.isPlausibleBlock(99, 1_024, 1_024), "unknown codec")
+	}
+
+	/**
+	 * An incompressible entry larger than a page cannot be made to fit one, but it must not leave everything after it
+	 * off-boundary - that would misalign the whole tail of the archive against SteamPipe's chunking.
+	 */
+	@Test
+	fun `an oversized entry realigns the blocks that follow it`() {
+		val contents = linkedMapOf(
+			"video/intro.bin" to Random(21).nextBytes(XpkFormat.PAGE_SIZE * 2 + 5_000),
+			"data/after.bin" to Random(22).nextBytes(30_000),
+			"data/more.bin" to Random(23).nextBytes(30_000),
+		)
+		withArchive(contents) { archive ->
+			for ((path, expected) in contents) {
+				assertContentEquals(expected, archive.find(path)!!.readBytes(), "bytes of $path")
+			}
+
+			val offsets = archive.blockOffsets
+			assertTrue(offsets.size >= 2, "test needs an oversized block followed by others")
+			for (index in offsets.indices) {
+				assertEquals(
+					0L,
+					(offsets[index] - XpkFormat.SALT_LENGTH) % XpkFormat.BLOCK_ALIGNMENT,
+					"block $index starts off the block alignment",
+				)
+			}
+			// The block after the oversized run must be back on a page boundary, not trailing its remainder.
+			val afterOversized = offsets.filter { it - XpkFormat.SALT_LENGTH >= XpkFormat.PAGE_SIZE }
+			assertTrue(afterOversized.isNotEmpty(), "test needs a block past the first page")
+			assertEquals(
+				0L,
+				(afterOversized.first() - XpkFormat.SALT_LENGTH) % XpkFormat.PAGE_SIZE,
+				"the first block after an oversized run should start a fresh page",
+			)
+		}
+	}
+
+	private fun sampleTocLength(entryCount: Int): Int = entryCount * XpkFormat.TOC_ROW_LENGTH
+
+	private fun signingProfile(publicKey: java.security.PublicKey): XpkProfile = XpkProfile.of(
+		rootKey = ByteArray(32) { 1 },
+		nameHashKey = ByteArray(32) { 2 },
+		profileId = 42,
+		footerMask = 0x5EED_5EED_5EED_5EEDuL.toLong(),
+		tocSigningKey = publicKey,
+	)
+
+	/**
+	 * The writer must not be able to produce an archive its own reader refuses. Both sides read the limit from
+	 * `XpkFormat`, so the pack fails at the point the entry enters rather than at load time in a shipped game.
+	 */
+	@Test
+	fun `the writer and reader agree on the block size limit`() {
+		val limit = XpkFormat.MAX_BLOCK_RAW_SIZE
+
+		// Asserted through the predicates rather than by packing a 512 MB entry: allocating the array to test a size
+		// guard exhausts the test JVM before the guard is ever reached.
+		assertTrue(XpkFormat.isPackableEntrySize(limit), "an entry at the limit must be packable")
+		assertTrue(!XpkFormat.isPackableEntrySize(limit + 1), "an entry over the limit must not be")
+		assertTrue(!XpkFormat.isPackableEntrySize(-1))
+
+		assertTrue(
+			XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, limit, limit),
+			"the reader must accept what the writer will emit at the limit",
+		)
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, limit + 1, limit + 1),
+			"the two limits must be the same one, or the writer can produce an unreadable archive",
+		)
+
+		// And a real entry spanning several blocks still round-trips, so the boundary logic is exercised for real.
+		val spanning = Random(41).nextBytes(XpkFormat.BLOCK_SIZE * 3 + 17)
+		withArchive(mapOf("video/clip.bin" to spanning)) { archive ->
+			assertContentEquals(spanning, archive.find("video/clip.bin")!!.readBytes())
+		}
+	}
+
+	/**
+	 * The name hash is computed over a lower-cased path, so two spellings resolve to the same entry - but the handle
+	 * has to report the canonical spelling too. `MetaAssetProvider.load` builds its `AssetDescriptor` from the
+	 * handle and AssetManager keys on `path()`, so differing casings would become two managed copies of one asset.
+	 */
+	@Test
+	fun `handles report a canonical path whatever casing was asked for`() {
+		withArchive(mapOf("UI/Skin/Panel.PNG" to ByteArray(64) { it.toByte() })) { archive ->
+			val spellings = listOf(
+				"UI/Skin/Panel.PNG",
+				"ui/skin/panel.png",
+				"Ui\\Skin\\PANEL.png",
+				"./UI//Skin/Panel.PNG",
+			)
+			for (spelling in spellings) {
+				val handle = archive.find(spelling) ?: error("missing for spelling '$spelling'")
+				assertEquals(
+					"ui/skin/panel.png",
+					handle.path(),
+					"'$spelling' should resolve to one canonical AssetManager key",
+				)
+			}
+		}
+	}
+
+	@Test
+	fun `duplicate and empty entry paths are rejected at pack time`() {
+		val writer = XpkWriter(testProfile())
+		writer.add("a/b.bin", ByteArray(4))
+		assertFailsWith<IllegalArgumentException> { writer.add("a/b.bin", ByteArray(4)) }
+		assertFailsWith<IllegalArgumentException> { writer.add("./", ByteArray(4)) }
+		// Normalisation means these are the same path, so the second is a duplicate too.
+		assertFailsWith<IllegalArgumentException> { writer.add("a\\b.bin", ByteArray(4)) }
+	}
+
+	// ---- helpers --------------------------------------------------------------------------------------------
+
+	private fun sampleContents(): Map<String, ByteArray> = linkedMapOf(
+		"data/config.json" to """{"volume":0.8,"difficulty":"normal"}""".toByteArray(),
+		"shaders/basic.vert" to "attribute vec4 a_position;\nvoid main(){gl_Position=a_position;}\n".toByteArray(),
+		"textures/tile.png" to Random(7).nextBytes(9_000),
+		"textures/hero.png" to Random(8).nextBytes(70_000),
+		"sfx/step.ogg" to Random(9).nextBytes(3_500),
+	)
+
+	private fun testProfile(): XpkProfile = XpkProfile.of(
+		rootKey = ByteArray(32) { 1 },
+		nameHashKey = ByteArray(32) { 2 },
+		profileId = 42,
+		footerMask = 0x5EED_5EED_5EED_5EEDuL.toLong(),
+	)
+
+	private fun ed25519(): KeyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair()
+
+	private fun pack(profile: XpkProfile, contents: Map<String, ByteArray>): ByteArray =
+		XpkWriter(profile).apply { addAll(contents) }.build()
+
+	private fun writeArchive(profile: XpkProfile, contents: Map<String, ByteArray>): File =
+		writeBytes(pack(profile, contents))
+
+	private fun writeBytes(bytes: ByteArray): File {
+		val file = Files.createTempFile("meta-xpk-v2", ".xpk").toFile()
+		file.writeBytes(bytes)
+		return file
+	}
+
+	private fun withArchive(contents: Map<String, ByteArray>, block: (XpkV2Archive) -> Unit) {
+		val profile = testProfile()
+		val file = writeArchive(profile, contents)
+		try {
+			val archive = XpkV2Archive.openOrNull(profile, FileHandle(file)) ?: error("archive did not open")
+			archive.use(block)
+		} finally {
+			file.delete()
+		}
+	}
+}
+
+private fun XpkWriter.addAll(contents: Map<String, ByteArray>) {
+	for (entry in contents.entries) add(entry.key, entry.value)
+}
+
+private inline fun XpkV2Archive.use(block: (XpkV2Archive) -> Unit) {
+	try {
+		block(this)
+	} finally {
+		dispose()
+	}
+}

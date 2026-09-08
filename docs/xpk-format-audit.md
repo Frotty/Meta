@@ -531,17 +531,23 @@ separate reasons to cap pack size at 1–2 GB, only the first of which is about 
    whatever the download size.
 3. Chunk matching has more to work with when unrelated content is not interleaved.
 
-**Two block sizes, not one.** This is the synthesis of §4.6 and the 1 MB chunk unit, and it resolves what looked like
-a conflict:
+**Three granularities, and one honest limit.** This is the synthesis of §4.6 and the 1 MB chunk unit:
 
 - **Compression blocks: 64 KB.** Keeps 98.6% of the achievable ratio and 0.221 ms per random access.
-- **Pages: 1 MB, 1 MB-aligned.** Compression blocks are packed into 1 MB pages and each page is padded to its
-  boundary. A block whose compressed size changes therefore never shifts anything outside its own page, so a change
-  dirties exactly one Steam chunk and cannot cascade.
+- **Block starts: 4 KB-aligned.** A re-compression that lands in the same 4 KB bucket shifts nothing at all.
+- **Pages: 1 MB, 1 MB-aligned.** Blocks never straddle a page, so a shift that does happen is confined to the page it
+  occurs in rather than running to the end of the file.
 
-Tail padding costs on average half a compression block per page — about **3% of archive size at 64 KB blocks** — which
-buys cascade-proof patching. That is why the compression block is 64 KB here rather than the 128 KB that pure ratio
-would pick: at 128 KB the same padding costs ~6%.
+**What this does not buy is exact offset stability.** An earlier draft of this section claimed a changed block "never
+shifts anything outside its own page". That is only achievable with fixed-size slots — every block occupying a full
+64 KB regardless of how well it compressed — which for blocks compressing 2:1 wastes about half the archive. The
+implemented guarantee is weaker and worth stating plainly: **unchanged blocks re-encrypt to identical bytes**, so a
+chunk-matching patcher can reuse them, and Valve's documentation says SteamPipe "searches to find any such chunks that
+match the previous build". Padding costs roughly 3% of archive size at 64 KB blocks, which is why the compression
+block is 64 KB rather than the 128 KB pure ratio would pick.
+
+`XpkV2FormatTest.changing one entry leaves the other blocks byte identical` measures exactly this, by chunking both
+builds on the 4 KB alignment and asserting most chunks survive — the same thing a delta algorithm does.
 
 **The real risks are all determinism, not geometry:**
 
@@ -584,7 +590,50 @@ Adopted decisions. All of these were probed on the project toolchain (Temurin 25
 | Vector API (`jdk.incubator.vector`) | **Incubator** in 25 | A SIMD keystream | **Skip** — AES-NI already beats it, and it needs `--add-modules` |
 | `sun.misc.Unsafe` memory access | Being removed | — | Do not build on it; use FFM |
 
-## 11. Suggested order of work
+## 11. What v2 implements, and what it does not
+
+The container from §7 is implemented in `runtime/src/main/kotlin/de/fatox/meta/assets/xpk/`: `XpkProfile`,
+`XpkFormat` (layout and primitives, shared by both sides so they cannot drift), `XpkWriter`, `XpkV2Archive` and its
+handles. `XPKLoader` and `XpkArchive` still read v1, and `MetaAssetProvider` tries v2 first and falls through.
+
+Closed by the design rather than by a fix:
+
+| Finding | How v2 removes it |
+| --- | --- |
+| M1 — whole archive in heap, 2 GB cap | Positional reads of one block at a time; the archive is never resident |
+| M2, and the four release-coverage findings on #42 | Blocks are independently decodable, so there is no shared cursor, no pass-through cache and no retention policy to get wrong |
+| M4 — unkeyed corruption check only | Per-block CRC32C, plus Ed25519 over both metadata tables — see the limit below |
+| M5 — six bytes of obfuscation | No plaintext magic; salt then ciphertext throughout |
+| M6 — no index | Sorted `long[]` of keyed name hashes, binary searched |
+| M7 — no streaming, NPE on a miss | `find` returns `null`; a miss can never alias another entry |
+| M8 — unversioned | Version and profile id in the footer |
+| M10 — no packer | `XpkWriter`, sharing `XpkFormat` with the reader |
+
+### What the integrity and signature checks actually cover
+
+Stated precisely, because an earlier draft of this document implied more:
+
+- **CRC32C per block, on every read.** Catches a truncated download, a bad sector, a half-written patch. It is not
+  tamper-proof — a CRC is recomputable, and four chosen bytes hold it constant while the rest of a block changes.
+- **Ed25519 over both metadata tables, optional.** Nobody without the CI key can author an archive or re-point an
+  entry at different bytes. It does **not** authenticate block contents.
+
+So somebody who has recovered the client-side symmetric key can still rewrite payload undetected. Closing that means
+hashing every entry with something unforgeable on every read, and the measured cost decides it: HMAC-SHA256 runs at
+1 551 MB/s on the project toolchain against CRC32C's 50 227, so a 5 MB asset would pay 3.4 ms instead of 0.1 ms.
+**This format exists to make extraction non-trivial, not to withstand an attacker who already holds the key** — see
+§8's ceiling — so the read path buys the cheap check and the expensive one is not offered.
+
+Deliberately still open:
+
+- **Zstd.** §4.4 says measure on real game data first; Deflate is the default until then.
+- **Texture pre-transcoding.** §4.5, and independent of the container — likely the larger load-time win.
+- **Native key derivation and R8.** §8, and a build-and-packaging decision rather than a format one.
+- **A binary-compatibility gate.** The API removals on #42 were caught by a manual `javap` diff. Meta ships to games
+  via JitPack, so japicmp or the Kotlin validator would catch that class automatically. Repo-wide decision.
+- **Bundle table.** §7 sketches one for load-group prefetch; nothing needs it until there is a consumer.
+
+## 12. Suggested order of work
 
 The correctness fixes are worth landing on the current format first — they are small, independently testable, and do
 not wait on a format decision.
