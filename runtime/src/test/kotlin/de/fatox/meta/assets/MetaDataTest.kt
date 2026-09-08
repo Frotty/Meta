@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermission
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -217,6 +218,39 @@ class MetaDataTest {
 			val reopened = newMetaData(root)
 			assertEquals("brutal", reopened.load(key, TestSettings::class)?.difficulty, "a valid save read as missing")
 			assertTrue(reopened.has(key), "has must agree with load")
+		}
+	}
+
+	/**
+	 * Publishing by rename means the file that lands is a new one, so a mode the old file had is lost unless it is
+	 * carried across - `Files.createTempFile` creates owner-only. Project metadata a collaborator could read would
+	 * stop being readable to them on the next save.
+	 *
+	 * POSIX-only, so this runs on CI (Linux) and is skipped on a Windows workstation.
+	 */
+	@Test
+	fun `replacing a save keeps the permissions of the file it replaces`() {
+		withMetaData { metaData, _ ->
+			val key = MetaDataKey<TestSettings>("permissions.json")
+			metaData.save(key, TestSettings().apply { difficulty = "hard" })
+			val path = metaData.getCachedHandle(key).file().toPath()
+
+			val readableByAll = setOf(
+				PosixFilePermission.OWNER_READ,
+				PosixFilePermission.OWNER_WRITE,
+				PosixFilePermission.GROUP_READ,
+				PosixFilePermission.OTHERS_READ,
+			)
+			try {
+				Files.setPosixFilePermissions(path, readableByAll)
+			} catch (_: UnsupportedOperationException) {
+				assumeTrue(false, "not a POSIX filesystem")
+			}
+
+			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
+
+			assertEquals(readableByAll, Files.getPosixFilePermissions(path), "the replacement narrowed the mode")
+			assertEquals("brutal", newMetaData(metaData.dataRoot).get(key, TestSettings::class).difficulty)
 		}
 	}
 

@@ -121,17 +121,28 @@ class MetaData(root: FileHandle? = null) {
 	 *
 	 * A direct write leaves a window in which the file on disk is neither the old value nor the new one, and killing
 	 * a game while it saves is ordinary behaviour rather than an edge case. A rename is atomic, so a reader sees one
-	 * complete version or the other, and the two flushes - the file's contents, then the directory entry that
-	 * publishes them - are what make that hold across a power loss rather than only across a process kill.
+	 * complete version or the other.
+	 *
+	 * The catch is that the published file is a *new* file, not the old one with new contents. Everything an in-place
+	 * write got for free now has to be re-established here on purpose, and each property that was missed turned up as
+	 * its own bug rather than as a variation of this one. So the set is written down rather than remembered:
+	 *
+	 * | Property        | How the replacement carries it                                                           |
+	 * |-----------------|------------------------------------------------------------------------------------------|
+	 * | Name            | the scratch sits in the target's own directory, which is what lets the rename be a replace |
+	 * | Naming rules    | `Files.createTempFile`, which unlike `File.createTempFile` accepts a prefix of any length  |
+	 * | Contents        | written and flushed to the device before the rename, so no kill can publish a partial file |
+	 * | Directory entry | the parent directory is forced afterwards, or a power loss can still drop the new entry    |
+	 * | Permissions     | copied off the file being replaced; see [carryPermissions] for what a new file gets        |
+	 *
+	 * Not carried, deliberately: ownership, creation time and any extended attributes. Nothing here reads them, and a
+	 * game's save directory belongs to one user. Anything added to that list belongs in the table above, with a test.
 	 */
 	private fun writeAtomically(handle: FileHandle, bytes: ByteArray) {
 		val target = handle.file().absoluteFile
 		val directory = target.parentFile
 		directory.mkdirs()
 
-		// `Files.createTempFile` rather than `File.createTempFile`: the latter demands a prefix of at least three
-		// characters and throws on anything shorter, so a two-letter key was a crash on save. Absolute paths keep the
-		// scratch file in the target's own directory, which is what makes the rename below an atomic replace.
 		val scratch = Files.createTempFile(directory.toPath(), target.name, SCRATCH_SUFFIX).toFile()
 		try {
 			FileOutputStream(scratch).use { output ->
@@ -139,6 +150,7 @@ class MetaData(root: FileHandle? = null) {
 				output.flush()
 				output.fd.sync()
 			}
+			carryPermissions(target, scratch)
 			try {
 				Files.move(
 					scratch.toPath(),
@@ -157,6 +169,27 @@ class MetaData(root: FileHandle? = null) {
 			// A no-op once the move succeeded, and the reason a failed save leaves no half-written file behind for
 			// the next launch to read as corrupt.
 			scratch.delete()
+		}
+	}
+
+	/**
+	 * Gives [scratch] the permissions of the file it is about to replace.
+	 *
+	 * `Files.createTempFile` creates owner-only, so publishing by rename would quietly narrow whatever mode the target
+	 * had - a project's metadata that collaborators could read stops being readable to them on the next save.
+	 *
+	 * Owner-only stays the intended mode for a file this creates: it is a player's own save data, and if the two
+	 * defaults have to differ then the narrow one is the right way to be wrong. Windows has no POSIX view, so there is
+	 * no mode to lose and nothing to do.
+	 */
+	private fun carryPermissions(target: File, scratch: File) {
+		if (!target.exists()) return
+		try {
+			Files.setPosixFilePermissions(scratch.toPath(), Files.getPosixFilePermissions(target.toPath()))
+		} catch (_: UnsupportedOperationException) {
+			// Not a POSIX filesystem: permissions are not something the replacement can drop here.
+		} catch (failure: IOException) {
+			log.debug { "Could not carry ${target.name}'s permissions onto the scratch file: ${failure.message}" }
 		}
 	}
 
