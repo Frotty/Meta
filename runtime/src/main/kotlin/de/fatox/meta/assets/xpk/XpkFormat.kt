@@ -160,28 +160,47 @@ internal object XpkFormat {
 	 * archive or re-point an entry without the CI key. It does not authenticate block *contents* - see
 	 * [blockChecksum] for why that check is a CRC and what it therefore does not cover.
 	 */
-	fun metadataChecksum(blockTable: ByteArray, toc: ByteArray): Long {
+	fun metadataDigest(blockTable: ByteArray, toc: ByteArray): ByteArray {
 		val digest = MessageDigest.getInstance("SHA-256")
 		digest.update(blockTable)
 		digest.update(toc)
-		return littleEndian(digest.digest()).getLong(0)
+		return digest.digest()
 	}
 
-	/** Feeds the same bytes to a signer or verifier, in the same order, without concatenating them. */
-	fun updateWithMetadata(signature: java.security.Signature, blockTable: ByteArray, toc: ByteArray) {
-		signature.update(blockTable)
-		signature.update(toc)
+	/** The footer's 64-bit summary of [metadataDigest], so the cheap check does not need the full digest. */
+	fun metadataChecksum(digest: ByteArray): Long = littleEndian(digest).getLong(0)
+
+	/**
+	 * What the Ed25519 signature is actually computed over: the 32-byte [metadataDigest], not the tables.
+	 *
+	 * Pure Ed25519 needs two passes over its message, so the JDK provider buffers everything handed to `update` and
+	 * copies it again in `verify` - feeding it the tables directly would hold three copies of attacker-declared data
+	 * before the signature could reject it. Signing a collision-resistant digest is the standard construction for
+	 * this (it is what Ed25519ph exists for) and makes verification constant-memory.
+	 */
+	fun signedDigest(signature: java.security.Signature, digest: ByteArray) {
+		signature.update(digest)
 	}
 
 	/**
 	 * Ceiling on the two metadata tables together, checked before either is read.
 	 *
-	 * Bounding the entry and block *counts* was not enough: at those limits the tables alone come to over a gigabyte,
-	 * and the arrays [XpkV2Archive] derives from them to several more - so a crafted footer could exhaust memory
-	 * before a signature was ever checked. 64 MB is around a million entries, far past any real game archive, and it
-	 * bounds every derived allocation in proportion.
+	 * This is the one number that bounds opening a hostile archive, so the whole path is enumerated here rather than
+	 * left to be re-derived each time a field turns out to be unbounded - which it did, four rounds running:
+	 *
+	 * | Allocation | Bound |
+	 * | --- | --- |
+	 * | footer, salt | constant |
+	 * | table of contents + block table | this budget, checked before either is read |
+	 * | arrays `XpkV2Archive.decode` derives | ~62% of the tables, since each row yields fewer bytes than it occupies |
+	 * | metadata digest, signature input | 32 bytes each, whatever the tables weigh |
+	 * | one decoded block | [MAX_BLOCK_RAW_SIZE], and only after the metadata verified |
+	 *
+	 * So a crafted archive costs at most this plus its derived arrays before it is rejected. 16 MB is around 250 000
+	 * entries - far past any real game archive, and an order of magnitude tighter than the count-based ceilings it
+	 * replaced.
 	 */
-	const val MAX_METADATA_BYTES: Long = 64L * 1024 * 1024
+	const val MAX_METADATA_BYTES: Long = 16L * 1024 * 1024
 
 	/**
 	 * Whether a block-table row's declared sizes are plausible before anything is allocated from them.

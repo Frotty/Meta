@@ -366,7 +366,9 @@ class XpkV2FormatTest {
 		XpkFormat.crypt(signing, blockTableNonce, blockTable, 0, blockTable.size)
 		blockTable.copyInto(forged, blockTableStart)
 
-		val repaired = XpkFormat.metadataChecksum(blockTable, forged.copyOfRange(tocStart, tocStart + tocLength))
+		val repaired = XpkFormat.metadataChecksum(
+			XpkFormat.metadataDigest(blockTable, forged.copyOfRange(tocStart, tocStart + tocLength)),
+		)
 		fields.putLong(TOC_CHECKSUM_OFFSET, repaired)
 		XpkFormat.maskFooter(signing, footer, forged.size.toLong())
 		footer.copyInto(forged, footerStart)

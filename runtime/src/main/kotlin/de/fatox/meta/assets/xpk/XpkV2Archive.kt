@@ -253,8 +253,9 @@ class XpkV2Archive internal constructor(
 				// Checksum and signature cover both tables as stored, so nothing that decides which bytes an entry
 				// resolves to is left unauthenticated. Verified before either is decrypted, and fed to the digest in
 				// place rather than concatenated - a joined copy would double the largest allocation here.
-				if (XpkFormat.metadataChecksum(blockTable, toc) != tocChecksum) return null
-				verifySignature(profile, footer, blockTable, toc, displayPath)
+				val metadataDigest = XpkFormat.metadataDigest(blockTable, toc)
+				if (XpkFormat.metadataChecksum(metadataDigest) != tocChecksum) return null
+				verifySignature(profile, footer, metadataDigest, displayPath)
 
 				XpkFormat.crypt(profile, XpkFormat.metadataNonce(profile, salt, XpkFormat.PURPOSE_TOC), toc, 0, toc.size)
 				XpkFormat.crypt(
@@ -275,18 +276,12 @@ class XpkV2Archive internal constructor(
 			}
 		}
 
-		private fun verifySignature(
-			profile: XpkProfile,
-			footer: ByteArray,
-			blockTable: ByteArray,
-			toc: ByteArray,
-			displayPath: String,
-		) {
+		private fun verifySignature(profile: XpkProfile, footer: ByteArray, metadataDigest: ByteArray, displayPath: String) {
 			val signingKey = profile.tocSigningKey ?: return
 			val signature = footer.copyOfRange(FOOTER_FIELDS_LENGTH, FOOTER_LENGTH)
 			val verifier = Signature.getInstance("Ed25519")
 			verifier.initVerify(signingKey)
-			XpkFormat.updateWithMetadata(verifier, blockTable, toc)
+			XpkFormat.signedDigest(verifier, metadataDigest)
 			// Not a "not mine" result: the archive identified itself as this profile's and then failed to prove it,
 			// which is the case the signature exists to catch.
 			if (!verifier.verify(signature)) {
