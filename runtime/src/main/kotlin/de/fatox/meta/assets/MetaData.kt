@@ -14,8 +14,8 @@ import de.fatox.meta.api.extensions.warn
 import de.fatox.meta.canonicalAppStorageName
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
+import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
@@ -130,10 +130,10 @@ class MetaData(root: FileHandle? = null) {
 	 * | Property        | How the replacement carries it                                                           |
 	 * |-----------------|------------------------------------------------------------------------------------------|
 	 * | Name            | the scratch sits in the target's own directory, which is what lets the rename be a replace |
-	 * | Naming rules    | `Files.createTempFile`, which unlike `File.createTempFile` accepts a prefix of any length  |
+	 * | Naming rules    | the scratch is named after the target, so no temp-file prefix rule applies to a short key   |
 	 * | Contents        | written and flushed to the device before the rename, so no kill can publish a partial file |
 	 * | Directory entry | the parent directory is forced afterwards, or a power loss can still drop the new entry    |
-	 * | Permissions     | copied off the file being replaced; see [carryPermissions] for what a new file gets        |
+	 * | Permissions     | umask for a file this creates, or the replaced file's own mode; see [carryPermissions]     |
 	 *
 	 * Not carried, deliberately: ownership, creation time and any extended attributes. Nothing here reads them, and a
 	 * game's save directory belongs to one user. Anything added to that list belongs in the table above, with a test.
@@ -143,12 +143,21 @@ class MetaData(root: FileHandle? = null) {
 		val directory = target.parentFile
 		directory.mkdirs()
 
-		val scratch = Files.createTempFile(directory.toPath(), target.name, SCRATCH_SUFFIX).toFile()
+		// Opened rather than requested from `Files.createTempFile`, which forces owner-only on POSIX. A file created
+		// here should get the directory's ordinary umask, exactly as the plain write this replaced did; a target that
+		// already exists has its own mode carried over below, which wins. Naming it after the target also retires the
+		// prefix-length rule that `File.createTempFile` imposed, rather than merely satisfying it.
+		val scratch = File(directory, target.name + SCRATCH_SUFFIX)
 		try {
-			FileOutputStream(scratch).use { output ->
-				output.write(bytes)
-				output.flush()
-				output.fd.sync()
+			FileChannel.open(
+				scratch.toPath(),
+				StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE,
+				StandardOpenOption.TRUNCATE_EXISTING,
+			).use { channel ->
+				val buffer = ByteBuffer.wrap(bytes)
+				while (buffer.hasRemaining()) channel.write(buffer)
+				channel.force(true)
 			}
 			carryPermissions(target, scratch)
 			try {
@@ -175,12 +184,12 @@ class MetaData(root: FileHandle? = null) {
 	/**
 	 * Gives [scratch] the permissions of the file it is about to replace.
 	 *
-	 * `Files.createTempFile` creates owner-only, so publishing by rename would quietly narrow whatever mode the target
-	 * had - a project's metadata that collaborators could read stops being readable to them on the next save.
+	 * Publishing by rename would otherwise hand the target whatever mode the scratch file happened to have, so a
+	 * project's metadata that collaborators could read stops being readable to them on the next save.
 	 *
-	 * Owner-only stays the intended mode for a file this creates: it is a player's own save data, and if the two
-	 * defaults have to differ then the narrow one is the right way to be wrong. Windows has no POSIX view, so there is
-	 * no mode to lose and nothing to do.
+	 * There is nothing to carry when the target does not exist yet, and nothing that should be: a file created here
+	 * takes the directory's umask like any other, which is what [writeAtomically] opens it for. Windows has no POSIX
+	 * view, so there is no mode to lose and nothing to do.
 	 */
 	private fun carryPermissions(target: File, scratch: File) {
 		if (!target.exists()) return
@@ -236,7 +245,7 @@ class MetaData(root: FileHandle? = null) {
 		)
 	)
 	operator fun <T : Any> get(key: String, type: KClass<out T>, parent: FileHandle = dataRoot): T =
-		read(key, type, parent) ?: newInstance(type)
+		read(key, type, parent, cached = true) ?: newInstance(type)
 
 	@Suppress("DEPRECATION")
 	fun <T : Any> load(key: MetaDataKey<T>, type: KClass<out T>, target: FileHandle = dataRoot): T? =
@@ -256,9 +265,18 @@ class MetaData(root: FileHandle? = null) {
 		)
 	)
 	fun <T : Any> load(key: String, type: KClass<out T>, target: FileHandle = dataRoot): T? =
-		read(key, type, target)
+		read(key, type, target, cached = false)
 
-	private fun <T : Any> read(key: String, type: KClass<out T>, parent: FileHandle): T? {
+	/**
+	 * Reads the stored value, optionally through the cache.
+	 *
+	 * [get] caches and [load] does not, which is the split that was already there before these two shared an
+	 * implementation. It exists because they answer for different things: settings are read constantly and written
+	 * only here, so a cache is free; project metadata sits in a directory a person also edits, and an mtime that does
+	 * not advance - a restored backup, or two writes inside one filesystem tick - would otherwise pin the stale object
+	 * for the lifetime of this instance.
+	 */
+	private fun <T : Any> read(key: String, type: KClass<out T>, parent: FileHandle, cached: Boolean): T? {
 		val handle = getCachedHandle(key, parent)
 		val cacheId = cacheId(key, parent)
 		// Answered before the cache is consulted, not after: with no file there is no value, whatever the cache says.
@@ -269,21 +287,23 @@ class MetaData(root: FileHandle? = null) {
 			return null
 		}
 
-		jsonCache.get(cacheId)?.let { cached ->
-			// Both sides of this comparison are now the file's own modification time. Comparing it against a
-			// wall-clock reading taken when the entry was created made the answer depend on two different clocks.
-			if (cached.created >= storedAt) {
-				log.trace { "Cache hit: $key" }
-				@Suppress("UNCHECKED_CAST")
-				return cached.obj as T
+		if (cached) {
+			jsonCache.get(cacheId)?.let { entry ->
+				// Both sides of this comparison are now the file's own modification time. Comparing it against a
+				// wall-clock reading taken when the entry was created made the answer depend on two different clocks.
+				if (entry.created >= storedAt) {
+					log.trace { "Cache hit: $key" }
+					@Suppress("UNCHECKED_CAST")
+					return entry.obj as T
+				}
+				log.debug { "File is newer than the cached value, reloading: $key" }
 			}
-			log.debug { "File is newer than the cached value, reloading: $key" }
 		}
 
 		return try {
 			val loaded = json.fromJson(type.java, handle)
 				?: throw IllegalStateException("Deserialized to null")
-			jsonCache.put(cacheId, CacheObj(loaded, storedAt))
+			if (cached) jsonCache.put(cacheId, CacheObj(loaded, storedAt))
 			loaded
 		} catch (failure: RuntimeException) {
 			// Anything the reader throws means these bytes are not a value of this type: truncated by a kill during

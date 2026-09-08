@@ -254,6 +254,63 @@ class MetaDataTest {
 		}
 	}
 
+	/**
+	 * A file this creates should look like any other file written into that directory. Requesting the scratch file
+	 * from `Files.createTempFile` made it owner-only on POSIX, so the first save of a project's metadata landed
+	 * private regardless of the directory's umask or group policy - `MetaProjectManager.save` writes into a project
+	 * root, not the player's private data root.
+	 *
+	 * POSIX-only, so this runs on CI (Linux) and is skipped on a Windows workstation.
+	 */
+	@Test
+	fun `a newly created save is not narrower than a plain write`() {
+		withMetaData { metaData, root ->
+			val reference = root.file().toPath().resolve("reference.probe")
+			val expected = try {
+				Files.newOutputStream(reference).use { it.write(1) }
+				Files.getPosixFilePermissions(reference)
+			} catch (_: UnsupportedOperationException) {
+				assumeTrue(false, "not a POSIX filesystem")
+				return@withMetaData
+			}
+
+			val key = MetaDataKey<TestSettings>("created.json")
+			metaData.save(key, TestSettings().apply { difficulty = "hard" })
+
+			assertEquals(
+				expected,
+				Files.getPosixFilePermissions(metaData.getCachedHandle(key).file().toPath()),
+				"a created save should match what an ordinary write into the same directory produces",
+			)
+		}
+	}
+
+	/**
+	 * `load` reparses; only `get` caches. That split predates this change and has to survive it: project metadata
+	 * lives in a directory a person also edits, and a replacement whose modification time does not advance - a
+	 * restored backup, or two writes inside one filesystem tick - would otherwise pin the stale object forever.
+	 */
+	@Test
+	fun `load sees a replacement whose timestamp did not advance`() {
+		withMetaData { metaData, _ ->
+			val key = MetaDataKey<TestSettings>("external.json")
+			metaData.save(key, TestSettings().apply { difficulty = "hard" })
+			assertEquals("hard", metaData.load(key, TestSettings::class)?.difficulty)
+
+			// Replaced behind this instance's back, keeping the timestamp it already had.
+			val file = metaData.getCachedHandle(key)
+			val stamp = file.lastModified()
+			file.writeString("""{"difficulty":"brutal"}""", false)
+			assumeTrue(file.file().setLastModified(stamp), "filesystem will not restore a timestamp")
+
+			assertEquals(
+				"brutal",
+				metaData.load(key, TestSettings::class)?.difficulty,
+				"load must reparse rather than answer from the cache",
+			)
+		}
+	}
+
 	private fun newMetaData(root: FileHandle): MetaData = MetaData(root)
 
 	private fun withMetaData(block: (MetaData, FileHandle) -> Unit) {
