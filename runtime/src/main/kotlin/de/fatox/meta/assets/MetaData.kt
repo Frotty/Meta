@@ -277,11 +277,19 @@ class MetaData(root: FileHandle? = null) {
 			try {
 				path.toRealPath().toFile()
 			} catch (_: IOException) {
-				// Dangling, so there is nothing to resolve to yet. Name where it points and let the write create it,
-				// which is what writing through the link would have done.
-				val destination = Files.readSymbolicLink(path)
-				val resolved = if (destination.isAbsolute) destination else path.parent.resolve(destination)
-				resolved.normalize().toFile()
+				// Something along the way does not exist yet, so walk the chain by hand to wherever it ends and let
+				// the write create that - which is what writing through the links would have done. Following only the
+				// first hop would replace an intermediate link instead, dismantling half of a redirection.
+				var current = path
+				var hops = 0
+				while (Files.isSymbolicLink(current) && hops++ < MAX_LINK_HOPS) {
+					val destination = Files.readSymbolicLink(current)
+					current = (if (destination.isAbsolute) destination else current.parent.resolve(destination))
+						.normalize()
+				}
+				// A chain that never ends is a loop; stopping is the only option, and the save fails loudly there
+				// rather than writing somewhere arbitrary.
+				current.toFile()
 			}
 		} catch (failure: IOException) {
 			log.debug { "Could not resolve $path, using it as given: ${failure.message}" }
@@ -579,6 +587,9 @@ class MetaData(root: FileHandle? = null) {
 		private const val SCRATCH_SUFFIX = ".tmp"
 		private const val MAX_QUARANTINE_ATTEMPTS = 32
 		private const val MAX_SCRATCH_ATTEMPTS = 8
+
+		/** Enough to walk any real chain of links, and an exit from one that loops back on itself. */
+		private const val MAX_LINK_HOPS = 16
 
 		/** The common limit on one path component; NTFS and most POSIX filesystems both stop here. */
 		private const val MAX_NAME_BYTES = 255

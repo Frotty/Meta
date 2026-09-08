@@ -527,6 +527,38 @@ class MetaDataTest {
 		}
 	}
 
+	/**
+	 * A redirection can be more than one hop, and the last hop is the one that does not exist yet on a first save.
+	 * Following only the first link publishes over the intermediary, which replaces half of the chain with a regular
+	 * file and leaves the destination the player set up unwritten.
+	 *
+	 * Symlink creation needs privileges Windows does not grant by default, so this runs on CI (Linux).
+	 */
+	@Test
+	fun `saving through a chain of links reaches the far end`() {
+		withMetaData { metaData, root ->
+			val directory = root.file().toPath()
+			root.mkdirs()
+			val destination = directory.resolve("destination.json")
+			val intermediary = directory.resolve("intermediary.json")
+			val entry = directory.resolve("chained.json")
+			try {
+				Files.createSymbolicLink(intermediary, destination)
+				Files.createSymbolicLink(entry, intermediary)
+			} catch (_: Exception) {
+				assumeTrue(false, "cannot create symbolic links here")
+				return@withMetaData
+			}
+
+			metaData.save(MetaDataKey<TestSettings>("chained.json"), TestSettings().apply { difficulty = "brutal" })
+
+			assertTrue(Files.isSymbolicLink(entry), "the entry link was replaced by a regular file")
+			assertTrue(Files.isSymbolicLink(intermediary), "the intermediate link was replaced by a regular file")
+			assertTrue(Files.exists(destination, java.nio.file.LinkOption.NOFOLLOW_LINKS), "nothing reached the end")
+			assertTrue(String(Files.readAllBytes(destination)).contains("brutal"), "the destination was not written")
+		}
+	}
+
 	/** The stored value, for the cases where only the value matters. Always uncached, as `load` used to be. */
 	private fun MetaData.stored(key: MetaDataKey<TestSettings>): TestSettings? =
 		read(key, TestSettings::class, cached = false).valueOrNull
