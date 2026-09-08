@@ -613,9 +613,9 @@ class MetaDataTest {
 			assertTrue(file.delete())
 			assertTrue(file.mkdir())
 
-			MetaInject.global { singleton(newMetaData(root)) }
-			MetaAudioVideoState.initialize(newMetaData(root).read(audioVideoDataKey, MetaAudioVideoData::class))
-			assertTrue(MetaAudioVideoState.persistenceSuspended, "an unreadable read should suspend persistence")
+			val store = newMetaData(root)
+			MetaInject.global { singleton(store) }
+			MetaAudioVideoState.initialize(store.read(audioVideoDataKey, MetaAudioVideoData::class))
 
 			// What a window resize does.
 			MetaAudioVideoState.update { width = 1280 }
@@ -660,6 +660,37 @@ class MetaDataTest {
 			} finally {
 				legacy.delete()
 			}
+		}
+	}
+
+	/**
+	 * The rule that makes the three callers unnecessary. `get` hands out a default when a file cannot be read, and
+	 * anything that persists afterwards writes that default over data that is still there - the input profile did it,
+	 * audio/video settings did it, and window layout does it through fifteen `metaSave` sites. The store refuses the
+	 * write instead, so a caller cannot get it wrong, and the refusal lifts as soon as a read of that key succeeds.
+	 */
+	@Test
+	fun `saving over a value whose read failed is refused until a read succeeds`() {
+		withMetaData { metaData, root ->
+			val key = MetaDataKey<TestSettings>("guarded.json")
+			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
+			val file = metaData.getCachedHandle(key).file()
+			val original = file.readText()
+
+			assertTrue(file.delete())
+			assertTrue(file.mkdir())
+
+			val store = newMetaData(root)
+			assertEquals(0.5f, store.get(key, TestSettings::class).masterVolume, "should hand back a default")
+			store.save(key, TestSettings().apply { difficulty = "defaults" })
+			assertTrue(file.isDirectory, "a default was written over a value that could not be read")
+
+			// Once it reads again the mark lifts and saving works normally.
+			file.delete()
+			file.writeText(original)
+			assertEquals("brutal", store.stored(key)?.difficulty)
+			store.save(key, TestSettings().apply { difficulty = "chosen" })
+			assertEquals("chosen", newMetaData(root).stored(key)?.difficulty, "saving stayed blocked after a good read")
 		}
 	}
 

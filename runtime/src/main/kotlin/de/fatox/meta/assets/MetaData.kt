@@ -6,6 +6,7 @@ import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonWriter
 import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.ObjectMap
+import com.badlogic.gdx.utils.ObjectSet
 import com.badlogic.gdx.utils.reflect.ClassReflection
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
@@ -48,6 +49,16 @@ class MetaData(root: FileHandle? = null) {
 	private val gameName: String = canonicalAppStorageName(inject("gameName"))
 	private val fileHandleCache = ObjectMap<String, FileHandle>()
 	private val jsonCache = ObjectMap<String, CacheObj<Any>>()
+
+	/**
+	 * Keys whose most recent read failed, so their file holds data this process could not see.
+	 *
+	 * The write is the dangerous half, not the read, which is why the guard lives here rather than in each caller.
+	 * Three of them had already grown their own version - the input profile, audio/video settings, and window layout
+	 * through fifteen `metaSave` sites - and every one of those was a place a default reached disk and replaced a
+	 * file that was intact. An entry clears the moment a read of that key succeeds.
+	 */
+	private val unreadable = ObjectSet<String>()
 
 	private val json = Json().apply {
 		// Standard JSON rather than libGDX's "minimal" dialect, which omits quotes around names and is not valid
@@ -118,6 +129,15 @@ class MetaData(root: FileHandle? = null) {
 	)
 	fun <T : Any> save(key: String, obj: T, target: FileHandle = dataRoot): FileHandle {
 		val handle = getCachedHandle(key, target)
+
+		if (unreadable.contains(cacheId(key, target))) {
+			// Whatever is in this file, it is not what is about to be written, and this process never managed to see
+			// it. Callers arrive here holding a default they were handed for exactly that reason, so writing is how
+			// the value gets destroyed. Refuse until a read of this key succeeds, which clears the mark.
+			log.error("Refusing to save $key: its stored value could not be read, and writing would replace it")
+			return handle
+		}
+
 		val newBytes = json.toJson(obj).toByteArray()
 
 		// Unchanged values are not rewritten: it saves a disk write, and leaving the modification time alone keeps
@@ -492,6 +512,7 @@ class MetaData(root: FileHandle? = null) {
 		// and so always looked older - which is how a removed project kept on loading.
 		val storedAt = storedAt(handle) ?: run {
 			jsonCache.remove(cacheId)
+			unreadable.remove(cacheId)
 			return StoredValue.Absent
 		}
 
@@ -517,6 +538,7 @@ class MetaData(root: FileHandle? = null) {
 		} catch (failure: RuntimeException) {
 			log.error("Could not read $key; leaving the file where it is", failure)
 			jsonCache.remove(cacheId)
+			unreadable.add(cacheId)
 			return StoredValue.Unreadable(failure)
 		}
 
@@ -524,6 +546,7 @@ class MetaData(root: FileHandle? = null) {
 			val loaded = json.fromJson(type.java, String(bytes, Charsets.UTF_8))
 				?: throw IllegalStateException("Deserialized to null")
 			if (cached) jsonCache.put(cacheId, CacheObj(loaded, storedAt))
+			unreadable.remove(cacheId)
 			StoredValue.Present(loaded)
 		} catch (failure: RuntimeException) {
 			// The bytes were read and are not a value of this type: truncated by a kill during a save, damaged on
@@ -537,7 +560,13 @@ class MetaData(root: FileHandle? = null) {
 			jsonCache.remove(cacheId)
 			// Only once the damaged bytes are safely elsewhere is the path free to write over. If they could not be
 			// moved they are still sitting there, and saying "nothing here" invites the next save to destroy them.
-			if (kept != null) StoredValue.Absent else StoredValue.Unreadable(failure)
+			if (kept != null) {
+				unreadable.remove(cacheId)
+				StoredValue.Absent
+			} else {
+				unreadable.add(cacheId)
+				StoredValue.Unreadable(failure)
+			}
 		}
 	}
 
