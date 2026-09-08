@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonWriter
+import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.reflect.ClassReflection
 import de.fatox.meta.api.extensions.MetaLoggerFactory
@@ -287,8 +288,13 @@ class MetaData(root: FileHandle? = null) {
 					current = (if (destination.isAbsolute) destination else current.parent.resolve(destination))
 						.normalize()
 				}
-				// A chain that never ends is a loop; stopping is the only option, and the save fails loudly there
-				// rather than writing somewhere arbitrary.
+				if (Files.isSymbolicLink(current)) {
+					// Still a link after the limit: the chain loops, or is longer than any real redirection. There is
+					// no destination to write, and publishing over whichever link the walk stopped on would dismantle
+					// the redirection - so refuse rather than pick one. Unchecked on purpose, so it passes the
+					// IOException handler below instead of falling back to writing over the entry link.
+					throw GdxRuntimeException("Refusing to save through an unresolvable chain of links at $path")
+				}
 				current.toFile()
 			}
 		} catch (failure: IOException) {

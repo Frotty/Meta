@@ -1,6 +1,7 @@
 package de.fatox.meta.assets
 
 import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.utils.GdxRuntimeException
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.input.loadProfile
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -556,6 +558,37 @@ class MetaDataTest {
 			assertTrue(Files.isSymbolicLink(intermediary), "the intermediate link was replaced by a regular file")
 			assertTrue(Files.exists(destination, java.nio.file.LinkOption.NOFOLLOW_LINKS), "nothing reached the end")
 			assertTrue(String(Files.readAllBytes(destination)).contains("brutal"), "the destination was not written")
+		}
+	}
+
+	/**
+	 * A chain that loops has no destination to write. Walking it hits the hop limit, and whichever link the walk
+	 * stopped on must not be published over - that would replace part of the loop with a regular file. Refusing is
+	 * the only answer that leaves the setup as it was found.
+	 *
+	 * Symlink-only, so this runs on CI (Linux).
+	 */
+	@Test
+	fun `saving through a looping chain of links is refused`() {
+		withMetaData { metaData, root ->
+			root.mkdirs()
+			val directory = root.file().toPath()
+			val first = directory.resolve("loop.json")
+			val second = directory.resolve("loop-back.json")
+			try {
+				Files.createSymbolicLink(first, second)
+				Files.createSymbolicLink(second, first)
+			} catch (_: Exception) {
+				assumeTrue(false, "cannot create symbolic links here")
+				return@withMetaData
+			}
+
+			assertFailsWith<GdxRuntimeException> {
+				metaData.save(MetaDataKey<TestSettings>("loop.json"), TestSettings().apply { difficulty = "brutal" })
+			}
+
+			assertTrue(Files.isSymbolicLink(first), "the entry link was replaced")
+			assertTrue(Files.isSymbolicLink(second), "the link it points at was replaced")
 		}
 	}
 
