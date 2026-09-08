@@ -131,7 +131,8 @@ Allocation rate is the primary controllable JVM game-runtime cost.
 - Use `AssetProvider.load` with frame-budgeted updates. Avoid `finish()` and unqueued `getResource()` on animated
   loading paths.
 - Commons Compress is an XPK implementation detail. Public APIs expose Meta/libGDX types; use
-  `XPKLoader.listEntryNames` or `getList`.
+  `XPKLoader.open` for entries you will read, or `XPKLoader.listEntryNames` when names are all you need. The caller
+  owns the returned `XpkArchive` and must dispose it; `getList` is deprecated because it returns entries without it.
 - Runtime resources must be generic and runtime-used. Keep the authoring and runtime copies of Remix font/catalog
   data byte-identical. Do not ship editor/sample content in `runtime/src/main/resources`.
 - Do not build new code on deprecated placeholders such as `AssetPromise`, `MetaShortcut`, `MetaTaskQueue`,

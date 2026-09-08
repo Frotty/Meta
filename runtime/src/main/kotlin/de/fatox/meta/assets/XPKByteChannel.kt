@@ -18,6 +18,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  * @NotThreadSafe
  * @since 1.13
  */
+@Deprecated(
+	"Not used by the XPK loader, which reads through an internal read-only channel. This is a general-purpose " +
+		"growable buffer copied from Commons Compress' SeekableInMemoryByteChannel; construct that, or a " +
+		"ByteArrayOutputStream, directly.",
+)
 class XPKByteChannel(private var data: ByteArray = ByteArray(0)) : SeekableByteChannel {
 	private val closed = AtomicBoolean()
 	private var position = 0

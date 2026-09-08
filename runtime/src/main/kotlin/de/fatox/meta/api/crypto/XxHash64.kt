@@ -9,9 +9,19 @@ private const val XXH_PRIME64_3 = 0x165667B19E3779F9UL
 private const val XXH_PRIME64_4 = 0x85EBCA77C2B2AE63UL
 private const val XXH_PRIME64_5 = 0x27D4EB2F165667C5UL
 
+/**
+ * Hashes `input[0, length)`.
+ *
+ * Reads through a duplicate view, so the caller's position, limit and byte order are left alone. The previous
+ * implementation set the caller's limit and order, then restored only the limit - which made a shared buffer unsafe
+ * to pass in and left its byte order silently changed.
+ */
 fun XXH64(input: ByteBuffer, length: Int, seed: ULong): XX64Hash {
-	input.limit(length)
-	input.order(ByteOrder.LITTLE_ENDIAN)
+	require(length >= 0 && length <= input.capacity()) { "Length $length outside 0..${input.capacity()}" }
+	val view = input.duplicate()
+	view.order(ByteOrder.LITTLE_ENDIAN)
+	view.position(0)
+	view.limit(length)
 
 	var hash: ULong
 	if (length >= 32) {
@@ -21,25 +31,24 @@ fun XXH64(input: ByteBuffer, length: Int, seed: ULong): XX64Hash {
 		var v4 = seed - XXH_PRIME64_1
 
 		do {
-			v1 = round(v1, input.getLong().toULong())
-			v2 = round(v2, input.getLong().toULong())
-			v3 = round(v3, input.getLong().toULong())
-			v4 = round(v4, input.getLong().toULong())
-		} while (input.remaining() >= 32)
+			v1 = round(v1, view.getLong().toULong())
+			v2 = round(v2, view.getLong().toULong())
+			v3 = round(v3, view.getLong().toULong())
+			v4 = round(v4, view.getLong().toULong())
+		} while (view.remaining() >= 32)
 
-		hash = v1.rotl(1) + v2.rotl(7) + v3.rotl(12) + v4.rotl(18);
-		hash = mergeRound(hash, v1);
-		hash = mergeRound(hash, v2);
-		hash = mergeRound(hash, v3);
-		hash = mergeRound(hash, v4);
-
+		hash = v1.rotl(1) + v2.rotl(7) + v3.rotl(12) + v4.rotl(18)
+		hash = mergeRound(hash, v1)
+		hash = mergeRound(hash, v2)
+		hash = mergeRound(hash, v3)
+		hash = mergeRound(hash, v4)
 	} else {
-		hash = seed + XXH_PRIME64_5;
+		hash = seed + XXH_PRIME64_5
 	}
 
 	hash += length.toULong()
 
-	return XX64Hash(finalize(hash, input).also { input.limit(input.capacity()) })
+	return XX64Hash(finalize(hash, view))
 }
 
 private fun finalize(hash: ULong, ptr: ByteBuffer): ULong {

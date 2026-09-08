@@ -27,7 +27,6 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.api.extensions.warn
-import de.fatox.meta.assets.XPKLoader.getList
 
 private val log = MetaLoggerFactory.logger {}
 private val defaultTexParam: TextureParameter = TextureParameter().apply {
@@ -66,6 +65,7 @@ class MetaAssetProvider : AssetProvider {
 	private val animCache = IntMap<Array<out TextureRegion>>()
 	private val fileCache = ObjectMap<String, FileHandle>()
 	private val fileOrigins = ObjectMap<String, String>()
+	private val openArchives = Array<XpkArchive>()
 	private val pendingFinalization = Array<AssetDescriptor<*>>()
 	private val stagedTextureUploads = StagedTextureUploads()
 	private val resolver = MetaFileHandleResolver()
@@ -83,10 +83,17 @@ class MetaAssetProvider : AssetProvider {
 			for (childIndex in children.indices) {
 				val itrHandle = children[childIndex]
 				if (itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) {
-					val list = getList(itrHandle)
+					// The provider owns the archive. Buffers are kept while a load phase is running, and a read
+					// outside one - a lazily constructed sound, say - cleans up after itself, because nothing pumps
+					// update() once the splash has finished.
+					val archive = XPKLoader.open(itrHandle, retainAfterRead = ::isLoadPhaseActive)
+					openArchives.add(archive)
+					val list = archive.entries
 					for (index in 0 until list.size) {
 						val file = list[index]
-						cacheFile(file.name(), file, itrHandle.path())
+						// path(), not name(): name() is the last path element, and packed assets must be keyed by
+						// the same archive-relative path that loadRawAssetsFromFolder uses for loose files.
+						cacheFile(file.path(), file, itrHandle.path())
 					}
 					log.debug { "Indexed ${list.size} assets from <${itrHandle.name()}>" }
 				}
@@ -97,7 +104,6 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun loadRawAssetsFromFolder(folder: FileHandle): Boolean {
-		var filesSinceYield = 0
 		// This helper function does all the recursion,
 		// always stripping out `rootFolderName` from the path.
 		fun loadFolderRecursively(currentFolder: FileHandle, rootFolderName: String) {
@@ -121,10 +127,6 @@ class MetaAssetProvider : AssetProvider {
 
 					// Store one portable lookup key; keep the actual source path on the handle.
 					cacheFile(relativePath, child, folder.path())
-					if (++filesSinceYield >= FILES_PER_YIELD) {
-						filesSinceYield = 0
-						Thread.yield()
-					}
 				}
 			}
 		}
@@ -210,9 +212,14 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun update(millis: Int): Boolean {
 		if (millis <= 0) {
-			return assetManager.queuedAssets == 0 &&
+			// The zero-budget poll can be the call that observes completion: SplashScreen's loading budget drops to 0
+			// after a slow frame, and its return value is what advances the phase. Releasing only on the budgeted path
+			// would let the splash move on with entry buffers and the open 7z decoder still retained.
+			val polled = assetManager.queuedAssets == 0 &&
 				pendingFinalization.size == 0 &&
 				stagedTextureUploads.isEmpty
+			if (polled) releaseArchiveCaches()
+			return polled
 		}
 
 		if (!stagedTextureUploads.isEmpty) {
@@ -229,8 +236,33 @@ class MetaAssetProvider : AssetProvider {
 		val complete = assetManager.update()
 		finalizeLoadedAssets(MAX_FINALIZATIONS_PER_UPDATE)
 		warnIfSlowStep("Asset loading step", millis, startedAt)
-		if (!complete) Thread.yield()
-		return complete && pendingFinalization.size == 0 && stagedTextureUploads.isEmpty
+		val drained = complete && pendingFinalization.size == 0 && stagedTextureUploads.isEmpty
+		if (drained) releaseArchiveCaches()
+		return drained
+	}
+
+	/**
+	 * Frees archive entry buffers once a load phase has drained.
+	 *
+	 * Decompressed entry bytes are only needed while a loader is turning them into a texture, sound or model. Held
+	 * past that they are a second full copy of the asset data in heap, alongside the GPU and OpenAL copies. Also
+	 * closes each archive's 7z reader, releasing its LZMA2 dictionary.
+	 */
+	/**
+	 * Whether asset loading is in flight, so archive reads are part of a burst worth caching for.
+	 *
+	 * Read from AssetManager's worker as well as the GL thread. Both fields are plain int reads and this is only a
+	 * retention hint - a stale answer costs one extra sweep or one late release, never wrong bytes - so it is
+	 * deliberately unsynchronised rather than adding a lock to the read path.
+	 */
+	private fun isLoadPhaseActive(): Boolean =
+		assetManager.queuedAssets > 0 || pendingFinalization.size > 0
+
+	private fun releaseArchiveCaches() {
+		for (index in 0 until openArchives.size) {
+			val archive = openArchives[index]
+			if (!archive.isFullyReleased) archive.releaseCachedEntries()
+		}
 	}
 
 	private fun warnIfSlowStep(label: String, requestedMillis: Int, startedAt: Long) {
@@ -289,6 +321,7 @@ class MetaAssetProvider : AssetProvider {
 		assetManager.finishLoading()
 		stagedTextureUploads.finish()
 		finalizeLoadedAssets(Int.MAX_VALUE)
+		releaseArchiveCaches()
 	}
 
 	override fun dispose() {
@@ -298,6 +331,9 @@ class MetaAssetProvider : AssetProvider {
 		animCache.clear()
 		fileCache.clear()
 		fileOrigins.clear()
+		// Releases each archive's open 7z reader (and its decoder dictionary) plus its cached entry buffers.
+		for (index in 0 until openArchives.size) openArchives[index].dispose()
+		openArchives.clear()
 		assetManager.dispose()
 	}
 
@@ -344,7 +380,6 @@ class MetaAssetProvider : AssetProvider {
 
 	private companion object {
 		const val MAX_FINALIZATIONS_PER_UPDATE = 1
-		const val FILES_PER_YIELD = 64
 		const val NANOS_PER_MILLI = 1_000_000L
 		const val SLOW_UPDATE_WARNING_MS = 8L
 	}
