@@ -379,6 +379,15 @@ class XpkV2FormatTest {
 
 		assertTrue(!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, 1_024, -1), "negative rawSize")
 		assertTrue(!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, -1, 1_024), "negative storedSize")
+		// storedSize is allocated before anything is decoded, so capping only rawSize left this open.
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, XpkFormat.MAX_BLOCK_RAW_SIZE + 1, 1_024),
+			"an oversized stored block is allocated before it is decoded",
+		)
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, XpkFormat.MAX_BLOCK_RAW_SIZE + 1, 1_024),
+			"the same cap applies to a stored block",
+		)
 		assertTrue(
 			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, 1_024, Int.MAX_VALUE),
 			"a 2 GB allocation from a 1 KB block is a decompression bomb",

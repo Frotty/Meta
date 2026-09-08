@@ -176,7 +176,14 @@ internal object XpkFormat {
 	 * range check stands on its own regardless.
 	 */
 	fun isPlausibleBlock(codec: Byte, storedSize: Int, rawSize: Int): Boolean {
-		if (storedSize < 0 || rawSize < 0 || rawSize > MAX_BLOCK_RAW_SIZE) return false
+		// Both sizes, not just the decompressed one: `blockOf` allocates `ByteArray(storedSize)` to read the block in
+		// before it allocates anything for the decoded form. Capping only `rawSize` left a deflate row free to
+		// declare a small decoded size and an enormous stored one, bounded by nothing but the file's own length.
+		//
+		// With this, every allocation the reader makes from a file-declared value is bounded: the footer counts by
+		// MAX_ENTRIES and MAX_BLOCKS, the two tables by those counts, and both block sizes here.
+		if (storedSize < 0 || storedSize > MAX_BLOCK_RAW_SIZE) return false
+		if (rawSize < 0 || rawSize > MAX_BLOCK_RAW_SIZE) return false
 		return when (codec) {
 			CODEC_STORE -> rawSize == storedSize
 			// Deflate's maximum expansion is a little over 1032:1; anything beyond that is a decompression bomb.
