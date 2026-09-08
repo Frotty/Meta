@@ -3,6 +3,7 @@ package de.fatox.meta.assets
 import com.badlogic.gdx.files.FileHandle
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.test.GdxTestEnvironment
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
@@ -196,6 +197,26 @@ class MetaDataTest {
 			metaData.save(key, resaved)
 
 			assertSame(resaved, metaData.get(key, TestSettings::class), "the cache kept the superseded instance")
+		}
+	}
+
+	/**
+	 * A real file dated to the epoch - restored from an archive that carried no timestamps, say - must not read as
+	 * missing. `File.lastModified` already returns zero for a file that is not there, so sharing that value as an
+	 * "absent" sentinel answers with defaults over a perfectly good save, and the next write then overwrites it.
+	 */
+	@Test
+	fun `a file dated to the epoch is still read`() {
+		withMetaData { metaData, root ->
+			val key = MetaDataKey<TestSettings>("epoch.json")
+			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
+
+			val file = metaData.getCachedHandle(key).file()
+			assumeTrue(file.setLastModified(0L) && file.lastModified() == 0L, "filesystem keeps no epoch timestamps")
+
+			val reopened = newMetaData(root)
+			assertEquals("brutal", reopened.load(key, TestSettings::class)?.difficulty, "a valid save read as missing")
+			assertTrue(reopened.has(key), "has must agree with load")
 		}
 	}
 

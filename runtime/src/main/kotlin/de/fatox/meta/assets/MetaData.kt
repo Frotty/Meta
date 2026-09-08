@@ -15,9 +15,12 @@ import de.fatox.meta.canonicalAppStorageName
 import de.fatox.meta.injection.MetaInject.Companion.inject
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
+import java.nio.channels.FileChannel
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
 import kotlin.reflect.KClass
 
 private val log = MetaLoggerFactory.logger {}
@@ -58,14 +61,18 @@ class MetaData(root: FileHandle? = null) {
 		parent.file().absolutePath + '\u0000' + key
 
 	/**
-	 * When the value behind [handle] was stored, or [NO_STORED_VALUE] if nothing is stored there.
+	 * When the value behind [handle] was stored, or `null` if nothing is stored there.
 	 *
 	 * Every question about whether a stored value exists goes through here, because the file *is* the value and the
 	 * caches only mirror it. Letting each caller answer it for itself is what made the three answers disagree: [read]
 	 * kept serving a cached object after its file was deleted, [has] reported a key that had only ever been *looked
 	 * up* as present, and an unchanged [save] left the cache pointing at the previous instance.
+	 *
+	 * Absence is `null` rather than a reserved timestamp. `File.lastModified` already returns zero for a file that is
+	 * not there, so reusing zero for "nothing stored" would read a real file dated to the epoch - one restored from an
+	 * archive that carried no timestamps, say - as missing, and answer with defaults over a perfectly good save.
 	 */
-	private fun storedAt(handle: FileHandle): Long = if (handle.exists()) handle.lastModified() else NO_STORED_VALUE
+	private fun storedAt(handle: FileHandle): Long? = if (handle.exists()) handle.lastModified() else null
 
 	// ---- saving ---------------------------------------------------------------------------------------------
 
@@ -99,13 +106,13 @@ class MetaData(root: FileHandle? = null) {
 			log.trace { "Unchanged, not rewriting: $key" }
 			// Still adopt the caller's instance. The bytes match, so this is the same value either way, and skipping
 			// it meant a later read handed back whichever object happened to be cached rather than the one saved.
-			jsonCache.put(cacheId(key, target), CacheObj(obj, storedAt(handle)))
+			jsonCache.put(cacheId(key, target), CacheObj(obj, handle.lastModified()))
 			return handle
 		}
 
 		log.debug { "Saving $key (${obj::class.simpleName}) to $target" }
 		writeAtomically(handle, newBytes)
-		jsonCache.put(cacheId(key, target), CacheObj(obj, storedAt(handle)))
+		jsonCache.put(cacheId(key, target), CacheObj(obj, handle.lastModified()))
 		return handle
 	}
 
@@ -114,8 +121,8 @@ class MetaData(root: FileHandle? = null) {
 	 *
 	 * A direct write leaves a window in which the file on disk is neither the old value nor the new one, and killing
 	 * a game while it saves is ordinary behaviour rather than an edge case. A rename is atomic, so a reader sees one
-	 * complete version or the other, and the flush is what makes that true after a power loss rather than only after
-	 * a process kill.
+	 * complete version or the other, and the two flushes - the file's contents, then the directory entry that
+	 * publishes them - are what make that hold across a power loss rather than only across a process kill.
 	 */
 	private fun writeAtomically(handle: FileHandle, bytes: ByteArray) {
 		val target = handle.file().absoluteFile
@@ -145,10 +152,29 @@ class MetaData(root: FileHandle? = null) {
 				log.debug { "Atomic replace unavailable for ${target.name}; falling back to a plain move" }
 				Files.move(scratch.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
 			}
+			syncDirectory(directory)
 		} finally {
 			// A no-op once the move succeeded, and the reason a failed save leaves no half-written file behind for
 			// the next launch to read as corrupt.
 			scratch.delete()
+		}
+	}
+
+	/**
+	 * Flushes [directory]'s own contents so the rename that published a save is durable.
+	 *
+	 * Syncing the scratch file makes its *bytes* durable; the rename is a change to the directory, and on POSIX
+	 * filesystems that is a separate flush. Without it a power loss just after the move can drop the directory entry
+	 * and take an acknowledged save with it, leaving the previous value in place.
+	 *
+	 * Windows exposes no directory handle to flush and refuses the open, and it is not needed there. Failing is
+	 * therefore not an error: the bytes are already on the device and the rename has already returned.
+	 */
+	private fun syncDirectory(directory: File) {
+		try {
+			FileChannel.open(directory.toPath(), StandardOpenOption.READ).use { it.force(true) }
+		} catch (failure: IOException) {
+			log.trace { "No directory sync for $directory: ${failure.message}" }
 		}
 	}
 
@@ -202,11 +228,10 @@ class MetaData(root: FileHandle? = null) {
 	private fun <T : Any> read(key: String, type: KClass<out T>, parent: FileHandle): T? {
 		val handle = getCachedHandle(key, parent)
 		val cacheId = cacheId(key, parent)
-		val storedAt = storedAt(handle)
-
-		if (storedAt == NO_STORED_VALUE) {
-			// Answered before the cache is consulted, not after. A deleted file reads as modified at time zero, so a
-			// cache entry always looked newer than it and won - which is how a removed project kept on loading.
+		// Answered before the cache is consulted, not after: with no file there is no value, whatever the cache says.
+		// Ordering it the other way let a cache entry win, because a deleted file reports a modification time of zero
+		// and so always looked older - which is how a removed project kept on loading.
+		val storedAt = storedAt(handle) ?: run {
 			jsonCache.remove(cacheId)
 			return null
 		}
@@ -314,7 +339,7 @@ class MetaData(root: FileHandle? = null) {
 		)
 	)
 	fun has(name: String, fileHandle: FileHandle = dataRoot): Boolean =
-		storedAt(getCachedHandle(name, fileHandle)) != NO_STORED_VALUE
+		storedAt(getCachedHandle(name, fileHandle)) != null
 
 	companion object {
 		const val GLOBAL_DATA_FOLDER_NAME: String = ".meta"
@@ -324,9 +349,6 @@ class MetaData(root: FileHandle? = null) {
 
 		private const val SCRATCH_SUFFIX = ".tmp"
 		private const val MAX_QUARANTINE_ATTEMPTS = 32
-
-		/** What [storedAt] reports when no file backs a key. A real modification time is never zero. */
-		private const val NO_STORED_VALUE = 0L
 	}
 }
 
