@@ -68,6 +68,15 @@ class MetaData(root: FileHandle? = null) {
 	 */
 	val dataRoot: FileHandle = root ?: Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME)
 
+	/**
+	 * Whether [dataRoot] is the one this class picked rather than one it was handed.
+	 *
+	 * Only the default root has a legacy layout to fall back to. Deciding that by comparing paths meant any supplied
+	 * root matched itself and inherited the fallback, so an instance pointed at a temporary directory would read -
+	 * and then save over - a real `.meta<key>` file in the user's home.
+	 */
+	private val usesDefaultRoot: Boolean = root == null
+
 	private fun cacheId(key: String, parent: FileHandle): String =
 		parent.file().absolutePath + '\u0000' + key
 
@@ -595,7 +604,7 @@ class MetaData(root: FileHandle? = null) {
 		val cacheId = cacheId(key, parent)
 		if (!fileHandleCache.containsKey(cacheId)) {
 			var child: FileHandle = parent.child(key)
-			if (!child.exists() && parent.path() == dataRoot.path()) {
+			if (!child.exists() && usesDefaultRoot && parent.path() == dataRoot.path()) {
 				val legacy = Gdx.files.external(GLOBAL_DATA_FOLDER_NAME + key)
 				if (legacy.exists()) child = legacy
 			}

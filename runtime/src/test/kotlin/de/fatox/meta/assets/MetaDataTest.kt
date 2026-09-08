@@ -1,5 +1,6 @@
 package de.fatox.meta.assets
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.GdxRuntimeException
 import de.fatox.meta.api.model.MetaAudioVideoData
@@ -623,6 +624,42 @@ class MetaDataTest {
 			file.delete()
 			file.writeText(original)
 			assertEquals(240, newMetaData(root).get(audioVideoDataKey, MetaAudioVideoData::class).maxFps)
+		}
+	}
+
+	/**
+	 * A supplied root is the whole root. The legacy layout - a flat `.meta<key>` file in the user's home - is only a
+	 * fallback for the root this class picks itself; comparing paths let a supplied root match itself and inherit it,
+	 * so an instance pointed at a temporary directory would read, and then save over, a real file in the home folder.
+	 *
+	 * This does briefly create such a file, because nothing else proves the fallback is skipped. Uniquely named and
+	 * removed again.
+	 */
+	@Test
+	fun `a supplied root never falls back to the legacy home-folder layout`() {
+		val name = "legacy-probe-${System.nanoTime()}.json"
+		val legacy = Gdx.files.external(MetaData.GLOBAL_DATA_FOLDER_NAME + name)
+		withMetaData { metaData, root ->
+			legacy.writeString("""{"difficulty":"from-the-home-folder"}""", false)
+			try {
+				val key = MetaDataKey<TestSettings>(name)
+
+				assertEquals(
+					MetaData.StoredValue.Absent,
+					metaData.read(key, TestSettings::class, cached = false),
+					"a supplied root should see nothing, not the home-folder file",
+				)
+
+				metaData.save(key, TestSettings().apply { difficulty = "in-the-supplied-root" })
+				assertEquals(
+					"""{"difficulty":"from-the-home-folder"}""",
+					legacy.readString(),
+					"the save landed on the home-folder file instead of the supplied root",
+				)
+				assertTrue(root.child(name).exists(), "the save should have created the value under the supplied root")
+			} finally {
+				legacy.delete()
+			}
 		}
 	}
 
