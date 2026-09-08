@@ -144,7 +144,7 @@ class MetaData(root: FileHandle? = null) {
 	private fun writeAtomically(handle: FileHandle, bytes: ByteArray) {
 		val target = resolvedFile(handle)
 		val directory = target.parentFile
-		directory.mkdirs()
+		val createdDirectories = createDirectories(directory)
 
 		val scratch = createScratch(directory)
 		try {
@@ -168,11 +168,54 @@ class MetaData(root: FileHandle? = null) {
 				Files.move(scratch.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
 			}
 			syncDirectory(directory)
+			// A directory's own entry lives in its parent, so a directory this save had to create is only durable
+			// once that parent is forced too. Nested keys are ordinary - `MetaUiManager` stores window layout under
+			// `<screen>/<name>` - so a first save can create the path the file needs and lose it to a power cut.
+			for (index in createdDirectories.indices) {
+				createdDirectories[index].parentFile?.let(::syncDirectory)
+			}
 		} finally {
 			// A no-op once the move succeeded, and the reason a failed save leaves no half-written file behind for
 			// the next launch to read as corrupt.
 			scratch.delete()
 		}
+	}
+
+	/**
+	 * [base] with [suffix] appended, trimmed to fit a filesystem's limit on one path component.
+	 *
+	 * Both names this class invents are derived from a key it does not choose, and the limit applies to the whole
+	 * component, so a key that saves perfectly well can produce a derived name that cannot be created. The scratch
+	 * file avoids that by owing nothing to the key; a quarantined file has to stay recognisable, so it keeps as much
+	 * of the name as fits. Silently failing to place it would leave the damaged bytes with nowhere to go, which is
+	 * the one thing quarantine exists to prevent.
+	 */
+	private fun boundedName(base: String, suffix: String): String {
+		val room = MAX_NAME_BYTES - suffix.toByteArray().size
+		var kept = base
+		while (kept.isNotEmpty() && kept.toByteArray().size > room) {
+			kept = kept.substring(0, kept.length - 1)
+		}
+		return kept + suffix
+	}
+
+	/**
+	 * Creates [directory] and any missing parent, returning those that had to be created.
+	 *
+	 * The caller needs the list because each new directory's entry has to be flushed in *its* parent, which
+	 * [syncDirectory] on the leaf alone does not do.
+	 */
+	private fun createDirectories(directory: File): List<File> {
+		if (directory.isDirectory) return emptyList()
+
+		val missing = ArrayList<File>()
+		var current: File? = directory
+		while (current != null && !current.isDirectory) {
+			missing.add(current)
+			current = current.parentFile
+		}
+		directory.mkdirs()
+		return missing
 	}
 
 	/**
@@ -399,10 +442,10 @@ class MetaData(root: FileHandle? = null) {
 			return null
 		}
 
-		var candidate = File(file.parentFile, file.name + CORRUPT_SUFFIX)
+		var candidate = File(file.parentFile, boundedName(file.name, CORRUPT_SUFFIX))
 		var attempt = 1
 		while (candidate.exists() && attempt < MAX_QUARANTINE_ATTEMPTS) {
-			candidate = File(file.parentFile, "${file.name}$CORRUPT_SUFFIX.$attempt")
+			candidate = File(file.parentFile, boundedName(file.name, "$CORRUPT_SUFFIX.$attempt"))
 			attempt++
 		}
 		if (candidate.exists()) {
@@ -473,6 +516,9 @@ class MetaData(root: FileHandle? = null) {
 		private const val SCRATCH_SUFFIX = ".tmp"
 		private const val MAX_QUARANTINE_ATTEMPTS = 32
 		private const val MAX_SCRATCH_ATTEMPTS = 8
+
+		/** The common limit on one path component; NTFS and most POSIX filesystems both stop here. */
+		private const val MAX_NAME_BYTES = 255
 	}
 }
 

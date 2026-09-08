@@ -391,6 +391,43 @@ class MetaDataTest {
 		}
 	}
 
+	/**
+	 * A damaged save with a near-limit name still has to be preserved. Appending `.corrupt` to a 250-character name
+	 * overruns the 255-byte component limit, `renameTo` returns false, and the only copy of the damaged bytes is left
+	 * to be overwritten by the next save - the one outcome quarantine exists to prevent.
+	 */
+	@Test
+	fun `a damaged file with a near-limit name is still preserved`() {
+		withMetaData { metaData, root ->
+			val key = MetaDataKey<TestSettings>("q".repeat(245) + ".json")
+			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
+
+			val file = metaData.getCachedHandle(key)
+			file.writeString("{ truncated", false)
+			val damaged = file.readString()
+
+			val reopened = newMetaData(root)
+			assertNull(reopened.load(key, TestSettings::class), "damaged bytes should not parse")
+
+			// The loss is not immediate: a quarantine that could not place the file leaves it where it is, and the
+			// next save is what overwrites the only copy.
+			reopened.save(key, TestSettings().apply { difficulty = "hard" })
+
+			val survivors = root.file().walkTopDown().filter { it.isFile && it.readText() == damaged }.toList()
+			assertTrue(survivors.isNotEmpty(), "the damaged bytes were lost; nothing under ${root.path()} holds them")
+		}
+	}
+
+	/** Window layout is stored under `<screen>/<name>`, so a nested key is ordinary and its path is created on save. */
+	@Test
+	fun `a nested key saves and reads back`() {
+		withMetaData { metaData, root ->
+			val key = MetaDataKey<TestSettings>("screens/main/layout.json")
+			metaData.save(key, TestSettings().apply { difficulty = "hard" })
+			assertEquals("hard", newMetaData(root).get(key, TestSettings::class).difficulty)
+		}
+	}
+
 	private fun newMetaData(root: FileHandle): MetaData = MetaData(root)
 
 	private fun withMetaData(block: (MetaData, FileHandle) -> Unit) {
