@@ -27,6 +27,9 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.api.extensions.warn
+import de.fatox.meta.assets.xpk.XpkProfile
+import de.fatox.meta.assets.xpk.XpkV2Archive
+import de.fatox.meta.injection.MetaInject
 
 private val log = MetaLoggerFactory.logger {}
 private val defaultTexParam: TextureParameter = TextureParameter().apply {
@@ -66,6 +69,15 @@ class MetaAssetProvider : AssetProvider {
 	private val fileCache = ObjectMap<String, FileHandle>()
 	private val fileOrigins = ObjectMap<String, String>()
 	private val openArchives = Array<XpkArchive>()
+	private val v2Archives = Array<XpkV2Archive>()
+
+	/**
+	 * The game supplies the parameters an XPK v2 archive is built and read with; Meta binds none.
+	 *
+	 * Absent, v2 archives are simply not recognised - which is the point: this repository is public, so the format
+	 * lives here and the constants that open any particular game's archives do not. See [XpkProfile].
+	 */
+	private val xpkProfile: XpkProfile? = MetaInject.injectOrNull()
 	private val pendingFinalization = Array<AssetDescriptor<*>>()
 	private val stagedTextureUploads = StagedTextureUploads()
 	private val resolver = MetaFileHandleResolver()
@@ -82,25 +94,48 @@ class MetaAssetProvider : AssetProvider {
 			val children = folder.list()
 			for (childIndex in children.indices) {
 				val itrHandle = children[childIndex]
-				if (itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) {
-					// The provider owns the archive. Buffers are kept while a load phase is running, and a read
-					// outside one - a lazily constructed sound, say - cleans up after itself, because nothing pumps
-					// update() once the splash has finished.
-					val archive = XPKLoader.open(itrHandle, retainAfterRead = ::isLoadPhaseActive)
-					openArchives.add(archive)
-					val list = archive.entries
-					for (index in 0 until list.size) {
-						val file = list[index]
-						// path(), not name(): name() is the last path element, and packed assets must be keyed by
-						// the same archive-relative path that loadRawAssetsFromFolder uses for loose files.
-						cacheFile(file.path(), file, itrHandle.path())
-					}
-					log.debug { "Indexed ${list.size} assets from <${itrHandle.name()}>" }
+				if (!itrHandle.extension().equals(XPKLoader.EXTENSION, ignoreCase = true)) continue
+
+				val v2 = xpkProfile?.let { XpkV2Archive.openOrNull(it, itrHandle) }
+				if (v2 != null) {
+					// A v2 archive stores keyed name hashes, not paths, so there is nothing to enumerate into
+					// fileCache. It answers lookups instead - see resolvePacked.
+					v2Archives.add(v2)
+					log.debug { "Registered ${v2.entryCount} packed assets from <${itrHandle.name()}>" }
+					continue
 				}
+
+				// The provider owns the archive. Buffers are kept while a load phase is running, and a read
+				// outside one - a lazily constructed sound, say - cleans up after itself, because nothing pumps
+				// update() once the splash has finished.
+				val archive = XPKLoader.open(itrHandle, retainAfterRead = ::isLoadPhaseActive)
+				openArchives.add(archive)
+				val list = archive.entries
+				for (index in 0 until list.size) {
+					val file = list[index]
+					// path(), not name(): name() is the last path element, and packed assets must be keyed by
+					// the same archive-relative path that loadRawAssetsFromFolder uses for loose files.
+					cacheFile(file.path(), file, itrHandle.path())
+				}
+				log.debug { "Indexed ${list.size} assets from <${itrHandle.name()}>" }
 			}
 			return true
 		}
 		return false
+	}
+
+	/**
+	 * Resolves a name against the registered v2 archives.
+	 *
+	 * v2 keeps keyed hashes rather than paths, so it cannot be indexed up front the way v1 and loose files are; the
+	 * archive is asked instead. Lookup is a binary search over a sorted `long[]`, so this costs a hash and a few
+	 * comparisons per archive.
+	 */
+	private fun resolvePacked(fileName: String): FileHandle? {
+		for (index in 0 until v2Archives.size) {
+			v2Archives[index].find(fileName)?.let { return it }
+		}
+		return null
 	}
 
 	override fun loadRawAssetsFromFolder(folder: FileHandle): Boolean {
@@ -141,7 +176,7 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun <T: Any> load(name: String, type: Class<T>) {
 		log.trace { "queueing <$name>" }
-		val cachedFile = fileCache[assetPathKey(name)]
+		val cachedFile = fileCache[assetPathKey(name)] ?: resolvePacked(name)
 		if (cachedFile != null) {
 			log.trace { "pack cache contains filename" }
 			queueIntern(AssetDescriptor(cachedFile, type))
@@ -276,7 +311,7 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun <T : Any> getResource(fileName: String, type: Class<T>, index: Int): T {
-		val cachedFile = fileCache[assetPathKey(fileName)]
+		val cachedFile = fileCache[assetPathKey(fileName)] ?: resolvePacked(fileName)
 		return when {
 			type == FileHandle::class.java -> {
 				type.cast(cachedFile ?: Gdx.files.internal(fileName))
@@ -334,6 +369,8 @@ class MetaAssetProvider : AssetProvider {
 		// Releases each archive's open 7z reader (and its decoder dictionary) plus its cached entry buffers.
 		for (index in 0 until openArchives.size) openArchives[index].dispose()
 		openArchives.clear()
+		for (index in 0 until v2Archives.size) v2Archives[index].dispose()
+		v2Archives.clear()
 		assetManager.dispose()
 	}
 
@@ -360,7 +397,7 @@ class MetaAssetProvider : AssetProvider {
 
 	internal inner class MetaFileHandleResolver : FileHandleResolver {
 		override fun resolve(fileName: String): FileHandle {
-			return fileCache[assetPathKey(fileName)] ?: Gdx.files.internal(fileName)
+			return fileCache[assetPathKey(fileName)] ?: resolvePacked(fileName) ?: Gdx.files.internal(fileName)
 		}
 	}
 

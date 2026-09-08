@@ -42,6 +42,20 @@ open class MetaInject {
 			?: throw GdxRuntimeException("Unknown class: ${T::class.qualifiedName}")
 	}
 
+	/**
+	 * Resolves [T] if something bound it, or `null` if nothing did.
+	 *
+	 * For dependencies whose absence is a supported configuration rather than a mistake, where [inject]'s exception
+	 * would be the wrong answer. `XpkProfile` is the case this exists for: Meta binds none, and a game that supplies
+	 * one gets packed v2 assets while one that does not simply has no v2 support.
+	 */
+	inline fun <reified T : Any> injectOrNull(name: String? = null): T? {
+		val key = InjectionKey(T::class, canonicalName(name))
+		return singletonCache[key] as T?
+			?: singletons[key]?.invoke()?.also { singletonCache[key] = it } as T?
+			?: providers[key]?.invoke() as T?
+	}
+
 	inline fun <reified T : Any> lazyInject(name: String? = null): Lazy<T> = lazy(lazyType) { inject(name) }
 
 	inline fun <reified T : Any> provider(name: String? = null, noinline provider: () -> T) {

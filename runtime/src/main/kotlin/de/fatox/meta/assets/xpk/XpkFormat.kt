@@ -1,0 +1,178 @@
+package de.fatox.meta.assets.xpk
+
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.security.MessageDigest
+import javax.crypto.Cipher
+import javax.crypto.Mac
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
+
+/**
+ * The XPK v2 container layout, and the primitives the writer and reader must agree on.
+ *
+ * Both sides derive everything from this file so neither can drift from the other. See `docs/xpk-format-audit.md`
+ * §7 for the layout and §8-§9 for why each choice is what it is.
+ *
+ * ```
+ * offset 0        salt[16]                 the only plaintext; deterministic, not random per build
+ * offset 16       payload pages            1 MB, aligned; 64 KB blocks, never straddling a page
+ *                 block table              per block: file offset, stored size, raw size, codec, nonce
+ *                 table of contents        per entry: nameHash, contentKey, block, offset, sizes
+ * offset len-96   footer                   obfuscated, then Ed25519 signature over the TOC
+ * ```
+ */
+internal object XpkFormat {
+	/** Bumped only for a layout change a previous reader could not parse. */
+	const val VERSION: Int = 2
+
+	const val SALT_LENGTH: Int = 16
+	const val NONCE_LENGTH: Int = 16
+	const val SIGNATURE_LENGTH: Int = 64
+
+	/**
+	 * Compression block, 64 KB.
+	 *
+	 * Measured on this repository's assets: 64 KB keeps 98.6% of the ratio a single solid stream reaches, at 0.221 ms
+	 * to decode one block. 4 KB - MPQ's sector size - gives up 10% of the ratio, and past 256 KB the ratio is
+	 * exhausted while decode latency keeps climbing. 64 KB rather than 128 KB because of [PAGE_SIZE].
+	 */
+	const val BLOCK_SIZE: Int = 64 * 1024
+
+	/**
+	 * Page, 1 MB, matching SteamPipe's chunking unit.
+	 *
+	 * Blocks are packed into pages and never straddle one, so a block whose compressed size changes cannot shift
+	 * anything outside its own page. Without that, one changed asset cascades into every later 1 MB chunk and Steam
+	 * re-downloads most of the archive. Tail padding costs about half a block per page - ~3% at 64 KB blocks, which
+	 * is why the block is 64 KB and not 128 KB.
+	 */
+	const val PAGE_SIZE: Int = 1024 * 1024
+
+	/**
+	 * Block starts are aligned to this, so a re-compression landing in the same bucket shifts nothing at all.
+	 *
+	 * 4 KB costs about 2 KB per 64 KB block on average - roughly 3% - and is a page size on every target platform.
+	 */
+	const val BLOCK_ALIGNMENT: Int = 4 * 1024
+
+	/** Compression is skipped when it saves less than this, because decode time then buys nothing. */
+	const val STORE_RAW_RATIO: Double = 0.97
+
+	const val CODEC_STORE: Byte = 0
+	const val CODEC_DEFLATE: Byte = 1
+
+	/** footer: tocOffset u64, tocLength u32, blockCount u32, entryCount u32, version u16, profileId u16, checksum u64 */
+	const val FOOTER_FIELDS_LENGTH: Int = 8 + 4 + 4 + 4 + 2 + 2 + 8
+	const val FOOTER_LENGTH: Int = FOOTER_FIELDS_LENGTH + SIGNATURE_LENGTH
+
+	/** blockTable row: fileOffset u64, storedSize u32, rawSize u32, codec u8, pad u8[3], nonce[16] */
+	const val BLOCK_ROW_LENGTH: Int = 8 + 4 + 4 + 1 + 3 + NONCE_LENGTH
+
+	/** toc row: nameHash u64, contentKey u64, blockIndex u32, offsetInBlock u32, rawSize u32, flags u32 */
+	const val TOC_ROW_LENGTH: Int = 8 + 8 + 4 + 4 + 4 + 4
+
+	fun littleEndian(capacity: Int): ByteBuffer = ByteBuffer.allocate(capacity).order(ByteOrder.LITTLE_ENDIAN)
+
+	fun littleEndian(bytes: ByteArray): ByteBuffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+
+	/**
+	 * Keyed 64-bit hash of a normalised entry path.
+	 *
+	 * Keyed, not plain: names are never stored, and an unkeyed hash of a small guessable namespace is recoverable by
+	 * brute force - which is how Blizzard's MPQ listfiles were reconstructed. HMAC-SHA256 rather than a hand-written
+	 * SipHash so no primitive is invented here; truncation to 64 bits gives a collision probability around 3e-12 at
+	 * 10 000 entries, and the writer fails the pack on an actual collision rather than trusting that.
+	 */
+	fun nameHash(profile: XpkProfile, normalisedPath: String): Long {
+		val mac = hmac(profile.nameHashMacKey)
+		val digest = mac.doFinal(normalisedPath.lowercase().toByteArray(Charsets.UTF_8))
+		return littleEndian(digest).getLong(0)
+	}
+
+    /** Content identity, so identical payloads share one block and unchanged blocks re-encrypt identically. */
+	fun contentKey(bytes: ByteArray, offset: Int, length: Int): Long {
+		val digest = MessageDigest.getInstance("SHA-256")
+		digest.update(bytes, offset, length)
+		return littleEndian(digest.digest()).getLong(0)
+	}
+
+	/**
+	 * Per-block keystream nonce, derived from the block's plaintext.
+	 *
+	 * This is what keeps Steam deltas small: an unchanged block encrypts to identical ciphertext across builds, so
+	 * only changed bytes are downloaded. A random per-build nonce would change every byte of the archive and force a
+	 * full re-download. The trade is that equal plaintext blocks are visibly equal, which for game assets is not a
+	 * concern. The reader cannot recompute this - it has no plaintext yet - so the writer stores it in the block
+	 * table, which is itself encrypted.
+	 */
+	fun blockNonce(profile: XpkProfile, plaintext: ByteArray, offset: Int, length: Int): ByteArray {
+		val mac = hmac(profile.macKey)
+		mac.update(plaintext, offset, length)
+		return mac.doFinal().copyOf(NONCE_LENGTH)
+	}
+
+	/** Nonce for the block table and TOC, derived from the archive salt so it is stable for unchanged content. */
+	fun metadataNonce(profile: XpkProfile, salt: ByteArray, purpose: Byte): ByteArray {
+		val mac = hmac(profile.macKey)
+		mac.update(salt)
+		mac.update(purpose)
+		return mac.doFinal().copyOf(NONCE_LENGTH)
+	}
+
+	const val PURPOSE_BLOCK_TABLE: Byte = 1
+	const val PURPOSE_TOC: Byte = 2
+
+	/**
+	 * AES-256 in CTR mode, applied in place.
+	 *
+	 * CTR because the keystream at any offset follows from the counter, so random access survives encryption - a
+	 * block is decryptable without touching the ones before it. Measured at ~6 GB/s in 64 KB chunks on the project
+	 * toolchain, roughly twenty times the decompressor behind it, so the cipher is never the bottleneck and a custom
+	 * one would be slower as well as weaker.
+	 */
+	fun crypt(profile: XpkProfile, nonce: ByteArray, data: ByteArray, offset: Int, length: Int) {
+		val cipher = ciphers.get()
+		cipher.init(Cipher.ENCRYPT_MODE, profile.aesKey, IvParameterSpec(nonce))
+		// CTR is its own inverse, and doFinal into the same array is an in-place XOR with the keystream.
+		cipher.doFinal(data, offset, length, data, offset)
+	}
+
+	/** Deterministic archive salt: the same content set always produces the same file. */
+	fun deriveSalt(profile: XpkProfile, sortedNameHashes: LongArray, sortedContentKeys: LongArray): ByteArray {
+		val mac = hmac(profile.macKey)
+		val scratch = littleEndian(16)
+		for (index in sortedNameHashes.indices) {
+			scratch.clear()
+			scratch.putLong(sortedNameHashes[index])
+			scratch.putLong(sortedContentKeys[index])
+			mac.update(scratch.array(), 0, 16)
+		}
+		return mac.doFinal().copyOf(SALT_LENGTH)
+	}
+
+	/** Obfuscates the footer in place; its own inverse. Keeps the tail from reading as a structured header. */
+	fun maskFooter(profile: XpkProfile, footer: ByteArray, fileLength: Long) {
+		var state = profile.footerMask xor fileLength xor (VERSION.toLong() shl 48)
+		for (index in footer.indices) {
+			// xorshift64*, enough to remove structure from bytes that are already ciphertext-adjacent.
+			state = state xor (state shl 13)
+			state = state xor (state ushr 7)
+			state = state xor (state shl 17)
+			footer[index] = (footer[index].toInt() xor (state and 0xFF).toInt()).toByte()
+		}
+	}
+
+	/**
+	 * A Mac per thread rather than per call.
+	 *
+	 * Name hashing runs on every asset lookup and block nonces on every block read, so allocating a provider object
+	 * each time would put a steady allocation on the loading path for nothing. `Mac` is not thread-safe, hence the
+	 * thread-local; `init` resets it, so a reused instance carries nothing between calls.
+	 */
+	private val macs = ThreadLocal.withInitial { Mac.getInstance("HmacSHA256") }
+
+	private val ciphers = ThreadLocal.withInitial { Cipher.getInstance("AES/CTR/NoPadding") }
+
+	private fun hmac(key: SecretKeySpec): Mac = macs.get().apply { init(key) }
+}
