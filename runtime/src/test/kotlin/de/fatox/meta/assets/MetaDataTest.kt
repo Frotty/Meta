@@ -311,6 +311,72 @@ class MetaDataTest {
 		}
 	}
 
+	/**
+	 * The staging file must be one this call made. A predictable `<target>.tmp` opened with `TRUNCATE_EXISTING`
+	 * destroys an unrelated sibling of that name - reachable through `MetaProjectManager.save`, which writes into a
+	 * project directory rather than a private data root.
+	 */
+	@Test
+	fun `saving does not destroy an unrelated sibling named like the scratch file`() {
+		withMetaData { metaData, root ->
+			val key = MetaDataKey<TestSettings>("notes.json")
+			val bystander = root.child("notes.json.tmp")
+			bystander.writeString("someone else's file", false)
+
+			metaData.save(key, TestSettings().apply { difficulty = "hard" })
+
+			assertEquals("someone else's file", bystander.readString(), "the save overwrote an unrelated file")
+		}
+	}
+
+	/**
+	 * A save target that is a symlink - settings redirected into a synchronised folder - must have its destination
+	 * updated. Renaming over the path replaces the link itself, silently dismantling the redirection; the plain write
+	 * this replaced followed it.
+	 *
+	 * Symlink creation needs privileges Windows does not grant by default, so this runs on CI (Linux).
+	 */
+	@Test
+	fun `saving through a symlink updates its destination`() {
+		withMetaData { metaData, root ->
+			val destination = root.child("elsewhere").also { it.parent().mkdirs() }
+			destination.writeString("{}", false)
+			val link = root.file().toPath().resolve("linked.json")
+			try {
+				Files.createSymbolicLink(link, destination.file().toPath())
+			} catch (_: Exception) {
+				assumeTrue(false, "cannot create symbolic links here")
+				return@withMetaData
+			}
+
+			metaData.save(MetaDataKey<TestSettings>("linked.json"), TestSettings().apply { difficulty = "brutal" })
+
+			assertTrue(Files.isSymbolicLink(link), "the link was replaced by a regular file")
+			assertTrue(destination.readString().contains("brutal"), "the destination was not updated")
+		}
+	}
+
+	/**
+	 * Quarantine is for bytes that are not a value of this type. A file that simply could not be read says nothing
+	 * about its contents, and moving it aside there renames a perfectly good save out of the way.
+	 */
+	@Test
+	fun `a file that cannot be read is not quarantined`() {
+		withMetaData { metaData, root ->
+			val key = MetaDataKey<TestSettings>("unreadable.json")
+			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
+			val file = metaData.getCachedHandle(key).file()
+
+			// A directory in the file's place: present and stat-able, but every read of it fails.
+			assertTrue(file.delete())
+			assertTrue(file.mkdir())
+
+			assertNull(newMetaData(root).load(key, TestSettings::class), "an unreadable file should read as absent")
+			val quarantined = root.file().walkTopDown().filter { it.name.contains(".corrupt") }.toList()
+			assertTrue(quarantined.isEmpty(), "moved aside ${quarantined.map { it.name }} without reading it")
+		}
+	}
+
 	private fun newMetaData(root: FileHandle): MetaData = MetaData(root)
 
 	private fun withMetaData(block: (MetaData, FileHandle) -> Unit) {

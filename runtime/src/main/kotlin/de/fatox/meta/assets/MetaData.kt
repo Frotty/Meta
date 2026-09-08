@@ -18,9 +18,11 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
 import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.util.concurrent.ThreadLocalRandom
 import kotlin.reflect.KClass
 
 private val log = MetaLoggerFactory.logger {}
@@ -130,31 +132,23 @@ class MetaData(root: FileHandle? = null) {
 	 * | Property        | How the replacement carries it                                                           |
 	 * |-----------------|------------------------------------------------------------------------------------------|
 	 * | Name            | the scratch sits in the target's own directory, which is what lets the rename be a replace |
-	 * | Naming rules    | the scratch is named after the target, so no temp-file prefix rule applies to a short key   |
+	 * | Naming rules    | the scratch is a uniquely named sibling, so no temp-file prefix rule applies to a short key |
 	 * | Contents        | written and flushed to the device before the rename, so no kill can publish a partial file |
 	 * | Directory entry | the parent directory is forced afterwards, or a power loss can still drop the new entry    |
 	 * | Permissions     | umask for a file this creates, or the replaced file's own mode; see [carryPermissions]     |
+	 * | Link identity   | [resolvedFile] follows the path to the file first, so a link's destination is replaced     |
 	 *
 	 * Not carried, deliberately: ownership, creation time and any extended attributes. Nothing here reads them, and a
 	 * game's save directory belongs to one user. Anything added to that list belongs in the table above, with a test.
 	 */
 	private fun writeAtomically(handle: FileHandle, bytes: ByteArray) {
-		val target = handle.file().absoluteFile
+		val target = resolvedFile(handle)
 		val directory = target.parentFile
 		directory.mkdirs()
 
-		// Opened rather than requested from `Files.createTempFile`, which forces owner-only on POSIX. A file created
-		// here should get the directory's ordinary umask, exactly as the plain write this replaced did; a target that
-		// already exists has its own mode carried over below, which wins. Naming it after the target also retires the
-		// prefix-length rule that `File.createTempFile` imposed, rather than merely satisfying it.
-		val scratch = File(directory, target.name + SCRATCH_SUFFIX)
+		val scratch = createScratch(directory, target.name)
 		try {
-			FileChannel.open(
-				scratch.toPath(),
-				StandardOpenOption.CREATE,
-				StandardOpenOption.WRITE,
-				StandardOpenOption.TRUNCATE_EXISTING,
-			).use { channel ->
+			FileChannel.open(scratch.toPath(), StandardOpenOption.WRITE).use { channel ->
 				val buffer = ByteBuffer.wrap(bytes)
 				while (buffer.hasRemaining()) channel.write(buffer)
 				channel.force(true)
@@ -178,6 +172,58 @@ class MetaData(root: FileHandle? = null) {
 			// A no-op once the move succeeded, and the reason a failed save leaves no half-written file behind for
 			// the next launch to read as corrupt.
 			scratch.delete()
+		}
+	}
+
+	/**
+	 * Claims an empty, uniquely named sibling of the target to stage the new contents in.
+	 *
+	 * Created exclusively, so it can only ever be a file this call made: an existing `<name>.tmp` that belongs to
+	 * something else is never opened, and neither is a link planted where one would go. A predictable name with
+	 * `TRUNCATE_EXISTING` would have destroyed the first and written through the second.
+	 *
+	 * Creating it rather than asking `Files.createTempFile` for it is what gives a new save the directory's umask;
+	 * naming it after the target is what retires `File.createTempFile`'s three-character prefix rule.
+	 */
+	private fun createScratch(directory: File, name: String): File {
+		var attempt = 0
+		while (true) {
+			val unique = java.lang.Long.toHexString(ThreadLocalRandom.current().nextLong())
+			val candidate = File(directory, "$name.$unique$SCRATCH_SUFFIX")
+			try {
+				Files.createFile(candidate.toPath())
+				return candidate
+			} catch (failure: FileAlreadyExistsException) {
+				if (++attempt >= MAX_SCRATCH_ATTEMPTS) throw failure
+			}
+		}
+	}
+
+	/**
+	 * The file [handle] ultimately names, following a symbolic link to its destination.
+	 *
+	 * Everything that acts on the *file* rather than on the path goes through here, because replacing and renaming
+	 * both consume what they are given: handed a link, [writeAtomically] would swap the link itself for a regular
+	 * file and [quarantine] would rename the link aside, leaving the real file untouched. Settings deliberately
+	 * redirected into a synchronised folder would lose the redirection on the next save, where the plain write this
+	 * replaced followed it.
+	 */
+	private fun resolvedFile(handle: FileHandle): File {
+		val path = handle.file().absoluteFile.toPath()
+		return try {
+			if (!Files.isSymbolicLink(path)) return path.toFile()
+			try {
+				path.toRealPath().toFile()
+			} catch (_: IOException) {
+				// Dangling, so there is nothing to resolve to yet. Name where it points and let the write create it,
+				// which is what writing through the link would have done.
+				val destination = Files.readSymbolicLink(path)
+				val resolved = if (destination.isAbsolute) destination else path.parent.resolve(destination)
+				resolved.normalize().toFile()
+			}
+		} catch (failure: IOException) {
+			log.debug { "Could not resolve $path, using it as given: ${failure.message}" }
+			path.toFile()
 		}
 	}
 
@@ -300,14 +346,25 @@ class MetaData(root: FileHandle? = null) {
 			}
 		}
 
+		// Read and parse are separated because only one of them justifies moving the file. Not being able to read it
+		// says nothing about the contents - a sync client or a scanner holding a lock, a permission blip, a share that
+		// dropped - and quarantining on that renames a perfectly good save out of the way and reports it missing.
+		val bytes = try {
+			handle.readBytes()
+		} catch (failure: RuntimeException) {
+			log.error("Could not read $key; leaving the file where it is", failure)
+			jsonCache.remove(cacheId)
+			return null
+		}
+
 		return try {
-			val loaded = json.fromJson(type.java, handle)
+			val loaded = json.fromJson(type.java, String(bytes, Charsets.UTF_8))
 				?: throw IllegalStateException("Deserialized to null")
 			if (cached) jsonCache.put(cacheId, CacheObj(loaded, storedAt))
 			loaded
 		} catch (failure: RuntimeException) {
-			// Anything the reader throws means these bytes are not a value of this type: truncated by a kill during
-			// a save, damaged on disk, or written by a build whose class shape no longer matches.
+			// The bytes were read and are not a value of this type: truncated by a kill during a save, damaged on
+			// disk, or written by a build whose class shape no longer matches.
 			val kept = quarantine(handle)
 			log.error(
 				"Could not read $key as ${type.simpleName}" +
@@ -327,7 +384,7 @@ class MetaData(root: FileHandle? = null) {
 	 * hand.
 	 */
 	private fun quarantine(handle: FileHandle): FileHandle? {
-		val file = handle.file()
+		val file = resolvedFile(handle)
 		if (!file.exists()) return null
 
 		var candidate = File(file.parentFile, file.name + CORRUPT_SUFFIX)
@@ -402,6 +459,7 @@ class MetaData(root: FileHandle? = null) {
 
 		private const val SCRATCH_SUFFIX = ".tmp"
 		private const val MAX_QUARANTINE_ATTEMPTS = 32
+		private const val MAX_SCRATCH_ATTEMPTS = 8
 	}
 }
 
