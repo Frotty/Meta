@@ -132,7 +132,7 @@ class MetaData(root: FileHandle? = null) {
 	 * | Property        | How the replacement carries it                                                           |
 	 * |-----------------|------------------------------------------------------------------------------------------|
 	 * | Name            | the scratch sits in the target's own directory, which is what lets the rename be a replace |
-	 * | Naming rules    | the scratch is a uniquely named sibling, so no temp-file prefix rule applies to a short key |
+	 * | Naming rules    | the scratch name is a fixed length, so neither a very short nor a very long key can break it |
 	 * | Contents        | written and flushed to the device before the rename, so no kill can publish a partial file |
 	 * | Directory entry | the parent directory is forced afterwards, or a power loss can still drop the new entry    |
 	 * | Permissions     | umask for a file this creates, or the replaced file's own mode; see [carryPermissions]     |
@@ -146,7 +146,7 @@ class MetaData(root: FileHandle? = null) {
 		val directory = target.parentFile
 		directory.mkdirs()
 
-		val scratch = createScratch(directory, target.name)
+		val scratch = createScratch(directory)
 		try {
 			FileChannel.open(scratch.toPath(), StandardOpenOption.WRITE).use { channel ->
 				val buffer = ByteBuffer.wrap(bytes)
@@ -178,18 +178,20 @@ class MetaData(root: FileHandle? = null) {
 	/**
 	 * Claims an empty, uniquely named sibling of the target to stage the new contents in.
 	 *
-	 * Created exclusively, so it can only ever be a file this call made: an existing `<name>.tmp` that belongs to
-	 * something else is never opened, and neither is a link planted where one would go. A predictable name with
-	 * `TRUNCATE_EXISTING` would have destroyed the first and written through the second.
+	 * Created exclusively, so it can only ever be a file this call made: an existing file of that name is never
+	 * opened, and neither is a link planted where one would go. A predictable name opened with `TRUNCATE_EXISTING`
+	 * would have destroyed the first and written through the second.
 	 *
-	 * Creating it rather than asking `Files.createTempFile` for it is what gives a new save the directory's umask;
-	 * naming it after the target is what retires `File.createTempFile`'s three-character prefix rule.
+	 * The name is a fixed length and owes nothing to the key, which is what keeps it inside a filesystem's 255-byte
+	 * component limit however long the key is - deriving it from the target meant a key that saved fine on its own
+	 * had a sibling too long to create. Creating the file here rather than asking `Files.createTempFile` for it is
+	 * what gives a new save the directory's umask.
 	 */
-	private fun createScratch(directory: File, name: String): File {
+	private fun createScratch(directory: File): File {
 		var attempt = 0
 		while (true) {
 			val unique = java.lang.Long.toHexString(ThreadLocalRandom.current().nextLong())
-			val candidate = File(directory, "$name.$unique$SCRATCH_SUFFIX")
+			val candidate = File(directory, "$SCRATCH_PREFIX$unique$SCRATCH_SUFFIX")
 			try {
 				Files.createFile(candidate.toPath())
 				return candidate
@@ -365,7 +367,7 @@ class MetaData(root: FileHandle? = null) {
 		} catch (failure: RuntimeException) {
 			// The bytes were read and are not a value of this type: truncated by a kill during a save, damaged on
 			// disk, or written by a build whose class shape no longer matches.
-			val kept = quarantine(handle)
+			val kept = quarantine(handle, storedAt)
 			log.error(
 				"Could not read $key as ${type.simpleName}" +
 					if (kept != null) "; kept the file as ${kept.name()}" else "; the file could not be set aside",
@@ -382,10 +384,20 @@ class MetaData(root: FileHandle? = null) {
 	 * Recovering by writing a fresh instance over it destroyed the only copy of whatever the player had configured,
 	 * and left nothing to diagnose from. Keeping it costs a few kilobytes and means a bad save is recoverable by
 	 * hand.
+	 *
+	 * [readAt] is when the failed bytes were read, and nothing is moved unless the file still carries that stamp.
 	 */
-	private fun quarantine(handle: FileHandle): FileHandle? {
+	private fun quarantine(handle: FileHandle, readAt: Long): FileHandle? {
 		val file = resolvedFile(handle)
 		if (!file.exists()) return null
+
+		// The bytes that failed to parse and the file sitting here now are only the same thing if nothing replaced it
+		// in between. If something did - a sync client, an editor - then what is here is somebody's new file and the
+		// damaged bytes are already gone; renaming at that point would move the good copy out of the way.
+		if (file.lastModified() != readAt) {
+			log.warn { "${file.name} was replaced while it was being read; leaving the new file alone" }
+			return null
+		}
 
 		var candidate = File(file.parentFile, file.name + CORRUPT_SUFFIX)
 		var attempt = 1
@@ -457,6 +469,7 @@ class MetaData(root: FileHandle? = null) {
 		/** Suffix for a file set aside because it could not be read. Never loaded; kept for recovery. */
 		const val CORRUPT_SUFFIX: String = ".corrupt"
 
+		private const val SCRATCH_PREFIX = ".meta-save-"
 		private const val SCRATCH_SUFFIX = ".tmp"
 		private const val MAX_QUARANTINE_ATTEMPTS = 32
 		private const val MAX_SCRATCH_ATTEMPTS = 8

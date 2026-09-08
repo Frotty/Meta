@@ -377,6 +377,20 @@ class MetaDataTest {
 		}
 	}
 
+	/**
+	 * A key long enough to be near a filesystem's 255-byte component limit saves on its own, so it must keep saving.
+	 * Deriving the scratch name from the target added up to 21 characters to it, and the sibling was then too long to
+	 * create - a key the plain write accepted started failing.
+	 */
+	@Test
+	fun `a key near the filesystem name limit saves`() {
+		withMetaData { metaData, _ ->
+			val key = MetaDataKey<TestSettings>("k".repeat(240) + ".json")
+			metaData.save(key, TestSettings().apply { difficulty = "hard" })
+			assertEquals("hard", newMetaData(metaData.dataRoot).get(key, TestSettings::class).difficulty)
+		}
+	}
+
 	private fun newMetaData(root: FileHandle): MetaData = MetaData(root)
 
 	private fun withMetaData(block: (MetaData, FileHandle) -> Unit) {
