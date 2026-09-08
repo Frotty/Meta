@@ -95,10 +95,20 @@ class MetaProjectManager : ProjectManager {
 		currentProjectRoot.child("scenes").mkdirs()
 	}
 
-	override fun <T : Any> get(key: String, type: KClass<out T>): T {
-		return metaData.load(MetaDataKey<T>(key), type, currentProjectRoot)
-			?: error("Project metadata '$key' does not exist")
-	}
+	/**
+	 * Project metadata is read uncached: it lives in a directory the person using the editor also edits, so a
+	 * modification time that does not advance must not pin a stale value.
+	 *
+	 * The two failures are reported apart. "Does not exist" for a file that is merely unreadable sent whoever hit it
+	 * looking for a missing file that was in front of them the whole time.
+	 */
+	override fun <T : Any> get(key: String, type: KClass<out T>): T =
+		when (val stored = metaData.read(MetaDataKey<T>(key), type, currentProjectRoot, cached = false)) {
+			is MetaData.StoredValue.Present -> stored.value
+			MetaData.StoredValue.Absent -> error("Project metadata '$key' does not exist")
+			is MetaData.StoredValue.Unreadable ->
+				error("Project metadata '$key' exists but could not be read: ${stored.cause}")
+		}
 
 	override fun save(key: String, obj: Any): FileHandle {
 		return metaData.save(MetaDataKey(key), obj, currentProjectRoot)

@@ -326,15 +326,48 @@ class MetaData(root: FileHandle? = null) {
 
 	// ---- loading --------------------------------------------------------------------------------------------
 
+	/**
+	 * What is stored under a key.
+	 *
+	 * The three cases exist because two of them used to be one. A single nullable answer could not say whether a key
+	 * had nothing in it or had something this process failed to read, and the difference decides whether writing is
+	 * safe: over nothing, a write costs nothing; over a file that is intact but momentarily unreadable - held by a
+	 * scanner, a sync client, a permission blip - a write destroys it. Callers reached for
+	 * `load(key) ?: defaults().also { save(it) }`, which is the correct thing to do for one case and data loss in the
+	 * other, and nothing in the type stopped them.
+	 */
+	sealed interface StoredValue<out T : Any> {
+		/** Read and parsed. */
+		data class Present<T : Any>(val value: T) : StoredValue<T>
+
+		/**
+		 * Nothing usable is stored, and nothing can be lost by writing.
+		 *
+		 * Either the file is not there, or it was damaged and has been set aside - [MetaData.CORRUPT_SUFFIX] - so its
+		 * bytes survive somewhere else and the live path is free.
+		 */
+		data object Absent : StoredValue<Nothing>
+
+		/**
+		 * Something is stored and this process could not get at it. **Do not write over this.**
+		 *
+		 * The data is still there and still intact as far as anyone knows; the failure is in the reading. Use a
+		 * default in memory if you need one, and leave the file alone until a later read succeeds.
+		 */
+		data class Unreadable(val cause: Throwable) : StoredValue<Nothing>
+	}
+
 	@Suppress("DEPRECATION")
 	fun <T : Any> get(key: MetaDataKey<T>, type: KClass<out T>, parent: FileHandle = dataRoot): T =
 		get(key.name, type, parent)
 
 	/**
-	 * Returns the stored value, or a fresh instance when there is none.
+	 * Returns the stored value, or a fresh instance when there is none and when there is one that could not be read.
 	 *
-	 * Reading never writes. A missing key used to be answered by serializing a default instance to disk, which turned
-	 * merely asking for settings into creating them.
+	 * Reading never writes - a missing key used to be answered by serializing a default instance to disk, which
+	 * turned merely asking for settings into creating them. Because this never writes, collapsing
+	 * [StoredValue.Unreadable] into a default is safe here; a caller that goes on to save is making that choice
+	 * itself, and one that must not should [read] instead.
 	 */
 	@Deprecated(
 		"Use MetaData#get with MetaDataKey. " +
@@ -349,38 +382,44 @@ class MetaData(root: FileHandle? = null) {
 		)
 	)
 	operator fun <T : Any> get(key: String, type: KClass<out T>, parent: FileHandle = dataRoot): T =
-		read(key, type, parent, cached = true) ?: newInstance(type)
-
-	@Suppress("DEPRECATION")
-	fun <T : Any> load(key: MetaDataKey<T>, type: KClass<out T>, target: FileHandle = dataRoot): T? =
-		load(key.name, type, target)
-
-	/** Returns the stored value, or `null` when there is none or it could not be read. */
-	@Deprecated(
-		"Use MetaData#load with MetaDataKey. " +
-			"This method will be made private in a future version. " +
-			"Note that it is advised to cache the MetaDataKey.",
-		ReplaceWith(
-			"load(MetaDataKey<T>(key),target)",
-			"de.fatox.meta.assets.MetaData",
-			"de.fatox.meta.assets.get",
-			"de.fatox.meta.assets.MetaDataKey",
-			"com.badlogic.gdx.files.FileHandle",
-		)
-	)
-	fun <T : Any> load(key: String, type: KClass<out T>, target: FileHandle = dataRoot): T? =
-		read(key, type, target, cached = false)
+		(read(key, type, parent, cached = true) as? StoredValue.Present)?.value ?: newInstance(type)
 
 	/**
-	 * Reads the stored value, optionally through the cache.
+	 * Returns the stored value, saving [type]'s default under [key] first if nothing is stored there yet.
 	 *
-	 * [get] caches and [load] does not, which is the split that was already there before these two shared an
-	 * implementation. It exists because they answer for different things: settings are read constantly and written
-	 * only here, so a cache is free; project metadata sits in a directory a person also edits, and an mtime that does
-	 * not advance - a restored backup, or two writes inside one filesystem tick - would otherwise pin the stale object
-	 * for the lifetime of this instance.
+	 * The safe form of read-or-initialise. It writes only for [StoredValue.Absent], where there is nothing to lose;
+	 * a value that exists but could not be read is answered with a default that is *not* persisted, so the file it
+	 * failed to read survives to be read again.
 	 */
-	private fun <T : Any> read(key: String, type: KClass<out T>, parent: FileHandle, cached: Boolean): T? {
+	fun <T : Any> getOrCreate(key: MetaDataKey<T>, type: KClass<out T>, parent: FileHandle = dataRoot): T =
+		when (val stored = read(key, type, parent)) {
+			is StoredValue.Present -> stored.value
+			StoredValue.Absent -> newInstance(type).also { save(key, it, parent) }
+			is StoredValue.Unreadable -> newInstance(type)
+		}
+
+	/**
+	 * Reads what is stored under [key].
+	 *
+	 * [cached] answers from this instance's copy when the file has not changed since it was read. Leave it on for
+	 * data only this class writes, such as settings. Turn it off for a file someone else also edits - project
+	 * metadata under a project root - where a modification time that does not advance, from a restored backup or two
+	 * writes inside one filesystem tick, would otherwise pin a stale value for the lifetime of this instance.
+	 */
+	@Suppress("DEPRECATION")
+	fun <T : Any> read(
+		key: MetaDataKey<T>,
+		type: KClass<out T>,
+		parent: FileHandle = dataRoot,
+		cached: Boolean = true,
+	): StoredValue<T> = read(key.name, type, parent, cached)
+
+	private fun <T : Any> read(
+		key: String,
+		type: KClass<out T>,
+		parent: FileHandle,
+		cached: Boolean,
+	): StoredValue<T> {
 		val handle = getCachedHandle(key, parent)
 		val cacheId = cacheId(key, parent)
 		// Answered before the cache is consulted, not after: with no file there is no value, whatever the cache says.
@@ -388,7 +427,7 @@ class MetaData(root: FileHandle? = null) {
 		// and so always looked older - which is how a removed project kept on loading.
 		val storedAt = storedAt(handle) ?: run {
 			jsonCache.remove(cacheId)
-			return null
+			return StoredValue.Absent
 		}
 
 		if (cached) {
@@ -398,28 +437,29 @@ class MetaData(root: FileHandle? = null) {
 				if (entry.created >= storedAt) {
 					log.trace { "Cache hit: $key" }
 					@Suppress("UNCHECKED_CAST")
-					return entry.obj as T
+					return StoredValue.Present(entry.obj as T)
 				}
 				log.debug { "File is newer than the cached value, reloading: $key" }
 			}
 		}
 
-		// Read and parse are separated because only one of them justifies moving the file. Not being able to read it
-		// says nothing about the contents - a sync client or a scanner holding a lock, a permission blip, a share that
-		// dropped - and quarantining on that renames a perfectly good save out of the way and reports it missing.
+		// Read and parse are separated because only one of them justifies moving the file, and because they mean
+		// different things to the caller. Failing to read says nothing about the contents - a sync client or a
+		// scanner holding a lock, a permission blip, a share that dropped - so the file stays put and the answer
+		// says so.
 		val bytes = try {
 			handle.readBytes()
 		} catch (failure: RuntimeException) {
 			log.error("Could not read $key; leaving the file where it is", failure)
 			jsonCache.remove(cacheId)
-			return null
+			return StoredValue.Unreadable(failure)
 		}
 
 		return try {
 			val loaded = json.fromJson(type.java, String(bytes, Charsets.UTF_8))
 				?: throw IllegalStateException("Deserialized to null")
 			if (cached) jsonCache.put(cacheId, CacheObj(loaded, storedAt))
-			loaded
+			StoredValue.Present(loaded)
 		} catch (failure: RuntimeException) {
 			// The bytes were read and are not a value of this type: truncated by a kill during a save, damaged on
 			// disk, or written by a build whose class shape no longer matches.
@@ -430,7 +470,9 @@ class MetaData(root: FileHandle? = null) {
 				failure,
 			)
 			jsonCache.remove(cacheId)
-			null
+			// Only once the damaged bytes are safely elsewhere is the path free to write over. If they could not be
+			// moved they are still sitting there, and saying "nothing here" invites the next save to destroy them.
+			if (kept != null) StoredValue.Absent else StoredValue.Unreadable(failure)
 		}
 	}
 
@@ -563,6 +605,19 @@ inline operator fun <reified T : Any> MetaData.get(key: String, parent: FileHand
 inline operator fun <reified T : Any> MetaData.get(key: MetaDataKey<T>, parent: FileHandle = dataRoot): T =
 	get(key.name, T::class, parent)
 
-@Suppress("DEPRECATION")
-inline fun <reified T : Any> MetaData.load(key: MetaDataKey<T>, target: FileHandle = dataRoot): T? =
-	load(key.name, T::class, target)
+/**
+ * Reads what is stored under [key], saying which of the three outcomes it is.
+ *
+ * Replaces the old `load`, which answered `null` for both "nothing stored" and "could not be read" and so let
+ * `load(key) ?: defaults().also { save(it) }` overwrite an intact file whenever a read failed. See
+ * [MetaData.StoredValue].
+ */
+inline fun <reified T : Any> MetaData.read(
+	key: MetaDataKey<T>,
+	target: FileHandle = dataRoot,
+	cached: Boolean = true,
+): MetaData.StoredValue<T> = read(key, T::class, target, cached)
+
+/** The value if one was read, or `null` for either reason. Only for callers that will not write on `null`. */
+val <T : Any> MetaData.StoredValue<T>.valueOrNull: T?
+	get() = (this as? MetaData.StoredValue.Present)?.value

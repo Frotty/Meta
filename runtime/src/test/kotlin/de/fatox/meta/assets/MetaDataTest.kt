@@ -149,11 +149,15 @@ class MetaDataTest {
 		withMetaData { metaData, _ ->
 			val key = MetaDataKey<TestSettings>("deleted.json")
 			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
-			assertEquals("brutal", metaData.load(key, TestSettings::class)?.difficulty, "should read back before delete")
+			assertEquals("brutal", metaData.stored(key)?.difficulty, "should read back before delete")
 
 			assertTrue(metaData.getCachedHandle(key).delete(), "test could not delete the file")
 
-			assertNull(metaData.load(key, TestSettings::class), "a deleted value must not come back from the cache")
+			assertEquals(
+				MetaData.StoredValue.Absent,
+				metaData.read(key, TestSettings::class, cached = false),
+				"a deleted value must not come back from the cache",
+			)
 			assertEquals(false, metaData.has(key), "has must agree with load")
 		}
 	}
@@ -218,7 +222,7 @@ class MetaDataTest {
 			assumeTrue(file.setLastModified(0L) && file.lastModified() == 0L, "filesystem keeps no epoch timestamps")
 
 			val reopened = newMetaData(root)
-			assertEquals("brutal", reopened.load(key, TestSettings::class)?.difficulty, "a valid save read as missing")
+			assertEquals("brutal", reopened.stored(key)?.difficulty, "a valid save read as missing")
 			assertTrue(reopened.has(key), "has must agree with load")
 		}
 	}
@@ -297,7 +301,7 @@ class MetaDataTest {
 		withMetaData { metaData, _ ->
 			val key = MetaDataKey<TestSettings>("external.json")
 			metaData.save(key, TestSettings().apply { difficulty = "hard" })
-			assertEquals("hard", metaData.load(key, TestSettings::class)?.difficulty)
+			assertEquals("hard", metaData.stored(key)?.difficulty)
 
 			// Replaced behind this instance's back, keeping the timestamp it already had.
 			val file = metaData.getCachedHandle(key)
@@ -307,7 +311,7 @@ class MetaDataTest {
 
 			assertEquals(
 				"brutal",
-				metaData.load(key, TestSettings::class)?.difficulty,
+				metaData.stored(key)?.difficulty,
 				"load must reparse rather than answer from the cache",
 			)
 		}
@@ -361,9 +365,12 @@ class MetaDataTest {
 	/**
 	 * Quarantine is for bytes that are not a value of this type. A file that simply could not be read says nothing
 	 * about its contents, and moving it aside there renames a perfectly good save out of the way.
+	 *
+	 * It must also not be reported as absent. Absent means "writing here loses nothing", and this file is intact - it
+	 * is the reading that failed - so a caller told `Absent` would overwrite data that was never in any trouble.
 	 */
 	@Test
-	fun `a file that cannot be read is not quarantined`() {
+	fun `a file that cannot be read is neither quarantined nor reported absent`() {
 		withMetaData { metaData, root ->
 			val key = MetaDataKey<TestSettings>("unreadable.json")
 			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
@@ -373,7 +380,11 @@ class MetaDataTest {
 			assertTrue(file.delete())
 			assertTrue(file.mkdir())
 
-			assertNull(newMetaData(root).load(key, TestSettings::class), "an unreadable file should read as absent")
+			val stored = newMetaData(root).read(key, TestSettings::class, cached = false)
+			assertTrue(
+				stored is MetaData.StoredValue.Unreadable,
+				"an unreadable file must not be reported as absent, was $stored",
+			)
 			val quarantined = root.file().walkTopDown().filter { it.name.contains(".corrupt") }.toList()
 			assertTrue(quarantined.isEmpty(), "moved aside ${quarantined.map { it.name }} without reading it")
 		}
@@ -409,7 +420,11 @@ class MetaDataTest {
 			val damaged = file.readString()
 
 			val reopened = newMetaData(root)
-			assertNull(reopened.load(key, TestSettings::class), "damaged bytes should not parse")
+			assertEquals(
+				MetaData.StoredValue.Absent,
+				reopened.read(key, TestSettings::class, cached = false),
+				"damaged bytes that were set aside leave the path free",
+			)
 
 			// The loss is not immediate: a quarantine that could not place the file leaves it where it is, and the
 			// next save is what overwrites the only copy.
@@ -449,7 +464,7 @@ class MetaDataTest {
 			val damaged = file.readString()
 
 			val reopened = newMetaData(root)
-			assertNull(reopened.load(key, TestSettings::class))
+			assertEquals(MetaData.StoredValue.Absent, reopened.read(key, TestSettings::class, cached = false))
 			// What the callers do on a null result, and what destroys the evidence if it was never moved aside.
 			reopened.save(key, TestSettings().apply { difficulty = "hard" })
 
@@ -472,6 +487,41 @@ class MetaDataTest {
 			assertTrue(created.isEmpty(), "loading wrote ${created.map { it.name }}")
 		}
 	}
+
+	/**
+	 * The whole reason the three outcomes exist: read-or-initialise must write for one of them and not the other.
+	 * `load(key) ?: defaults().also { save(it) }` could not tell them apart, so a file held for a moment by a scanner
+	 * was answered as "nothing here" and then overwritten.
+	 */
+	@Test
+	fun `getOrCreate writes for an absent value but not for an unreadable one`() {
+		withMetaData { metaData, root ->
+			val fresh = MetaDataKey<TestSettings>("fresh.json")
+			assertEquals(0.5f, metaData.getOrCreate(fresh, TestSettings::class).masterVolume)
+			assertTrue(metaData.has(fresh), "an absent value should have been created")
+
+			val locked = MetaDataKey<TestSettings>("locked.json")
+			metaData.save(locked, TestSettings().apply { difficulty = "brutal" })
+			val file = metaData.getCachedHandle(locked).file()
+			val original = file.readText()
+			// Present and stat-able, every read of it fails: what a lock or a permission blip looks like from here.
+			assertTrue(file.delete())
+			assertTrue(file.mkdir())
+
+			val reopened = newMetaData(root)
+			assertEquals(0.5f, reopened.getOrCreate(locked, TestSettings::class).masterVolume, "should use a default")
+			assertTrue(file.isDirectory, "getOrCreate wrote over a value it could not read")
+
+			// And once the obstruction clears, the original is still exactly where it was.
+			file.delete()
+			file.writeText(original)
+			assertEquals("brutal", newMetaData(root).stored(locked)?.difficulty)
+		}
+	}
+
+	/** The stored value, for the cases where only the value matters. Always uncached, as `load` used to be. */
+	private fun MetaData.stored(key: MetaDataKey<TestSettings>): TestSettings? =
+		read(key, TestSettings::class, cached = false).valueOrNull
 
 	private fun newMetaData(root: FileHandle): MetaData = MetaData(root)
 

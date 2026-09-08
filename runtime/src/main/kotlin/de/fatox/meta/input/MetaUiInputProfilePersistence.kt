@@ -3,7 +3,8 @@ package de.fatox.meta.input
 import de.fatox.meta.metaUiInputProfileKey
 import de.fatox.meta.assets.MetaData
 import de.fatox.meta.assets.MetaDataKey
-import de.fatox.meta.assets.load
+import de.fatox.meta.assets.read
+import de.fatox.meta.assets.valueOrNull
 
 fun MetaUiInputBindings.saveProfile(
 	metaData: MetaData,
@@ -14,17 +15,18 @@ fun MetaUiInputBindings.saveProfile(
 /**
  * Applies the stored profile, or the defaults when there is none.
  *
- * Loading does not save. Writing the defaults here looked harmless - it only ran when nothing was stored - but
- * `MetaData.load` answers `null` both for "nothing is stored" and for "this could not be read right now", and a file
- * held briefly by a scanner or a sync client is the second. Treating that as the first replaced a perfectly good set
- * of bindings with the defaults, which is the loss this store is meant to prevent. The profile is persisted when it
- * is changed, by [saveProfile].
+ * Reads through [MetaData.StoredValue] rather than a nullable, because the two reasons for having no profile call for
+ * different things. Nothing stored is just a fresh install. A profile that exists but could not be read - a scanner or
+ * a sync client holding it for a moment - must be left exactly where it is: writing the defaults over it, which this
+ * did while `load` conflated the two, throws away bindings the player set deliberately.
+ *
+ * Either way nothing is written here. The profile is persisted when it changes, by [saveProfile].
  */
 fun MetaUiInputBindings.loadProfile(
 	metaData: MetaData,
 	key: MetaDataKey<MetaUiInputProfile> = metaUiInputProfileKey,
 ): MetaUiInputProfile {
-	val profile = metaData.load(key) ?: MetaUiInputProfile.defaults()
+	val profile = metaData.read(key).valueOrNull ?: MetaUiInputProfile.defaults()
 	applyProfile(profile)
 	return profile
 }

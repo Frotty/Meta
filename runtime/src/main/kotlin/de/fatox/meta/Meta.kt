@@ -26,7 +26,6 @@ import de.fatox.meta.assets.MetaData
 import de.fatox.meta.concurrent.MetaJobs
 import de.fatox.meta.concurrent.MetaThreads
 import de.fatox.meta.entity.MetaEntityWorld
-import de.fatox.meta.assets.load
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.input.KeyListener
@@ -128,7 +127,7 @@ abstract class Meta(
 		MetaInject.global { singleton("default") { ScreenConfig().apply { screens() } } }
 		MetaInject.global { singleton("default") { WindowConfig().apply { windows() } } }
 		config()
-		MetaAudioVideoState.initialize(metaData.load(audioVideoDataKey) ?: MetaAudioVideoData())
+		MetaAudioVideoState.initialize(metaData.get(audioVideoDataKey, MetaAudioVideoData::class))
 
 		metaInput.addGlobalKeyListener(Input.Keys.ENTER, 0, object : KeyListener() {
 			override fun onEvent() {
