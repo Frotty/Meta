@@ -1,6 +1,5 @@
 package de.fatox.meta.assets.xpk
 
-
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.Disposable
 import com.badlogic.gdx.utils.GdxRuntimeException
@@ -237,6 +236,10 @@ class XpkV2Archive internal constructor(
 				if (tocOffset < SALT_LENGTH || tocOffset > bodyEnd) return null
 				if (tocOffset + tocLength.toLong() > bodyEnd) return null
 				if (tocOffset - blockTableLength < SALT_LENGTH) return null
+				// Counts alone are not a memory bound: at MAX_ENTRIES and MAX_BLOCKS the two tables come to over a
+				// gigabyte, and the arrays decode() derives from them to several more, so a crafted footer could
+				// exhaust memory before a signature was ever checked.
+				if (tocLength.toLong() + blockTableLength > XpkFormat.MAX_METADATA_BYTES) return null
 
 				val salt = ByteArray(SALT_LENGTH)
 				if (!tryRead(channel, salt, 0)) return null
@@ -248,10 +251,10 @@ class XpkV2Archive internal constructor(
 				if (!tryRead(channel, blockTable, tocOffset - blockTableLength)) return null
 
 				// Checksum and signature cover both tables as stored, so nothing that decides which bytes an entry
-				// resolves to is left unauthenticated. Verified before either is decrypted.
-				val signedMaterial = XpkFormat.signedMaterial(blockTable, toc)
-				if (XpkFormat.contentKey(signedMaterial, 0, signedMaterial.size) != tocChecksum) return null
-				verifySignature(profile, footer, signedMaterial, displayPath)
+				// resolves to is left unauthenticated. Verified before either is decrypted, and fed to the digest in
+				// place rather than concatenated - a joined copy would double the largest allocation here.
+				if (XpkFormat.metadataChecksum(blockTable, toc) != tocChecksum) return null
+				verifySignature(profile, footer, blockTable, toc, displayPath)
 
 				XpkFormat.crypt(profile, XpkFormat.metadataNonce(profile, salt, XpkFormat.PURPOSE_TOC), toc, 0, toc.size)
 				XpkFormat.crypt(
@@ -272,12 +275,18 @@ class XpkV2Archive internal constructor(
 			}
 		}
 
-		private fun verifySignature(profile: XpkProfile, footer: ByteArray, signed: ByteArray, displayPath: String) {
+		private fun verifySignature(
+			profile: XpkProfile,
+			footer: ByteArray,
+			blockTable: ByteArray,
+			toc: ByteArray,
+			displayPath: String,
+		) {
 			val signingKey = profile.tocSigningKey ?: return
 			val signature = footer.copyOfRange(FOOTER_FIELDS_LENGTH, FOOTER_LENGTH)
 			val verifier = Signature.getInstance("Ed25519")
 			verifier.initVerify(signingKey)
-			verifier.update(signed)
+			XpkFormat.updateWithMetadata(verifier, blockTable, toc)
 			// Not a "not mine" result: the archive identified itself as this profile's and then failed to prove it,
 			// which is the case the signature exists to catch.
 			if (!verifier.verify(signature)) {

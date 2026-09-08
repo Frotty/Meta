@@ -122,7 +122,7 @@ internal object XpkFormat {
 	 *
 	 * It detects damage, not forgery, and the distinction is worth stating exactly. A CRC is trivial to recompute,
 	 * and four chosen bytes can hold one constant while the rest of a block changes, so somebody who has recovered
-	 * the client-side symmetric key can rewrite payload undetected. [signedMaterial] does not close that: it
+	 * the client-side symmetric key can rewrite payload undetected. [metadataChecksum] does not close that: it
 	 * authenticates the metadata tables - which entries exist, which blocks they point at - not the block contents.
 	 *
 	 * That is a deliberate trade, not an oversight. Recovering payload authentication means hashing every entry with
@@ -149,7 +149,7 @@ internal object XpkFormat {
 	const val PURPOSE_TOC: Byte = 2
 
 	/**
-	 * The bytes the footer checksums and the Ed25519 signature covers: both metadata tables, as stored.
+	 * Checksum over both metadata tables, in file order, without concatenating them.
 	 *
 	 * Signing the table of contents alone would authenticate *what* the entries are while leaving *where they point*
 	 * open, since the block table holds each block's offset and nonce. Whoever holds the game-embedded symmetric key
@@ -160,12 +160,28 @@ internal object XpkFormat {
 	 * archive or re-point an entry without the CI key. It does not authenticate block *contents* - see
 	 * [blockChecksum] for why that check is a CRC and what it therefore does not cover.
 	 */
-	fun signedMaterial(blockTable: ByteArray, toc: ByteArray): ByteArray {
-		val combined = ByteArray(blockTable.size + toc.size)
-		blockTable.copyInto(combined)
-		toc.copyInto(combined, blockTable.size)
-		return combined
+	fun metadataChecksum(blockTable: ByteArray, toc: ByteArray): Long {
+		val digest = MessageDigest.getInstance("SHA-256")
+		digest.update(blockTable)
+		digest.update(toc)
+		return littleEndian(digest.digest()).getLong(0)
 	}
+
+	/** Feeds the same bytes to a signer or verifier, in the same order, without concatenating them. */
+	fun updateWithMetadata(signature: java.security.Signature, blockTable: ByteArray, toc: ByteArray) {
+		signature.update(blockTable)
+		signature.update(toc)
+	}
+
+	/**
+	 * Ceiling on the two metadata tables together, checked before either is read.
+	 *
+	 * Bounding the entry and block *counts* was not enough: at those limits the tables alone come to over a gigabyte,
+	 * and the arrays [XpkV2Archive] derives from them to several more - so a crafted footer could exhaust memory
+	 * before a signature was ever checked. 64 MB is around a million entries, far past any real game archive, and it
+	 * bounds every derived allocation in proportion.
+	 */
+	const val MAX_METADATA_BYTES: Long = 64L * 1024 * 1024
 
 	/**
 	 * Whether a block-table row's declared sizes are plausible before anything is allocated from them.

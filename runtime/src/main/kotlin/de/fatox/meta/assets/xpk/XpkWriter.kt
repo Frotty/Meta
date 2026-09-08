@@ -306,8 +306,6 @@ class XpkWriter(private val profile: XpkProfile) {
 		// signing the TOC alone leaves the mapping from entry to bytes unauthenticated: somebody holding the
 		// game-embedded symmetric key but not the CI signing key could re-encrypt a block, install a matching nonce,
 		// and keep the original signature. Everything that decides which bytes an entry resolves to is signed.
-		val signedMaterial = XpkFormat.signedMaterial(blockTable, toc)
-
 		val fields = XpkFormat.littleEndian(FOOTER_FIELDS_LENGTH)
 		fields.putLong(tocOffset)
 		fields.putInt(tocLength)
@@ -315,13 +313,13 @@ class XpkWriter(private val profile: XpkProfile) {
 		fields.putInt(entryCount)
 		fields.putShort(XpkFormat.VERSION.toShort())
 		fields.putShort(profile.profileId.toShort())
-		fields.putLong(XpkFormat.contentKey(signedMaterial, 0, signedMaterial.size))
+		fields.putLong(XpkFormat.metadataChecksum(blockTable, toc))
 
 		val signature = ByteArray(XpkFormat.SIGNATURE_LENGTH)
 		if (signingKey != null) {
 			val signer = Signature.getInstance("Ed25519")
 			signer.initSign(signingKey)
-			signer.update(signedMaterial)
+			XpkFormat.updateWithMetadata(signer, blockTable, toc)
 			val produced = signer.sign()
 			check(produced.size == XpkFormat.SIGNATURE_LENGTH) {
 				"Ed25519 signature was ${produced.size} bytes, expected ${XpkFormat.SIGNATURE_LENGTH}"

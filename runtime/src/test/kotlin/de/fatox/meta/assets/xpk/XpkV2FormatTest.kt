@@ -280,6 +280,19 @@ class XpkV2FormatTest {
 			},
 			"all zeroes" to ByteArray(packed.size),
 			"random noise" to Random(11).nextBytes(packed.size),
+			// Counts alone were not a memory bound: at the old ceilings these tables would come to over a gigabyte,
+			// and the arrays derived from them to several more, before any signature was checked.
+			"absurd metadata counts" to packed.copyOf().also { copy ->
+				val footerStart = copy.size - XpkFormat.FOOTER_LENGTH
+				val footer = copy.copyOfRange(footerStart, copy.size)
+				XpkFormat.maskFooter(testProfile(), footer, copy.size.toLong())
+				val fields = XpkFormat.littleEndian(footer)
+				fields.putInt(8, Int.MAX_VALUE / XpkFormat.TOC_ROW_LENGTH * XpkFormat.TOC_ROW_LENGTH)
+				fields.putInt(12, 1 shl 23)
+				fields.putInt(16, Int.MAX_VALUE / XpkFormat.TOC_ROW_LENGTH)
+				XpkFormat.maskFooter(testProfile(), footer, copy.size.toLong())
+				footer.copyInto(copy, footerStart)
+			},
 		)
 
 		for ((label, bytes) in cases) {
@@ -353,8 +366,8 @@ class XpkV2FormatTest {
 		XpkFormat.crypt(signing, blockTableNonce, blockTable, 0, blockTable.size)
 		blockTable.copyInto(forged, blockTableStart)
 
-		val repaired = XpkFormat.signedMaterial(blockTable, forged.copyOfRange(tocStart, tocStart + tocLength))
-		fields.putLong(TOC_CHECKSUM_OFFSET, XpkFormat.contentKey(repaired, 0, repaired.size))
+		val repaired = XpkFormat.metadataChecksum(blockTable, forged.copyOfRange(tocStart, tocStart + tocLength))
+		fields.putLong(TOC_CHECKSUM_OFFSET, repaired)
 		XpkFormat.maskFooter(signing, footer, forged.size.toLong())
 		footer.copyInto(forged, footerStart)
 
