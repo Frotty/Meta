@@ -120,10 +120,16 @@ internal object XpkFormat {
 	 * toolchain, and eight times faster than the AES-CTR pass the same bytes have to make anyway. That is what lets
 	 * this be unconditional - a 5 MB asset pays 0.1 ms rather than 3.4 ms, which is below the noise of loading it.
 	 *
-	 * It detects damage, not forgery: a CRC is trivial to recompute, so anyone rewriting a block would fix it too.
-	 * Tamper resistance is the Ed25519 signature over both metadata tables, and that is a separate, optional concern
-	 * - see `docs/xpk-format-audit.md` §8. What this catches is the case that actually happens: a truncated download,
-	 * a bad sector, a half-written patch.
+	 * It detects damage, not forgery, and the distinction is worth stating exactly. A CRC is trivial to recompute,
+	 * and four chosen bytes can hold one constant while the rest of a block changes, so somebody who has recovered
+	 * the client-side symmetric key can rewrite payload undetected. [signedMaterial] does not close that: it
+	 * authenticates the metadata tables - which entries exist, which blocks they point at - not the block contents.
+	 *
+	 * That is a deliberate trade, not an oversight. Recovering payload authentication means hashing every entry with
+	 * something an attacker cannot forge, and the measurement is stark: HMAC-SHA256 runs at 1551 MB/s here against
+	 * CRC32C's 50227, so a 5 MB asset would pay 3.4 ms instead of 0.1 ms on every read. This format exists to make
+	 * extraction non-trivial, not to withstand somebody who already holds the key, so the read path buys the check
+	 * that catches what actually happens - a truncated download, a bad sector, a half-written patch.
 	 */
 	fun blockChecksum(bytes: ByteArray, offset: Int, length: Int): Int {
 		val crc = CRC32C()
@@ -147,8 +153,12 @@ internal object XpkFormat {
 	 *
 	 * Signing the table of contents alone would authenticate *what* the entries are while leaving *where they point*
 	 * open, since the block table holds each block's offset and nonce. Whoever holds the game-embedded symmetric key
-	 * could then re-encrypt a block, install a matching nonce and keep the original signature. Ciphertext is signed
-	 * rather than plaintext so verification happens before anything is decrypted.
+	 * could then re-point an entry and keep the original signature. Ciphertext is signed rather than plaintext so
+	 * verification happens before anything is decrypted.
+	 *
+	 * The limit, stated so it is not mistaken for more: this authenticates the *metadata*, so nobody can author an
+	 * archive or re-point an entry without the CI key. It does not authenticate block *contents* - see
+	 * [blockChecksum] for why that check is a CRC and what it therefore does not cover.
 	 */
 	fun signedMaterial(blockTable: ByteArray, toc: ByteArray): ByteArray {
 		val combined = ByteArray(blockTable.size + toc.size)

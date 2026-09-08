@@ -127,10 +127,29 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	/**
+	 * The one place a name is turned into a handle, across every source the provider knows.
+	 *
+	 * Written as one function rather than an `?:` at each call site on purpose. A short-circuit would let a loose
+	 * file or a v1 entry quietly shadow a v2 one, which is the same overlap `cacheFile` already refuses between
+	 * loose files and v1 archives - and being silent about it in one case and loud in the other is how a stale pack
+	 * ends up serving different bytes depending on which lookup path reached it.
+	 */
+	private fun resolveAsset(fileName: String): FileHandle? {
+		val indexed = fileCache[assetPathKey(fileName)]
+		val packed = resolvePacked(fileName)
+		if (indexed != null && packed != null) {
+			throw GdxRuntimeException(
+				"Asset '$fileName' is present both as an indexed file (${indexed.path()}) and in a packed archive",
+			)
+		}
+		return indexed ?: packed
+	}
+
+	/**
 	 * Resolves a name against the registered v2 archives.
 	 *
 	 * v2 keeps keyed hashes rather than paths, so it cannot be indexed up front the way v1 and loose files are; the
-	 * archive is asked instead. Lookup is a binary search over a sorted `long[]`, so this costs a hash and a few
+	 * archive is asked instead. Lookup is a binary search over a sorted `long[]`, so this costs one hash and a few
 	 * comparisons per archive.
 	 */
 	private fun resolvePacked(fileName: String): FileHandle? {
@@ -194,7 +213,7 @@ class MetaAssetProvider : AssetProvider {
 
 	override fun <T: Any> load(name: String, type: Class<T>) {
 		log.trace { "queueing <$name>" }
-		val cachedFile = fileCache[assetPathKey(name)] ?: resolvePacked(name)
+		val cachedFile = resolveAsset(name)
 		if (cachedFile != null) {
 			log.trace { "pack cache contains filename" }
 			queueIntern(AssetDescriptor(cachedFile, type))
@@ -329,7 +348,7 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun <T : Any> getResource(fileName: String, type: Class<T>, index: Int): T {
-		val cachedFile = fileCache[assetPathKey(fileName)] ?: resolvePacked(fileName)
+		val cachedFile = resolveAsset(fileName)
 		return when {
 			type == FileHandle::class.java -> {
 				type.cast(cachedFile ?: Gdx.files.internal(fileName))
@@ -415,7 +434,7 @@ class MetaAssetProvider : AssetProvider {
 
 	internal inner class MetaFileHandleResolver : FileHandleResolver {
 		override fun resolve(fileName: String): FileHandle {
-			return fileCache[assetPathKey(fileName)] ?: resolvePacked(fileName) ?: Gdx.files.internal(fileName)
+			return resolveAsset(fileName) ?: Gdx.files.internal(fileName)
 		}
 	}
 

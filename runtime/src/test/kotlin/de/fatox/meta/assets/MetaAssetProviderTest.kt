@@ -3,13 +3,67 @@ package de.fatox.meta.assets
 import com.badlogic.gdx.assets.loaders.AsynchronousAssetLoader
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.utils.GdxRuntimeException
+import de.fatox.meta.assets.xpk.XpkProfile
+import de.fatox.meta.assets.xpk.XpkWriter
+import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.test.GdxTestEnvironment
+import java.io.File
+import java.nio.file.Files
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class MetaAssetProviderTest {
+	/**
+	 * A loose file and a packed entry naming the same asset must be reported, not silently ranked.
+	 *
+	 * `cacheFile` already refuses an overlap between loose files and v1 archives. Resolving loose-versus-v2 with an
+	 * `?:` instead would have made one lookup path loud and another quiet about the same mistake, so a stale pack
+	 * could serve different bytes depending on which route reached it.
+	 */
+	@Test
+	fun `an asset in both a loose folder and a packed archive is reported`() {
+		val root = Files.createTempDirectory("meta-overlap").toFile()
+		try {
+			val loose = File(root, "assets/data").apply { mkdirs() }
+			File(loose, "shared.bin").writeBytes(ByteArray(16) { 1 })
+
+			val profile = XpkProfile.of(
+				rootKey = ByteArray(32) { 1 },
+				nameHashKey = ByteArray(32) { 2 },
+				profileId = 42,
+				footerMask = 0x5EED_5EED_5EED_5EEDuL.toLong(),
+			)
+			MetaInject.global { singleton(profile) }
+			try {
+				val packs = File(root, "packs").apply { mkdirs() }
+				File(packs, "content.xpk").writeBytes(
+					XpkWriter(profile).apply { add("data/shared.bin", ByteArray(16) { 2 }) }.build(),
+				)
+
+				val provider = MetaAssetProvider()
+				assertTrue(provider.loadRawAssetsFromFolder(FileHandle(File(root, "assets"))))
+				assertTrue(provider.loadPackedAssetsFromFolder(FileHandle(packs)))
+
+				val failure = assertFailsWith<GdxRuntimeException> {
+					provider.getResource("data/shared.bin", FileHandle::class.java)
+				}
+				assertTrue(
+					failure.message.orEmpty().contains("packed archive"),
+					"the overlap should name both sources, was: ${failure.message}",
+				)
+				provider.dispose()
+			} finally {
+				MetaInject.global(clear = true) {}
+			}
+		} finally {
+			root.deleteRecursively()
+		}
+	}
+
 	@Test
 	fun `texture atlas dependency discovery uses an asynchronous loader`() {
 		assertTrue(

@@ -602,12 +602,27 @@ Closed by the design rather than by a fix:
 | --- | --- |
 | M1 — whole archive in heap, 2 GB cap | Positional reads of one block at a time; the archive is never resident |
 | M2, and the four release-coverage findings on #42 | Blocks are independently decodable, so there is no shared cursor, no pass-through cache and no retention policy to get wrong |
-| M4 — unkeyed corruption check only | Per-block integrity from the content-derived nonce, plus Ed25519 over the TOC |
+| M4 — unkeyed corruption check only | Per-block CRC32C, plus Ed25519 over both metadata tables — see the limit below |
 | M5 — six bytes of obfuscation | No plaintext magic; salt then ciphertext throughout |
 | M6 — no index | Sorted `long[]` of keyed name hashes, binary searched |
 | M7 — no streaming, NPE on a miss | `find` returns `null`; a miss can never alias another entry |
 | M8 — unversioned | Version and profile id in the footer |
 | M10 — no packer | `XpkWriter`, sharing `XpkFormat` with the reader |
+
+### What the integrity and signature checks actually cover
+
+Stated precisely, because an earlier draft of this document implied more:
+
+- **CRC32C per block, on every read.** Catches a truncated download, a bad sector, a half-written patch. It is not
+  tamper-proof — a CRC is recomputable, and four chosen bytes hold it constant while the rest of a block changes.
+- **Ed25519 over both metadata tables, optional.** Nobody without the CI key can author an archive or re-point an
+  entry at different bytes. It does **not** authenticate block contents.
+
+So somebody who has recovered the client-side symmetric key can still rewrite payload undetected. Closing that means
+hashing every entry with something unforgeable on every read, and the measured cost decides it: HMAC-SHA256 runs at
+1 551 MB/s on the project toolchain against CRC32C's 50 227, so a 5 MB asset would pay 3.4 ms instead of 0.1 ms.
+**This format exists to make extraction non-trivial, not to withstand an attacker who already holds the key** — see
+§8's ceiling — so the read path buys the cheap check and the expensive one is not offered.
 
 Deliberately still open:
 
