@@ -2,7 +2,7 @@ package de.fatox.meta.assets.xpk
 
 import com.badlogic.gdx.Files
 import com.badlogic.gdx.files.FileHandle
-import de.fatox.meta.assets.normalisedPath
+import de.fatox.meta.assets.assetPathKey
 import java.io.InputStream
 
 /**
@@ -66,7 +66,7 @@ class XpkV2FileHandle internal constructor(
 
 	private fun resolveRelative(base: String, name: String): FileHandle {
 		val combined = if (base.isEmpty()) name else "$base/$name"
-		return archive.find(combined) ?: XpkV2DirectoryHandle(archive, normalisedPath(combined))
+		return archive.find(combined) ?: XpkV2DirectoryHandle(archive, assetPathKey(combined))
 	}
 }
 
@@ -97,7 +97,7 @@ class XpkV2DirectoryHandle internal constructor(
 
 	override fun child(name: String): FileHandle {
 		val combined = if (directoryPath.isEmpty()) name else "$directoryPath/$name"
-		return archive.find(combined) ?: XpkV2DirectoryHandle(archive, normalisedPath(combined))
+		return archive.find(combined) ?: XpkV2DirectoryHandle(archive, assetPathKey(combined))
 	}
 
 	override fun parent(): FileHandle =

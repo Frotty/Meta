@@ -1,6 +1,6 @@
 package de.fatox.meta.assets.xpk
 
-import de.fatox.meta.assets.normalisedPath
+import de.fatox.meta.assets.assetPathKey
 import de.fatox.meta.assets.xpk.XpkFormat.BLOCK_ROW_LENGTH
 import de.fatox.meta.assets.xpk.XpkFormat.BLOCK_ALIGNMENT
 import de.fatox.meta.assets.xpk.XpkFormat.BLOCK_SIZE
@@ -34,7 +34,7 @@ class XpkWriter(private val profile: XpkProfile) {
 
 	/** Adds one entry. [path] is normalised and hashed; the plaintext name is never written to the archive. */
 	fun add(path: String, bytes: ByteArray): XpkWriter {
-		val normalised = normalisedPath(path)
+		val normalised = assetPathKey(path)
 		require(normalised.isNotEmpty()) { "Entry path is empty after normalisation: '$path'" }
 		// An entry at least a block long becomes a block of its own, and the reader refuses a block declaring more
 		// than this. Catching it here means the pack fails rather than producing an archive its own reader cannot

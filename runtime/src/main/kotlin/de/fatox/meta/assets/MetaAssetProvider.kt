@@ -29,7 +29,7 @@ import de.fatox.meta.api.extensions.trace
 import de.fatox.meta.api.extensions.warn
 import de.fatox.meta.assets.xpk.XpkFormat
 import de.fatox.meta.assets.xpk.XpkProfile
-import de.fatox.meta.assets.xpk.canonicalEntryPath
+
 import de.fatox.meta.assets.xpk.XpkV2Archive
 import de.fatox.meta.injection.MetaInject
 
@@ -157,7 +157,7 @@ class MetaAssetProvider : AssetProvider {
 		if (v2Archives.size == 0) return null
 
 		// Hashed once, not once per archive: every archive under this profile hashes a name the same way.
-		val canonical = canonicalEntryPath(fileName)
+		val canonical = assetPathKey(fileName)
 		if (canonical.isEmpty()) return null
 		val nameHash = XpkFormat.nameHash(profile, canonical)
 

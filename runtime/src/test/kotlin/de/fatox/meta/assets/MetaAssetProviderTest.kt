@@ -48,13 +48,18 @@ class MetaAssetProviderTest {
 				assertTrue(provider.loadRawAssetsFromFolder(FileHandle(File(root, "assets"))))
 				assertTrue(provider.loadPackedAssetsFromFolder(FileHandle(packs)))
 
-				val failure = assertFailsWith<GdxRuntimeException> {
-					provider.getResource("data/shared.bin", FileHandle::class.java)
+				// Every spelling must reach both sources. While the indexed key folded only slashes and case while
+				// the packed one also stripped empty and `.` segments, `./data//shared.bin` missed the index, hit
+				// the archive, and returned the packed entry instead of reporting the clash.
+				for (spelling in listOf("data/shared.bin", "./data//shared.bin", "Data\\Shared.BIN")) {
+					val failure = assertFailsWith<GdxRuntimeException>("spelling '$spelling' should have clashed") {
+						provider.getResource(spelling, FileHandle::class.java)
+					}
+					assertTrue(
+						failure.message.orEmpty().contains("packed archive"),
+						"the overlap should name both sources, was: ${failure.message}",
+					)
 				}
-				assertTrue(
-					failure.message.orEmpty().contains("packed archive"),
-					"the overlap should name both sources, was: ${failure.message}",
-				)
 				provider.dispose()
 			} finally {
 				MetaInject.global(clear = true) {}
