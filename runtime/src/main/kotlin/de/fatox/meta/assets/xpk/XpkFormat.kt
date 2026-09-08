@@ -124,6 +124,44 @@ internal object XpkFormat {
 	const val PURPOSE_TOC: Byte = 2
 
 	/**
+	 * The bytes the footer checksums and the Ed25519 signature covers: both metadata tables, as stored.
+	 *
+	 * Signing the table of contents alone would authenticate *what* the entries are while leaving *where they point*
+	 * open, since the block table holds each block's offset and nonce. Whoever holds the game-embedded symmetric key
+	 * could then re-encrypt a block, install a matching nonce and keep the original signature. Ciphertext is signed
+	 * rather than plaintext so verification happens before anything is decrypted.
+	 */
+	fun signedMaterial(blockTable: ByteArray, toc: ByteArray): ByteArray {
+		val combined = ByteArray(blockTable.size + toc.size)
+		blockTable.copyInto(combined)
+		toc.copyInto(combined, blockTable.size)
+		return combined
+	}
+
+	/**
+	 * Whether a block-table row's declared sizes are plausible before anything is allocated from them.
+	 *
+	 * `rawSize` reaches `ByteArray(rawSize)`, so an unvalidated value is a negative-size exception or an
+	 * out-of-memory kill rather than a rejected archive. Signing the block table stops a *tampered* one being
+	 * accepted at all, but a development profile carries no signing key and a truncated file is not an attack, so the
+	 * range check stands on its own regardless.
+	 */
+	fun isPlausibleBlock(codec: Byte, storedSize: Int, rawSize: Int): Boolean {
+		if (storedSize < 0 || rawSize < 0 || rawSize > MAX_BLOCK_RAW_SIZE) return false
+		return when (codec) {
+			CODEC_STORE -> rawSize == storedSize
+			// Deflate's maximum expansion is a little over 1032:1; anything beyond that is a decompression bomb.
+			CODEC_DEFLATE -> rawSize.toLong() <= storedSize.toLong() * MAX_DEFLATE_EXPANSION + 64
+			else -> false
+		}
+	}
+
+	/** Generous ceiling on a single decoded block: Valve caps pack files at 1-2 GB, so one block cannot near it. */
+	const val MAX_BLOCK_RAW_SIZE: Int = 512 * 1024 * 1024
+
+	private const val MAX_DEFLATE_EXPANSION = 1032L
+
+	/**
 	 * AES-256 in CTR mode, applied in place.
 	 *
 	 * CTR because the keystream at any offset follows from the counter, so random access survives encryption - a

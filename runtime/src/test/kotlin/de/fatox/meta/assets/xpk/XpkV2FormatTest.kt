@@ -14,6 +14,8 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private const val TOC_CHECKSUM_OFFSET = 8 + 4 + 4 + 4 + 2 + 2
+
 class XpkV2FormatTest {
 	@Test
 	fun `round trips every entry`() {
@@ -290,6 +292,144 @@ class XpkV2FormatTest {
 			}
 		}
 	}
+
+	/**
+	 * The threat this exists for: somebody holding the game-embedded symmetric key but not the CI signing key.
+	 *
+	 * They can decrypt and re-encrypt anything, so the signature has to cover every field that decides which bytes an
+	 * entry resolves to - not only the table of contents. The block table carries each block's offset and nonce, so
+	 * signing the TOC alone would let them re-point an entry and keep the original signature.
+	 */
+	@Test
+	fun `rewriting the block table breaks the signature`() {
+		val keys = ed25519()
+		val signing = signingProfile(keys.public)
+		// One incompressible entry, so the archive holds exactly one block and it is stored rather than deflated -
+		// the forgery below rewrites block plaintext, which a compressed stream would not survive.
+		val contents = mapOf("textures/hero.png" to Random(31).nextBytes(30_000))
+		val packed = XpkWriter(signing).apply { addAll(contents) }.build(keys.private)
+
+		// A real forgery, not a byte flip. Anything that merely corrupts a field is already caught by the bounds
+		// checks or the per-block nonce, and would pass this test without the signature covering the block table.
+		// This does what the attacker would: decrypt the block, alter it, recompute its nonce, re-encrypt, install
+		// the new nonce in the block table, and repair the footer checksum. Only the signature can stop it.
+		val forged = packed.copyOf()
+		val footerStart = forged.size - XpkFormat.FOOTER_LENGTH
+		val footer = forged.copyOfRange(footerStart, forged.size)
+		XpkFormat.maskFooter(signing, footer, forged.size.toLong())
+
+		val fields = XpkFormat.littleEndian(footer)
+		val tocStart = fields.getLong(0).toInt()
+		val tocLength = fields.getInt(8)
+		val blockCount = fields.getInt(12)
+		val blockTableStart = tocStart - blockCount * XpkFormat.BLOCK_ROW_LENGTH
+		val salt = forged.copyOfRange(0, XpkFormat.SALT_LENGTH)
+
+		val blockTable = forged.copyOfRange(blockTableStart, tocStart)
+		val blockTableNonce = XpkFormat.metadataNonce(signing, salt, XpkFormat.PURPOSE_BLOCK_TABLE)
+		XpkFormat.crypt(signing, blockTableNonce, blockTable, 0, blockTable.size)
+
+		val row = XpkFormat.littleEndian(blockTable)
+		val blockOffset = row.getLong(0).toInt()
+		val storedSize = row.getInt(8)
+		val codec = blockTable[16]
+		assertEquals(XpkFormat.CODEC_STORE, codec, "this forgery needs an uncompressed block")
+		val oldNonce = blockTable.copyOfRange(20, 20 + XpkFormat.NONCE_LENGTH)
+
+		val plaintext = forged.copyOfRange(blockOffset, blockOffset + storedSize)
+		XpkFormat.crypt(signing, oldNonce, plaintext, 0, plaintext.size)
+		plaintext[0] = (plaintext[0] + 1).toByte()
+
+		val newNonce = XpkFormat.blockNonce(signing, plaintext, 0, plaintext.size)
+		XpkFormat.crypt(signing, newNonce, plaintext, 0, plaintext.size)
+		plaintext.copyInto(forged, blockOffset)
+		newNonce.copyInto(blockTable, 20)
+
+		XpkFormat.crypt(signing, blockTableNonce, blockTable, 0, blockTable.size)
+		blockTable.copyInto(forged, blockTableStart)
+
+		val repaired = XpkFormat.signedMaterial(blockTable, forged.copyOfRange(tocStart, tocStart + tocLength))
+		fields.putLong(TOC_CHECKSUM_OFFSET, XpkFormat.contentKey(repaired, 0, repaired.size))
+		XpkFormat.maskFooter(signing, footer, forged.size.toLong())
+		footer.copyInto(forged, footerStart)
+
+		val file = writeBytes(forged)
+		try {
+			assertFailsWith<Exception>("a re-encrypted block with a repaired block table must not verify") {
+				XpkV2Archive.openOrNull(signing, FileHandle(file))
+			}
+		} finally {
+			file.delete()
+		}
+	}
+
+	/**
+	 * `rawSize` reaches `ByteArray(rawSize)`. Unchecked, a flipped field is a negative-size throw or an
+	 * out-of-memory kill rather than a rejected archive - and a development profile has no signature to catch it.
+	 */
+	@Test
+	fun `implausible block sizes are rejected rather than allocated`() {
+		assertTrue(XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, 1_024, 1_024))
+		assertTrue(XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, 1_024, 64 * 1_024))
+
+		assertTrue(!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, 1_024, -1), "negative rawSize")
+		assertTrue(!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, -1, 1_024), "negative storedSize")
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_DEFLATE, 1_024, Int.MAX_VALUE),
+			"a 2 GB allocation from a 1 KB block is a decompression bomb",
+		)
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, 1_024, 4_096),
+			"a stored block's raw size is its stored size",
+		)
+		assertTrue(!XpkFormat.isPlausibleBlock(99, 1_024, 1_024), "unknown codec")
+	}
+
+	/**
+	 * An incompressible entry larger than a page cannot be made to fit one, but it must not leave everything after it
+	 * off-boundary - that would misalign the whole tail of the archive against SteamPipe's chunking.
+	 */
+	@Test
+	fun `an oversized entry realigns the blocks that follow it`() {
+		val contents = linkedMapOf(
+			"video/intro.bin" to Random(21).nextBytes(XpkFormat.PAGE_SIZE * 2 + 5_000),
+			"data/after.bin" to Random(22).nextBytes(30_000),
+			"data/more.bin" to Random(23).nextBytes(30_000),
+		)
+		withArchive(contents) { archive ->
+			for ((path, expected) in contents) {
+				assertContentEquals(expected, archive.find(path)!!.readBytes(), "bytes of $path")
+			}
+
+			val offsets = archive.blockOffsets
+			assertTrue(offsets.size >= 2, "test needs an oversized block followed by others")
+			for (index in offsets.indices) {
+				assertEquals(
+					0L,
+					(offsets[index] - XpkFormat.SALT_LENGTH) % XpkFormat.BLOCK_ALIGNMENT,
+					"block $index starts off the block alignment",
+				)
+			}
+			// The block after the oversized run must be back on a page boundary, not trailing its remainder.
+			val afterOversized = offsets.filter { it - XpkFormat.SALT_LENGTH >= XpkFormat.PAGE_SIZE }
+			assertTrue(afterOversized.isNotEmpty(), "test needs a block past the first page")
+			assertEquals(
+				0L,
+				(afterOversized.first() - XpkFormat.SALT_LENGTH) % XpkFormat.PAGE_SIZE,
+				"the first block after an oversized run should start a fresh page",
+			)
+		}
+	}
+
+	private fun sampleTocLength(entryCount: Int): Int = entryCount * XpkFormat.TOC_ROW_LENGTH
+
+	private fun signingProfile(publicKey: java.security.PublicKey): XpkProfile = XpkProfile.of(
+		rootKey = ByteArray(32) { 1 },
+		nameHashKey = ByteArray(32) { 2 },
+		profileId = 42,
+		footerMask = 0x5EED_5EED_5EED_5EEDuL.toLong(),
+		tocSigningKey = publicKey,
+	)
 
 	@Test
 	fun `duplicate and empty entry paths are rejected at pack time`() {

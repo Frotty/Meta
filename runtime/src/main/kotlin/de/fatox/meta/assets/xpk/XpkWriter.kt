@@ -75,6 +75,7 @@ class XpkWriter(private val profile: XpkProfile) {
 				tocLength = toc.size,
 				blockCount = blocks.size,
 				entryCount = entries.size,
+				blockTable = blockTable,
 				toc = toc,
 				fileLength = fileLength,
 				signingKey = signingKey,
@@ -220,14 +221,28 @@ class XpkWriter(private val profile: XpkProfile) {
 			val block = blocks[index]
 			val size = block.stored.size
 			val padded = alignUp(size, BLOCK_ALIGNMENT)
-			if (padded <= PAGE_SIZE && pageUsed + padded > PAGE_SIZE) {
+
+			// Start a fresh page when this block would not fit in what is left of the current one.
+			if (pageUsed > 0 && pageUsed + padded > PAGE_SIZE) {
 				out.write(ByteArray(PAGE_SIZE - pageUsed))
 				pageUsed = 0
 			}
+
 			block.fileOffset = SALT_LENGTH.toLong() + out.size()
 			out.write(block.stored)
 			out.write(ByteArray(padded - size))
-			pageUsed = if (padded > PAGE_SIZE) 0 else pageUsed + padded
+
+			if (padded > PAGE_SIZE) {
+				// An entry that is incompressible and larger than a page - a big texture or an audio stream - cannot
+				// be made to fit one, and splitting it would only spread the same bytes over the same chunks. What
+				// must not happen is that it leaves everything after it off-boundary, so the run is padded out to a
+				// whole number of pages and the next block starts aligned again.
+				out.write(ByteArray(alignUp(padded, PAGE_SIZE) - padded))
+				pageUsed = 0
+			} else {
+				pageUsed += padded
+				if (pageUsed == PAGE_SIZE) pageUsed = 0
+			}
 		}
 		return out.toByteArray()
 	}
@@ -273,10 +288,17 @@ class XpkWriter(private val profile: XpkProfile) {
 		tocLength: Int,
 		blockCount: Int,
 		entryCount: Int,
+		blockTable: ByteArray,
 		toc: ByteArray,
 		fileLength: Long,
 		signingKey: PrivateKey?,
 	): ByteArray {
+		// Both tables, not just the table of contents. The block table carries each block's offset and its nonce, so
+		// signing the TOC alone leaves the mapping from entry to bytes unauthenticated: somebody holding the
+		// game-embedded symmetric key but not the CI signing key could re-encrypt a block, install a matching nonce,
+		// and keep the original signature. Everything that decides which bytes an entry resolves to is signed.
+		val signedMaterial = XpkFormat.signedMaterial(blockTable, toc)
+
 		val fields = XpkFormat.littleEndian(FOOTER_FIELDS_LENGTH)
 		fields.putLong(tocOffset)
 		fields.putInt(tocLength)
@@ -284,13 +306,13 @@ class XpkWriter(private val profile: XpkProfile) {
 		fields.putInt(entryCount)
 		fields.putShort(XpkFormat.VERSION.toShort())
 		fields.putShort(profile.profileId.toShort())
-		fields.putLong(XpkFormat.contentKey(toc, 0, toc.size))
+		fields.putLong(XpkFormat.contentKey(signedMaterial, 0, signedMaterial.size))
 
 		val signature = ByteArray(XpkFormat.SIGNATURE_LENGTH)
 		if (signingKey != null) {
 			val signer = Signature.getInstance("Ed25519")
 			signer.initSign(signingKey)
-			signer.update(toc)
+			signer.update(signedMaterial)
 			val produced = signer.sign()
 			check(produced.size == XpkFormat.SIGNATURE_LENGTH) {
 				"Ed25519 signature was ${produced.size} bytes, expected ${XpkFormat.SIGNATURE_LENGTH}"

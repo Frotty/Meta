@@ -63,6 +63,9 @@ class XpkV2Archive internal constructor(
 
 	val entryCount: Int get() = nameHashes.size
 
+	/** Block start offsets, for tests that check the on-disk alignment the layout promises. */
+	internal val blockOffsets: LongArray get() = blockFileOffset.copyOf()
+
 	/** Resolves a path to a handle, or `null` when the archive does not hold it. */
 	fun find(path: String): FileHandle? {
 		val normalised = normalisedPath(path)
@@ -227,14 +230,17 @@ class XpkV2Archive internal constructor(
 
 				val toc = ByteArray(tocLength)
 				if (!tryRead(channel, toc, tocOffset)) return null
-				if (XpkFormat.contentKey(toc, 0, toc.size) != tocChecksum) return null
-
-				verifySignature(profile, footer, toc, displayPath)
-
-				XpkFormat.crypt(profile, XpkFormat.metadataNonce(profile, salt, XpkFormat.PURPOSE_TOC), toc, 0, toc.size)
 
 				val blockTable = ByteArray(blockTableLength.toInt())
 				if (!tryRead(channel, blockTable, tocOffset - blockTableLength)) return null
+
+				// Checksum and signature cover both tables as stored, so nothing that decides which bytes an entry
+				// resolves to is left unauthenticated. Verified before either is decrypted.
+				val signedMaterial = XpkFormat.signedMaterial(blockTable, toc)
+				if (XpkFormat.contentKey(signedMaterial, 0, signedMaterial.size) != tocChecksum) return null
+				verifySignature(profile, footer, signedMaterial, displayPath)
+
+				XpkFormat.crypt(profile, XpkFormat.metadataNonce(profile, salt, XpkFormat.PURPOSE_TOC), toc, 0, toc.size)
 				XpkFormat.crypt(
 					profile,
 					XpkFormat.metadataNonce(profile, salt, XpkFormat.PURPOSE_BLOCK_TABLE),
@@ -253,12 +259,12 @@ class XpkV2Archive internal constructor(
 			}
 		}
 
-		private fun verifySignature(profile: XpkProfile, footer: ByteArray, toc: ByteArray, displayPath: String) {
+		private fun verifySignature(profile: XpkProfile, footer: ByteArray, signed: ByteArray, displayPath: String) {
 			val signingKey = profile.tocSigningKey ?: return
 			val signature = footer.copyOfRange(FOOTER_FIELDS_LENGTH, FOOTER_LENGTH)
 			val verifier = Signature.getInstance("Ed25519")
 			verifier.initVerify(signingKey)
-			verifier.update(toc)
+			verifier.update(signed)
 			// Not a "not mine" result: the archive identified itself as this profile's and then failed to prove it,
 			// which is the case the signature exists to catch.
 			if (!verifier.verify(signature)) {
@@ -311,7 +317,14 @@ class XpkV2Archive internal constructor(
 				blockBuffer.get(blockNonces, index * NONCE_LENGTH, NONCE_LENGTH)
 				val offset = blockFileOffset[index]
 				val stored = blockStoredSize[index]
-				if (stored < 0 || offset < SALT_LENGTH || offset + stored > fileLength - FOOTER_LENGTH) {
+				// rawSize reaches ByteArray(rawSize) when the block is read, so an unchecked value is a negative-size
+				// throw or an out-of-memory kill instead of a rejected archive. Signing the block table stops a
+				// tampered one being accepted at all, but a development profile carries no signing key and a
+				// truncated file is not an attack, so the range check has to stand on its own too.
+				if (!XpkFormat.isPlausibleBlock(blockCodec[index], stored, blockRawSize[index])) {
+					throw GdxRuntimeException("XPK block $index declares implausible sizes in $displayPath")
+				}
+				if (offset < SALT_LENGTH || offset + stored.toLong() > fileLength - FOOTER_LENGTH) {
 					throw GdxRuntimeException("XPK block $index lies outside $displayPath")
 				}
 			}
