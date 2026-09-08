@@ -23,6 +23,17 @@ import java.util.zip.Inflater
 import java.util.zip.InflaterInputStream
 
 /**
+ * One canonical spelling per entry: `/`-separated, no leading or trailing separator, lower case.
+ *
+ * The name hash is computed over this form, so two spellings of the same asset resolve to the same entry. The handle
+ * must then report *this* path rather than whatever the caller typed: `MetaAssetProvider.load` builds its
+ * `AssetDescriptor` from the handle and AssetManager keys on `handle.path()`, so `UI/Skin/Panel.PNG` and
+ * `ui/skin/panel.png` would otherwise become two managed copies of one asset. The original casing is not recoverable
+ * anyway - the archive stores hashes, not names.
+ */
+internal fun canonicalEntryPath(path: String): String = normalisedPath(path).lowercase()
+
+/**
  * Reads an XPK v2 archive.
  *
  * Blocks are independently decodable, so reading an entry touches only the block holding it. That removes the reason
@@ -69,10 +80,20 @@ class XpkV2Archive internal constructor(
 
 	/** Resolves a path to a handle, or `null` when the archive does not hold it. */
 	fun find(path: String): FileHandle? {
-		val normalised = normalisedPath(path)
+		val normalised = canonicalEntryPath(path)
 		if (normalised.isEmpty()) return null
-		val index = indexOf(XpkFormat.nameHash(profile, normalised))
-		return if (index < 0) null else XpkV2FileHandle(this, index, normalised)
+		return findByNameHash(XpkFormat.nameHash(profile, normalised), normalised)
+	}
+
+	/**
+	 * Resolves an already-hashed name, so a caller searching several archives hashes once rather than per archive.
+	 *
+	 * [canonicalPath] must be the form [canonicalEntryPath] produces, because it becomes the handle's path and
+	 * therefore the AssetManager key.
+	 */
+	internal fun findByNameHash(nameHash: Long, canonicalPath: String): FileHandle? {
+		val index = indexOf(nameHash)
+		return if (index < 0) null else XpkV2FileHandle(this, index, canonicalPath)
 	}
 
 	internal fun sizeOf(entryIndex: Int): Long = entrySize[entryIndex].toLong()

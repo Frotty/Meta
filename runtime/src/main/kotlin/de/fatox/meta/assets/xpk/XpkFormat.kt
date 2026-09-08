@@ -175,6 +175,16 @@ internal object XpkFormat {
 		}
 	}
 
+	/**
+	 * Whether an entry can be packed at all.
+	 *
+	 * An entry at least a block long becomes a block of its own, and [isPlausibleBlock] refuses a block declaring
+	 * more than [MAX_BLOCK_RAW_SIZE]. Both sides consulting one predicate is what stops the writer emitting an
+	 * archive its own reader will not open - a disagreement that would surface at load time in a shipped game rather
+	 * than in the pack step.
+	 */
+	fun isPackableEntrySize(size: Int): Boolean = size in 0..MAX_BLOCK_RAW_SIZE
+
 	/** Generous ceiling on a single decoded block: Valve caps pack files at 1-2 GB, so one block cannot near it. */
 	const val MAX_BLOCK_RAW_SIZE: Int = 512 * 1024 * 1024
 

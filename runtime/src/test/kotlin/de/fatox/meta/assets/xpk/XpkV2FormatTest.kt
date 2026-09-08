@@ -436,6 +436,61 @@ class XpkV2FormatTest {
 		tocSigningKey = publicKey,
 	)
 
+	/**
+	 * The writer must not be able to produce an archive its own reader refuses. Both sides read the limit from
+	 * `XpkFormat`, so the pack fails at the point the entry enters rather than at load time in a shipped game.
+	 */
+	@Test
+	fun `the writer and reader agree on the block size limit`() {
+		val limit = XpkFormat.MAX_BLOCK_RAW_SIZE
+
+		// Asserted through the predicates rather than by packing a 512 MB entry: allocating the array to test a size
+		// guard exhausts the test JVM before the guard is ever reached.
+		assertTrue(XpkFormat.isPackableEntrySize(limit), "an entry at the limit must be packable")
+		assertTrue(!XpkFormat.isPackableEntrySize(limit + 1), "an entry over the limit must not be")
+		assertTrue(!XpkFormat.isPackableEntrySize(-1))
+
+		assertTrue(
+			XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, limit, limit),
+			"the reader must accept what the writer will emit at the limit",
+		)
+		assertTrue(
+			!XpkFormat.isPlausibleBlock(XpkFormat.CODEC_STORE, limit + 1, limit + 1),
+			"the two limits must be the same one, or the writer can produce an unreadable archive",
+		)
+
+		// And a real entry spanning several blocks still round-trips, so the boundary logic is exercised for real.
+		val spanning = Random(41).nextBytes(XpkFormat.BLOCK_SIZE * 3 + 17)
+		withArchive(mapOf("video/clip.bin" to spanning)) { archive ->
+			assertContentEquals(spanning, archive.find("video/clip.bin")!!.readBytes())
+		}
+	}
+
+	/**
+	 * The name hash is computed over a lower-cased path, so two spellings resolve to the same entry - but the handle
+	 * has to report the canonical spelling too. `MetaAssetProvider.load` builds its `AssetDescriptor` from the
+	 * handle and AssetManager keys on `path()`, so differing casings would become two managed copies of one asset.
+	 */
+	@Test
+	fun `handles report a canonical path whatever casing was asked for`() {
+		withArchive(mapOf("UI/Skin/Panel.PNG" to ByteArray(64) { it.toByte() })) { archive ->
+			val spellings = listOf(
+				"UI/Skin/Panel.PNG",
+				"ui/skin/panel.png",
+				"Ui\\Skin\\PANEL.png",
+				"./UI//Skin/Panel.PNG",
+			)
+			for (spelling in spellings) {
+				val handle = archive.find(spelling) ?: error("missing for spelling '$spelling'")
+				assertEquals(
+					"ui/skin/panel.png",
+					handle.path(),
+					"'$spelling' should resolve to one canonical AssetManager key",
+				)
+			}
+		}
+	}
+
 	@Test
 	fun `duplicate and empty entry paths are rejected at pack time`() {
 		val writer = XpkWriter(testProfile())

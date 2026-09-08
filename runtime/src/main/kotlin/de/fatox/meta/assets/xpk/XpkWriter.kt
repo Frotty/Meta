@@ -36,6 +36,12 @@ class XpkWriter(private val profile: XpkProfile) {
 	fun add(path: String, bytes: ByteArray): XpkWriter {
 		val normalised = normalisedPath(path)
 		require(normalised.isNotEmpty()) { "Entry path is empty after normalisation: '$path'" }
+		// An entry at least a block long becomes a block of its own, and the reader refuses a block declaring more
+		// than this. Catching it here means the pack fails rather than producing an archive its own reader cannot
+		// open - both sides read the limit from XpkFormat so they cannot drift apart.
+		require(XpkFormat.isPackableEntrySize(bytes.size)) {
+			"Entry $normalised is ${bytes.size} bytes, over the ${XpkFormat.MAX_BLOCK_RAW_SIZE}-byte block limit"
+		}
 		require(sources.put(normalised, bytes) == null) { "Duplicate entry path: $normalised" }
 		return this
 	}
