@@ -36,7 +36,6 @@ class MetaData(root: FileHandle? = null) {
 
 	private val gameName: String = canonicalAppStorageName(inject("gameName"))
 	private val fileHandleCache = ObjectMap<String, FileHandle>()
-	private val fileCache = ObjectMap<String, File>()
 	private val jsonCache = ObjectMap<String, CacheObj<Any>>()
 
 	private val json = Json().apply {
@@ -57,6 +56,16 @@ class MetaData(root: FileHandle? = null) {
 
 	private fun cacheId(key: String, parent: FileHandle): String =
 		parent.file().absolutePath + '\u0000' + key
+
+	/**
+	 * When the value behind [handle] was stored, or [NO_STORED_VALUE] if nothing is stored there.
+	 *
+	 * Every question about whether a stored value exists goes through here, because the file *is* the value and the
+	 * caches only mirror it. Letting each caller answer it for itself is what made the three answers disagree: [read]
+	 * kept serving a cached object after its file was deleted, [has] reported a key that had only ever been *looked
+	 * up* as present, and an unchanged [save] left the cache pointing at the previous instance.
+	 */
+	private fun storedAt(handle: FileHandle): Long = if (handle.exists()) handle.lastModified() else NO_STORED_VALUE
 
 	// ---- saving ---------------------------------------------------------------------------------------------
 
@@ -88,12 +97,15 @@ class MetaData(root: FileHandle? = null) {
 		// every cache entry pointing at this file valid.
 		if (handle.exists() && handle.readBytes().contentEquals(newBytes)) {
 			log.trace { "Unchanged, not rewriting: $key" }
+			// Still adopt the caller's instance. The bytes match, so this is the same value either way, and skipping
+			// it meant a later read handed back whichever object happened to be cached rather than the one saved.
+			jsonCache.put(cacheId(key, target), CacheObj(obj, storedAt(handle)))
 			return handle
 		}
 
 		log.debug { "Saving $key (${obj::class.simpleName}) to $target" }
 		writeAtomically(handle, newBytes)
-		jsonCache.put(cacheId(key, target), CacheObj(obj, handle.lastModified()))
+		jsonCache.put(cacheId(key, target), CacheObj(obj, storedAt(handle)))
 		return handle
 	}
 
@@ -106,11 +118,14 @@ class MetaData(root: FileHandle? = null) {
 	 * a process kill.
 	 */
 	private fun writeAtomically(handle: FileHandle, bytes: ByteArray) {
-		val target = handle.file()
+		val target = handle.file().absoluteFile
 		val directory = target.parentFile
-		directory?.mkdirs()
+		directory.mkdirs()
 
-		val scratch = File.createTempFile(target.name, SCRATCH_SUFFIX, directory)
+		// `Files.createTempFile` rather than `File.createTempFile`: the latter demands a prefix of at least three
+		// characters and throws on anything shorter, so a two-letter key was a crash on save. Absolute paths keep the
+		// scratch file in the target's own directory, which is what makes the rename below an atomic replace.
+		val scratch = Files.createTempFile(directory.toPath(), target.name, SCRATCH_SUFFIX).toFile()
 		try {
 			FileOutputStream(scratch).use { output ->
 				output.write(bytes)
@@ -187,12 +202,19 @@ class MetaData(root: FileHandle? = null) {
 	private fun <T : Any> read(key: String, type: KClass<out T>, parent: FileHandle): T? {
 		val handle = getCachedHandle(key, parent)
 		val cacheId = cacheId(key, parent)
-		val lastModified = if (handle.exists()) handle.lastModified() else 0L
+		val storedAt = storedAt(handle)
+
+		if (storedAt == NO_STORED_VALUE) {
+			// Answered before the cache is consulted, not after. A deleted file reads as modified at time zero, so a
+			// cache entry always looked newer than it and won - which is how a removed project kept on loading.
+			jsonCache.remove(cacheId)
+			return null
+		}
 
 		jsonCache.get(cacheId)?.let { cached ->
 			// Both sides of this comparison are now the file's own modification time. Comparing it against a
 			// wall-clock reading taken when the entry was created made the answer depend on two different clocks.
-			if (cached.created >= lastModified) {
+			if (cached.created >= storedAt) {
 				log.trace { "Cache hit: $key" }
 				@Suppress("UNCHECKED_CAST")
 				return cached.obj as T
@@ -200,12 +222,10 @@ class MetaData(root: FileHandle? = null) {
 			log.debug { "File is newer than the cached value, reloading: $key" }
 		}
 
-		if (!handle.exists()) return null
-
 		return try {
 			val loaded = json.fromJson(type.java, handle)
 				?: throw IllegalStateException("Deserialized to null")
-			jsonCache.put(cacheId, CacheObj(loaded, lastModified))
+			jsonCache.put(cacheId, CacheObj(loaded, storedAt))
 			loaded
 		} catch (failure: RuntimeException) {
 			// Anything the reader throws means these bytes are not a value of this type: truncated by a kill during
@@ -275,7 +295,6 @@ class MetaData(root: FileHandle? = null) {
 				if (legacy.exists()) child = legacy
 			}
 			fileHandleCache.put(cacheId, child)
-			fileCache.put(cacheId, child.file())
 		}
 		return fileHandleCache.get(cacheId)
 	}
@@ -295,7 +314,7 @@ class MetaData(root: FileHandle? = null) {
 		)
 	)
 	fun has(name: String, fileHandle: FileHandle = dataRoot): Boolean =
-		fileHandleCache.containsKey(cacheId(name, fileHandle)) || fileHandle.child(name).exists()
+		storedAt(getCachedHandle(name, fileHandle)) != NO_STORED_VALUE
 
 	companion object {
 		const val GLOBAL_DATA_FOLDER_NAME: String = ".meta"
@@ -305,6 +324,9 @@ class MetaData(root: FileHandle? = null) {
 
 		private const val SCRATCH_SUFFIX = ".tmp"
 		private const val MAX_QUARANTINE_ATTEMPTS = 32
+
+		/** What [storedAt] reports when no file backs a key. A real modification time is never zero. */
+		private const val NO_STORED_VALUE = 0L
 	}
 }
 

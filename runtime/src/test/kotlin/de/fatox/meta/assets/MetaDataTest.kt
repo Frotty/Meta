@@ -7,6 +7,8 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 /** A settings-shaped value: mutable, no-arg constructible, exactly what libGDX Json round-trips. */
@@ -133,6 +135,70 @@ class MetaDataTest {
 			assertTrue(!json.contains("masterVolume"), "an unchanged field should be omitted, was $json")
 		}
 	}
+	/**
+	 * The cache mirrors the file; it does not outlive it. `load` consulted the cache first, and a deleted file reports
+	 * a modification time of zero, so any cache entry looked newer and won - `MetaProjectManager.get` went on handing
+	 * out a removed project's metadata instead of reporting it missing.
+	 */
+	@Test
+	fun `a deleted file is not served from the cache`() {
+		withMetaData { metaData, _ ->
+			val key = MetaDataKey<TestSettings>("deleted.json")
+			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
+			assertEquals("brutal", metaData.load(key, TestSettings::class)?.difficulty, "should read back before delete")
+
+			assertTrue(metaData.getCachedHandle(key).delete(), "test could not delete the file")
+
+			assertNull(metaData.load(key, TestSettings::class), "a deleted value must not come back from the cache")
+			assertEquals(false, metaData.has(key), "has must agree with load")
+		}
+	}
+
+	/** `has` answers "is a value stored", not "has this key been looked up before". */
+	@Test
+	fun `a key that was only read is not reported as present`() {
+		withMetaData { metaData, _ ->
+			val key = MetaDataKey<TestSettings>("looked-up.json")
+			metaData.get(key, TestSettings::class)
+			assertEquals(false, metaData.has(key), "reading a missing key must not make it exist")
+
+			metaData.save(key, TestSettings().apply { difficulty = "hard" })
+			assertTrue(metaData.has(key), "a saved key must be reported as present")
+		}
+	}
+
+	/**
+	 * `File.createTempFile` rejects a prefix shorter than three characters, so routing saves through a scratch file
+	 * turned short keys - which `MetaProjectManager.save` forwards verbatim - into an `IllegalArgumentException`.
+	 */
+	@Test
+	fun `a short key saves`() {
+		withMetaData { metaData, _ ->
+			for (name in listOf("a", "ab", "abc")) {
+				val key = MetaDataKey<TestSettings>(name)
+				metaData.save(key, TestSettings().apply { difficulty = name })
+				assertEquals(name, newMetaData(metaData.dataRoot).get(key, TestSettings::class).difficulty)
+			}
+		}
+	}
+
+	/**
+	 * A value byte-identical to the stored one skips the write, which is worth doing - but the cache still has to
+	 * adopt the instance that was handed over, or the next read returns the older object the caller has stopped using.
+	 */
+	@Test
+	fun `saving an unchanged value still adopts the caller's instance`() {
+		withMetaData { metaData, _ ->
+			val key = MetaDataKey<TestSettings>("adopted.json")
+			metaData.save(key, TestSettings().apply { difficulty = "hard" })
+
+			val resaved = TestSettings().apply { difficulty = "hard" }
+			metaData.save(key, resaved)
+
+			assertSame(resaved, metaData.get(key, TestSettings::class), "the cache kept the superseded instance")
+		}
+	}
+
 	private fun newMetaData(root: FileHandle): MetaData = MetaData(root)
 
 	private fun withMetaData(block: (MetaData, FileHandle) -> Unit) {
