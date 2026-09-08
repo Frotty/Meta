@@ -55,9 +55,12 @@ class MetaData(root: FileHandle? = null) {
 	 *
 	 * Without this the only root was the user's home directory, so exercising persistence at all meant writing into
 	 * whoever ran the build - which is why none of this was tested.
+	 *
+	 * Not created here. Constructing this class is not a reason to put a directory in someone's home folder, and the
+	 * first save creating it is also what lets [createDirectories] see that it was new and force its parent entry -
+	 * creating it eagerly meant the very first save was the one whose path could not be made durable.
 	 */
-	val dataRoot: FileHandle =
-		root ?: Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME).also { it.mkdirs() }
+	val dataRoot: FileHandle = root ?: Gdx.files.external(".$gameName").child(GLOBAL_DATA_FOLDER_NAME)
 
 	private fun cacheId(key: String, parent: FileHandle): String =
 		parent.file().absolutePath + '\u0000' + key
