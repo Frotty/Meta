@@ -463,6 +463,49 @@ class XPKLoaderTest {
 		}
 	}
 
+	/**
+	 * A non-retaining read must not allocate what it is about to discard.
+	 *
+	 * The retention policy used to be consulted only after the sweep, so a post-splash read still copied every entry
+	 * it passed - up to the whole pass-through budget - and dropped the lot on the next line. That is tens of
+	 * megabytes of transient garbage on the gameplay path.
+	 */
+	@Test
+	fun `a non-retaining read copies no pass-through entries`() {
+		val contents = (0 until 12).associate { index ->
+			"sfx/late$index.ogg" to ByteArray(2_048) { (index * 3 + it).toByte() }
+		}
+		withArchive(contents) { file, expected ->
+			// Reading the last entry sweeps past every earlier one, which is where the copies would happen.
+			val notRetaining = XPKLoader.open(file, retainAfterRead = { false })
+			try {
+				val last = notRetaining.entries[notRetaining.entries.size - 1]
+				assertContentEquals(expected.getValue(last.path()), last.readBytes())
+				assertEquals(
+					0,
+					notRetaining.passthroughCopies,
+					"a read that discards its cache must not materialise the entries it swept past",
+				)
+				assertTrue(notRetaining.isFullyReleased)
+			} finally {
+				notRetaining.dispose()
+			}
+
+			// The retaining path still caches what it passes - that is what keeps a load phase linear.
+			val retaining = XPKLoader.open(file, retainAfterRead = { true })
+			try {
+				val last = retaining.entries[retaining.entries.size - 1]
+				assertContentEquals(expected.getValue(last.path()), last.readBytes())
+				assertTrue(
+					retaining.passthroughCopies > 0,
+					"a retaining read should keep the entries it decompressed on the way",
+				)
+			} finally {
+				retaining.dispose()
+			}
+		}
+	}
+
 	/** Builds a real XPK: a 7z archive with the signature scrambled and an XXH64 trailer appended. */
 	private fun withArchive(
 		contents: Map<String, ByteArray>,

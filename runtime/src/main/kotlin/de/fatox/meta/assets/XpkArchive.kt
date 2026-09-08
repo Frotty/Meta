@@ -73,6 +73,7 @@ class XpkArchive internal constructor(
 	/** Set once a rewind proves the budget is costing more sweeps than it saves memory. */
 	private var unboundedCaching = false
 	private var sweeps = 0
+	private var passthroughCopyCount = 0
 	private var disposed = false
 
 	/** Bytes of entry payload currently retained. Test observability for the release and budget contracts. */
@@ -80,6 +81,14 @@ class XpkArchive internal constructor(
 
 	/** How many times the solid stream has been rewound. Test observability for the linear-access contract. */
 	internal val sweepCount: Int get() = synchronized(lock) { sweeps }
+
+	/**
+	 * Cumulative count of unrequested entries copied out of the stream, across the archive's life.
+	 *
+	 * Survives [releaseCachedEntries] on purpose: it is how a test sees that a non-retaining read allocated nothing
+	 * it was about to throw away, which is invisible once the cache has been dropped.
+	 */
+	internal val passthroughCopies: Int get() = synchronized(lock) { passthroughCopyCount }
 
 	/** File entries only, in archive order. Directory entries are indexed but never handed out. */
 	val entries: Array<XPKFileHandle> = Array(entryNames.size)
@@ -207,27 +216,36 @@ class XpkArchive internal constructor(
 		}
 		val active = reader ?: throw GdxRuntimeException("Could not open XPK archive $archivePath")
 
+		// Asked once, before the sweep. Deciding afterwards meant a non-retaining read still copied every entry it
+		// passed, up to the whole pass-through budget, only to drop the lot on the next line - tens of megabytes of
+		// transient garbage on the gameplay path, which is exactly the allocation rate AGENTS.md calls the primary
+		// controllable runtime cost.
+		val retain = retainAfterRead()
+
 		while (cursor <= entryIndex) {
 			val entry = active.nextEntry ?: break
 			val at = cursor++
 			if (entryIsDirectory[at]) continue
 			val requested = at == entryIndex
-			// Skipping still decompresses, so retaining a pass-through entry costs only the copy - until the budget
-			// is spent, after which unrequested entries are decompressed and dropped. The prospective size is part of
-			// the test: checking only what is already cached would admit one entry of any size, so a single large
-			// video or model could overshoot the bound by its whole payload.
-			if (!requested && (cache[at] != null || !fitsInPassthroughBudget(entrySizes[at]))) continue
+			// Skipping still decompresses - the solid stream gives no choice - so retaining a pass-through entry costs
+			// only the copy, and only while that copy will be kept. The prospective size is part of the budget test:
+			// checking only what is already cached would admit one entry of any size, so a single large video or model
+			// could overshoot the bound by its whole payload.
+			if (!requested && (!retain || cache[at] != null || !fitsInPassthroughBudget(entrySizes[at]))) continue
 			val bytes = readEntry(active, entry.name, entrySizes[at])
 			cache[at] = bytes
 			retainedBytes += bytes.size
-			if (!requested) passthroughBytes += bytes.size
+			if (!requested) {
+				passthroughBytes += bytes.size
+				passthroughCopyCount++
+			}
 		}
 
 		val bytes = cache[entryIndex] ?: throw GdxRuntimeException(
 			"XPK entry ${entryNames[entryIndex]} not found in $archivePath",
 		)
 		// The caller already owns this array, so dropping the cache does not take it away.
-		if (!retainAfterRead()) releaseLocked()
+		if (!retain) releaseLocked()
 		return bytes
 	}
 
