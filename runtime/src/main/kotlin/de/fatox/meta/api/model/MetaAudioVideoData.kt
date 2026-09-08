@@ -30,7 +30,40 @@ object MetaAudioVideoState {
 	val state: ReactiveValue<MetaAudioVideoData>
 		field: Signal<MetaAudioVideoData> = signal(MetaAudioVideoData())
 
+	/**
+	 * True while what is in memory is a fallback rather than the player's own settings.
+	 *
+	 * Set when the stored settings existed but could not be read. Everything here persists on change, and the editor
+	 * saves on an ordinary window resize, so without this a momentary read failure at startup turned the next resize
+	 * into a write of defaults over settings that were still on disk and still intact.
+	 */
+	@Volatile
+	var persistenceSuspended: Boolean = false
+		private set
+
+	/**
+	 * Initializes from what the store actually found, so an unreadable file is not mistaken for a missing one.
+	 *
+	 * A missing file means a fresh install and saving over it costs nothing. A file that could not be read holds the
+	 * player's settings and must be left alone until a later run reads it, which is what [persistenceSuspended] does.
+	 */
+	fun initialize(stored: MetaData.StoredValue<MetaAudioVideoData>) {
+		persistenceSuspended = stored is MetaData.StoredValue.Unreadable
+		if (persistenceSuspended) {
+			log.error(
+				"Audio/video settings exist but could not be read; running on defaults and not saving over them",
+				(stored as MetaData.StoredValue.Unreadable).cause,
+			)
+		}
+		applyInitial((stored as? MetaData.StoredValue.Present)?.value ?: MetaAudioVideoData())
+	}
+
 	fun initialize(value: MetaAudioVideoData) {
+		persistenceSuspended = false
+		applyInitial(value)
+	}
+
+	private fun applyInitial(value: MetaAudioVideoData) {
 		val initial = value.copy()
 		// Legacy saves predate the explicit flag. A save already in decorated windowed mode necessarily has usable
 		// windowed history; fullscreen/borderless legacy saves use the new centered first-use fallback.
@@ -46,7 +79,7 @@ object MetaAudioVideoState {
 		val next = value.copy()
 		if (applyDisplay) next.apply()
 		state.value = next.copy()
-		if (persist) inject<MetaData>().save(audioVideoDataKey, next)
+		if (persist && !persistenceSuspended) inject<MetaData>().save(audioVideoDataKey, next)
 	}
 
 	fun update(applyDisplay: Boolean = false, persist: Boolean = true, change: MetaAudioVideoData.() -> Unit) {

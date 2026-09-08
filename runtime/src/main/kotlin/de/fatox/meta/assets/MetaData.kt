@@ -23,6 +23,8 @@ import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.DosFileAttributeView
+import java.nio.file.attribute.DosFileAttributes
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.reflect.KClass
 
@@ -143,6 +145,7 @@ class MetaData(root: FileHandle? = null) {
 	 * | Contents        | written and flushed to the device before the rename, so no kill can publish a partial file |
 	 * | Directory entry | the parent directory is forced afterwards, or a power loss can still drop the new entry    |
 	 * | Permissions     | umask for a file this creates, or the replaced file's mode - set before the force covers it |
+	 * | DOS attributes  | read off the target beforehand and put back after the move; Windows has no POSIX mode      |
 	 * | Link identity   | [resolvedFile] follows the path to the file first, so a link's destination is replaced     |
 	 *
 	 * Not carried, deliberately: ownership, creation time and any extended attributes. Nothing here reads them, and a
@@ -153,6 +156,7 @@ class MetaData(root: FileHandle? = null) {
 		val directory = target.parentFile
 		val createdDirectories = createDirectories(directory)
 
+		val dosAttributes = readDosAttributes(target)
 		val scratch = createScratch(directory)
 		try {
 			// Before the write, not after. `force(true)` covers metadata as well as contents, so the mode has to be
@@ -178,6 +182,7 @@ class MetaData(root: FileHandle? = null) {
 				log.debug { "Atomic replace unavailable for ${target.name}; falling back to a plain move" }
 				Files.move(scratch.file.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
 			}
+			restoreDosAttributes(target, dosAttributes)
 			syncDirectory(directory)
 			// A directory's own entry lives in its parent, so a directory this save had to create is only durable
 			// once that parent is forced too. Nested keys are ordinary - `MetaUiManager` stores window layout under
@@ -321,6 +326,39 @@ class MetaData(root: FileHandle? = null) {
 			// Not a POSIX filesystem: permissions are not something the replacement can drop here.
 		} catch (failure: IOException) {
 			log.debug { "Could not carry ${target.name}'s permissions onto the scratch file: ${failure.message}" }
+		}
+	}
+
+	/**
+	 * The target's DOS attributes, or `null` where the platform has none or there is nothing to replace.
+	 *
+	 * Windows has no POSIX mode, so [carryPermissions] finds nothing there and a replacement arrives with the scratch
+	 * file's defaults - a hidden save stops being hidden on the next write. Read before the move, since the file
+	 * these came from is gone afterwards.
+	 *
+	 * Read-only is deliberately not among them. A read-only target makes the replace itself fail with an access
+	 * error, so the save does not complete and the flag was never at risk; carrying it would instead mark the scratch
+	 * file and leave it undeletable behind a failed save. Full ACLs are not copied either - separating inherited
+	 * entries from explicit ones and reproducing them is a different job, noted on the pull request.
+	 */
+	private fun readDosAttributes(target: File): DosFileAttributes? =
+		try {
+			Files.getFileAttributeView(target.toPath(), DosFileAttributeView::class.java)?.readAttributes()
+		} catch (failure: IOException) {
+			log.debug { "Could not read ${target.name}'s DOS attributes: ${failure.message}" }
+			null
+		}
+
+	/** Puts [attributes] back on the freshly published file. Applied after the move, since it is a different inode. */
+	private fun restoreDosAttributes(target: File, attributes: DosFileAttributes?) {
+		if (attributes == null) return
+		val view = Files.getFileAttributeView(target.toPath(), DosFileAttributeView::class.java) ?: return
+		try {
+			view.setHidden(attributes.isHidden)
+			view.setSystem(attributes.isSystem)
+			view.setArchive(attributes.isArchive)
+		} catch (failure: IOException) {
+			log.debug { "Could not restore ${target.name}'s DOS attributes: ${failure.message}" }
 		}
 	}
 

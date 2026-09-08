@@ -127,7 +127,7 @@ abstract class Meta(
 		MetaInject.global { singleton("default") { ScreenConfig().apply { screens() } } }
 		MetaInject.global { singleton("default") { WindowConfig().apply { windows() } } }
 		config()
-		MetaAudioVideoState.initialize(metaData.get(audioVideoDataKey, MetaAudioVideoData::class))
+		MetaAudioVideoState.initialize(metaData.read(audioVideoDataKey, MetaAudioVideoData::class))
 
 		metaInput.addGlobalKeyListener(Input.Keys.ENTER, 0, object : KeyListener() {
 			override fun onEvent() {

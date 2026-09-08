@@ -2,6 +2,9 @@ package de.fatox.meta.assets
 
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.utils.GdxRuntimeException
+import de.fatox.meta.api.model.MetaAudioVideoData
+import de.fatox.meta.api.model.MetaAudioVideoState
+import de.fatox.meta.audioVideoDataKey
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.input.loadProfile
@@ -589,6 +592,37 @@ class MetaDataTest {
 
 			assertTrue(Files.isSymbolicLink(first), "the entry link was replaced")
 			assertTrue(Files.isSymbolicLink(second), "the link it points at was replaced")
+		}
+	}
+
+	/**
+	 * Settings that exist but could not be read must not be saved over. Everything in `MetaAudioVideoState` persists
+	 * on change and the editor saves on an ordinary window resize, so a momentary read failure at startup otherwise
+	 * turns the next resize into a write of defaults over settings that are still on disk and still intact.
+	 */
+	@Test
+	fun `unreadable audio video settings suspend saving over them`() {
+		withMetaData { metaData, root ->
+			val stored = MetaAudioVideoData(masterVolume = 0.9f, maxFps = 240)
+			metaData.save(audioVideoDataKey, stored)
+			val file = metaData.getCachedHandle(audioVideoDataKey).file()
+			val original = file.readText()
+
+			// Present and stat-able, every read fails: a scanner or a sync client holding it for a moment.
+			assertTrue(file.delete())
+			assertTrue(file.mkdir())
+
+			MetaInject.global { singleton(newMetaData(root)) }
+			MetaAudioVideoState.initialize(newMetaData(root).read(audioVideoDataKey, MetaAudioVideoData::class))
+			assertTrue(MetaAudioVideoState.persistenceSuspended, "an unreadable read should suspend persistence")
+
+			// What a window resize does.
+			MetaAudioVideoState.update { width = 1280 }
+			assertTrue(file.isDirectory, "a save landed on top of settings that could not be read")
+
+			file.delete()
+			file.writeText(original)
+			assertEquals(240, newMetaData(root).get(audioVideoDataKey, MetaAudioVideoData::class).maxFps)
 		}
 	}
 
