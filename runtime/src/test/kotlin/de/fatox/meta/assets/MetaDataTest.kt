@@ -256,6 +256,14 @@ class MetaDataTest {
 			metaData.save(key, TestSettings().apply { difficulty = "brutal" })
 
 			assertEquals(readableByAll, Files.getPosixFilePermissions(path), "the replacement narrowed the mode")
+
+			// A mode without owner-write is the case that proves the ordering is safe: permissions are applied to the
+			// scratch file before it is written, so the write only succeeds through the handle that created it.
+			val readOnly = setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ)
+			Files.setPosixFilePermissions(path, readOnly)
+			metaData.save(key, TestSettings().apply { difficulty = "brutal"; invertY = true })
+			assertEquals(readOnly, Files.getPosixFilePermissions(path), "a read-only mode was not carried")
+			assertEquals(true, newMetaData(metaData.dataRoot).get(key, TestSettings::class).invertY)
 			assertEquals("brutal", newMetaData(metaData.dataRoot).get(key, TestSettings::class).difficulty)
 		}
 	}

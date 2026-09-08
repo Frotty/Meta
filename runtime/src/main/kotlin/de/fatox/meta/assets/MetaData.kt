@@ -141,7 +141,7 @@ class MetaData(root: FileHandle? = null) {
 	 * | Naming rules    | the scratch name is a fixed length, so neither a very short nor a very long key can break it |
 	 * | Contents        | written and flushed to the device before the rename, so no kill can publish a partial file |
 	 * | Directory entry | the parent directory is forced afterwards, or a power loss can still drop the new entry    |
-	 * | Permissions     | umask for a file this creates, or the replaced file's own mode; see [carryPermissions]     |
+	 * | Permissions     | umask for a file this creates, or the replaced file's mode - set before the force covers it |
 	 * | Link identity   | [resolvedFile] follows the path to the file first, so a link's destination is replaced     |
 	 *
 	 * Not carried, deliberately: ownership, creation time and any extended attributes. Nothing here reads them, and a
@@ -154,12 +154,16 @@ class MetaData(root: FileHandle? = null) {
 
 		val scratch = createScratch(directory)
 		try {
+			// Before the write, not after. `force(true)` covers metadata as well as contents, so the mode has to be
+			// in place by then or a power loss can recover the file with the scratch's mode instead of the carried
+			// one. Setting it first is only possible because the channel is already open - POSIX checks permissions
+			// at open, so writing continues to work even when the mode carried over withholds owner-write.
+			carryPermissions(target, scratch.file)
 			scratch.channel.use { channel ->
 				val buffer = ByteBuffer.wrap(bytes)
 				while (buffer.hasRemaining()) channel.write(buffer)
 				channel.force(true)
 			}
-			carryPermissions(target, scratch.file)
 			try {
 				Files.move(
 					scratch.file.toPath(),
