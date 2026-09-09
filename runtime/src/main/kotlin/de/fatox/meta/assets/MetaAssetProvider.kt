@@ -91,6 +91,12 @@ class MetaAssetProvider : AssetProvider {
 
 	override val progress: Float get() = assetManager.progress
 
+	override fun <T : Any> isLoaded(name: String, type: Class<T>): Boolean {
+		if (assetManager.isLoaded(name, type)) return true
+		val resolved = resolveAsset(name) ?: return false
+		return assetManager.isLoaded(resolved.path(), type)
+	}
+
 	override fun loadPackedAssetsFromFolder(folder: FileHandle): Boolean {
 		if (folder.isDirectory) {
 			val children = folder.list()
@@ -296,6 +302,10 @@ class MetaAssetProvider : AssetProvider {
 
 		val startedAt = TimeUtils.nanoTime()
 		do {
+			val progressBefore = assetManager.progress
+			val queuedBefore = assetManager.queuedAssets
+			val finalizationsBefore = pendingFinalization.size
+			val hadStagedUpload = !stagedTextureUploads.isEmpty
 			val complete = if (!stagedTextureUploads.isEmpty) {
 				stagedTextureUploads.update(StagedTextureUploadPolicy.bytesForBudget(millis))
 				assetManager.queuedAssets == 0
@@ -310,6 +320,11 @@ class MetaAssetProvider : AssetProvider {
 				warnIfSlowStep("Asset loading update", millis, startedAt)
 				return true
 			}
+			val madeProgress = hadStagedUpload ||
+				assetManager.progress != progressBefore ||
+				assetManager.queuedAssets != queuedBefore ||
+				pendingFinalization.size != finalizationsBefore
+			if (!madeProgress) break
 		} while (AssetUpdateBudget.hasTimeRemaining(startedAt, TimeUtils.nanoTime(), millis))
 
 		warnIfSlowStep("Asset loading update", millis, startedAt)

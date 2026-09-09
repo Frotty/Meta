@@ -1,6 +1,11 @@
 package de.fatox.meta.assets
 
 import com.badlogic.gdx.assets.loaders.AsynchronousAssetLoader
+import com.badlogic.gdx.assets.loaders.FileHandleResolver
+import com.badlogic.gdx.assets.loaders.SynchronousAssetLoader
+import com.badlogic.gdx.assets.AssetDescriptor
+import com.badlogic.gdx.assets.AssetLoaderParameters
+import com.badlogic.gdx.assets.AssetManager
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.utils.GdxRuntimeException
@@ -10,11 +15,14 @@ import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.test.GdxTestEnvironment
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlin.system.measureTimeMillis
 
 class MetaAssetProviderTest {
 	/**
@@ -106,15 +114,37 @@ class MetaAssetProviderTest {
 	}
 
 	@Test
-	fun `a generous update budget drains a small asset queue`() {
+	fun `a generous update budget drains multiple completed loading steps`() {
 		val provider = MetaAssetProvider()
-		Thread { provider.load("meta-icon-error.png", Pixmap::class.java) }.apply {
-			start()
-			join()
-		}
+		val manager = assetManagerOf(provider)
+		manager.setLoader(ImmediateAsset::class.java, ImmediateAssetLoader(provider.MetaFileHandleResolver()))
+		provider.load("first.asset", ImmediateAsset::class.java)
+		provider.load("second.asset", ImmediateAsset::class.java)
+		provider.load("third.asset", ImmediateAsset::class.java)
 
 		assertTrue(provider.update(1_000), "The provider should keep advancing work inside the supplied budget")
 		provider.dispose()
+	}
+
+	@Test
+	fun `an unfinished asynchronous loader returns without spinning through the budget`() {
+		val started = CountDownLatch(1)
+		val release = CountDownLatch(1)
+		val provider = MetaAssetProvider()
+		val manager = assetManagerOf(provider)
+		manager.setLoader(BlockedAsset::class.java, BlockedAssetLoader(provider.MetaFileHandleResolver(), started, release))
+		try {
+			provider.load("blocked.asset", BlockedAsset::class.java)
+			provider.update(1)
+			assertTrue(started.await(2, TimeUnit.SECONDS), "The asynchronous loader did not start")
+
+			val elapsed = measureTimeMillis { assertEquals(false, provider.update(500)) }
+
+			assertTrue(elapsed < 100, "A no-progress poll burned ${elapsed}ms of the render-thread budget")
+		} finally {
+			release.countDown()
+			provider.dispose()
+		}
 	}
 
 	@Test
@@ -153,5 +183,59 @@ class MetaAssetProviderTest {
 		@JvmStatic
 		@BeforeAll
 		fun initializeGdx() = GdxTestEnvironment.ensure()
+	}
+
+	private class BlockedAsset
+	private class ImmediateAsset
+
+	private class ImmediateAssetLoader(
+		resolver: FileHandleResolver,
+	) : SynchronousAssetLoader<ImmediateAsset, AssetLoaderParameters<ImmediateAsset>>(resolver) {
+		override fun getDependencies(
+			fileName: String,
+			file: FileHandle,
+			parameter: AssetLoaderParameters<ImmediateAsset>?,
+		): com.badlogic.gdx.utils.Array<AssetDescriptor<*>>? = null
+
+		override fun load(
+			manager: AssetManager,
+			fileName: String,
+			file: FileHandle,
+			parameter: AssetLoaderParameters<ImmediateAsset>?,
+		): ImmediateAsset = ImmediateAsset()
+	}
+
+	private class BlockedAssetLoader(
+		resolver: FileHandleResolver,
+		private val started: CountDownLatch,
+		private val release: CountDownLatch,
+	) : AsynchronousAssetLoader<BlockedAsset, AssetLoaderParameters<BlockedAsset>>(resolver) {
+		override fun getDependencies(
+			fileName: String,
+			file: FileHandle,
+			parameter: AssetLoaderParameters<BlockedAsset>?,
+		): com.badlogic.gdx.utils.Array<AssetDescriptor<*>>? = null
+
+		override fun loadAsync(
+			manager: AssetManager,
+			fileName: String,
+			file: FileHandle,
+			parameter: AssetLoaderParameters<BlockedAsset>?,
+		) {
+			started.countDown()
+			release.await()
+		}
+
+		override fun loadSync(
+			manager: AssetManager,
+			fileName: String,
+			file: FileHandle,
+			parameter: AssetLoaderParameters<BlockedAsset>?,
+		): BlockedAsset = BlockedAsset()
+	}
+
+	private fun assetManagerOf(provider: MetaAssetProvider): AssetManager {
+		val field = MetaAssetProvider::class.java.getDeclaredField("assetManager").apply { isAccessible = true }
+		return field.get(provider) as AssetManager
 	}
 }

@@ -13,6 +13,8 @@ import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.error
 import de.fatox.meta.api.extensions.forEachEntryReentrant
 import de.fatox.meta.api.get
+import de.fatox.meta.api.isLoaded
+import de.fatox.meta.api.load
 import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import org.slf4j.Logger
@@ -61,6 +63,7 @@ class MetaMusicPlayer : Disposable {
 				} catch (e: GdxRuntimeException) {
 					consecutiveFailureCount++
 					val currentKey = selectedMusicPath ?: musicCache.findKey(currentMusic, true)
+					discardSelectedTrack()
 					log.error(e) {
 						"Failed to update music '$currentKey' " +
 							"($consecutiveFailureCount/$MAX_CONSECUTIVE_FAILURES)"
@@ -77,6 +80,7 @@ class MetaMusicPlayer : Disposable {
 	private var currentMusic: Music = UninitializedMusic
 	private var nextMusic: Music = UninitializedMusic
 	private var selectedMusicPath: String? = null
+	private var selectedMusicQueued = false
 	private val allPool = Array<String>()
 	private val activePool = Array<String>()
 	private val musicCache = ObjectMap<String, Music>()
@@ -164,7 +168,7 @@ class MetaMusicPlayer : Disposable {
 		allPool.add(musicName)
 	}
 
-	private fun nextFromPool() {
+	internal fun nextFromPool() {
 		if (activePool.size == 0 && allPool.size > 0) {
 			activePool.addAll(allPool)
 		}
@@ -172,10 +176,19 @@ class MetaMusicPlayer : Disposable {
 			activePool.shuffle()
 		}
 		if (activePool.size <= 0) return
-		selectedMusicPath = activePool.peek()
-		val music = getMusic(selectedMusicPath!!)
+		val musicPath = selectedMusicPath ?: activePool.peek().also { selectedMusicPath = it }
+		if (!assetProvider.isLoaded<Music>(musicPath)) {
+			if (!selectedMusicQueued) {
+				assetProvider.load<Music>(musicPath)
+				selectedMusicQueued = true
+			}
+			assetProvider.update(MUSIC_LOAD_BUDGET_MS)
+			if (!assetProvider.isLoaded<Music>(musicPath)) return
+		}
+		val music = getMusic(musicPath)
 		activePool.pop()
 		selectedMusicPath = null
+		selectedMusicQueued = false
 		if (currentMusic === UninitializedMusic) {
 			startMusic(music)
 		} else {
@@ -186,6 +199,8 @@ class MetaMusicPlayer : Disposable {
 	fun clearPools() {
 		allPool.clear()
 		activePool.clear()
+		selectedMusicPath = null
+		selectedMusicQueued = false
 	}
 
 	fun isMusicEnabled(): Boolean {
@@ -221,6 +236,14 @@ class MetaMusicPlayer : Disposable {
 		}
 	}
 
+	internal fun discardSelectedTrack() {
+		val musicPath = selectedMusicPath ?: return
+		activePool.removeValue(musicPath, false)
+		allPool.removeValue(musicPath, false)
+		selectedMusicPath = null
+		selectedMusicQueued = false
+	}
+
 	val isMusicPlaying: Boolean get() = currentMusic !== UninitializedMusic && currentMusic.isPlaying
 
 	override fun dispose() {
@@ -231,7 +254,10 @@ class MetaMusicPlayer : Disposable {
 		activePool.clear()
 		allPool.clear()
 		selectedMusicPath = null
+		selectedMusicQueued = false
 		currentMusic = UninitializedMusic
 		nextMusic = UninitializedMusic
 	}
 }
+
+private const val MUSIC_LOAD_BUDGET_MS = 1
