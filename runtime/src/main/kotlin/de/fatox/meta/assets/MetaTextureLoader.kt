@@ -237,7 +237,7 @@ internal class StagedTextureUploads {
 		uploads.add(StagedTextureUpload(texture, levels))
 	}
 
-	fun update(maxBytes: Int = StagedTextureUploadPolicy.MAX_BYTES_PER_UPDATE): Boolean {
+	fun update(maxBytes: Int = StagedTextureUploadPolicy.MIN_BYTES_PER_STEP): Boolean {
 		if (uploads.size == 0) return true
 		val upload = uploads[0]
 		if (upload.update(maxBytes)) uploads.removeIndex(0)
@@ -329,11 +329,18 @@ private class StagedTextureUpload(
 }
 
 internal object StagedTextureUploadPolicy {
-	const val MAX_BYTES_PER_UPDATE = 512 * 1024
+	const val MIN_BYTES_PER_STEP = 512 * 1024
+	const val MAX_BYTES_PER_STEP = 4 * 1024 * 1024
 	private const val MIN_PIXELS_TO_STAGE = 512 * 512
+	private const val BYTES_PER_BUDGET_MILLI = 512 * 1024
 
 	fun shouldStage(width: Int, height: Int): Boolean =
 		width > 0 && height > 0 && width.toLong() * height >= MIN_PIXELS_TO_STAGE
+
+	fun bytesForBudget(millis: Int): Int =
+		(millis.coerceAtLeast(1).toLong() * BYTES_PER_BUDGET_MILLI)
+			.coerceAtMost(MAX_BYTES_PER_STEP.toLong())
+			.toInt()
 
 	fun rowsForBudget(rowBytes: Int, remainingRows: Int, budgetBytes: Int): Int {
 		require(rowBytes > 0)

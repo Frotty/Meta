@@ -29,7 +29,7 @@ class StagedTextureUploadPolicyTest {
 			StagedTextureUploadPolicy.rowsForBudget(
 				rowBytes = 2048 * 4,
 				remainingRows = 2048,
-				budgetBytes = StagedTextureUploadPolicy.MAX_BYTES_PER_UPDATE,
+				budgetBytes = StagedTextureUploadPolicy.MIN_BYTES_PER_STEP,
 			),
 		)
 	}
@@ -39,10 +39,17 @@ class StagedTextureUploadPolicyTest {
 		assertEquals(
 			1,
 			StagedTextureUploadPolicy.rowsForBudget(
-				rowBytes = StagedTextureUploadPolicy.MAX_BYTES_PER_UPDATE * 2,
+				rowBytes = StagedTextureUploadPolicy.MIN_BYTES_PER_STEP * 2,
 				remainingRows = 3,
-				budgetBytes = StagedTextureUploadPolicy.MAX_BYTES_PER_UPDATE,
+				budgetBytes = StagedTextureUploadPolicy.MIN_BYTES_PER_STEP,
 			),
 		)
+	}
+
+	@Test
+	fun `texture transfer size scales with the frame budget and stays bounded`() {
+		assertEquals(StagedTextureUploadPolicy.MIN_BYTES_PER_STEP, StagedTextureUploadPolicy.bytesForBudget(1))
+		assertEquals(StagedTextureUploadPolicy.MAX_BYTES_PER_STEP, StagedTextureUploadPolicy.bytesForBudget(8))
+		assertEquals(StagedTextureUploadPolicy.MAX_BYTES_PER_STEP, StagedTextureUploadPolicy.bytesForBudget(1_000))
 	}
 }

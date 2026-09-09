@@ -297,7 +297,7 @@ class MetaAssetProvider : AssetProvider {
 		val startedAt = TimeUtils.nanoTime()
 		do {
 			val complete = if (!stagedTextureUploads.isEmpty) {
-				stagedTextureUploads.update()
+				stagedTextureUploads.update(StagedTextureUploadPolicy.bytesForBudget(millis))
 				assetManager.queuedAssets == 0
 			} else {
 				assetManager.update()
