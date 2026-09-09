@@ -30,7 +30,23 @@ object MetaAudioVideoState {
 	val state: ReactiveValue<MetaAudioVideoData>
 		field: Signal<MetaAudioVideoData> = signal(MetaAudioVideoData())
 
-	fun initialize(value: MetaAudioVideoData) {
+	/**
+	 * Initializes from what the store actually found, so an unreadable file is not mistaken for a missing one.
+	 *
+	 * Running on defaults is all this has to do. `MetaData` refuses to save over a key whose read failed, so the
+	 * player's file is left for a later run without this needing a rule of its own - it had one, and it was the
+	 * second of three callers to grow the same one.
+	 */
+	fun initialize(stored: MetaData.StoredValue<MetaAudioVideoData>) {
+		if (stored is MetaData.StoredValue.Unreadable) {
+			log.error("Audio/video settings exist but could not be read; running on defaults", stored.cause)
+		}
+		applyInitial((stored as? MetaData.StoredValue.Present)?.value ?: MetaAudioVideoData())
+	}
+
+	fun initialize(value: MetaAudioVideoData) = applyInitial(value)
+
+	private fun applyInitial(value: MetaAudioVideoData) {
 		val initial = value.copy()
 		// Legacy saves predate the explicit flag. A save already in decorated windowed mode necessarily has usable
 		// windowed history; fullscreen/borderless legacy saves use the new centered first-use fallback.

@@ -10,6 +10,22 @@ priority over local convenience.
   game-specific behavior in the consuming game.
 - Preserve unrelated working-tree changes. Do not patch generated outputs when an authoritative source exists.
 
+### What counts as a defect
+
+Weigh a finding by whether intended usage reaches it. A game saves settings, a player alt-F4s, the game reads them
+back next launch; a kill mid-write counts, and so does a file a scanner or sync client holds for a moment.
+
+These are **not** trust boundaries, and hardening them is out of scope unless asked:
+
+- Save data and project metadata. One process writes and reads them, in a directory the user already owns. A local
+  attacker with write access there can rewrite the files directly, so guarding against planted symlinks, races on
+  our own scratch files, or crafted contents buys nothing.
+- XPK archives. The aim is that a media-extraction tool sweeping for magic bytes finds nothing, not that a
+  determined person cannot get the assets - the decoder ships in the jar. See `docs/xpk-format-audit.md` §8.
+
+Reviewers, human or automated, will raise adversarial-input findings against this code anyway. Say which of these
+applies and move on; do not harden by reflex, and do not add an unused escape hatch to a guard that has one job.
+
 | Module | Ownership |
 | --- | --- |
 | `runtime` | Core runtime: UI, assets, DI, input, audio, persistence, reactive state. |
@@ -62,8 +78,6 @@ Meta is the scene2d UI layer; VisUI and libktx must not be introduced.
   `testImplementation testFixtures("com.github.Frotty.Meta:runtime:<version>")`. The fixture carries the headless
   backend and its natives, so nothing else is wired up downstream.
 
-UI code runs every frame: `draw`, `act`, `layout`, and other hot paths must not allocate.
-
 ## Global input and lifecycle cleanup
 
 Any global input or visibility grab must be released on every exit path.
@@ -99,6 +113,7 @@ normal clicks clear stale keyboard focus. Fix leaks at their source instead of d
 Allocation rate is the primary controllable JVM game-runtime cost.
 
 - No per-frame strings, temporary objects, captured lambdas, boxing collections, varargs, or iterator allocation.
+  `draw`, `act` and `layout` are the UI hot paths this governs.
   Reuse `StringBuilder`, vectors, colors, arrays, and other scratch state; rebuild only when values change.
 - Prefer libGDX collections in hot code. Never iterate a libGDX `Array` with `for (value in array)`, `forEach`, or an
   iterator: its reusable iterators are not nesting-safe. Use indexed loops or the indexed `forEachValue` helpers.
@@ -130,9 +145,11 @@ Allocation rate is the primary controllable JVM game-runtime cost.
   is why the display, FBO and sound paths had no coverage.
 - Use `AssetProvider.load` with frame-budgeted updates. Avoid `finish()` and unqueued `getResource()` on animated
   loading paths.
-- Commons Compress is an XPK implementation detail. Public APIs expose Meta/libGDX types; use
-  `XPKLoader.open` for entries you will read, or `XPKLoader.listEntryNames` when names are all you need. The caller
-  owns the returned `XpkArchive` and must dispose it; `getList` is deprecated because it returns entries without it.
+- Two XPK formats coexist and neither replaced the other: see `runtime/src/main/kotlin/de/fatox/meta/assets/AGENTS.md`
+  before touching either. For v1, Commons Compress is an implementation detail and public APIs expose Meta/libGDX
+  types; use `XPKLoader.open` for entries you will read, or `XPKLoader.listEntryNames` when names are all you need.
+  The caller owns the returned `XpkArchive` and must dispose it; `getList` is deprecated because it returns entries
+  without it.
 - Runtime resources must be generic and runtime-used. Keep the authoring and runtime copies of Remix font/catalog
   data byte-identical. Do not ship editor/sample content in `runtime/src/main/resources`.
 - Do not build new code on deprecated placeholders such as `AssetPromise`, `MetaShortcut`, `MetaTaskQueue`,
@@ -141,8 +158,9 @@ Allocation rate is the primary controllable JVM game-runtime cost.
 ## Compatibility and verification
 
 - Prefer additive APIs and deprecation before removal. Check downstream call sites for shared API changes.
-- Preserve serialization keys and persisted-data compatibility. Keep desktop/editor launchers aligned with Gradle
-  changes.
+- Preserve serialization keys and persisted-data compatibility; `PersistedFieldNamesTest` pins the field names of
+  everything Meta persists, so a rename fails there rather than in someone's save. Keep desktop/editor launchers
+  aligned with Gradle changes.
 - Upgrade Meta and verify it before bumping a consumer's pinned `metaVersion`/commit.
 - Baseline: Java 25, libGDX 1.14.2, Kotlin 2.4.10, Gradle 9.1.0. The wrapper is authoritative.
 
