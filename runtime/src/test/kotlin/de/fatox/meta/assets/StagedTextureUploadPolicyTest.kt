@@ -7,6 +7,15 @@ import kotlin.test.assertTrue
 
 class StagedTextureUploadPolicyTest {
 	@Test
+	fun `asset updates keep stepping only while their time budget remains`() {
+		val startedAt = 5_000_000L
+
+		assertTrue(AssetUpdateBudget.hasTimeRemaining(startedAt, startedAt + 999_999L, 1))
+		assertFalse(AssetUpdateBudget.hasTimeRemaining(startedAt, startedAt + 1_000_000L, 1))
+		assertFalse(AssetUpdateBudget.hasTimeRemaining(startedAt, startedAt, 0))
+	}
+
+	@Test
 	fun `large atlas pages are staged while small textures keep the normal path`() {
 		assertTrue(StagedTextureUploadPolicy.shouldStage(2048, 2048))
 		assertTrue(StagedTextureUploadPolicy.shouldStage(512, 512))

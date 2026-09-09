@@ -60,7 +60,7 @@ class MetaMusicPlayer : Disposable {
 					consecutiveFailureCount = 0
 				} catch (e: GdxRuntimeException) {
 					consecutiveFailureCount++
-					val currentKey = musicCache.findKey(currentMusic, true)
+					val currentKey = selectedMusicPath ?: musicCache.findKey(currentMusic, true)
 					log.error(e) {
 						"Failed to update music '$currentKey' " +
 							"($consecutiveFailureCount/$MAX_CONSECUTIVE_FAILURES)"
@@ -76,8 +76,9 @@ class MetaMusicPlayer : Disposable {
 	private var musicEnabled = true
 	private var currentMusic: Music = UninitializedMusic
 	private var nextMusic: Music = UninitializedMusic
-	private val allPool = Array<Music>()
-	private val activePool = Array<Music>()
+	private var selectedMusicPath: String? = null
+	private val allPool = Array<String>()
+	private val activePool = Array<String>()
 	private val musicCache = ObjectMap<String, Music>()
 	private val timer = Timer()
 	var random = false
@@ -160,8 +161,7 @@ class MetaMusicPlayer : Disposable {
 	}
 
 	fun addMusicToPool(musicName: String) {
-		val music = getMusic(musicName)
-		allPool.add(music)
+		allPool.add(musicName)
 	}
 
 	private fun nextFromPool() {
@@ -172,10 +172,14 @@ class MetaMusicPlayer : Disposable {
 			activePool.shuffle()
 		}
 		if (activePool.size <= 0) return
+		selectedMusicPath = activePool.peek()
+		val music = getMusic(selectedMusicPath!!)
+		activePool.pop()
+		selectedMusicPath = null
 		if (currentMusic === UninitializedMusic) {
-			startMusic(activePool.pop())
+			startMusic(music)
 		} else {
-			nextMusic = activePool.pop()
+			nextMusic = music
 		}
 	}
 
@@ -221,12 +225,12 @@ class MetaMusicPlayer : Disposable {
 
 	override fun dispose() {
 		task.cancel()
-		// allPool only ever holds Music instances already present in musicCache, so disposing
-		// via musicCache covers both pooled and directly-played (playMusic/getMusic-only) tracks.
+		// Pooled paths only enter musicCache when selected, so never-played tracks allocate no native resources.
 		musicCache.forEachEntryReentrant { _, music -> music.dispose() }
 		musicCache.clear()
 		activePool.clear()
 		allPool.clear()
+		selectedMusicPath = null
 		currentMusic = UninitializedMusic
 		nextMusic = UninitializedMusic
 	}

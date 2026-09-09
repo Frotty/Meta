@@ -106,6 +106,18 @@ class MetaAssetProviderTest {
 	}
 
 	@Test
+	fun `a generous update budget drains a small asset queue`() {
+		val provider = MetaAssetProvider()
+		Thread { provider.load("meta-icon-error.png", Pixmap::class.java) }.apply {
+			start()
+			join()
+		}
+
+		assertTrue(provider.update(1_000), "The provider should keep advancing work inside the supplied budget")
+		provider.dispose()
+	}
+
+	@Test
 	fun `lazy retrieval still loads a single unqueued asset`() {
 		val provider = MetaAssetProvider()
 		provider.getResource("meta-icon-error.png", Pixmap::class.java)

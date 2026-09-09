@@ -294,23 +294,26 @@ class MetaAssetProvider : AssetProvider {
 			return polled
 		}
 
-		if (!stagedTextureUploads.isEmpty) {
-			val startedAt = TimeUtils.nanoTime()
-			stagedTextureUploads.update()
-			warnIfSlowStep("Staged texture upload", millis, startedAt)
-			return false
-		}
-
-		// AssetManager.update(millis) always executes at least one task and may execute many more before checking its
-		// soft deadline. One task can itself contain an unbounded texture upload. Advancing exactly one task gives the
-		// splash scheduler a predictable recovery frame between expensive GL operations.
 		val startedAt = TimeUtils.nanoTime()
-		val complete = assetManager.update()
-		finalizeLoadedAssets(MAX_FINALIZATIONS_PER_UPDATE)
-		warnIfSlowStep("Asset loading step", millis, startedAt)
-		val drained = complete && pendingFinalization.size == 0 && stagedTextureUploads.isEmpty
-		if (drained) releaseArchiveCaches()
-		return drained
+		do {
+			val complete = if (!stagedTextureUploads.isEmpty) {
+				stagedTextureUploads.update()
+				assetManager.queuedAssets == 0
+			} else {
+				assetManager.update()
+			}
+			finalizeLoadedAssets(MAX_FINALIZATIONS_PER_STEP)
+
+			val drained = complete && pendingFinalization.size == 0 && stagedTextureUploads.isEmpty
+			if (drained) {
+				releaseArchiveCaches()
+				warnIfSlowStep("Asset loading update", millis, startedAt)
+				return true
+			}
+		} while (AssetUpdateBudget.hasTimeRemaining(startedAt, TimeUtils.nanoTime(), millis))
+
+		warnIfSlowStep("Asset loading update", millis, startedAt)
+		return false
 	}
 
 	/**
@@ -453,8 +456,15 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	private companion object {
-		const val MAX_FINALIZATIONS_PER_UPDATE = 1
+		const val MAX_FINALIZATIONS_PER_STEP = 1
 		const val NANOS_PER_MILLI = 1_000_000L
 		const val SLOW_UPDATE_WARNING_MS = 8L
 	}
+}
+
+internal object AssetUpdateBudget {
+	private const val NANOS_PER_MILLI = 1_000_000L
+
+	fun hasTimeRemaining(startedAtNanos: Long, currentNanos: Long, millis: Int): Boolean =
+		millis > 0 && currentNanos - startedAtNanos < millis.toLong() * NANOS_PER_MILLI
 }
