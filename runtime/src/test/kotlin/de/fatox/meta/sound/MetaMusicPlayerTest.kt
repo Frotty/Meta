@@ -3,11 +3,14 @@ package de.fatox.meta.sound
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.injection.MetaInject.Companion.global
+import de.fatox.meta.test.GdxTestEnvironment
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -67,6 +70,25 @@ class MetaMusicPlayerTest {
 		assertFalse(provider.loaded)
 	}
 
+	@Test
+	fun `a random pool keeps its selected track stable across asynchronous polls`() {
+		val provider = RecordingAssetProvider()
+		global(clear = true) { singleton<AssetProvider> { provider } }
+		val player = MetaMusicPlayer().apply { random = true }
+		for (index in 0 until 12) player.addMusicToPool("music/$index.mp3")
+		MathUtils.random.setSeed(42L)
+
+		player.nextFromPool()
+		val selected = provider.queuedNames.single()
+		val afterSelection = activePoolOf(player).toList()
+		player.nextFromPool()
+
+		assertEquals(afterSelection, activePoolOf(player).toList(), "Polling reshuffled an in-flight selection")
+		provider.loaded = true
+		player.nextFromPool()
+		assertFalse(activePoolOf(player).contains(selected, false), "The played path remained in the active pool")
+	}
+
 	private class RecordingAssetProvider : AssetProvider {
 		var resourceRequests = 0
 		var updates = 0
@@ -109,5 +131,17 @@ class MetaMusicPlayerTest {
 		override fun getPosition() = 0f
 		override fun dispose() = Unit
 		override fun setOnCompletionListener(listener: Music.OnCompletionListener?) = Unit
+	}
+
+	@Suppress("UNCHECKED_CAST")
+	private fun activePoolOf(player: MetaMusicPlayer): Array<String> {
+		val field = MetaMusicPlayer::class.java.getDeclaredField("activePool").apply { isAccessible = true }
+		return field.get(player) as Array<String>
+	}
+
+	companion object {
+		@JvmStatic
+		@BeforeAll
+		fun initializeGdx() = GdxTestEnvironment.ensure()
 	}
 }

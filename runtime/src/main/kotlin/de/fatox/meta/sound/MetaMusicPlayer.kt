@@ -172,11 +172,11 @@ class MetaMusicPlayer : Disposable {
 		if (activePool.size == 0 && allPool.size > 0) {
 			activePool.addAll(allPool)
 		}
-		if (random) {
-			activePool.shuffle()
-		}
 		if (activePool.size <= 0) return
-		val musicPath = selectedMusicPath ?: activePool.peek().also { selectedMusicPath = it }
+		val musicPath = selectedMusicPath ?: run {
+			if (random) activePool.shuffle()
+			activePool.peek().also { selectedMusicPath = it }
+		}
 		if (!assetProvider.isLoaded<Music>(musicPath)) {
 			if (!selectedMusicQueued) {
 				assetProvider.load<Music>(musicPath)
@@ -186,7 +186,7 @@ class MetaMusicPlayer : Disposable {
 			if (!assetProvider.isLoaded<Music>(musicPath)) return
 		}
 		val music = getMusic(musicPath)
-		activePool.pop()
+		activePool.removeValue(musicPath, false)
 		selectedMusicPath = null
 		selectedMusicQueued = false
 		if (currentMusic === UninitializedMusic) {
