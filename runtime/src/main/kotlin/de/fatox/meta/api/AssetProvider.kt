@@ -18,10 +18,13 @@ interface AssetProvider {
 	/** Queues an asset for asynchronous loading. Advance it with [update], then retrieve it with [getResource]. */
 	fun <T : Any> load(key: AssetKey<T>, type: Class<T>): Unit = load(key.name, type)
 
+	/** Reports whether [name] can be retrieved without blocking. Custom providers remain eagerly compatible. */
+	fun <T : Any> isLoaded(name: String, type: Class<T>): Boolean = true
+
 	/**
 	 * Advances queued asynchronous loads when [millis] is positive. Call from the GL/render thread. Implementations
-	 * should keep each call to one cooperative loading step: an individual GL upload can exceed the requested soft
-	 * budget, so callers may pass zero after a slow frame to poll without starting more work.
+	 * may perform multiple cooperative loading steps until the soft budget is exhausted. An individual step can
+	 * exceed that budget, so callers may pass zero after a slow frame to poll without starting more work.
 	 *
 	 * Returns true when the queue is empty. The default keeps custom providers source-compatible.
 	 */
@@ -56,6 +59,7 @@ interface AssetProvider {
 
 inline fun <reified T : Any> AssetProvider.load(name: String): Unit = load(name, T::class.java)
 inline fun <reified T : Any> AssetProvider.load(key: AssetKey<T>): Unit = load(key, T::class.java)
+inline fun <reified T : Any> AssetProvider.isLoaded(name: String): Boolean = isLoaded(name, T::class.java)
 
 inline fun <reified T : Any> AssetProvider.getResource(fileName: String, index: Int = -1): T =
 	getResource(fileName, T::class.java, index)
