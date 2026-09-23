@@ -7,6 +7,7 @@ import de.fatox.meta.api.lang.MetaLanguage
 import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import java.util.ResourceBundle
 import java.util.Locale
 
 /** File-backed [Localization]. Catalogs use libGDX's standard `base[_language].properties` convention. */
@@ -18,8 +19,9 @@ class MetaLocalization(
 ) : Localization {
 	override val languages = languages.toList()
 	private val fallbackLanguage: MetaLanguage
-	private val fallbackBundle: I18NBundle
-	private var currentBundle: I18NBundle
+	private val rootBundle: I18NBundle?
+	private val fallbackBundles: List<I18NBundle>
+	private var currentBundles: List<I18NBundle>
 	private val currentLanguageSignal: Signal<MetaLanguage>
 	override val currentLanguage: ReactiveValue<MetaLanguage> get() = currentLanguageSignal
 
@@ -30,30 +32,34 @@ class MetaLocalization(
 		}
 		fallbackLanguage = languageByTag(fallbackLanguageTag)
 			?: error("Fallback language '$fallbackLanguageTag' is not advertised")
-		fallbackBundle = loadBundle(fallbackLanguage)
+		rootBundle = loadRootBundle()
+		fallbackBundles = loadBundles(fallbackLanguage)
+		require(fallbackBundles.isNotEmpty() || rootBundle != null) {
+			"No localization catalog found for '${fallbackLanguage.tag}' or the root language"
+		}
 		val initial = resolveLanguage(preferredLanguageTag) ?: fallbackLanguage
-		currentBundle = if (initial == fallbackLanguage) fallbackBundle else loadBundle(initial)
+		currentBundles = if (initial == fallbackLanguage) fallbackBundles else loadBundles(initial)
 		currentLanguageSignal = signal(initial)
 	}
 
 	override fun selectLanguage(tag: String): Boolean {
 		val language = resolveLanguage(tag) ?: return false
 		if (language == currentLanguageSignal.peek()) return true
-		val bundle = if (language == fallbackLanguage) fallbackBundle else loadBundle(language)
-		currentBundle = bundle
+		currentBundles = if (language == fallbackLanguage) fallbackBundles else loadBundles(language)
 		currentLanguageSignal.value = language
 		return true
 	}
 
 	override operator fun get(key: String): String {
 		currentLanguageSignal.value
-		return lookup(currentBundle, key) ?: lookup(fallbackBundle, key) ?: key
+		return lookup(currentBundles, key) ?: lookup(fallbackBundles, key) ?: lookupRoot(key) ?: key
 	}
 
 	override fun format(key: String, vararg args: Any): String {
 		currentLanguageSignal.value
-		return format(currentBundle, key, args)
-			?: format(fallbackBundle, key, args)
+		return format(currentBundles, key, args)
+			?: format(fallbackBundles, key, args)
+			?: rootBundle?.let { format(it, key, args) }
 			?: key
 	}
 
@@ -70,14 +76,37 @@ class MetaLocalization(
 		return languages.firstOrNull { it.locale.language.equals(languageCode, ignoreCase = true) }
 	}
 
-	private fun loadBundle(language: MetaLanguage): I18NBundle {
-		val bundle = I18NBundle.createBundle(bundleFileHandle, language.locale)
-		if (bundle.locale == Locale.ROOT || bundle.locale.language.equals(language.locale.language, ignoreCase = true)) {
-			return bundle
-		}
-		// libGDX falls back through Locale.getDefault() before the root catalog. That is useful for implicit locale
-		// lookup, but wrong after the player explicitly selected a language: English must stay English on a German OS.
-		return I18NBundle.createBundle(bundleFileHandle, Locale.ROOT)
+	private fun loadBundles(language: MetaLanguage): List<I18NBundle> {
+		val baseName = bundleFileHandle.nameWithoutExtension()
+		val parent = bundleFileHandle.parent()
+		val candidates = ResourceBundle.Control.getControl(ResourceBundle.Control.FORMAT_DEFAULT)
+			.getCandidateLocales(baseName, language.locale)
+		return candidates.asSequence()
+			.filter { it != Locale.ROOT }
+			.map { locale ->
+				val suffix = locale.toString()
+				parent.child("${baseName}_$suffix")
+			}
+			.filter { it.sibling("${it.name()}.properties").exists() }
+			.map { I18NBundle.createBundle(it, Locale.ROOT) }
+			.toList()
+	}
+
+	private fun loadRootBundle(): I18NBundle? =
+		if (bundleFileHandle.sibling("${bundleFileHandle.name()}.properties").exists()) {
+			I18NBundle.createBundle(bundleFileHandle, Locale.ROOT)
+		} else null
+
+	private fun lookupRoot(key: String): String? = rootBundle?.let { lookup(it, key) }
+
+	private fun lookup(bundles: List<I18NBundle>, key: String): String? {
+		for (index in bundles.indices) lookup(bundles[index], key)?.let { return it }
+		return null
+	}
+
+	private fun format(bundles: List<I18NBundle>, key: String, args: Array<out Any>): String? {
+		for (index in bundles.indices) format(bundles[index], key, args)?.let { return it }
+		return null
 	}
 
 	private fun lookup(bundle: I18NBundle, key: String): String? =

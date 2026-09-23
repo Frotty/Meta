@@ -722,6 +722,9 @@ internal class MetaInputComponentsTest {
 
 		assertSame(rebuiltFont, label.cachedFont())
 		assertEquals(0.8f, label.getFontScaleX())
+		label.fitTextToWidth(label.prefWidth * 0.75f)
+		assertEquals(0.6f, label.getFontScaleX(), 0.001f)
+		assertEquals(0.6f, label.getFontScaleY(), 0.001f)
 		val snapped = snapToPhysicalPixel(17f, 1.25f)
 		assertEquals(21f, snapped * 1.25f, 0.0001f)
 	}

@@ -64,6 +64,42 @@ internal class MetaLocalizationTest {
 		}
 	}
 
+	@Test
+	fun `configured fallback is checked before root catalog for missing selected entries`() {
+		val base = catalogs(english = "rootOnly=Root text\n", german = "fallbackOnly=Deutsch\n")
+		val localization = MetaLocalization(
+			base,
+			LANGUAGES + MetaLanguage("fr", "Français"),
+			"de",
+			"fr",
+		)
+
+		assertEquals("Deutsch", localization["fallbackOnly"])
+		assertEquals("Root text", localization["rootOnly"])
+	}
+
+	@Test
+	fun `regional selection does not load a sibling operating system locale`() {
+		val originalLocale = Locale.getDefault()
+		try {
+			Locale.setDefault(Locale.forLanguageTag("pt-PT"))
+			val directory = FileHandle(temporaryDirectory.toFile())
+			val base = directory.child("regional")
+			directory.child("regional.properties").writeString("greeting=Root\n", false, Charsets.UTF_8.name())
+			directory.child("regional_pt_PT.properties").writeString("greeting=Portugal\n", false, Charsets.UTF_8.name())
+			val localization = MetaLocalization(
+				base,
+				listOf(MetaLanguage("en", "English"), MetaLanguage("pt-BR", "Português")),
+				"en",
+				"pt-BR",
+			)
+
+			assertEquals("Root", localization["greeting"])
+		} finally {
+			Locale.setDefault(originalLocale)
+		}
+	}
+
 	private fun catalogs(english: String, german: String): FileHandle {
 		val directory = FileHandle(temporaryDirectory.toFile())
 		val base = directory.child("messages")
