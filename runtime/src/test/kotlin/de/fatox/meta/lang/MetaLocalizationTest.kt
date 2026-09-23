@@ -100,6 +100,33 @@ internal class MetaLocalizationTest {
 		}
 	}
 
+	@Test
+	fun `formatted values use the selected catalog locale`() {
+		val base = catalogs(
+			english = "number={0,number}\n",
+			german = "number={0,number}\n",
+		)
+		val localization = MetaLocalization(base, LANGUAGES, "en", "de")
+
+		assertEquals("1.234,5", localization.format("number", 1234.5))
+	}
+
+	@Test
+	fun `script locale catalogs use standard resource bundle names`() {
+		val directory = FileHandle(temporaryDirectory.toFile())
+		val base = directory.child("scripted")
+		directory.child("scripted.properties").writeString("greeting=Root\n", false, Charsets.UTF_8.name())
+		directory.child("scripted_zh_Hans_CN.properties").writeString("greeting=简体中文\n", false, Charsets.UTF_8.name())
+		val localization = MetaLocalization(
+			base,
+			listOf(MetaLanguage("en", "English"), MetaLanguage("zh-Hans-CN", "简体中文")),
+			"en",
+			"zh-Hans-CN",
+		)
+
+		assertEquals("简体中文", localization["greeting"])
+	}
+
 	private fun catalogs(english: String, german: String): FileHandle {
 		val directory = FileHandle(temporaryDirectory.toFile())
 		val base = directory.child("messages")

@@ -58,6 +58,8 @@ open class MetaLabel @JvmOverloads constructor(
 	private var prefSizeInvalid = true
 	private var fontScaleX = 1f
 	private var fontScaleY = 1f
+	private var fontBaseScaleX = 1f
+	private var fontBaseScaleY = 1f
 	private var ellipsis: String? = null
 	private val drawPosition = Vector2()
 	private val oldBatchTransform = Matrix4()
@@ -268,25 +270,27 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	fun setFontScale(fontScale: Float) {
-		fontScaleX = fontScale
-		fontScaleY = fontScale
-		invalidateHierarchy()
+		setFontScale(fontScale, fontScale)
 	}
 
 	/** Scales this label down only when its natural width exceeds [maxWidth]. */
 	fun fitTextToWidth(maxWidth: Float, minimumScale: Float = 0.7f) {
 		require(maxWidth > 0f) { "Maximum text width must be positive" }
 		require(minimumScale > 0f && minimumScale <= 1f) { "Minimum text scale must be in (0, 1]" }
-		val baseScaleX = fontScaleX
-		val baseScaleY = fontScaleY
-		setFontScale(baseScaleX, baseScaleY)
+		setAppliedFontScale(fontBaseScaleX, fontBaseScaleY)
 		val naturalWidth = prefWidth
 		val scale = if (naturalWidth <= maxWidth || naturalWidth == 0f) 1f
 		else (maxWidth / naturalWidth).coerceAtLeast(minimumScale)
-		setFontScale(baseScaleX * scale, baseScaleY * scale)
+		setAppliedFontScale(fontBaseScaleX * scale, fontBaseScaleY * scale)
 	}
 
 	fun setFontScale(fontScaleX: Float, fontScaleY: Float) {
+		fontBaseScaleX = fontScaleX
+		fontBaseScaleY = fontScaleY
+		setAppliedFontScale(fontScaleX, fontScaleY)
+	}
+
+	private fun setAppliedFontScale(fontScaleX: Float, fontScaleY: Float) {
 		this.fontScaleX = fontScaleX
 		this.fontScaleY = fontScaleY
 		invalidateHierarchy()
@@ -297,8 +301,8 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	fun setFontScaleX(fontScaleX: Float) {
-		this.fontScaleX = fontScaleX
-		invalidateHierarchy()
+		fontBaseScaleX = fontScaleX
+		setAppliedFontScale(fontBaseScaleX, fontScaleY)
 	}
 
 	fun getFontScaleY(): Float {
@@ -306,8 +310,8 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	fun setFontScaleY(fontScaleY: Float) {
-		this.fontScaleY = fontScaleY
-		invalidateHierarchy()
+		fontBaseScaleY = fontScaleY
+		setAppliedFontScale(fontScaleX, fontBaseScaleY)
 	}
 
 	/**
@@ -367,8 +371,9 @@ open class MetaLabel @JvmOverloads constructor(
 	 * the text. At UI scale 1.0 the font scale is 1.0, so this is a no-op.
 	 */
 	private fun adoptFontBaseScale() {
-		fontScaleX = font.scaleX
-		fontScaleY = font.scaleY
+		fontBaseScaleX = font.scaleX
+		fontBaseScaleY = font.scaleY
+		setAppliedFontScale(fontBaseScaleX, fontBaseScaleY)
 	}
 
 	fun setFontSize(size: Int) {

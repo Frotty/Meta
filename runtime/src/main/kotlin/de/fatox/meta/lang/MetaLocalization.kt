@@ -7,6 +7,7 @@ import de.fatox.meta.api.lang.MetaLanguage
 import de.fatox.meta.reactive.ReactiveValue
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
+import java.text.MessageFormat
 import java.util.ResourceBundle
 import java.util.Locale
 
@@ -19,9 +20,9 @@ class MetaLocalization(
 ) : Localization {
 	override val languages = languages.toList()
 	private val fallbackLanguage: MetaLanguage
-	private val rootBundle: I18NBundle?
-	private val fallbackBundles: List<I18NBundle>
-	private var currentBundles: List<I18NBundle>
+	private val rootBundle: LocalizedBundle?
+	private val fallbackBundles: List<LocalizedBundle>
+	private var currentBundles: List<LocalizedBundle>
 	private val currentLanguageSignal: Signal<MetaLanguage>
 	override val currentLanguage: ReactiveValue<MetaLanguage> get() = currentLanguageSignal
 
@@ -59,7 +60,7 @@ class MetaLocalization(
 		currentLanguageSignal.value
 		return format(currentBundles, key, args)
 			?: format(fallbackBundles, key, args)
-			?: rootBundle?.let { format(it, key, args) }
+			?: format(rootBundle, key, args)
 			?: key
 	}
 
@@ -76,44 +77,52 @@ class MetaLocalization(
 		return languages.firstOrNull { it.locale.language.equals(languageCode, ignoreCase = true) }
 	}
 
-	private fun loadBundles(language: MetaLanguage): List<I18NBundle> {
+	private fun loadBundles(language: MetaLanguage): List<LocalizedBundle> {
 		val baseName = bundleFileHandle.nameWithoutExtension()
 		val parent = bundleFileHandle.parent()
-		val candidates = ResourceBundle.Control.getControl(ResourceBundle.Control.FORMAT_DEFAULT)
+		val control = ResourceBundle.Control.getControl(ResourceBundle.Control.FORMAT_DEFAULT)
+		val candidates = control
 			.getCandidateLocales(baseName, language.locale)
 		return candidates.asSequence()
 			.filter { it != Locale.ROOT }
 			.map { locale ->
-				val suffix = locale.toString()
-				parent.child("${baseName}_$suffix")
+				val catalogName = control.toBundleName(baseName, locale)
+				locale to parent.child(catalogName)
 			}
-			.filter { it.sibling("${it.name()}.properties").exists() }
-			.map { I18NBundle.createBundle(it, Locale.ROOT) }
+			.filter { (_, handle) -> handle.sibling("${handle.name()}.properties").exists() }
+			.map { (locale, handle) -> LocalizedBundle(I18NBundle.createBundle(handle, Locale.ROOT), locale) }
 			.toList()
 	}
 
-	private fun loadRootBundle(): I18NBundle? =
+	private fun loadRootBundle(): LocalizedBundle? =
 		if (bundleFileHandle.sibling("${bundleFileHandle.name()}.properties").exists()) {
-			I18NBundle.createBundle(bundleFileHandle, Locale.ROOT)
+			LocalizedBundle(I18NBundle.createBundle(bundleFileHandle, Locale.ROOT), Locale.ROOT)
 		} else null
 
-	private fun lookupRoot(key: String): String? = rootBundle?.let { lookup(it, key) }
+	private fun lookupRoot(key: String): String? = rootBundle?.let { lookup(it.bundle, key) }
 
-	private fun lookup(bundles: List<I18NBundle>, key: String): String? {
-		for (index in bundles.indices) lookup(bundles[index], key)?.let { return it }
+	private fun lookup(bundles: List<LocalizedBundle>, key: String): String? {
+		for (index in bundles.indices) lookup(bundles[index].bundle, key)?.let { return it }
 		return null
 	}
 
-	private fun format(bundles: List<I18NBundle>, key: String, args: Array<out Any>): String? {
-		for (index in bundles.indices) format(bundles[index], key, args)?.let { return it }
+	private fun format(bundles: List<LocalizedBundle>, key: String, args: Array<out Any>): String? {
+		for (index in bundles.indices) {
+			format(bundles[index], key, args)?.let { return it }
+		}
 		return null
 	}
+
+	private fun format(bundle: LocalizedBundle?, key: String, args: Array<out Any>): String? {
+		bundle ?: return null
+		val pattern = lookup(bundle.bundle, key) ?: return null
+		return runCatching { MessageFormat(pattern, bundle.locale).format(args) }.getOrNull()
+	}
+
+	private data class LocalizedBundle(val bundle: I18NBundle, val locale: Locale)
 
 	private fun lookup(bundle: I18NBundle, key: String): String? =
 		runCatching { bundle[key] }.getOrNull()
-
-	private fun format(bundle: I18NBundle, key: String, args: Array<out Any>): String? =
-		runCatching { bundle.format(key, *args) }.getOrNull()
 
 	private companion object {
 		fun normalizeTag(tag: String): String = Locale.forLanguageTag(tag).toLanguageTag().lowercase(Locale.ROOT)
