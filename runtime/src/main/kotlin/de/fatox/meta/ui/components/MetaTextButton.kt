@@ -50,6 +50,10 @@ open class MetaTextButton @JvmOverloads constructor(
 		textValue.value = text
 	}
 
+	fun fitTextToWidth(maxWidth: Float, minimumScale: Float = 0.7f) {
+		label.fitTextToWidth(maxWidth, minimumScale)
+	}
+
 	val text: CharSequence = label.text
 
 

@@ -273,6 +273,17 @@ open class MetaLabel @JvmOverloads constructor(
 		invalidateHierarchy()
 	}
 
+	/** Scales this label down only when its natural width exceeds [maxWidth]. */
+	fun fitTextToWidth(maxWidth: Float, minimumScale: Float = 0.7f) {
+		require(maxWidth > 0f) { "Maximum text width must be positive" }
+		require(minimumScale > 0f && minimumScale <= 1f) { "Minimum text scale must be in (0, 1]" }
+		setFontScale(1f)
+		val naturalWidth = prefWidth
+		val scale = if (naturalWidth <= maxWidth || naturalWidth == 0f) 1f
+		else (maxWidth / naturalWidth).coerceAtLeast(minimumScale)
+		setFontScale(scale)
+	}
+
 	fun setFontScale(fontScaleX: Float, fontScaleY: Float) {
 		this.fontScaleX = fontScaleX
 		this.fontScaleY = fontScaleY

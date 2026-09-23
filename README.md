@@ -121,6 +121,27 @@ transition.fadeOutTo(ScreenId.GAME)
 Window chrome, dialog actions, scrolling, docking, pointer cursors, and nested scroll focus have runtime-owned
 defaults. Extend those primitives when a reusable behavior is missing instead of rebuilding them in a consumer.
 
+### Localization
+
+`MetaLocalization` loads standard libGDX `base[_language].properties` catalogs, selects an advertised BCP 47
+language, and falls back to the application's required fallback catalog and then the key itself. Language changes
+are reactive, so labels and buttons can update in place without reconstructing their screen:
+
+```kotlin
+val localization: Localization = MetaLocalization(
+    bundleFileHandle = Gdx.files.classpath("lang/MyGame"),
+    languages = listOf(MetaLanguage("en", "English"), MetaLanguage("de", "Deutsch")),
+    fallbackLanguageTag = "en",
+    preferredLanguageTag = Locale.getDefault().toLanguageTag(),
+)
+
+reactiveScope.bindLocalizedText(titleLabel, localization, "menu.title")
+localization.selectLanguage("de")
+```
+
+Applications own their catalogs and persist the selected language tag. `MetaLocalization` owns matching, loading,
+formatting, fallback, and the reactive current-language state.
+
 ### Responsive layouts
 
 `MetaFlexBox` supports reactive container breakpoints. The base declaration is the narrow-window fallback; larger

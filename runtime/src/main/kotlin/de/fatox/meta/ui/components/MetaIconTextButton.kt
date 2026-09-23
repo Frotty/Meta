@@ -91,6 +91,10 @@ class MetaIconTextButton private constructor(
 		})
 	}
 
+	fun fitTextToWidth(maxWidth: Float, minimumScale: Float = 0.7f) {
+		label.fitTextToWidth(maxWidth, minimumScale)
+	}
+
 	override fun setMetaFocused(focused: Boolean) {
 		focusStyle.setFocused(focused)
 	}
