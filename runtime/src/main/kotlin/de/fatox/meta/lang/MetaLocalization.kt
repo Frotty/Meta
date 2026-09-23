@@ -33,7 +33,7 @@ class MetaLocalization(
 		}
 		fallbackLanguage = languageByTag(fallbackLanguageTag)
 			?: error("Fallback language '$fallbackLanguageTag' is not advertised")
-		rootBundle = loadRootBundle()
+		rootBundle = loadRootBundle(fallbackLanguage.locale)
 		fallbackBundles = loadBundles(fallbackLanguage)
 		require(fallbackBundles.isNotEmpty() || rootBundle != null) {
 			"No localization catalog found for '${fallbackLanguage.tag}' or the root language"
@@ -94,9 +94,9 @@ class MetaLocalization(
 			.toList()
 	}
 
-	private fun loadRootBundle(): LocalizedBundle? =
+	private fun loadRootBundle(locale: Locale): LocalizedBundle? =
 		if (bundleFileHandle.sibling("${bundleFileHandle.name()}.properties").exists()) {
-			LocalizedBundle(I18NBundle.createBundle(bundleFileHandle, Locale.ROOT), Locale.ROOT)
+			LocalizedBundle(I18NBundle.createBundle(bundleFileHandle, Locale.ROOT), locale)
 		} else null
 
 	private fun lookupRoot(key: String): String? = rootBundle?.let { lookup(it.bundle, key) }
@@ -122,7 +122,7 @@ class MetaLocalization(
 	private data class LocalizedBundle(val bundle: I18NBundle, val locale: Locale)
 
 	private fun lookup(bundle: I18NBundle, key: String): String? =
-		runCatching { bundle[key] }.getOrNull()
+		runCatching { bundle[key] }.getOrNull()?.takeUnless { it == "???$key???" }
 
 	private companion object {
 		fun normalizeTag(tag: String): String = Locale.forLanguageTag(tag).toLanguageTag().lowercase(Locale.ROOT)

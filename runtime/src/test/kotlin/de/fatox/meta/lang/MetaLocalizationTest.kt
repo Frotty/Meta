@@ -1,6 +1,7 @@
 package de.fatox.meta.lang
 
 import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.utils.I18NBundle
 import de.fatox.meta.api.lang.MetaLanguage
 import de.fatox.meta.reactive.effect
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -109,6 +110,35 @@ internal class MetaLocalizationTest {
 		val localization = MetaLocalization(base, LANGUAGES, "en", "de")
 
 		assertEquals("1.234,5", localization.format("number", 1234.5))
+	}
+
+	@Test
+	fun `root catalog formatting uses the configured fallback locale`() {
+		val directory = FileHandle(temporaryDirectory.toFile())
+		val base = directory.child("rootLocale")
+		directory.child("rootLocale.properties").writeString("number={0,number}\n", false, Charsets.UTF_8.name())
+		val localization = MetaLocalization(base, LANGUAGES, "de", "de")
+
+		assertEquals("1.234,5", localization.format("number", 1234.5))
+	}
+
+	@Test
+	fun `missing keys still use fallback when libgdx missing-key exceptions are disabled`() {
+		val originalExceptionMode = I18NBundle.getExceptionOnMissingKey()
+		try {
+			I18NBundle.setExceptionOnMissingKey(false)
+			val localization = MetaLocalization(
+				catalogs(english = "rootOnly=Root text\n", german = "fallbackOnly=Deutsch\n"),
+				LANGUAGES + MetaLanguage("fr", "Français"),
+				"de",
+				"fr",
+			)
+
+			assertEquals("Deutsch", localization["fallbackOnly"])
+			assertEquals("unknown.key", localization["unknown.key"])
+		} finally {
+			I18NBundle.setExceptionOnMissingKey(originalExceptionMode)
+		}
 	}
 
 	@Test
