@@ -72,9 +72,16 @@ class MetaLocalization(
 	private fun resolveLanguage(tag: String?): MetaLanguage? {
 		if (tag.isNullOrBlank()) return null
 		languageByTag(tag)?.let { return it }
-		val languageCode = Locale.forLanguageTag(tag).language
-		if (languageCode.isBlank()) return null
-		return languages.firstOrNull { it.locale.language.equals(languageCode, ignoreCase = true) }
+		val locale = Locale.forLanguageTag(tag)
+		if (locale.language.isBlank()) return null
+		val candidates = ResourceBundle.Control.getControl(ResourceBundle.Control.FORMAT_DEFAULT)
+			.getCandidateLocales("", locale)
+		for (index in candidates.indices) {
+			val candidate = candidates[index]
+			if (candidate == Locale.ROOT) continue
+			languageByTag(candidate.toLanguageTag())?.let { return it }
+		}
+		return null
 	}
 
 	private fun loadBundles(language: MetaLanguage): List<LocalizedBundle> {

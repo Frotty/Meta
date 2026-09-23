@@ -157,6 +157,28 @@ internal class MetaLocalizationTest {
 		assertEquals("简体中文", localization["greeting"])
 	}
 
+	@Test
+	fun `preferred regional script resolves through the most specific advertised parent`() {
+		val directory = FileHandle(temporaryDirectory.toFile())
+		val base = directory.child("scriptPreference")
+		directory.child("scriptPreference.properties").writeString("greeting=Root\n", false, Charsets.UTF_8.name())
+		directory.child("scriptPreference_zh_Hans.properties").writeString("greeting=简体中文\n", false, Charsets.UTF_8.name())
+		directory.child("scriptPreference_zh_Hant.properties").writeString("greeting=繁體中文\n", false, Charsets.UTF_8.name())
+		val localization = MetaLocalization(
+			base,
+			listOf(
+				MetaLanguage("en", "English"),
+				MetaLanguage("zh-Hans", "简体中文"),
+				MetaLanguage("zh-Hant", "繁體中文"),
+			),
+			"en",
+			"zh-Hant-TW",
+		)
+
+		assertEquals("zh-Hant", localization.currentLanguage.value.tag)
+		assertEquals("繁體中文", localization["greeting"])
+	}
+
 	private fun catalogs(english: String, german: String): FileHandle {
 		val directory = FileHandle(temporaryDirectory.toFile())
 		val base = directory.child("messages")
