@@ -40,6 +40,11 @@ fun Actor.refreshFontsRecursively() {
  * content, a pooled list row, ...) keeps referencing fonts that are disposed right after the walk and would draw as
  * black squares once re-attached. Font-caching widgets own one tracker, call [refreshIfStale] from `setStage` on
  * attach to self-heal, and [markFresh] from [FontRefreshable.refreshFont] to record the re-fetch.
+ *
+ * They also call [refreshIfStale] at the top of `draw`. The walk only reaches the renderer's own stage, and a game
+ * drawing a menu on a `Stage` of its own never re-attaches its labels after a resize, so attach-time healing alone
+ * left every one of them drawing from a released page - solid black boxes, on whichever launches a resize landed
+ * after the menu was built. An integer compare per draw closes that for every stage at once.
  */
 class FontGenerationTracker {
 	private val fontProvider: FontProvider by lazyInject()

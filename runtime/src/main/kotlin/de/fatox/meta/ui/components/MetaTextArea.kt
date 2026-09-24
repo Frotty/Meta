@@ -125,6 +125,7 @@ open class MetaTextArea @JvmOverloads constructor(
 	// Vanilla TextArea (via TextField) positions its internal BitmapFontCache straight from this actor's own x/y
 	// with no pixel-grid awareness, unlike MetaLabel - snap it so multi-line input stays crisp at every UI scale.
 	override fun draw(batch: Batch, parentAlpha: Float) {
+		fontTracker.refreshIfStale(this)
 		drawPixelSnapped(batch, parentAlpha, style.font.physicalPixelsPerUnit()) { b, a -> super.draw(b, a) }
 	}
 

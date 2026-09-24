@@ -111,6 +111,7 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 	}
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
+		fontTracker.refreshIfStale(this)
 		super.draw(batch, parentAlpha)
 		val drawable = if (dropdownOpenValue.peek()) chevronUp else chevronDown
 		drawable.draw(
