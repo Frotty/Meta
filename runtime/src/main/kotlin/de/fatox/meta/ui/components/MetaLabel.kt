@@ -60,6 +60,8 @@ open class MetaLabel @JvmOverloads constructor(
 	private var fontScaleY = 1f
 	private var fontBaseScaleX = 1f
 	private var fontBaseScaleY = 1f
+	private var fitMaxWidth: Float? = null
+	private var fitMinimumScale = 0.7f
 	private var ellipsis: String? = null
 	private val drawPosition = Vector2()
 	private val oldBatchTransform = Matrix4()
@@ -277,14 +279,22 @@ open class MetaLabel @JvmOverloads constructor(
 	fun fitTextToWidth(maxWidth: Float, minimumScale: Float = 0.7f) {
 		require(maxWidth > 0f) { "Maximum text width must be positive" }
 		require(minimumScale > 0f && minimumScale <= 1f) { "Minimum text scale must be in (0, 1]" }
+		fitMaxWidth = maxWidth
+		fitMinimumScale = minimumScale
+		applyTextFit()
+	}
+
+	private fun applyTextFit() {
+		val maxWidth = fitMaxWidth ?: return
 		setAppliedFontScale(fontBaseScaleX, fontBaseScaleY)
 		val naturalWidth = prefWidth
 		val scale = if (naturalWidth <= maxWidth || naturalWidth == 0f) 1f
-		else (maxWidth / naturalWidth).coerceAtLeast(minimumScale)
+		else (maxWidth / naturalWidth).coerceAtLeast(fitMinimumScale)
 		setAppliedFontScale(fontBaseScaleX * scale, fontBaseScaleY * scale)
 	}
 
 	fun setFontScale(fontScaleX: Float, fontScaleY: Float) {
+		fitMaxWidth = null
 		fontBaseScaleX = fontScaleX
 		fontBaseScaleY = fontScaleY
 		setAppliedFontScale(fontScaleX, fontScaleY)
@@ -301,6 +311,7 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	fun setFontScaleX(fontScaleX: Float) {
+		fitMaxWidth = null
 		fontBaseScaleX = fontScaleX
 		setAppliedFontScale(fontBaseScaleX, fontScaleY)
 	}
@@ -310,6 +321,7 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	fun setFontScaleY(fontScaleY: Float) {
+		fitMaxWidth = null
 		fontBaseScaleY = fontScaleY
 		setAppliedFontScale(fontScaleX, fontBaseScaleY)
 	}
@@ -360,6 +372,7 @@ open class MetaLabel @JvmOverloads constructor(
 		adoptFontBaseScale()
 		setText(text)
 		bitmapFontCache = font.newFontCache()
+		applyTextFit()
 		// New font metrics: invalidate pref size and parents, then relayout so glyphLayout reflects the new font.
 		invalidateHierarchy()
 		layout()
