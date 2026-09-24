@@ -8,8 +8,6 @@ import com.badlogic.gdx.graphics.g2d.BitmapFontCache
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.api.graphics.physicalPixelsPerStageUnit
@@ -19,56 +17,71 @@ import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
 import de.fatox.meta.ui.MetaColor
-import de.fatox.meta.ui.MetaInputGlyphSkin
-import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.MetaInputGlyphFaces
 import de.fatox.meta.ui.MetaType
 import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * A button prompt: one or more glyphs and what pressing them does - "[A] Select", "[↑↓] Navigate".
+ * A button prompt: Kenney glyphs and what pressing them does - "[A] Select", "[Esc] Back".
  *
- * <p>Draws itself rather than composing a table of a glyph actor and a label, because the thing that makes a prompt
- * look right is an alignment no table cell can express: the glyph's centre sits on the label's cap-height centre, not
- * on the middle of the label's line box. A line box carries the font's ascender and descender, which are not
- * symmetric, so centring on it puts the words visibly above or below the button - the first thing anyone notices
- * about a prompt bar that is slightly wrong.
- *
- * <p>Everything is sized from one number, the label's font size: the glyph is a little taller than a capital, a
- * key's name is set a size smaller than the label, and the gaps scale with the glyph. So a prompt at any size is the
- * same prompt, and a game only ever chooses how big.
+ * <p>The glyphs are Kenney's hand-drawn input prompts (see [MetaInputGlyph]); what this widget adds is how they sit
+ * next to a word, which is where prompts usually go wrong:
+ * <ul>
+ *   <li>Size comes from the label. A glyph is a square cell [GLYPH_SCALE] times the label's font size, whatever the
+ *       game's type or resolution - so a prompt at any size is the same prompt.</li>
+ *   <li>The glyph is rasterized at the cell's physical pixel size and drawn 1:1, so Kenney's lines stay as crisp as
+ *       the vector art. Rasterizing large and letting the batch scale it down is what made them soft.</li>
+ *   <li>The cell's centre sits on the label's cap-height centre, not on the middle of its line box: a line box
+ *       carries the font's ascender and descender, which are not symmetric, and centring on it leaves the words
+ *       visibly above or below the button.</li>
+ *   <li>The origin is snapped to the pixel grid in stage space, so the text is crisp under any parent offset or
+ *       scale.</li>
+ * </ul>
  */
 class MetaInputPrompt @JvmOverloads constructor(
 	glyphs: List<MetaInputGlyph>,
 	label: String,
 	fontSize: Int = MetaType.BODY,
 	private val labelColor: Color = MetaColor.TEXT_MUTED,
+	private val glyphColor: Color = GLYPH_TINT,
 ) : Widget(), FontRefreshable {
 	companion object {
 		/**
-		 * Every face a prompt at [fontSize] draws with, as (size, type). For an application that rasterizes its faces
-		 * during startup: a prompt bar built on the first frame otherwise pays for these on that frame.
+		 * Every text face a prompt at [fontSize] draws with, as (size, type) - the label's, which is also what a key
+		 * Kenney does not draw is named in. For an application that rasterizes its faces during startup.
 		 */
 		@JvmStatic
-		fun requiredFonts(fontSize: Int): List<Pair<Int, FontType>> = listOf(
-			fontSize to FontType.REGULAR,
-			keyTextSize(fontSize) to FontType.REGULAR,
-			faceTextSize(fontSize) to FontType.BOLD,
-		)
+		fun requiredFonts(fontSize: Int): List<Pair<Int, FontType>> = listOf(fontSize to FontType.REGULAR)
 
-		private fun keyTextSize(fontSize: Int) = (fontSize * KEY_TEXT_SCALE).roundToInt().coerceAtLeast(6)
-		private fun faceTextSize(fontSize: Int) = (fontSize * FACE_TEXT_SCALE).roundToInt().coerceAtLeast(6)
+		/**
+		 * Opens, rasterizes and uploads [glyphs] as a prompt at [fontSize] draws them at [physicalPixelsPerUnit], so the
+		 * first frame that shows them only looks them up. Without it that frame opens the face, generates the font and
+		 * uploads a page inside `draw()` - a visible hitch, and again whenever a new UI scale makes a new size.
+		 *
+		 * @param physicalPixelsPerUnit physical pixels per stage unit on the stage the prompt will be on; see
+		 *   `physicalPixelsPerStageUnit`
+		 */
+		@JvmStatic
+		fun prewarm(glyphs: List<MetaInputGlyph>, fontSize: Int, physicalPixelsPerUnit: Float) {
+			val cellPixels = cellPixels(fontSize, physicalPixelsPerUnit)
+			for (i in glyphs.indices) {
+				val glyph = glyphs[i]
+				if (glyph.name.isNotEmpty()) MetaInputGlyphFaces.region(glyph.set, glyph.name, cellPixels)
+			}
+		}
 
-		/** Glyph height over the label's font size. A capital is ~0.7 of it; the glyph stands clear of the text. */
-		private const val GLYPH_SCALE = 1.4f
-		private const val KEY_TEXT_SCALE = 0.58f
-		private const val FACE_TEXT_SCALE = 0.72f
-		private const val SYMBOL_SCALE = 0.86f
-		private const val KEY_PAD = 0.32f
-		private const val GLYPH_GAP = 0.14f
-		private const val LABEL_GAP = 0.36f
-		private val KEY_TEXT: Color = Color.valueOf("E9ECF2FF")
-		private val DPAD_TINT: Color = Color.valueOf("D3D7E0FF")
+		private fun cellSize(fontSize: Int): Float = (fontSize * GLYPH_SCALE).roundToInt().toFloat()
+
+		/** The physical height a glyph cell is rasterized at; [draw] and [prewarm] must agree on it exactly. */
+		private fun cellPixels(fontSize: Int, ppu: Float): Int = (cellSize(fontSize) * ppu).roundToInt().coerceAtLeast(1)
+
+		/** Cell height over the label's font size. Kenney's art fills nearly the whole cell. */
+		private const val GLYPH_SCALE = 1.6f
+		private const val GLYPH_GAP = 0.08f
+		private const val LABEL_GAP = 0.3f
+		/** Light, not white: the art is solid, and full white beside muted text outshouts it. */
+		private val GLYPH_TINT: Color = Color.valueOf("E4E7EEFF")
 	}
 
 	private val fontProvider: FontProvider by lazyInject()
@@ -78,28 +91,13 @@ class MetaInputPrompt @JvmOverloads constructor(
 	private var fontSize: Int = fontSize
 
 	private lateinit var labelFont: BitmapFont
-	private lateinit var keyFont: BitmapFont
-	private lateinit var faceFont: BitmapFont
 	private val labelText = Text()
-	/** One per glyph: its text laid out once, so a draw lays out nothing. */
+	/** Per glyph: the text standing in for a key Kenney does not draw, or empty. */
 	private val glyphTexts = ArrayList<Text>()
-	private val glyphWidths = ArrayList<Float>()
 	private val tint = Color()
-
-	private val keycap: Drawable = MetaSkin.skin().getDrawable(MetaInputGlyphSkin.KEYCAP)
-	private val disc: Drawable = MetaSkin.skin().getDrawable(MetaInputGlyphSkin.DISC)
-	// The drawables, not their regions. An atlas rebuild keeps each drawable object and re-points it at the new page
-	// (MetaSkin.rebuildAtlas); a region taken out of one at construction still points at the page it released, and
-	// draws as a black box.
-	private fun symbol(name: String): TextureRegionDrawable =
-		MetaSkin.skin().getDrawable(name) as TextureRegionDrawable
-	private val cross = symbol(MetaInputGlyphSkin.CROSS)
-	private val ring = symbol(MetaInputGlyphSkin.RING)
-	private val square = symbol(MetaInputGlyphSkin.SQUARE)
-	private val triangle = symbol(MetaInputGlyphSkin.TRIANGLE)
-	private val dpad = symbol(MetaInputGlyphSkin.DPAD)
-	private val stick = symbol(MetaInputGlyphSkin.STICK)
-	private val arrowUp = symbol(MetaInputGlyphSkin.ARROW_UP)
+	private val origin = Vector2()
+	private val stageScratch = Vector2()
+	private var ppu = 1f
 
 	init {
 		fetchFonts()
@@ -122,94 +120,81 @@ class MetaInputPrompt @JvmOverloads constructor(
 		fetchFonts()
 	}
 
-	private val glyphHeight: Float get() = (fontSize * GLYPH_SCALE).roundToInt().toFloat()
+	private val cell: Float get() = cellSize(fontSize)
 
 	private fun fetchFonts() {
 		labelFont = fontProvider.getFont(fontSize, FontType.REGULAR)
-		// Regular, like the label: a key's name is text, and a game's bold face may be a display face that looks
-		// nothing like the words beside it.
-		keyFont = fontProvider.getFont(keyTextSize(fontSize), FontType.REGULAR)
-		faceFont = fontProvider.getFont(faceTextSize(fontSize), FontType.BOLD)
 		fontTracker.markFresh()
 		measure()
 	}
 
 	private fun measure() {
 		labelText.set(labelFont, label)
-		val h = glyphHeight
 		while (glyphTexts.size < glyphs.size) glyphTexts.add(Text())
-		glyphWidths.clear()
 		for (i in glyphs.indices) {
-			val text = glyphTexts[i]
-			val width = when (val glyph = glyphs[i]) {
-				is MetaInputGlyph.Key -> {
-					if (glyph.arrows) {
-						text.clear()
-						h * 1.25f
-					} else {
-						text.set(keyFont, glyph.text)
-						max(h, text.width + h * KEY_PAD * 2f)
-					}
-				}
-				is MetaInputGlyph.Shoulder -> {
-					text.set(keyFont, glyph.text)
-					max(h * 1.2f, text.width + h * KEY_PAD * 2f)
-				}
-				is MetaInputGlyph.Face -> {
-					if (glyph.text != null) text.set(faceFont, glyph.text) else text.clear()
-					h
-				}
-				else -> {
-					text.clear()
-					h
-				}
-			}
-			glyphWidths.add(width)
+			val text = glyphs[i].text
+			if (glyphs[i].name.isEmpty() && text != null) glyphTexts[i].set(labelFont, text) else glyphTexts[i].clear()
 		}
 		invalidateHierarchy()
 	}
 
+	/** A glyph's width: its square cell, or the width of the text standing in for it. */
+	private fun glyphWidth(i: Int, c: Float): Float = if (glyphTexts[i].width > 0f) glyphTexts[i].width else c
+
 	override fun getPrefWidth(): Float {
-		val h = glyphHeight
-		var width = 0f
-		for (i in glyphWidths.indices) width += glyphWidths[i] + if (i > 0) h * GLYPH_GAP else 0f
-		if (label.isNotEmpty()) width += (if (glyphWidths.isEmpty()) 0f else h * LABEL_GAP) + labelText.width
+		val c = cell
+		var width = max(0, glyphs.size - 1) * c * GLYPH_GAP
+		for (i in glyphs.indices) width += glyphWidth(i, c)
+		if (label.isNotEmpty()) width += (if (glyphs.isEmpty()) 0f else c * LABEL_GAP) + labelText.width
 		return width
 	}
 
-	override fun getPrefHeight(): Float = max(glyphHeight, labelFont.lineHeight)
+	override fun getPrefHeight(): Float = max(cell, labelFont.lineHeight)
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		fontTracker.refreshIfStale(this)
 		validate()
-		// The origin is put on the pixel grid in stage space, and every position after it is the origin plus an
-		// offset rounded to whole physical pixels - so the text lands on the grid wherever the parents put this and
-		// however they are transformed. Rounding local coordinates instead only moves the blur: an ancestor at a
-		// fractional offset is applied by the batch after the rounding.
 		snappedOrigin(origin)
 		ppu = stagePixelsPerUnit()
-		val h = glyphHeight
+		val c = cell
 		val centreY = origin.y + px(height * 0.5f)
-		val glyphBottom = origin.y + px(height * 0.5f - h * 0.5f)
+		val cellBottom = origin.y + px(height * 0.5f - c * 0.5f)
+		val cellPixels = cellPixels(fontSize, ppu)
 		var cursor = origin.x
 		val previous = batch.packedColor
 		val alpha = color.a * parentAlpha
 		for (i in glyphs.indices) {
-			if (i > 0) cursor += px(h * GLYPH_GAP)
-			drawGlyph(batch, glyphs[i], glyphTexts[i], cursor, glyphBottom, glyphWidths[i], h, alpha)
-			cursor += px(glyphWidths[i])
+			if (i > 0) cursor += px(c * GLYPH_GAP)
+			val text = glyphTexts[i]
+			if (text.width > 0f) {
+				text.draw(batch, cursor, centreY + px(labelFont.capHeight * 0.5f), tint.set(glyphColor).also { it.a *= alpha })
+			} else {
+				drawGlyph(batch, glyphs[i], cursor, cellBottom, c, cellPixels, alpha)
+			}
+			cursor += px(glyphWidth(i, c))
 		}
 		if (label.isNotEmpty()) {
-			if (glyphs.isNotEmpty()) cursor += px(h * LABEL_GAP)
-			labelText.draw(batch, cursor, capTop(labelFont, centreY), tint.set(labelColor).also { it.a *= alpha })
+			if (glyphs.isNotEmpty()) cursor += px(c * LABEL_GAP)
+			labelText.draw(batch, cursor, centreY + px(labelFont.capHeight * 0.5f),
+				tint.set(labelColor).also { it.a *= alpha })
 		}
 		batch.packedColor = previous
 	}
 
-	private val origin = Vector2()
-	private val stageScratch = Vector2()
-	/** Physical pixels per stage unit for the draw in progress. */
-	private var ppu = 1f
+	private fun drawGlyph(
+		batch: Batch, glyph: MetaInputGlyph,
+		x: Float, y: Float, c: Float, cellPixels: Int, alpha: Float,
+	) {
+		val region = MetaInputGlyphFaces.region(glyph.set, glyph.name, cellPixels) ?: return
+		// The bitmap is the glyph's ink, rasterized for this cell: drawn at its own pixel size it is 1:1, and centred
+		// in the cell it keeps Kenney's wide-and-short keys (Space, Shift) level with the square ones beside them.
+		val w = region.regionWidth / ppu
+		val h = region.regionHeight / ppu
+		val gx = x + px((c - w) * 0.5f)
+		val gy = y + px((c - h) * 0.5f)
+		batch.setColor(glyphColor.r, glyphColor.g, glyphColor.b, glyphColor.a * alpha)
+		batch.draw(region, gx, gy, w, h)
+	}
 
 	/** An offset in whole physical pixels. Added to a position already on the grid, it stays on the grid. */
 	private fun px(offset: Float): Float = snapToPhysicalPixel(offset, ppu)
@@ -243,66 +228,12 @@ class MetaInputPrompt @JvmOverloads constructor(
 		)
 	}
 
-	/** The y to hand `BitmapFont.draw` so the capitals are centred on [centreY]: draw takes the top of the caps. */
-	private fun capTop(font: BitmapFont, centreY: Float): Float = centreY + px(font.capHeight * 0.5f)
-
-	private fun drawGlyph(
-		batch: Batch, glyph: MetaInputGlyph, text: Text,
-		x: Float, y: Float, w: Float, h: Float, alpha: Float,
-	) {
-		val centreX = x + w * 0.5f
-		val centreY = y + px(h * 0.5f)
-		when (glyph) {
-			is MetaInputGlyph.Key, is MetaInputGlyph.Shoulder -> {
-				batch.setColor(1f, 1f, 1f, alpha)
-				keycap.draw(batch, x, y, w, h)
-				if (glyph is MetaInputGlyph.Key && glyph.arrows) {
-					// Up and down side by side, the down one the same texture flipped: one arrow shape, two keys.
-					val size = h * 0.42f
-					val gap = size * 0.12f
-					batch.setColor(KEY_TEXT.r, KEY_TEXT.g, KEY_TEXT.b, alpha)
-					// Raised by the keycap's lip, so the symbols sit on the face and not on the whole cap.
-					val lift = h * 0.04f
-					val arrow = arrowUp.region
-					batch.draw(arrow, centreX - size - gap, centreY - size * 0.5f + lift, size, size)
-					batch.draw(arrow, centreX + gap, centreY + size * 0.5f + lift, size, -size)
-				} else {
-					// Nudged up by the lip: the face of the key is above its bottom edge, and the name belongs on it.
-					text.draw(batch, x + px((w - text.width) * 0.5f), capTop(keyFont, centreY + px(h * 0.04f)),
-						tint.set(KEY_TEXT).also { it.a = alpha })
-				}
-			}
-			is MetaInputGlyph.Face -> {
-				batch.setColor(1f, 1f, 1f, alpha)
-				disc.draw(batch, x, y, h, h)
-				val c = glyph.color
-				if (glyph.text != null) {
-					text.draw(batch, x + px((w - text.width) * 0.5f), capTop(faceFont, centreY),
-						tint.set(c).also { it.a *= alpha })
-				} else if (glyph.symbol != null) {
-					val region = when (glyph.symbol) {
-						MetaInputGlyph.Symbol.CROSS -> cross
-						MetaInputGlyph.Symbol.CIRCLE -> ring
-						MetaInputGlyph.Symbol.SQUARE -> square
-						MetaInputGlyph.Symbol.TRIANGLE -> triangle
-					}
-					val s = h * SYMBOL_SCALE
-					batch.setColor(c.r, c.g, c.b, c.a * alpha)
-					batch.draw(region.region, centreX - s * 0.5f, centreY - s * 0.5f, s, s)
-				}
-			}
-			MetaInputGlyph.DPad, MetaInputGlyph.Stick -> {
-				batch.setColor(1f, 1f, 1f, alpha)
-				disc.draw(batch, x, y, h, h)
-				val s = h * SYMBOL_SCALE
-				batch.setColor(DPAD_TINT.r, DPAD_TINT.g, DPAD_TINT.b, alpha)
-				val region = (if (glyph === MetaInputGlyph.DPad) dpad else stick).region
-				batch.draw(region, centreX - s * 0.5f, centreY - s * 0.5f, s, s)
-			}
-		}
-	}
-
 	override fun refreshFont() = fetchFonts()
+
+	override fun setStage(stage: Stage?) {
+		super.setStage(stage)
+		if (stage != null) fontTracker.refreshIfStale(this)
+	}
 
 	/**
 	 * One run of text, cached with its own font cache so it can be tinted as it draws. A GlyphLayout bakes the font's
@@ -330,10 +261,5 @@ class MetaInputPrompt @JvmOverloads constructor(
 			current.tint(color)
 			current.draw(batch)
 		}
-	}
-
-	override fun setStage(stage: Stage?) {
-		super.setStage(stage)
-		if (stage != null) fontTracker.refreshIfStale(this)
 	}
 }

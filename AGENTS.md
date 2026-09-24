@@ -62,10 +62,11 @@ Meta is the scene2d UI layer; VisUI and libktx must not be introduced.
   allocation-free and must not rebuild rows from `sizeChanged()`.
 - Use tokens from `MetaUi.kt`: `MetaType`, `MetaSpacing`, `MetaColor`, and `MetaButtonTier`. Treat shared colors as
   read-only and call `.cpy()` for variants.
-- Button prompts use `MetaPromptBar` / `MetaInputPrompt` with a `MetaInputGlyph` (`Key`, `Face`, `Shoulder`, `DPad`,
-  `Stick`; `MetaInputGlyphs.face(family, position)` for face buttons by position). The glyphs are generated into the
-  skin atlas and sized and centred from the label's font size - do not ship a glyph font or align glyphs in a table.
-  Warm `MetaInputPrompt.requiredFonts(size)` at startup if prompts appear on the first frame.
+- Button prompts use `MetaPromptBar` / `MetaInputPrompt` with Kenney glyphs from `MetaInputGlyphs` (face buttons by
+  position, triggers, d-pad, menu, `key(keyCode, fallbackText)`). The art is Kenney's and stays Kenney's: do not
+  replace it with drawn shapes. Glyph names must exist in `ui/prompts/<face>.tsv`; `MetaInputPromptTest` checks the
+  presets. If prompts appear on the first frame, warm `MetaInputPrompt.requiredFonts(size)` and
+  `MetaInputPrompt.prewarm(glyphs, size, ppu)` at startup - otherwise the first draw opens and rasterizes the face.
 - Prefer composed controls: `MetaInputLayout`, `MetaIconTextButton`, `SliderWithButtons`, `MetaActionList`,
   `MetaActionRow`, and `MetaBottomBar`.
 - Use `MetaScrollPane`; it owns scrollbar styling, content gutter, wheel step, and nested hover focus.
