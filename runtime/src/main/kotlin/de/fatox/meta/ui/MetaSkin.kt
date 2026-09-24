@@ -298,6 +298,8 @@ object MetaSkin {
 	}
 
 	fun dispose() {
+		// The prompt faces live beside the skin rather than on its atlas, and go with it.
+		MetaInputGlyphFaces.dispose()
 		installActions?.clear()
 		installActions = null
 		installCursor = 0
@@ -350,12 +352,6 @@ object MetaSkin {
 		actions.add { addPalette(skin) }
 		addPanelDrawables(skin)
 		addControlDrawables(skin)
-		MetaInputGlyphSkin.addDrawables(
-			{ name, pixmap, splits, minWidth, minHeight ->
-				packDrawable(name, pixmap, splits, minWidth = minWidth, minHeight = minHeight)
-			},
-			::deferInstall,
-		)
 		// Order matters and is the whole structure of the install: the steps above only rasterize and pack, so no
 		// drawable exists until the atlas is uploaded. Everything that reads one has to come after that.
 		actions.add { finalizeAtlas(skin) }

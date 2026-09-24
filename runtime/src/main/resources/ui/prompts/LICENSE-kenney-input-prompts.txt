@@ -1,0 +1,11 @@
+Input Prompts by Kenney (www.kenney.nl)
+
+The kenney_*.ttf faces in this folder are the font builds of Kenney's "Input Prompts" pack,
+https://kenney.nl/assets/input-prompts, licensed Creative Commons Zero (CC0):
+https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 needs no attribution; this credit is given because the art is Kenney's and is kept deliberately.
+
+The faces here are Kenney's font builds with one change: some glyphs wound their cut-outs the same way as the
+shape around them, which FreeType's nonzero fill closes (Xbox LT came out blank, the PlayStation circle solid).
+tools/fix_kenney_winding.py re-winds them; run it on any replacement .ttf, and regenerate the .tsv name tables.

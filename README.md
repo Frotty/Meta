@@ -124,19 +124,18 @@ defaults. Extend those primitives when a reusable behavior is missing instead of
 ### Button prompts
 
 `MetaPromptBar` is the floating strip of prompts along the bottom of a game screen. Each entry is one or more
-`MetaInputGlyph`s and a label; the glyphs (keycaps, face buttons in each family's colours and symbols, shoulders, the
-d-pad and sticks) are generated into the skin atlas, set in Meta's font, and centred on the label's capitals, so a
-prompt looks right at any size without a glyph font:
+`MetaInputGlyph`s and a label. The glyphs are Kenney's Input Prompts (CC0, bundled under `ui/prompts/` with a
+name table per face): `MetaInputGlyphs` picks face buttons by position per pad family, triggers, the d-pad, the
+menu button and any keyboard key. Each glyph is rasterized at the physical size it is drawn at, sized from the
+label's font size and centred on its capitals, and the bar wraps rather than run off a narrow screen:
 
 ```kotlin
 val bar = MetaPromptBar(fontSize = 28)
 bar.setEntries(listOf(
     MetaPromptBar.Entry(listOf(MetaInputGlyphs.face(MetaPadFamily.XBOX, MetaFaceButton.SOUTH)), "Select"),
-    MetaPromptBar.Entry(listOf(MetaInputGlyph.Key("Esc")), "Back"),
+    MetaPromptBar.Entry(listOf(MetaInputGlyphs.key(Input.Keys.ESCAPE, "Esc")), "Back"),
 ))
 ```
-
-Face buttons are chosen by position: the bottom button is A on Xbox, a cross on PlayStation and B on Nintendo.
 
 ### Localization
 
