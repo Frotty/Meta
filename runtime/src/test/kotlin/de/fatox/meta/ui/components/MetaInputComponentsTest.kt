@@ -737,6 +737,14 @@ internal class MetaInputComponentsTest {
 		label.refreshFont()
 		assertTrue(label.prefWidth <= fittedWidth + 0.001f)
 		assertTrue(label.getFontScaleX() < 1f)
+		label.setFontScale(0.8f)
+		label.setText("A longer label")
+		val translatedWidth = label.prefWidth * 0.9f
+		label.fitTextToWidth(translatedWidth)
+		label.setText("Longer localized")
+		assertTrue(label.prefWidth <= translatedWidth + 0.001f)
+		label.setText("Short")
+		assertEquals(0.8f, label.getFontScaleX(), 0.001f)
 		val snapped = snapToPhysicalPixel(17f, 1.25f)
 		assertEquals(21f, snapped * 1.25f, 0.0001f)
 	}

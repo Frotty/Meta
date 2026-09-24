@@ -114,6 +114,22 @@ internal class MetaLocalizationTest {
 	}
 
 	@Test
+	fun `parent catalog formatting uses the selected regional locale`() {
+		val directory = FileHandle(temporaryDirectory.toFile())
+		val base = directory.child("regionalFormat")
+		directory.child("regionalFormat.properties").writeString("date={0,date,short}\n", false, Charsets.UTF_8.name())
+		directory.child("regionalFormat_en.properties").writeString("date={0,date,short}\n", false, Charsets.UTF_8.name())
+		val localization = MetaLocalization(
+			base,
+			listOf(MetaLanguage("en", "English"), MetaLanguage("en-GB", "English UK")),
+			"en",
+			"en-GB",
+		)
+
+		assertEquals("24/09/2026", localization.format("date", java.util.Date.from(java.time.Instant.parse("2026-09-24T12:00:00Z"))))
+	}
+
+	@Test
 	fun `root catalog formatting uses the configured fallback locale`() {
 		val directory = FileHandle(temporaryDirectory.toFile())
 		val base = directory.child("rootLocale")

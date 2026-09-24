@@ -78,6 +78,7 @@ open class MetaLabel @JvmOverloads constructor(
 		text.setLength(0)
 		text.append(newText)
 		invalidateHierarchy()
+		applyTextFit()
 	}
 
 	fun textEquals(other: CharSequence): Boolean {

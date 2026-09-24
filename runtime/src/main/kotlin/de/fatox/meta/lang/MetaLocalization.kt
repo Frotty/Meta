@@ -97,7 +97,7 @@ class MetaLocalization(
 				locale to parent.child(catalogName)
 			}
 			.filter { (_, handle) -> handle.sibling("${handle.name()}.properties").exists() }
-			.map { (locale, handle) -> LocalizedBundle(I18NBundle.createBundle(handle, Locale.ROOT), locale) }
+			.map { (_, handle) -> LocalizedBundle(I18NBundle.createBundle(handle, Locale.ROOT), language.locale) }
 			.toList()
 	}
 
