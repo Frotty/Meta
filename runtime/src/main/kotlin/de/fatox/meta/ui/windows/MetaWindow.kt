@@ -250,6 +250,9 @@ abstract class MetaWindow(
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		if (managerConcealed) return
+		// The title is a plain scene2d Label, so nothing else heals it: a window on a stage the renderer does not
+		// walk would draw its title from a released page. Children heal themselves in their own draw.
+		if (fontGeneration != fontProvider.fontGeneration) refreshFont()
 		snapBoundsToPixelGrid()
 		validate()
 		snapTitleToPixelGrid()

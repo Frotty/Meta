@@ -8,6 +8,7 @@ import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.test.MetaHeadlessUi
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.windows.MetaWindow
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertNotSame
 import org.junit.jupiter.api.Assertions.assertSame
@@ -45,6 +46,24 @@ class MetaLabelFontRefreshTest {
 		val current = fonts.getFont(24, FontType.BOLD)
 		assertNotSame(before, fontOf(label), "The label still draws from the font released by the rebuild")
 		assertSame(current, fontOf(label), "The label did not pick up the provider's current font")
+		stage.dispose()
+	}
+
+	@Test
+	fun `a window on a foreign stage re-fetches its title font on the first draw after a rebuild`() {
+		val fonts = MetaInject.inject<FontProvider>("default")
+		val stage = Stage(ScreenViewport())
+		val window = object : MetaWindow("Title") {}
+		stage.addActor(window)
+		val before = window.titleLabel.style.font
+
+		MetaSkin.rebuildAtlas()
+		fonts.disposeOrphanedFonts()
+		assertSame(before, window.titleLabel.style.font, "The title refreshed before drawing; the test no longer reaches its case")
+
+		stage.draw()
+
+		assertNotSame(before, window.titleLabel.style.font, "The window title still draws from the font released by the rebuild")
 		stage.dispose()
 	}
 
