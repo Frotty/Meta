@@ -54,6 +54,8 @@ object MetaSkin {
 	const val TOAST_ERROR = "meta.toast.error"
 	const val TOAST_MUTED = "meta.toast.muted"
 	const val BOTTOM_BAR = "meta.bottomBar"
+	/** A floating pill for button prompts: rounded all round, because it sits above the edge rather than on it. */
+	const val PROMPT_BAR = "meta.promptBar"
 	const val COLOR_FILL = "meta.color.fill"
 	const val LOADING_RING = "meta.loading.ring"
 	const val WINDOW = "meta.window"
@@ -348,6 +350,12 @@ object MetaSkin {
 		actions.add { addPalette(skin) }
 		addPanelDrawables(skin)
 		addControlDrawables(skin)
+		MetaInputGlyphSkin.addDrawables(
+			{ name, pixmap, splits, minWidth, minHeight ->
+				packDrawable(name, pixmap, splits, minWidth = minWidth, minHeight = minHeight)
+			},
+			::deferInstall,
+		)
 		// Order matters and is the whole structure of the install: the steps above only rasterize and pack, so no
 		// drawable exists until the atlas is uploaded. Everything that reads one has to come after that.
 		actions.add { finalizeAtlas(skin) }
@@ -415,6 +423,7 @@ object MetaSkin {
 		rounded(skin, "meta.tooltip", Color.valueOf("18191DEE"), MetaColor.BORDER, radius = 6, border = 1, padding = 8f, depth = MetaDepth.RAISED)
 		rounded(skin, DROPDOWN, Color.valueOf("202126FA"), MetaColor.BORDER_STRONG, radius = 7, border = 1, padding = 7f, depth = MetaDepth.RAISED)
 		topRounded(skin, BOTTOM_BAR, Color.valueOf("080A0ECC"), Color.valueOf("2F333BAA"), radius = 12, border = 1, padding = 14f)
+		rounded(skin, PROMPT_BAR, Color.valueOf("0B0D12E0"), Color.valueOf("3A3F4AC0"), radius = 12, border = 1, padding = 12f)
 	}
 
 	private fun loadingRing(skin: Skin) {
