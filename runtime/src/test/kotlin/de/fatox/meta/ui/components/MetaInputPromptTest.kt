@@ -1,9 +1,12 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.physicalPixelsPerStageUnit
 import de.fatox.meta.test.MetaHeadlessUi
 import de.fatox.meta.ui.MetaInputGlyphSkin
 import de.fatox.meta.ui.MetaSkin
@@ -71,6 +74,57 @@ class MetaInputPromptTest {
 		bar.pack()
 		stage.draw()
 		assertEquals(all.size, bar.children.size, "the bar did not build a prompt per entry")
+		stage.dispose()
+	}
+
+	@Test
+	fun `a prompt under a fractionally placed, scaled group still draws on the pixel grid`() {
+		val stage = Stage(ScreenViewport())
+		stage.viewport.update(1280, 720, true)
+		val group = Group()
+		group.isTransform = true
+		group.setPosition(10.37f, 5.61f)
+		group.setScale(1.5f)
+		stage.addActor(group)
+		val prompt = MetaInputPrompt(listOf(MetaInputGlyph.Key("Esc")), "Back", 24)
+		prompt.setPosition(0.23f, 0.41f)
+		group.addActor(prompt)
+		val ppu = physicalPixelsPerStageUnit(stage.width)
+		val drawn = group.localToStageCoordinates(prompt.snappedOrigin(Vector2()))
+		// Guards the premise: without the snap the origin is well off the grid, so passing below means something.
+		val raw = prompt.localToStageCoordinates(Vector2())
+		assertTrue(offGrid(raw.x, ppu) > 0.05f) { "the fixture is already on the grid" }
+		assertEquals(0f, offGrid(drawn.x, ppu), 1e-3f, "the prompt's x is off the pixel grid under the group")
+		assertEquals(0f, offGrid(drawn.y, ppu), 1e-3f, "the prompt's y is off the pixel grid under the group")
+		stage.dispose()
+	}
+
+	/** How far [stageValue] is from the nearest physical pixel, in pixels. */
+	private fun offGrid(stageValue: Float, ppu: Float): Float {
+		val pixels = stageValue * ppu
+		return kotlin.math.abs(pixels - kotlin.math.round(pixels))
+	}
+
+	@Test
+	fun `a bar with more than fits wraps inside the stage instead of running off it`() {
+		val stage = Stage(ScreenViewport())
+		stage.viewport.update(480, 320, true)
+		val bar = MetaPromptBar(24)
+		stage.addActor(bar)
+		val one = listOf(MetaPromptBar.Entry(listOf(MetaInputGlyph.Key("Esc")), "Back"))
+		bar.setEntries(one)
+		val singleRow = bar.prefHeight
+		val many = List(6) { MetaPromptBar.Entry(listOf(MetaInputGlyph.Key("Enter")), "A rather long translated label") }
+		bar.setEntries(many)
+		bar.setSize(bar.prefWidth, bar.prefHeight)
+		bar.validate()
+		assertTrue(bar.width <= stage.width) { "the bar is ${bar.width} wide on a ${stage.width} stage" }
+		assertTrue(bar.height > singleRow * 1.5f) { "the prompts did not wrap onto more rows" }
+		for (child in bar.children) {
+			assertTrue(child.x >= 0f && child.x + child.width <= bar.width + 0.5f) {
+				"a prompt at ${child.x}..${child.x + child.width} sticks out of a bar ${bar.width} wide"
+			}
+		}
 		stage.dispose()
 	}
 

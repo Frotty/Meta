@@ -1,15 +1,18 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.BitmapFontCache
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.physicalPixelsPerStageUnit
 import de.fatox.meta.api.graphics.physicalPixelsPerUnit
 import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -179,36 +182,76 @@ class MetaInputPrompt @JvmOverloads constructor(
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		fontTracker.refreshIfStale(this)
 		validate()
-		val ppu = labelFont.physicalPixelsPerUnit()
+		// The origin is put on the pixel grid in stage space, and every position after it is the origin plus an
+		// offset rounded to whole physical pixels - so the text lands on the grid wherever the parents put this and
+		// however they are transformed. Rounding local coordinates instead only moves the blur: an ancestor at a
+		// fractional offset is applied by the batch after the rounding.
+		snappedOrigin(origin)
+		ppu = stagePixelsPerUnit()
 		val h = glyphHeight
-		val centreY = y + height * 0.5f
-		val glyphBottom = snapToPhysicalPixel(centreY - h * 0.5f, ppu)
-		var cursor = snapToPhysicalPixel(x, ppu)
+		val centreY = origin.y + px(height * 0.5f)
+		val glyphBottom = origin.y + px(height * 0.5f - h * 0.5f)
+		var cursor = origin.x
 		val previous = batch.packedColor
 		val alpha = color.a * parentAlpha
 		for (i in glyphs.indices) {
-			if (i > 0) cursor += h * GLYPH_GAP
-			drawGlyph(batch, glyphs[i], glyphTexts[i], cursor, glyphBottom, glyphWidths[i], h, alpha, ppu)
-			cursor += glyphWidths[i]
+			if (i > 0) cursor += px(h * GLYPH_GAP)
+			drawGlyph(batch, glyphs[i], glyphTexts[i], cursor, glyphBottom, glyphWidths[i], h, alpha)
+			cursor += px(glyphWidths[i])
 		}
 		if (label.isNotEmpty()) {
-			if (glyphs.isNotEmpty()) cursor += h * LABEL_GAP
-			labelText.draw(batch, snapToPhysicalPixel(cursor, ppu), capTop(labelFont, centreY, ppu),
-				tint.set(labelColor).also { it.a *= alpha })
+			if (glyphs.isNotEmpty()) cursor += px(h * LABEL_GAP)
+			labelText.draw(batch, cursor, capTop(labelFont, centreY), tint.set(labelColor).also { it.a *= alpha })
 		}
 		batch.packedColor = previous
 	}
 
+	private val origin = Vector2()
+	private val stageScratch = Vector2()
+	/** Physical pixels per stage unit for the draw in progress. */
+	private var ppu = 1f
+
+	/** An offset in whole physical pixels. Added to a position already on the grid, it stays on the grid. */
+	private fun px(offset: Float): Float = snapToPhysicalPixel(offset, ppu)
+
+	private fun stagePixelsPerUnit(): Float {
+		val stage = stage ?: return labelFont.physicalPixelsPerUnit()
+		return physicalPixelsPerStageUnit(stage.width)
+	}
+
+	/**
+	 * This widget's origin in its parent's coordinates, moved by less than a physical pixel so that it falls on the
+	 * pixel grid in stage space. Internal so a test can hold it without a real frame buffer.
+	 *
+	 * <p>The correction is measured in stage units and applied in the parent's, so it is divided by the scale the
+	 * ancestors apply: under a group drawn at 1.5x, a local nudge of one stage pixel moves the draw by one and a half,
+	 * and the text lands off the grid again. (MetaLabel adds the stage delta unscaled, which is right only at 1x.)
+	 */
+	internal fun snappedOrigin(out: Vector2): Vector2 {
+		val stage = stage ?: return out.set(x.roundToInt().toFloat(), y.roundToInt().toFloat())
+		localToStageCoordinates(stageScratch.set(0f, 0f))
+		val originX = stageScratch.x
+		val originY = stageScratch.y
+		localToStageCoordinates(stageScratch.set(1f, 1f))
+		val scaleX = (stageScratch.x - originX).takeIf { it > 1e-4f } ?: 1f
+		val scaleY = (stageScratch.y - originY).takeIf { it > 1e-4f } ?: 1f
+		val horizontal = physicalPixelsPerStageUnit(stage.width)
+		val vertical = if (stage.height > 0f) (Gdx.graphics.backBufferHeight / stage.height).coerceAtLeast(0.01f) else horizontal
+		return out.set(
+			x + (snapToPhysicalPixel(originX, horizontal) - originX) / scaleX,
+			y + (snapToPhysicalPixel(originY, vertical) - originY) / scaleY,
+		)
+	}
+
 	/** The y to hand `BitmapFont.draw` so the capitals are centred on [centreY]: draw takes the top of the caps. */
-	private fun capTop(font: BitmapFont, centreY: Float, ppu: Float): Float =
-		snapToPhysicalPixel(centreY + font.capHeight * 0.5f, ppu)
+	private fun capTop(font: BitmapFont, centreY: Float): Float = centreY + px(font.capHeight * 0.5f)
 
 	private fun drawGlyph(
 		batch: Batch, glyph: MetaInputGlyph, text: Text,
-		x: Float, y: Float, w: Float, h: Float, alpha: Float, ppu: Float,
+		x: Float, y: Float, w: Float, h: Float, alpha: Float,
 	) {
 		val centreX = x + w * 0.5f
-		val centreY = y + h * 0.5f
+		val centreY = y + px(h * 0.5f)
 		when (glyph) {
 			is MetaInputGlyph.Key, is MetaInputGlyph.Shoulder -> {
 				batch.setColor(1f, 1f, 1f, alpha)
@@ -225,8 +268,8 @@ class MetaInputPrompt @JvmOverloads constructor(
 					batch.draw(arrow, centreX + gap, centreY + size * 0.5f + lift, size, -size)
 				} else {
 					// Nudged up by the lip: the face of the key is above its bottom edge, and the name belongs on it.
-					text.draw(batch, snapToPhysicalPixel(centreX - text.width * 0.5f, ppu),
-						capTop(keyFont, centreY + h * 0.04f, ppu), tint.set(KEY_TEXT).also { it.a = alpha })
+					text.draw(batch, x + px((w - text.width) * 0.5f), capTop(keyFont, centreY + px(h * 0.04f)),
+						tint.set(KEY_TEXT).also { it.a = alpha })
 				}
 			}
 			is MetaInputGlyph.Face -> {
@@ -234,8 +277,8 @@ class MetaInputPrompt @JvmOverloads constructor(
 				disc.draw(batch, x, y, h, h)
 				val c = glyph.color
 				if (glyph.text != null) {
-					text.draw(batch, snapToPhysicalPixel(centreX - text.width * 0.5f, ppu),
-						capTop(faceFont, centreY, ppu), tint.set(c).also { it.a *= alpha })
+					text.draw(batch, x + px((w - text.width) * 0.5f), capTop(faceFont, centreY),
+						tint.set(c).also { it.a *= alpha })
 				} else if (glyph.symbol != null) {
 					val region = when (glyph.symbol) {
 						MetaInputGlyph.Symbol.CROSS -> cross
