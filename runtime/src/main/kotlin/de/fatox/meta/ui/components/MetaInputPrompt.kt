@@ -54,6 +54,28 @@ class MetaInputPrompt @JvmOverloads constructor(
 		@JvmStatic
 		fun requiredFonts(fontSize: Int): List<Pair<Int, FontType>> = listOf(fontSize to FontType.REGULAR)
 
+		/**
+		 * Opens, rasterizes and uploads [glyphs] as a prompt at [fontSize] draws them at [physicalPixelsPerUnit], so the
+		 * first frame that shows them only looks them up. Without it that frame opens the face, generates the font and
+		 * uploads a page inside `draw()` - a visible hitch, and again whenever a new UI scale makes a new size.
+		 *
+		 * @param physicalPixelsPerUnit physical pixels per stage unit on the stage the prompt will be on; see
+		 *   `physicalPixelsPerStageUnit`
+		 */
+		@JvmStatic
+		fun prewarm(glyphs: List<MetaInputGlyph>, fontSize: Int, physicalPixelsPerUnit: Float) {
+			val cellPixels = cellPixels(fontSize, physicalPixelsPerUnit)
+			for (i in glyphs.indices) {
+				val glyph = glyphs[i]
+				if (glyph.name.isNotEmpty()) MetaInputGlyphFaces.region(glyph.set, glyph.name, cellPixels)
+			}
+		}
+
+		private fun cellSize(fontSize: Int): Float = (fontSize * GLYPH_SCALE).roundToInt().toFloat()
+
+		/** The physical height a glyph cell is rasterized at; [draw] and [prewarm] must agree on it exactly. */
+		private fun cellPixels(fontSize: Int, ppu: Float): Int = (cellSize(fontSize) * ppu).roundToInt().coerceAtLeast(1)
+
 		/** Cell height over the label's font size. Kenney's art fills nearly the whole cell. */
 		private const val GLYPH_SCALE = 1.6f
 		private const val GLYPH_GAP = 0.08f
@@ -98,7 +120,7 @@ class MetaInputPrompt @JvmOverloads constructor(
 		fetchFonts()
 	}
 
-	private val cell: Float get() = (fontSize * GLYPH_SCALE).roundToInt().toFloat()
+	private val cell: Float get() = cellSize(fontSize)
 
 	private fun fetchFonts() {
 		labelFont = fontProvider.getFont(fontSize, FontType.REGULAR)
@@ -137,7 +159,7 @@ class MetaInputPrompt @JvmOverloads constructor(
 		val c = cell
 		val centreY = origin.y + px(height * 0.5f)
 		val cellBottom = origin.y + px(height * 0.5f - c * 0.5f)
-		val cellPixels = (c * ppu).roundToInt().coerceAtLeast(1)
+		val cellPixels = cellPixels(fontSize, ppu)
 		var cursor = origin.x
 		val previous = batch.packedColor
 		val alpha = color.a * parentAlpha

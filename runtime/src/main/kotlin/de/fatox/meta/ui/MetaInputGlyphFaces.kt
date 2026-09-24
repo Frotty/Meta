@@ -42,9 +42,19 @@ internal object MetaInputGlyphFaces {
 	}
 
 	private val faces = EnumMap<MetaGlyphSet, Face>(MetaGlyphSet::class.java)
+
+	/**
+	 * How many expensive steps have run: a face opened, a font generated at a new size, a glyph rasterized and uploaded.
+	 * A test seam - after a prewarm, drawing must not move it.
+	 */
+	internal var work = 0
+		private set
 	private val region = TextureRegion()
 
-	private fun face(set: MetaGlyphSet): Face = faces.getOrPut(set) { Face(set) }
+	private fun face(set: MetaGlyphSet): Face = faces.getOrPut(set) {
+		work++
+		Face(set)
+	}
 
 	/** Whether [set] has a glyph called [name]. */
 	fun has(set: MetaGlyphSet, name: String): Boolean = face(set).codepoints.containsKey(name)
@@ -65,6 +75,7 @@ internal object MetaInputGlyphFaces {
 		// the packer's pixmap and stops there, so the first draw would sample a page that has not seen the glyph.
 		val seen = face.uploaded.get(emPixels) ?: IntSet().also { face.uploaded.put(emPixels, it) }
 		if (seen.add(codepoint)) {
+			work++
 			face.packer.updateTextureRegions(font.regions, Texture.TextureFilter.Linear, Texture.TextureFilter.Linear, false)
 		}
 		if (glyph.width == 0 || glyph.height == 0) return null
@@ -106,6 +117,7 @@ internal object MetaInputGlyphFaces {
 			characters = face.seed
 		}
 		val font = face.generator.generateFont(params)
+		work++
 		face.bySize.put(emPixels, font)
 		return font
 	}

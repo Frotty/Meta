@@ -65,7 +65,8 @@ Meta is the scene2d UI layer; VisUI and libktx must not be introduced.
 - Button prompts use `MetaPromptBar` / `MetaInputPrompt` with Kenney glyphs from `MetaInputGlyphs` (face buttons by
   position, triggers, d-pad, menu, `key(keyCode, fallbackText)`). The art is Kenney's and stays Kenney's: do not
   replace it with drawn shapes. Glyph names must exist in `ui/prompts/<face>.tsv`; `MetaInputPromptTest` checks the
-  presets. Warm `MetaInputPrompt.requiredFonts(size)` at startup if prompts appear on the first frame.
+  presets. If prompts appear on the first frame, warm `MetaInputPrompt.requiredFonts(size)` and
+  `MetaInputPrompt.prewarm(glyphs, size, ppu)` at startup - otherwise the first draw opens and rasterizes the face.
 - Prefer composed controls: `MetaInputLayout`, `MetaIconTextButton`, `SliderWithButtons`, `MetaActionList`,
   `MetaActionRow`, and `MetaBottomBar`.
 - Use `MetaScrollPane`; it owns scrollbar styling, content gutter, wheel step, and nested hover focus.

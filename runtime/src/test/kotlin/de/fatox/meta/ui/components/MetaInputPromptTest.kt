@@ -160,6 +160,30 @@ class MetaInputPromptTest {
 	}
 
 	@Test
+	fun `a prewarmed prompt draws without opening, generating or uploading anything`() {
+		val stage = Stage(ScreenViewport())
+		stage.viewport.update(1280, 720, true)
+		val ppu = physicalPixelsPerStageUnit(stage.width)
+		val glyphs = listOf(MetaInputGlyphs.face(MetaPadFamily.PLAYSTATION, MetaFaceButton.EAST),
+			MetaInputGlyphs.key(Input.Keys.ESCAPE, "Esc"))
+		MetaInputPrompt.prewarm(glyphs, 26, ppu)
+		val warmed = MetaInputPrompt(glyphs, "Back", 26)
+		stage.addActor(warmed)
+		warmed.setSize(warmed.prefWidth, warmed.prefHeight)
+		val before = MetaInputGlyphFaces.work
+		stage.draw()
+		assertEquals(before, MetaInputGlyphFaces.work, "drawing a prewarmed prompt still rasterized or uploaded")
+
+		// Guards the seam: the same glyphs at a size nobody warmed do cost work on draw, so the count is being kept.
+		val cold = MetaInputPrompt(glyphs, "Back", 31)
+		stage.addActor(cold)
+		cold.setSize(cold.prefWidth, cold.prefHeight)
+		stage.draw()
+		assertTrue(MetaInputGlyphFaces.work > before) { "an unwarmed size drew without any work; the counter is dead" }
+		stage.dispose()
+	}
+
+	@Test
 	fun `required fonts are the ones a prompt asks for`() {
 		val fonts = MetaInputPrompt.requiredFonts(30)
 		assertEquals(30 to FontType.REGULAR, fonts[0], "the label's own face is not listed first")
