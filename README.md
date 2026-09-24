@@ -121,6 +121,23 @@ transition.fadeOutTo(ScreenId.GAME)
 Window chrome, dialog actions, scrolling, docking, pointer cursors, and nested scroll focus have runtime-owned
 defaults. Extend those primitives when a reusable behavior is missing instead of rebuilding them in a consumer.
 
+### Button prompts
+
+`MetaPromptBar` is the floating strip of prompts along the bottom of a game screen. Each entry is one or more
+`MetaInputGlyph`s and a label; the glyphs (keycaps, face buttons in each family's colours and symbols, shoulders, the
+d-pad and sticks) are generated into the skin atlas, set in Meta's font, and centred on the label's capitals, so a
+prompt looks right at any size without a glyph font:
+
+```kotlin
+val bar = MetaPromptBar(fontSize = 28)
+bar.setEntries(listOf(
+    MetaPromptBar.Entry(listOf(MetaInputGlyphs.face(MetaPadFamily.XBOX, MetaFaceButton.SOUTH)), "Select"),
+    MetaPromptBar.Entry(listOf(MetaInputGlyph.Key("Esc")), "Back"),
+))
+```
+
+Face buttons are chosen by position: the bottom button is A on Xbox, a cross on PlayStation and B on Nintendo.
+
 ### Localization
 
 `MetaLocalization` loads standard libGDX `base[_language].properties` catalogs, selects an advertised BCP 47
