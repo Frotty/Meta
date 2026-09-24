@@ -126,7 +126,24 @@ internal class MetaLocalizationTest {
 			"en-GB",
 		)
 
-		assertEquals("24/09/2026", localization.format("date", java.util.Date.from(java.time.Instant.parse("2026-09-24T12:00:00Z"))))
+		val originalTimeZone = java.util.TimeZone.getDefault()
+		try {
+			java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("UTC"))
+			assertEquals("24/09/2026", localization.format("date", java.util.Date.from(java.time.Instant.parse("2026-09-24T12:00:00Z"))))
+		} finally {
+			java.util.TimeZone.setDefault(originalTimeZone)
+		}
+	}
+
+	@Test
+	fun `localized catalog names preserve dots in the base name`() {
+		val directory = FileHandle(temporaryDirectory.toFile())
+		val base = directory.child("ui.messages")
+		directory.child("ui.messages.properties").writeString("greeting=Root\n", false, Charsets.UTF_8.name())
+		directory.child("ui.messages_de.properties").writeString("greeting=Deutsch\n", false, Charsets.UTF_8.name())
+		val localization = MetaLocalization(base, LANGUAGES, "en", "de")
+
+		assertEquals("Deutsch", localization["greeting"])
 	}
 
 	@Test

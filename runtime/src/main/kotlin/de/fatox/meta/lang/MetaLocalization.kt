@@ -85,7 +85,7 @@ class MetaLocalization(
 	}
 
 	private fun loadBundles(language: MetaLanguage): List<LocalizedBundle> {
-		val baseName = bundleFileHandle.nameWithoutExtension()
+		val baseName = bundleFileHandle.name()
 		val parent = bundleFileHandle.parent()
 		val control = ResourceBundle.Control.getControl(ResourceBundle.Control.FORMAT_DEFAULT)
 		val candidates = control
