@@ -60,6 +60,7 @@ class FPSGraph(
 	}
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
+		fontTracker.refreshIfStale(this)
 		val validCount = minOf(samplesCount, historySize.toLong()).toInt()
 		if (validCount <= 0) return
 

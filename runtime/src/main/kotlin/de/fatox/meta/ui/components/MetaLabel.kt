@@ -172,6 +172,8 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
+		// Before validate(), so a re-fetched font is laid out before this frame draws it. See FontGenerationTracker.
+		fontTracker.refreshIfStale(this)
 		validate()
 		val color = tempColor.set(color)
 		color.a *= parentAlpha

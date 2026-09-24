@@ -95,6 +95,7 @@ open class MetaTextField @JvmOverloads constructor(
 	// this actor's own x/y with no pixel-grid awareness, unlike MetaLabel - snap the whole thing together so it's
 	// crisp regardless of what fractional position layout/HiDPI scaling produced.
 	override fun draw(batch: Batch, parentAlpha: Float) {
+		fontTracker.refreshIfStale(this)
 		drawPixelSnapped(batch, parentAlpha, style.font.physicalPixelsPerUnit()) { b, a -> super.draw(b, a) }
 	}
 
