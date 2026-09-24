@@ -123,7 +123,32 @@ class MetaLocalization(
 	private fun format(bundle: LocalizedBundle?, key: String, args: Array<out Any>): String? {
 		bundle ?: return null
 		val pattern = lookup(bundle.bundle, key) ?: return null
-		return runCatching { MessageFormat(pattern, bundle.locale).format(args) }.getOrNull()
+		return runCatching {
+			MessageFormat(escapeTextFormatterPattern(pattern), bundle.locale).format(args)
+		}.getOrNull()
+	}
+
+	/** Matches libGDX TextFormatter's MessageFormat escaping without inheriting another catalog's keys. */
+	private fun escapeTextFormatterPattern(pattern: String): String {
+		val escaped = StringBuilder(pattern.length)
+		var index = 0
+		while (index < pattern.length) {
+			when (pattern[index]) {
+				'\'' -> escaped.append("''")
+				'{' -> {
+					var end = index + 1
+					while (end < pattern.length && pattern[end] == '{') end++
+					val runLength = end - index
+					repeat(runLength / 2) { if (it == 0) escaped.append('\''); escaped.append('{') }
+					if (runLength >= 2 && runLength / 2 > 0) escaped.append('\'')
+					if (runLength % 2 != 0) escaped.append('{')
+					index = end - 1
+				}
+				else -> escaped.append(pattern[index])
+			}
+			index++
+		}
+		return escaped.toString()
 	}
 
 	private data class LocalizedBundle(val bundle: I18NBundle, val locale: Locale)

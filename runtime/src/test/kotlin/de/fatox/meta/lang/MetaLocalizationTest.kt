@@ -104,12 +104,13 @@ internal class MetaLocalizationTest {
 	@Test
 	fun `formatted values use the selected catalog locale`() {
 		val base = catalogs(
-			english = "number={0,number}\n",
-			german = "number={0,number}\n",
+			english = "number={0,number}\ncontraction=It's {0}\n",
+			german = "number={0,number}\ncontraction=C'est {0}\n",
 		)
 		val localization = MetaLocalization(base, LANGUAGES, "en", "de")
 
 		assertEquals("1.234,5", localization.format("number", 1234.5))
+		assertEquals("C'est OxRox", localization.format("contraction", "OxRox"))
 	}
 
 	@Test
