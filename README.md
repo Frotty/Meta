@@ -195,8 +195,9 @@ and consume `breakpoint`, `matches(query)`, or `resolve(responsiveValue)` throug
 Run the same compile and test gates as CI:
 
 ```powershell
-.\gradlew.bat verifyKotlinIterationSafety :runtime:compileKotlin :runtime-desktop:compileKotlin :editor:compileKotlin :editor-desktop:compileKotlin
+.\gradlew.bat verifyKotlinIterationSafety verifyNoDuplicateClasses :runtime:compileKotlin :runtime-desktop:compileKotlin :editor:compileKotlin :editor-desktop:compileKotlin
 .\gradlew.bat :runtime:test
+.\gradlew.bat :runtime:perfCheck
 ```
 
 For UI work, also run the playground and add geometry or behavior coverage:
