@@ -8,6 +8,11 @@ import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.utils.TimeUtils
 import kotlin.math.abs
 
+/**
+ * Legacy copy of libGDX's `ClickListener` that reports a click through a callback instead of an override.
+ * Nothing in Meta constructs it; it is retained only for binary compatibility with published runtime jars.
+ */
+@Deprecated("Use com.badlogic.gdx.scenes.scene2d.utils.ClickListener and override clicked()")
 class MetaListener(private val cb: () -> Unit) : InputListener() {
 	var tapSquareSize: Float = 14f
 	var touchDownX: Float = -1f
