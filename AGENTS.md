@@ -158,7 +158,7 @@ Allocation rate is the primary controllable JVM game-runtime cost.
 - Runtime resources must be generic and runtime-used. Keep the authoring and runtime copies of Remix font/catalog
   data byte-identical. Do not ship editor/sample content in `runtime/src/main/resources`.
 - Do not build new code on deprecated placeholders such as `AssetPromise`, `MetaShortcut`, `MetaTaskQueue`,
-  `TaskListener`, or `BufferRenderer`.
+  `TaskListener`, `BufferRenderer`, or `MetaListener`.
 
 ## Compatibility and verification
 
