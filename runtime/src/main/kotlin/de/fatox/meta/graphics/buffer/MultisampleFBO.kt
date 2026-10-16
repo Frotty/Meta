@@ -207,7 +207,7 @@ class MultisampleFBO(var bufferBuilder: GLFrameBufferBuilder<out MultisampleFBO>
 	}
 
 	/**
-	 * Sets viewport to the dimensions of framebuffer. Called by [.begin].
+	 * Sets viewport to the dimensions of framebuffer. Called by [begin].
 	 */
 	fun setFrameBufferViewport() {
 		Gdx.gl20.glViewport(0, 0, bufferBuilder.width, bufferBuilder.height)

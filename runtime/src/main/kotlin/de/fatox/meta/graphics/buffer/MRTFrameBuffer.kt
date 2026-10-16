@@ -52,7 +52,7 @@ class MRTFrameBuffer(
 		setFrameBufferViewport()
 	}
 
-	/** Sets viewport to the dimensions of framebuffer. Called by [.begin].  */
+	/** Sets viewport to the dimensions of framebuffer. Called by [begin].  */
 	private fun setFrameBufferViewport() {
 		Gdx.gl20.glViewport(0, 0, frameBuffer.width, frameBuffer.height)
 	}

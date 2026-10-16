@@ -25,19 +25,18 @@ import kotlin.math.roundToInt
 /**
  * A button prompt: Kenney glyphs and what pressing them does - "[A] Select", "[Esc] Back".
  *
- * <p>The glyphs are Kenney's hand-drawn input prompts (see [MetaInputGlyph]); what this widget adds is how they sit
+ * The glyphs are Kenney's hand-drawn input prompts (see [MetaInputGlyph]); what this widget adds is how they sit
  * next to a word, which is where prompts usually go wrong:
- * <ul>
- *   <li>Size comes from the label. A glyph is a square cell [GLYPH_SCALE] times the label's font size, whatever the
- *       game's type or resolution - so a prompt at any size is the same prompt.</li>
- *   <li>The glyph is rasterized at the cell's physical pixel size and drawn 1:1, so Kenney's lines stay as crisp as
- *       the vector art. Rasterizing large and letting the batch scale it down is what made them soft.</li>
- *   <li>The cell's centre sits on the label's cap-height centre, not on the middle of its line box: a line box
- *       carries the font's ascender and descender, which are not symmetric, and centring on it leaves the words
- *       visibly above or below the button.</li>
- *   <li>The origin is snapped to the pixel grid in stage space, so the text is crisp under any parent offset or
- *       scale.</li>
- * </ul>
+ *
+ * - Size comes from the label. A glyph is a square cell [GLYPH_SCALE] times the label's font size, whatever the
+ *   game's type or resolution - so a prompt at any size is the same prompt.
+ * - The glyph is rasterized at the cell's physical pixel size and drawn 1:1, so Kenney's lines stay as crisp as
+ *   the vector art. Rasterizing large and letting the batch scale it down is what made them soft.
+ * - The cell's centre sits on the label's cap-height centre, not on the middle of its line box: a line box
+ *   carries the font's ascender and descender, which are not symmetric, and centring on it leaves the words
+ *   visibly above or below the button.
+ * - The origin is snapped to the pixel grid in stage space, so the text is crisp under any parent offset or
+ *   scale.
  */
 class MetaInputPrompt @JvmOverloads constructor(
 	glyphs: List<MetaInputGlyph>,
@@ -208,7 +207,7 @@ class MetaInputPrompt @JvmOverloads constructor(
 	 * This widget's origin in its parent's coordinates, moved by less than a physical pixel so that it falls on the
 	 * pixel grid in stage space. Internal so a test can hold it without a real frame buffer.
 	 *
-	 * <p>The correction is measured in stage units and applied in the parent's, so it is divided by the scale the
+	 * The correction is measured in stage units and applied in the parent's, so it is divided by the scale the
 	 * ancestors apply: under a group drawn at 1.5x, a local nudge of one stage pixel moves the draw by one and a half,
 	 * and the text lands off the grid again. (MetaLabel adds the stage delta unscaled, which is right only at 1x.)
 	 */
