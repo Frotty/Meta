@@ -25,7 +25,7 @@ Use `de.fatox.meta.reactive` as the application-state and change-propagation mec
 
 Flag custom observer lists, listener registries, callback fan-out, observable/property wrappers, event buses, polling-based UI synchronization, or parallel state stores that duplicate this model. This applies in Meta and in consumers.
 
-Framework callbacks are allowed at system boundaries—for example Scene2D input listeners, HTTP completion callbacks, platform callbacks, and screen lifecycle methods. Treat them as adapters: translate the event into canonical reactive state on the GL thread, then let computed values and scoped effects propagate it. Do not grow another observer architecture behind the adapter.
+Framework callbacks are allowed at system boundaries, for example Scene2D input listeners, HTTP completion callbacks, platform callbacks, and screen lifecycle methods. Treat them as adapters: translate the event into canonical reactive state on the GL thread, then let computed values and scoped effects propagate it. Do not grow another observer architecture behind the adapter.
 
 Specific expectations:
 

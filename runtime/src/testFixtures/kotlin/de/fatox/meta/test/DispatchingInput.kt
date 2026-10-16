@@ -12,13 +12,13 @@ import de.fatox.meta.input.ScrollListener
  * A [MetaInputProcessor] that delivers what it is given, so a test can press keys at the UI.
  *
  * The sibling of [LayoutOnlyInput], not a replacement for it. That one accepts registrations and dispatches nothing
- * on purpose — it exists so a widget tree can be *built*, and taking `Gdx.input`'s processor slot and the static
+ * on purpose: it exists so a widget tree can be *built*, and taking `Gdx.input`'s processor slot and the static
  * `Controllers` registry is process-wide state a layout harness has no business claiming. This one exists for the
  * other job: covering behaviour that only happens when input actually arrives.
  *
  * Without it, a consumer could not test the most interesting logic Meta owns. `UiControlHelper` registers its
- * navigation listener through `addGlobalInputProcessor`, so the spatial arrow-key step — `navigate`, `getNextX`,
- * `getNextY`, and the wrap hooks a game hangs off `MetaUiActionHandler` — was unreachable. So was anything built on
+ * navigation listener through `addGlobalInputProcessor`, so the spatial arrow-key step (`navigate`, `getNextX`,
+ * `getNextY`, and the wrap hooks a game hangs off `MetaUiActionHandler`) was unreachable. So was anything built on
  * `addScreenKeyListener`, and anything a `MetaDialog` does behind an exclusive grab.
  *
  * ```
@@ -32,7 +32,7 @@ import de.fatox.meta.input.ScrollListener
  *
  * Dispatch follows `MetaInput` exactly, including where it is asymmetric:
  *
- * - An exclusive grab receives the event and nothing else does — for **every** event type, pointer motion and scroll
+ * - An exclusive grab receives the event and nothing else does, for **every** event type, pointer motion and scroll
  *   included. A harness that let those through to the background would make a modal test pass against a build where
  *   the modal did not own input.
  * - `touchCancelled` is a `touchUp`, so an interrupted gesture releases drag state rather than vanishing.
@@ -42,7 +42,7 @@ import de.fatox.meta.input.ScrollListener
  * - Return values match, since a caller driving the fixture directly can see them.
  *
  * Held-key state is real, and reaches `Gdx.input`. `UiControlHelper.activateSelectedActor` declines to fire while
- * ctrl or alt is held and it asks **`Gdx.input.isKeyPressed`**, not this interface — so tracking modifiers in private
+ * ctrl or alt is held and it asks **`Gdx.input.isKeyPressed`**, not this interface, so tracking modifiers in private
  * fields, as the first version of this fixture did, left ctrl+confirm activating a control that production would have
  * left alone. [MetaHeadlessUi] points `Gdx.input` at [isKeyHeld] for the lifetime of the install.
  *
@@ -90,7 +90,7 @@ class DispatchingInput : MetaInputProcessor {
 		removeByIdentity(exclusiveProcessors, processor)
 
 	/**
-	 * Identity, never equality — `ArrayList.remove` would drop the first *equal* element instead of the one handed
+	 * Identity, never equality: `ArrayList.remove` would drop the first *equal* element instead of the one handed
 	 * over. `MetaInput` uses `removeValue(x, true)` for the same reason, and the key-listener API promises it: two
 	 * distinct owners that happen to compare equal are still two owners, and removing the wrong one would leave a
 	 * registration live while reporting it gone.
@@ -268,8 +268,8 @@ class DispatchingInput : MetaInputProcessor {
 	private fun grab(): InputProcessor? = exclusiveProcessors.lastOrNull()
 
 	/**
-	 * Snapshotted before dispatch, because a listener may register or remove one during it — `UiControlHelper`
-	 * disposing mid-press is exactly that — and mutating the list under an index walk drops or repeats a processor.
+	 * Snapshotted before dispatch, because a listener may register or remove one during it (`UiControlHelper`
+	 * disposing mid-press is exactly that), and mutating the list under an index walk drops or repeats a processor.
 	 */
 	private inline fun eachProcessor(action: (InputProcessor) -> Unit) {
 		val globals = globalProcessors.toTypedArray()

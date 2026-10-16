@@ -108,7 +108,7 @@ class SilentSound : Sound {
  * An [Application] that runs posted runnables immediately instead of deferring them to the next frame.
  *
  * Meta dispatches sound starts and other deferred work through `Gdx.app.postRunnable`, which in a test would
- * otherwise never run — there is no frame loop to drain the queue. Running inline keeps a test single-stepped and
+ * otherwise never run: there is no frame loop to drain the queue. Running inline keeps a test single-stepped and
  * deterministic.
  *
  * Kotlin's `by` generates real forwarding methods, so unlike a proxy this delegation costs nothing and allocates

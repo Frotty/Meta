@@ -1,9 +1,9 @@
-# Local co-op UI input — design proposal
+# Local co-op UI input: design proposal
 
 **Status:** keyboard and assigned-controller routing implemented. Per-player focus rings remain optional future work.
 
 The goal: two players navigating Meta UI independently on **one machine**, including
-**one keyboard** — P1 on the arrows, P2 on WASD — without the game reaching around
+**one keyboard** (P1 on the arrows, P2 on WASD) without the game reaching around
 Meta to do it.
 
 The concrete case that prompted this is a fighting-game character select: two grids,
@@ -22,7 +22,7 @@ to be addressed or explicitly excluded; a change to one alone does nothing.
 `MetaUiAction`. There is one instance, registered as a singleton in `MetaModule`.
 
 Binding P2's WASD to `NAVIGATE_*` alongside P1's arrows does not give two players
-two cursors — it gives two players **one** cursor that either can move.
+two cursors: it gives two players **one** cursor that either can move.
 
 ### 2. `UiControlHelper` is a singleton, and five things depend on that
 
@@ -31,7 +31,7 @@ two cursors — it gives two players **one** cursor that either can move.
 
 Those consumers are *right* to want one: a modal dialog belongs to one cursor, and
 so does an open select-box dropdown. So "make it per player everywhere" is the wrong
-shape — it would push a player parameter into every widget that has no opinion about
+shape: it would push a player parameter into every widget that has no opinion about
 players.
 
 ### 3. Canonical-key synthesis crosses player boundaries
@@ -40,7 +40,7 @@ This is the constraint that would derail a naive implementation, so it is worth
 being explicit about.
 
 `UiControlHelper.synthesizeCanonicalKeyDown` re-emits the *canonical* key whenever a
-bound alias is pressed — that is deliberate, and it is what makes a rebound key and
+bound alias is pressed: that is deliberate, and it is what makes a rebound key and
 a pad button both reach a listener registered on one keycode (`BackAction` in a
 consumer relies on it).
 
@@ -59,7 +59,7 @@ The synthetic event has to be invisible to every *cursor* while staying visible 
 `KeyListener`s, which is who synthesis is for. That makes the "am I synthesizing"
 guard shared across helpers rather than per-instance.
 
-### 4. Focus is one actor — but this is *not* a prerequisite
+### 4. Focus is one actor, but this is *not* a prerequisite
 
 Recorded here because the first version of this document treated it as one, and
 that was wrong. Checking it changes the cost of the whole feature.
@@ -68,13 +68,13 @@ that was wrong. Checking it changes the cost of the whole feature.
 `FocusRenderer.draw(stage, focusedActor, deltaTime)`. `MetaFocus.assign` flips one
 boolean through `MetaFocusable.setMetaFocused(focused: Boolean)`.
 
-With two cursors an actor can be focused by P1 and not P2 — or by both, mid-hover —
+With two cursors an actor can be focused by P1 and not P2, or by both, mid-hover,
 and a boolean cannot express that. Nor can one focus ring distinguish the players.
 
 **But a self-drawing focusable never reaches that code.**
 `DefaultFocusRenderer` returns immediately for any actor where
-`MetaFocus.isHandledByActor` holds, so a cell that shows its own focus — read
-reactively from *its own* helper's `focusedActor`, which is a per-instance signal —
+`MetaFocus.isHandledByActor` holds, so a cell that shows its own focus (read
+reactively from *its own* helper's `focusedActor`, which is a per-instance signal)
 is unaffected by the renderer having one slot. Two helpers do still trample
 `MetaUIRenderer`'s single `focusedActor`, and with self-drawing cells that is
 invisible.
@@ -123,16 +123,16 @@ class MetaUiInputProfiles {
 }
 ```
 
-Additional profiles start **empty** rather than defaulted — two players cannot both
+Additional profiles start **empty** rather than defaulted: two players cannot both
 have the arrows, and silently copying defaults would produce exactly the shared
 cursor this is meant to avoid.
 
 Empty defaults only prevent a collision *at allocation*. `get` hands back the live
 mutable bindings, because that is what makes a rebinding screen possible, so a
 later `setKeyboardKeys` can assign a key another profile already holds and both
-cursors then move on one press. The registry cannot arbitrate that — which player
+cursors then move on one press. The registry cannot arbitrate that, which player
 keeps a contested key is a game's decision, and silently dropping one player's
-binding is the worst available behaviour — so it reports instead:
+binding is the worst available behaviour, so it reports instead:
 `conflictingKeys(a, b)`, for a game to call when a profile is committed.
 
 ### `UiControlHelper` gains a player, and keeps its singleton
@@ -157,7 +157,7 @@ which is the affordance that makes this work at all.
 
 **But the confinement is soft, and the first version of this document over-claimed
 it.** `possibleTargets` applies `focusedRoot` only while the selected actor is still
-inside it — `focusedRoot?.takeIf { selectedActor.isDescendantOf(it) }` — and falls
+inside it (`focusedRoot?.takeIf { selectedActor.isDescendantOf(it) }`) and falls
 back to the full parent lineage otherwise. That fallback is deliberate and has a
 test named after it (`manual navigation keeps legacy parent lineage search outside
 scoped roots`).
@@ -169,7 +169,7 @@ with no root check. Click a control in player two's panel and player one's curso
 now on it, able to navigate and confirm player two's controls.
 
 So: **two keyboard cursors in two panels do not contend, and a mouse breaks that.**
-For the case this proposal is about — two players at one keyboard — that is
+For the case this proposal is about (two players at one keyboard), that is
 acceptable, and should be stated rather than glossed. For a game mixing a pointer
 with per-player cursors it is not, and needs one of:
 
@@ -191,18 +191,18 @@ Two parts, and the first alone is not enough:
    skipping it and every other helper processing it.
 
 Consequence to accept deliberately: a `BackAction`-style listener registered on a
-canonical keycode hears player one only. That is the right default — a screen-level
-"back" is a system action, not a per-player one — but it must be *documented*, not
+canonical keycode hears player one only. That is the right default: a screen-level
+"back" is a system action, not a per-player one, but it must be *documented*, not
 discovered.
 
-### Focus becomes a set — only if slice 2 is wanted
+### Focus becomes a set: only if slice 2 is wanted
 
 The first version of this section proposed **replacing** both signatures. That is
 wrong twice over, and the corrections are the interesting part.
 
 **`FocusRenderer` must keep its existing entry point.** A downstream consumer can
 supply a custom `FocusRenderer`; changing `draw(Stage, Actor?, Float)` breaks it at
-source, and an already-compiled one at runtime. Additive instead — the new method
+source, and an already-compiled one at runtime. Additive instead: the new method
 carries a default that delegates to the old one, so an existing renderer keeps
 working and sees player one:
 
@@ -220,11 +220,11 @@ interface FocusRenderer : Disposable {
 was the subtler mistake:
 
 - Have `setMetaFocused(Boolean)` forward *to* the player overload, and every
-  existing widget — `MetaTextButton`, `MetaCheckBox`, `MetaSlider` and the rest —
+  existing widget (`MetaTextButton`, `MetaCheckBox`, `MetaSlider` and the rest)
   implements only the boolean and leaves the overload unimplemented. Nothing
   restyles.
 - Reverse it, so the overload defaults to calling the boolean, and it compiles and
-  keeps existing widgets working — but it **collapses both players into one
+  keeps existing widgets working, but it **collapses both players into one
   boolean.** One player leaving an actor clears the other's focus, and the widget
   cannot tint per player, which was the point.
 
@@ -252,9 +252,9 @@ to be shown by cells reading `focusedActor` themselves.
 
 ## Suggested slicing
 
-**Slice 1 — foundation, zero behaviour change.** `MetaPlayer`,
+**Slice 1: foundation, zero behaviour change.** `MetaPlayer`,
 `MetaUiInputProfiles`, `UiControlHelper(player, bindings)` filtering by its own
-profile, player-scoped synthesis, and a `dispose()` on the helper — the moment a
+profile, player-scoped synthesis, and a `dispose()` on the helper: the moment a
 cursor is a per-screen instance rather than the app-lifetime singleton, its global
 input processor has to be removable, or a recreated screen stacks one per
 instance and that player's keys drive every one of them.
@@ -262,12 +262,12 @@ instance and that player's keys drive every one of them.
 Single-player behaviour must be byte-identical; the test that matters is that the
 existing suite passes untouched. **Implemented in #33.**
 
-**Slice 2 — optional, for games that want Meta's ring per player.** Per-player
+**Slice 2: optional, for games that want Meta's ring per player.** Per-player
 focus in `MetaUIRenderer`, `MetaFocusSet`, the `MetaFocusable` overload, per-player
 ring tint. **Not** required for the fighting-game select screen: cells that draw
 their own focus already bypass the renderer entirely (see blocker 4).
 
-**Slice 3 — controllers. Implemented.** `MetaControllerListener.assignPlayer` routes a pad through that player's
+**Slice 3: controllers. Implemented.** `MetaControllerListener.assignPlayer` routes a pad through that player's
 profile. Player one retains ordinary canonical keys for compatibility; later players use private player-tagged UI
 events that only their `UiControlHelper` decodes. Stick and button holds are tracked per controller, reassignment and
 disconnect release the previous route, and `MetaKeyRebindDialog(controllerPlayer = ...)` scopes raw capture so a
@@ -281,7 +281,7 @@ non-primary players. Slices 2 and 3 are additions, not completions.
 
 ## Open questions for the maintainer
 
-1. **Does a dialog belong to a player?** A modal opened by P2 mid-select — does it
+1. **Does a dialog belong to a player?** A modal opened by P2 mid-select: does it
    capture only P2's input, or all of it? The exclusive-processor stack has no player
    dimension, and adding one is a bigger change than any of the above.
 2. **Is player one privileged?** The synthesis proposal makes it so. The alternative

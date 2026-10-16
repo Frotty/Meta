@@ -229,7 +229,7 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 		}
 		reactiveScope.bindText(colorLabel) { "#${pickedColor()}" }
 		reactiveScope.bindText(summary) {
-			"${select.selectedValue() ?: "—"} · count ${spinnerModel.valueValue().toInt()} · value ${slider.valueValue().toInt()}"
+			"${select.selectedValue() ?: "none"} · count ${spinnerModel.valueValue().toInt()} · value ${slider.valueValue().toInt()}"
 		}
 	}
 

@@ -15,8 +15,8 @@ import kotlin.test.assertTrue
  * When face files are read, and how many.
  *
  * Meta ships four faces and an application typically draws two of them. All four used to be opened in the
- * constructor, so a game supplying its own regular and bold still had `RobotoMono.ttf` and `remixicon.ttf` — 684 KB
- * of TrueType — read and parsed during its startup for faces it never draws.
+ * constructor, so a game supplying its own regular and bold still had `RobotoMono.ttf` and `remixicon.ttf` (684 KB
+ * of TrueType) read and parsed during its startup for faces it never draws.
  *
  * Both properties here are invisible from outside: nothing observably changes when a face is opened, and the
  * regression is silent. Hence [MetaFontProvider.openFaceCount].

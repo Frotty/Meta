@@ -29,7 +29,7 @@ import kotlin.test.assertTrue
  * Every assertion here is one a game's own layout test depends on being true: that a text widget measures a non-zero
  * size, that two of them in a row do not overlap, that the skin's chrome is really there, and that a scale change
  * re-measures. If the harness quietly stopped producing real fonts, layout tests everywhere downstream would keep
- * passing against zero-width text — which is the failure mode worth spending a test on.
+ * passing against zero-width text, which is the failure mode worth spending a test on.
  */
 internal class MetaHeadlessUiTest {
 
@@ -159,7 +159,7 @@ internal class MetaHeadlessUiTest {
 	@Test
 	fun `widgets that resolve dependencies in their constructor can be built`() {
 		// Most Meta widgets fetch their font lazily; a few resolve eagerly, and a
-		// missing eager dependency is not a degraded widget — it is a
+		// missing eager dependency is not a degraded widget: it is a
 		// GdxRuntimeException before the tree can be measured. MetaSelectBox takes a
 		// UiControlHelper that way, so a screen containing one used to fail outright.
 		val box = de.fatox.meta.ui.components.MetaSelectBox<String>()
@@ -212,7 +212,7 @@ internal class MetaHeadlessUiTest {
 	fun `a stage can be built, so a screen can be tested rather than rebuilt`() {
 		// The capability that decides whether a consumer duplicates its layouts. Meta's
 		// screens own their stage, so without this every test would have to
-		// reconstruct the tree it wants to check — and then it is checking the
+		// reconstruct the tree it wants to check, and then it is checking the
 		// reconstruction. Drawing is still discarded; only measurement is real.
 		val stage = com.badlogic.gdx.scenes.scene2d.Stage()
 		val label = MetaLabel("Play", 18)
@@ -227,7 +227,7 @@ internal class MetaHeadlessUiTest {
 	@Test
 	fun `teardown puts the GL globals back`() {
 		// These are process-wide. A stub left installed silently changes every later
-		// test in the JVM — MetaFontProviderTest asserts that font generation fails
+		// test in the JVM: MetaFontProviderTest asserts that font generation fails
 		// with an NPE naming Gdx.gl, so it would pass or fail depending on which class
 		// the runner reached first. Order-dependent tests are worse than absent ones.
 		assertTrue(com.badlogic.gdx.Gdx.gl != null, "the harness should have installed a GL stub")
@@ -279,7 +279,7 @@ internal class MetaHeadlessUiTest {
 		// The walk is the whole point: a widget that never re-fetches keeps a face that
 		// disposeOrphanedFonts is about to release. Asserted through a FontRefreshable
 		// spy rather than through the provider's generation counter, because
-		// disposeOrphanedFonts bumps that counter on its own — an earlier version of
+		// disposeOrphanedFonts bumps that counter on its own: an earlier version of
 		// this test passed with the walk deleted, which is exactly the weakness the
 		// review flagged in the version before that.
 		val nested = CountingRefreshable()

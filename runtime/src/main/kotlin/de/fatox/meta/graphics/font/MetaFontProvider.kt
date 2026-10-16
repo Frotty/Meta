@@ -39,7 +39,7 @@ class MetaFontProvider : FontProvider {
 	 * delegates, so a worker resolving either of these while the GL thread resolves something else can build two
 	 * providers or publish a half-initialized one. Resolving at construction moves that onto whichever thread
 	 * builds the provider, and [de.fatox.meta.api.SplashScreen] makes sure that is the GL thread before it starts
-	 * its worker. This is also what the constructor did before faces became lazy — it opened all four here, which
+	 * its worker. This is also what the constructor did before faces became lazy: it opened all four here, which
 	 * read both of these.
 	 */
 	private val assetProvider: AssetProvider = inject()
@@ -58,12 +58,12 @@ class MetaFontProvider : FontProvider {
 	/**
 	 * Face sources, opened on first request rather than in the constructor.
 	 *
-	 * A slot present with a null source means "tried and failed" — the emergency font stands in and there is no
+	 * A slot present with a null source means "tried and failed": the emergency font stands in and there is no
 	 * point retrying every draw. A slot that is absent has not been tried.
 	 *
 	 * Lazy because opening a face reads and parses the whole file, and an application typically draws two of the
 	 * four. A game supplying its own regular and bold used to have Meta open `RobotoMono.ttf` and
-	 * `remixicon.ttf` — 684 KB of TrueType — during startup for faces it never draws.
+	 * `remixicon.ttf` (684 KB of TrueType) during startup for faces it never draws.
 	 */
 	private val generatorSlots = EnumMap<FontType, GeneratorSlot>(FontType::class.java)
 
@@ -81,7 +81,7 @@ class MetaFontProvider : FontProvider {
 			if (disposed) return null
 			generatorSlots[type]?.let { return it.source }
 		}
-		// Opened outside the lock. Parsing a face takes tens of milliseconds — Meta's icon face is 599 KB — and the
+		// Opened outside the lock. Parsing a face takes tens of milliseconds (Meta's icon face is 599 KB), and the
 		// GL thread asking for a different face must not wait behind it.
 		val opened = createGenerator(type)
 		return synchronized(generatorLock) {
@@ -112,15 +112,15 @@ class MetaFontProvider : FontProvider {
 	 * How many faces have been opened. Zero until something asks for one.
 	 *
 	 * Exists for the test that pins the laziness: which files the engine reads is otherwise invisible, and the
-	 * regression it guards against — going back to opening all four in the constructor — is silent.
+	 * regression it guards against (going back to opening all four in the constructor) is silent.
 	 */
 	internal val openFaceCount: Int get() = synchronized(generatorLock) { generatorSlots.size }
 
 	/**
 	 * Opens every configured face, off the GL thread.
 	 *
-	 * Reading and parsing a TrueType file is the expensive half of a face and needs no graphics device — Meta's own
-	 * icon face is 599 KB — so [de.fatox.meta.api.SplashScreen] calls this on its preparation worker and the GL
+	 * Reading and parsing a TrueType file is the expensive half of a face and needs no graphics device (Meta's own
+	 * icon face is 599 KB), so [de.fatox.meta.api.SplashScreen] calls this on its preparation worker and the GL
 	 * thread finds the files already parsed. Rasterizing glyphs and uploading the atlas stays on the GL thread,
 	 * because the upload has to.
 	 *

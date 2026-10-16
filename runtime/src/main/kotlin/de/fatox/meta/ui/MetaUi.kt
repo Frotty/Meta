@@ -119,7 +119,7 @@ object MetaColor {
 
 /**
  * Motion design tokens: durations (seconds), interpolations and scale factors for Meta's interaction juice.
- * [enabled] is the global reduced-motion switch — decorative animation helpers must no-op when it is false while
+ * [enabled] is the global reduced-motion switch: decorative animation helpers must no-op when it is false while
  * still landing widgets in their final state instantly.
  */
 object MetaMotion {

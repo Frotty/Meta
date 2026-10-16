@@ -23,8 +23,8 @@ dependencies {
 	testFixturesApi "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
 	// The natives have to travel with the fixture, not just sit in this project's
 	// own testRuntimeOnly. A consumer that resolved the fixture without them got
-	// as far as booting and then died on "Couldn't load shared library 'gdx64.dll'"
-	// — the fixture is only useful if it brings what HeadlessApplication needs.
+	// as far as booting and then died on "Couldn't load shared library 'gdx64.dll'".
+	// The fixture is only useful if it brings what HeadlessApplication needs.
 	testFixturesRuntimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
 	testFixturesRuntimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
 

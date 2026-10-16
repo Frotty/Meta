@@ -40,7 +40,7 @@ import de.fatox.meta.ui.MetaToastManager
  * [GdxTestEnvironment] gets scene2d far enough to lay out plain actors, which is enough to test the layout
  * containers themselves and not enough to test a screen: every widget that carries text needs a font, a font needs a
  * texture, and a texture needs a graphics device. So the only geometry a consumer could check was geometry with the
- * text taken out of it — stand-in actors standing where the labels go, which is exactly the part most likely to be
+ * text taken out of it: stand-in actors standing where the labels go, which is exactly the part most likely to be
  * the wrong size.
  *
  * This closes that. [HeadlessGL20] supplies a graphics device that discards every call, and this supplies the object
@@ -76,8 +76,8 @@ import de.fatox.meta.ui.MetaToastManager
  *
  * ### It owns the injection graph
  *
- * [install] clears the global graph and [dispose] leaves it empty. That is deliberate — a font provider surviving
- * from a previous test brings that test's cached faces at that test's scale with it — but it means a suite cannot
+ * [install] clears the global graph and [dispose] leaves it empty. That is deliberate (a font provider surviving
+ * from a previous test brings that test's cached faces at that test's scale with it), but it means a suite cannot
  * interleave this with a bootstrap of its own that registers singletons **once**. A game whose setup is guarded
  * (`if (installed) return`) will not re-register after a teardown has emptied the graph, and the next test fails with
  * `Unknown class`. The same applies to `MetaModule`, whose registrations run from an object initialiser and therefore
@@ -121,14 +121,14 @@ object MetaHeadlessUi {
 	 * @param fontProvider the face source, for a test that wants to observe or stand in for it. Cannot be replaced
 	 *   after the fact: initializing the skin resolves the provider, and `MetaInject` refuses to re-register a
 	 *   singleton it has already built. A decorator over [MetaFontProvider] is the way to record which faces a
-	 *   widget tree asks for — which is what a game needs to know if it pre-rasterizes them at startup.
+	 *   widget tree asks for, which is what a game needs to know if it pre-rasterizes them at startup.
 	 */
 	@JvmOverloads
 	fun install(
 		installSkinDefaults: Boolean = true,
 		fontProvider: () -> FontProvider = { MetaFontProvider() },
 		/**
-		 * The input processor to register. Defaults to [LayoutOnlyInput], which dispatches nothing — pass
+		 * The input processor to register. Defaults to [LayoutOnlyInput], which dispatches nothing; pass
 		 * `{ DispatchingInput() }` to cover behaviour that only happens when input actually arrives.
 		 */
 		input: () -> MetaInputProcessor = { LayoutOnlyInput() },
@@ -144,8 +144,8 @@ object MetaHeadlessUi {
 		 * A toast manager for [LayoutOnlyRenderer], or `null` to keep its documented throw.
 		 *
 		 * Null by default deliberately: the throw is what stops a test asserting a toast that was never rendered, and
-		 * a silent no-op would be worse than no seam at all. A test that *means* to exercise a notification passes one
-		 * — `{ MetaToastManager(toastStage()) }` is enough.
+		 * a silent no-op would be worse than no seam at all. A test that *means* to exercise a notification passes one:
+		 * `{ MetaToastManager(toastStage()) }` is enough.
 		 */
 		toastManager: (() -> MetaToastManager)? = null,
 	) {
@@ -156,7 +156,7 @@ object MetaHeadlessUi {
 		// two together for the lifetime of the install, and restore whatever was there on dispose.
 		previousGdxInput = Gdx.input
 		// Set before anything that can throw, not after everything succeeded. The
-		// first global is already acquired, so from here on teardown has work to do —
+		// first global is already acquired, so from here on teardown has work to do,
 		// and if `dispose()` bailed out because a later step failed, the stub and the
 		// graph would outlive the test that installed them and change every test
 		// after it in the JVM. A failed setup must poison one test, not the run.
@@ -167,15 +167,15 @@ object MetaHeadlessUi {
 			// test's font provider, and therefore its cached faces at its scale.
 			//
 			// What follows is everything a Meta widget resolves *at construction time*.
-			// Most reach for their font lazily, but a handful resolve eagerly —
-			// `MetaSelectBox` takes a UiControlHelper that way — and a missing eager
+			// Most reach for their font lazily, but a handful resolve eagerly
+			// (`MetaSelectBox` takes a UiControlHelper that way), and a missing eager
 			// dependency is not a degraded widget, it is a GdxRuntimeException before
 			// the tree can be measured at all.
 			//
 			// The input processor is a stub, not the real MetaInput: that constructor
 			// claims `Gdx.input.inputProcessor` and adds a listener to the static
 			// Controllers registry, which is process-wide state a layout harness has no
-			// business taking. It cannot simply be left out either — UiControlHelper's
+			// business taking. It cannot simply be left out either: UiControlHelper's
 			// `init` registers a global processor, so a select box cannot be built
 			// without something answering for the interface. See LayoutOnlyInput.
 			MetaInject.global(clear = true) {
@@ -223,7 +223,7 @@ object MetaHeadlessUi {
 	 * Applies a [uiScale] change to a tree that already exists, the way the real renderer does.
 	 *
 	 * Writing [uiScale] alone regenerates nothing: [MetaFontProvider] re-rasterizes lazily, so widgets built before
-	 * the write keep the faces they already hold while widgets built after it get new ones — a split that would make a
+	 * the write keep the faces they already hold while widgets built after it get new ones: a split that would make a
 	 * scale test quietly meaningless. At runtime `MetaUIRenderer` subscribes to the scale and walks its stage; there
 	 * is no renderer here to do that, so a test names the root itself.
 	 *
@@ -240,7 +240,7 @@ object MetaHeadlessUi {
 	 *
 	 * The providers are disposed *before* the graph is cleared, because clearing only drops references: a
 	 * [MetaFontProvider] owns FreeType generators and cached faces and a [MetaAssetProvider] owns an `AssetManager`,
-	 * and none of that is garbage — it is native memory that an install/dispose cycle per test would otherwise leak
+	 * and none of that is garbage: it is native memory that an install/dispose cycle per test would otherwise leak
 	 * once per test. The GL stub goes last, since disposing fonts still calls through it.
 	 */
 	fun dispose() {
@@ -265,7 +265,7 @@ object MetaHeadlessUi {
 /**
  * A [UIRenderer] that owns a UI scale and refuses everything else.
  *
- * Meta's widgets reach the renderer for exactly one thing during layout — the scale their font is rasterized at — so
+ * Meta's widgets reach the renderer for exactly one thing during layout (the scale their font is rasterized at), so
  * that is all this provides. A test that wants a stage can build one; what it does not get is Meta's own UI layer,
  * whose toast manager and focus renderer exist to draw. Refusing loudly is deliberate: a test that has wandered into
  * drawing should say so rather than quietly get a no-op and then assert against nothing.

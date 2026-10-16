@@ -13,7 +13,7 @@ import de.fatox.meta.input.ScrollListener
  * containing a select box cannot be built at all without something answering for this interface.
  *
  * Deliberately *not* the real [de.fatox.meta.input.MetaInput]. That constructor claims `Gdx.input.inputProcessor` and
- * adds a listener to the static `Controllers` registry — process-wide state a layout harness has no business taking,
+ * adds a listener to the static `Controllers` registry: process-wide state a layout harness has no business taking,
  * and the same class of leak that made teardown order matter in the first place. Registrations are kept so
  * add/remove pairs behave, and nothing is ever dispatched, because there is no input in a unit test to dispatch.
  *
@@ -32,7 +32,7 @@ internal class LayoutOnlyInput : MetaInputProcessor {
 	 * A single slot would have been simpler and wrong in a way that matters here: nested grabs are the reason the real
 	 * one is a stack, so `push(A); push(B); pop(B)` must leave A owning input, and popping A while B is active must
 	 * remove A from underneath it. A stub that clobbers instead of stacking would let a test asserting on
-	 * leaked-owner lifecycle pass when the production path would have failed — the harness lying about the thing the
+	 * leaked-owner lifecycle pass when the production path would have failed: the harness lying about the thing the
 	 * test is checking.
 	 *
 	 * Identity, not equality, for the same reason `MetaInput` uses `removeValue(processor, true)`: two distinct

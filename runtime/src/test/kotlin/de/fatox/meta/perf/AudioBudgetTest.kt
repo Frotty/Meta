@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Test
  *
  * ### Every measurement here proves the path actually ran
  *
- * This matters more than it sounds. The first attempt at these numbers reported a perfect **0 bytes per event** —
+ * This matters more than it sounds. The first attempt at these numbers reported a perfect **0 bytes per event**,
  * and it was wrong. Once `maxInstances` filled, `playSound` was returning null before doing any work, so the probe
  * was measuring an early return. A performance gate that silently starts measuring a rejection path does not fail;
  * it *passes*, permanently, while guarding nothing.

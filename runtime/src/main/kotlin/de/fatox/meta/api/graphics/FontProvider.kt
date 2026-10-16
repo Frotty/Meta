@@ -22,7 +22,7 @@ interface FontProvider {
 	 * Opens the configured faces without touching the GL thread, so the files are parsed before anything draws.
 	 *
 	 * Called by [de.fatox.meta.api.SplashScreen] on its preparation worker. Implementations must not create
-	 * textures here — reading and parsing the face is the part that can move off the GL thread; rasterizing and
+	 * textures here: reading and parsing the face is the part that can move off the GL thread; rasterizing and
 	 * uploading is not. Optional: the default does nothing, and a provider that ignores it simply opens faces on
 	 * first use as before.
 	 */

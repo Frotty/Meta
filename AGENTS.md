@@ -75,10 +75,10 @@ Meta is the scene2d UI layer; VisUI and libktx must not be introduced.
   persistence.
 - Test geometry with `MetaLayout.problems(root)` or `assertValid(root)`. `GdxTestEnvironment.ensure()` is enough for
   plain actors; `MetaHeadlessUi.install()` additionally stubs GL and registers the object graph, so **real** widget
-  trees — `MetaLabel`, flex rows, a `Stage`, whole screens — construct and measure with no graphics device. Prefer it:
+  trees (`MetaLabel`, flex rows, a `Stage`, whole screens) construct and measure with no graphics device. Prefer it:
   a layout measured with stand-ins where the labels go is not measuring the part most likely to be the wrong size, and
   a screen that owns its stage can be tested as itself rather than rebuilt inside the test. Measurements are real;
-  **pixels are not** — every draw call is discarded, so never assert on what was rendered. See `HeadlessGL20`.
+  **pixels are not**: every draw call is discarded, so never assert on what was rendered. See `HeadlessGL20`.
 - A consuming game gets both through
   `testImplementation testFixtures("com.github.Frotty.Meta:runtime:<version>")`. The fixture carries the headless
   backend and its natives, so nothing else is wired up downstream.
@@ -138,7 +138,7 @@ Allocation rate is the primary controllable JVM game-runtime cost.
 - Prefer `SplashScreen(prepareAssets, queueAssets, onLoaded)` for non-trivial startup. The first two callbacks run
   sequentially on a worker and may do CPU/file/queue work only. `onLoaded`, scene2d, GL resources, and reactive UI
   writes run on the GL thread.
-- GL-thread startup work of the application's own — its faces, atlases or a pre-built scene — belongs in
+- GL-thread startup work of the application's own (its faces, atlases or a pre-built scene) belongs in
   `SplashCallbacks.startupLoad`, which the splash advances in budgeted slices while the panel animates. Anything left
   in `onLoaded` blocks a frame with the panel already gone, so keep that to handing over the first screen.
 - A consuming application extends `Meta`. Using isolated pieces without it is not supported: `MetaAudioVideoData` and

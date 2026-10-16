@@ -154,7 +154,7 @@ class MetaUIRenderer : UIRenderer {
 		override fun peek(): Float = backingUiScale.peek()
 	}
 
-	// The stage's world size already is physical-pixels ÷ unitsPerPixel (= ÷ uiScale) — i.e. UI units.
+	// The stage's world size already is physical-pixels ÷ unitsPerPixel (= ÷ uiScale), i.e. UI units.
 	override val uiWidth: Float get() = stage.width
 	override val uiHeight: Float get() = stage.height
 

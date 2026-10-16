@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test
  * what a wall-clock benchmark cannot do on hosted CI.
  *
  * Budgets are set from measurement, never from guesswork: each one records what the tree actually does today and
- * leaves modest headroom. When an optimisation lands, tighten the budget in the same commit — a gate left slack
+ * leaves modest headroom. When an optimisation lands, tighten the budget in the same commit: a gate left slack
  * after the win it was written for stops guarding anything.
  *
  * Headroom also absorbs one genuine cross-platform variable: glyph atlas packing depends on the FreeType native
