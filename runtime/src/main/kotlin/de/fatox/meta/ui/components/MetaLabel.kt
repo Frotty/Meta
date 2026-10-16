@@ -31,7 +31,7 @@ import kotlin.math.roundToInt
  * A text label, with optional word wrapping.
  *
  *
- * The preferred size of the label is determined by the actual text bounds, unless [word wrap][.setWrap] is enabled.
+ * The preferred size of the label is determined by the actual text bounds, unless [word wrap][setWrap] is enabled.
  *
  * @author Nathan Sweet
  */
@@ -47,7 +47,7 @@ open class MetaLabel @JvmOverloads constructor(
 	private var font: BitmapFont
 	private var size = size.toFloat()
 
-	/** Allows subclasses to access the cache in [.draw].  */
+	/** Allows subclasses to access the cache in [draw].  */
 	private var bitmapFontCache: BitmapFontCache
 	var labelAlign: Int = Align.left
 		private set

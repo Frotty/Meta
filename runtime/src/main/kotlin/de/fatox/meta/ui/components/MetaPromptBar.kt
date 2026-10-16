@@ -16,12 +16,12 @@ import kotlin.math.min
 /**
  * A row of button prompts on a floating pill - the "[A] Select  [B] Back" strip along the bottom of a game screen.
  *
- * <p>The pill is rounded all round because it floats above the screen edge; the edge-docked [MetaBottomBar] has a
+ * The pill is rounded all round because it floats above the screen edge; the edge-docked [MetaBottomBar] has a
  * flat bottom that reads as clipped the moment it is lifted off the edge, which is what games did with it. Spacing
  * between prompts and the pill's padding are both taken from the font size, so a prompt bar scaled up for a TV is the
  * same bar, not a bigger font in the same box.
  *
- * <p>Never wider than [widthLimit] - by default a little less than the stage. When the prompts do not fit on one row
+ * Never wider than [widthLimit] - by default a little less than the stage. When the prompts do not fit on one row
  * they wrap onto more, each row centred, rather than running off the screen: a longer translation or one more action
  * is exactly how a single row stops fitting. Laid out by hand rather than through a wrapping flex box, because a pill
  * has to know its own height from its own width in one pass - it is the thing whose size its parent is asking for.

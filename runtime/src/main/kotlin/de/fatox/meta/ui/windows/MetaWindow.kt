@@ -532,7 +532,7 @@ abstract class MetaWindow(
 
 	/**
 	 * Windows are cached off-stage (see `WindowConfig.singletonCache`/`UIManager`), so the renderer's on-scale-change
-	 * stage walk misses hidden ones — and their old fonts get disposed. Detect that via the provider's font
+	 * stage walk misses hidden ones, and their old fonts get disposed. Detect that via the provider's font
 	 * generation and refresh this window's whole subtree when it is re-shown with stale fonts.
 	 */
 	private fun refreshFontsIfStale() {

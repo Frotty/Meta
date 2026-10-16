@@ -48,7 +48,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 	 */
 	fun beginFadeOut() {
 		if (handleId == -1L) {
-			// Playback has not started yet (deferred start pending) or already stopped —
+			// Playback has not started yet (deferred start pending) or already stopped:
 			// there is nothing to fade; flag done so a pending deferred start never plays.
 			setDone()
 			return
@@ -83,7 +83,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 		get() = !isDone && handleId != -1L
 
 	fun calcPan(listenerPos: Vector2): Float {
-		// Pan is based purely on the definition's audible range (world units) —
+		// Pan is based purely on the definition's audible range (world units),
 		// never on Gdx.graphics pixels, which would make audio falloff DPI/window-size dependent.
 		val xPan = soundPos.x - listenerPos.x
 		if (definition.audibleRange <= 0f) return 0f
@@ -171,7 +171,7 @@ class MetaSoundHandle(val definition: MetaSoundDefinition) {
 			// Playback failed (e.g. no free audio sources): there is nothing to track or stop later, so mark
 			// done immediately instead of leaking a permanently-inert handle (dynamicHandles would otherwise
 			// never remove it, and a looping definition would keep this maxInstances slot occupied forever).
-			log.debug("HandleId is -1 – sound failed to play or invalid handle!")
+			log.debug("HandleId is -1: sound failed to play or invalid handle!")
 			setDone()
 			return
 		}

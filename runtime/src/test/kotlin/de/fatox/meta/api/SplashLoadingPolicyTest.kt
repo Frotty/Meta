@@ -87,7 +87,7 @@ class SplashLoadingPolicyTest {
 	@Test
 	fun `presentations with the same settings are equal`() {
 		// SplashPresentation is a data class, and a palette with identity equality would make two identical
-		// configurations compare unequal — breaking every comparison, change check and set that holds one.
+		// configurations compare unequal, breaking every comparison, change check and set that holds one.
 		assertEquals(SplashPresentation(), SplashPresentation())
 		assertEquals(SplashPresentation().hashCode(), SplashPresentation().hashCode())
 
@@ -131,7 +131,7 @@ class SplashLoadingPolicyTest {
 	@Test
 	fun `a palette keeps its own copies of the colours`() {
 		// libGDX's Color is mutable and these are held for the life of the screen, so a caller reusing a Color
-		// instance — a palette token, say — must not be able to change what the splash draws afterwards.
+		// instance (a palette token, say) must not be able to change what the splash draws afterwards.
 		val source = Color(0.1f, 0.2f, 0.3f, 1f)
 		val palette = SplashPalette(background = source, accent = source)
 		source.set(0.9f, 0.9f, 0.9f, 1f)
@@ -142,7 +142,7 @@ class SplashLoadingPolicyTest {
 
 	@Test
 	fun `a panel title does not scale with the window`() {
-		// The panel's layout is built around a known size — mark box, gaps, baselines are all fixed — so scaling the
+		// The panel's layout is built around a known size (mark box, gaps, baselines are all fixed), so scaling the
 		// title would break it.
 		assertEquals(
 			SplashTitleSizing.forWindow(720, SplashStyle.PANEL),

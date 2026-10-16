@@ -13,7 +13,7 @@ enum class MetaGlyphSet(internal val fileName: String) {
 /**
  * One glyph from Kenney's input prompts: a face and the glyph's name in it, e.g. `xbox_button_a` or `keyboard_enter`.
  *
- * <p>The names are Kenney's own, listed in `ui/prompts/<face>.tsv`. A glyph with an empty [name] and a [text] is for
+ * The names are Kenney's own, listed in `ui/prompts/<face>.tsv`. A glyph with an empty [name] and a [text] is for
  * a key Kenney does not draw: the key's name is set in its place, bright like a glyph, rather than inventing a keycap
  * that is not Kenney's.
  */
@@ -32,7 +32,7 @@ enum class MetaFaceButton { SOUTH, EAST, WEST, NORTH }
 /**
  * Kenney glyphs for the buttons a game asks about.
  *
- * <p>Face buttons go by position. Kenney's packs here have no Nintendo face, so a Nintendo pad (and an unrecognised
+ * Face buttons go by position. Kenney's packs here have no Nintendo face, so a Nintendo pad (and an unrecognised
  * one) is drawn with Xbox glyphs by position: the bottom button is drawn as Xbox A, which is the button a thumb finds
  * there, whatever the pad prints on it.
  */

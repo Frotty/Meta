@@ -17,13 +17,13 @@ import java.util.EnumMap
 /**
  * Kenney's input-prompt faces, rasterized at exactly the size they are drawn at.
  *
- * <p>The art is Kenney's - hand-drawn keycaps and buttons, CC0, bundled under `ui/prompts/` - and this only decides
+ * The art is Kenney's - hand-drawn keycaps and buttons, CC0, bundled under `ui/prompts/` - and this only decides
  * how it reaches the screen. Every glyph in these faces occupies the same cell: a square half an em tall, sitting on
  * the baseline. So a face is rasterized at twice the cell's physical pixel height and each glyph's bitmap is drawn
  * 1:1 at its physical size, which is what keeps the drawn lines as crisp as they are in the vector art. The old way
  * - one large face, scaled down by the batch - is what made them soft.
  *
- * <p>Faces are opened on first use and rasterize incrementally into their own atlas pages, so a game that only
+ * Faces are opened on first use and rasterize incrementally into their own atlas pages, so a game that only
  * shows keyboard prompts never opens the PlayStation face. Everything here runs on the GL thread.
  */
 internal object MetaInputGlyphFaces {

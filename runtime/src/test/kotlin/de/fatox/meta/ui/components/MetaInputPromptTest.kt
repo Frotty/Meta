@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test
 /**
  * Button prompts: Kenney's glyphs, found by name and sized from the label.
  *
- * <p>Pixels are not observable headless, so what is held here is what a prompt is built from - that every name the
+ * Pixels are not observable headless, so what is held here is what a prompt is built from - that every name the
  * presets ask for exists in Kenney's faces (a misspelt one draws nothing, silently), that keys map to Kenney's key
  * art, and the geometry a prompt bar is laid out from.
  */

@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
  *
  * Both halves of that sentence are the point. The phase machine was only ever exercised by running the editor,
  * and it could only run there: `show()` dereferenced `Meta.instance`, so the screen threw for any application that
- * adopted Meta's UI layer without its `Game` class — and threw in a test, which is why there was no test. It now
+ * adopted Meta's UI layer without its `Game` class, and threw in a test, which is why there was no test. It now
  * reads [Meta.instanceOrNull], and every assertion below is made with that field never assigned.
  *
  * Frames are driven by hand rather than by a clock. A [SplashCallbacks.prepareAssets] worker would make the
@@ -97,7 +97,7 @@ internal class SplashScreenTest {
 	@Test
 	fun `startup work that never finishes holds the panel instead of handing over`() {
 		// The property that makes the phase worth having. If an unfinished load fell through
-		// to onLoaded, the caller would be handed a screen whose resources do not exist yet —
+		// to onLoaded, the caller would be handed a screen whose resources do not exist yet,
 		// which is exactly the freeze-then-crash the phase replaces, only quieter.
 		var slices = 0
 		var loaded = false
@@ -132,7 +132,7 @@ internal class SplashScreenTest {
 	fun `a step that pumps the window does not advance the machine underneath itself`() {
 		// Applying a display mode re-enters the render loop: GLFW pumps the platform window, LWJGL3 runs a frame,
 		// and this screen's render() lands on the stack inside the step that asked for the change. Unguarded, the
-		// next slice began while the current one was still running — observed in a real game as step two finishing
+		// next slice began while the current one was still running, observed in a real game as step two finishing
 		// before step one, and step one never reporting at all.
 		val order = ArrayList<String>()
 		val pending = ArrayDeque(listOf("first", "second", "third"))
@@ -189,7 +189,7 @@ internal class SplashScreenTest {
 		MetaHeadlessUi.dispose()
 		// Without the skin's defaults, so nothing has resolved the font provider by the time the splash runs. With
 		// them, generating the skin resolves it during install() and this test cannot tell which thread the splash
-		// would have built it on — it passed either way, which is the whole reason for spelling this out.
+		// would have built it on; it passed either way, which is the whole reason for spelling this out.
 		MetaHeadlessUi.install(
 			installSkinDefaults = false,
 			fontProvider = {
@@ -242,7 +242,7 @@ internal class SplashScreenTest {
 		)
 		// The provider is *resolved* on this thread even though its faces are opened off it. MetaInject's maps are
 		// unsynchronized, so a worker that resolves the provider itself can race the GL thread resolving anything
-		// else — two providers, or one published half-built.
+		// else: two providers, or one published half-built.
 		assertEquals(
 			Thread.currentThread().name,
 			constructedOn[0],
@@ -254,7 +254,7 @@ internal class SplashScreenTest {
 	fun `screen changes are unthrottled when nothing owns the screens`() {
 		// The throttle exists to stop Meta swapping screens twice in one frame. With no
 		// application there is nothing to throttle, and the splash waits on this to leave
-		// its first phase — so a false here is a startup that never begins.
+		// its first phase, so a false here is a startup that never begins.
 		assertTrue(Meta.canChangeScreen())
 		assertEquals(null, Meta.instanceOrNull)
 	}

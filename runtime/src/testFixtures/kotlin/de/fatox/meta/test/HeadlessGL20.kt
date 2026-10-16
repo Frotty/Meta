@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * Object creation hands out real, distinct handles, and shader compile/link status reports success. That is what lets
  * `SpriteBatch` and therefore `Stage` be constructed, which in turn is what lets a *screen* be tested rather than a
  * reconstruction of one: Meta's screens own their stage, so a harness that cannot make one forces every consumer to
- * rebuild each layout inside its test — the duplication this fixture exists to avoid.
+ * rebuild each layout inside its test: the duplication this fixture exists to avoid.
  *
  * The trade is explicit: **measurements are real, pixels are not.** Every draw call is discarded, so a test may lay
  * out, measure and validate a tree, and must not assert anything about what was rendered.
@@ -60,7 +60,7 @@ object HeadlessGL20 {
 
 	/**
 	 * Writes `GL_TRUE` into the out-parameter of a status query. libGDX reads compile and link status through an
-	 * `IntBuffer` or an `int[]`, so returning a value is not enough — the answer goes in the argument.
+	 * `IntBuffer` or an `int[]`, so returning a value is not enough: the answer goes in the argument.
 	 */
 	private fun reportSuccess(args: Array<Any?>?) {
 		val out = args?.lastOrNull() ?: return
@@ -90,7 +90,7 @@ object HeadlessGL20 {
 	 *
 	 * Not optional. These are process-wide, so a stub left installed silently changes every later test in the JVM: a
 	 * test that boots only [GdxTestEnvironment] would no longer be running without a graphics device, and
-	 * `MetaFontProviderTest` — which asserts that font generation fails with an NPE naming `Gdx.gl` — would pass or
+	 * `MetaFontProviderTest` (which asserts that font generation fails with an NPE naming `Gdx.gl`) would pass or
 	 * fail depending on which class the runner happened to reach first.
 	 */
 	fun uninstall() {

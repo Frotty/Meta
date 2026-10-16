@@ -27,15 +27,15 @@ import kotlin.reflect.KClass
  * A [UIManager] that records what it was asked and manages nothing.
  *
  * It exists so a `MetaDialog` subclass can be tested at all. `MetaDialog` and `MetaWindow` reach the manager on paths
- * a test cannot avoid — `close()` calls `onDialogRemoved`, detaching from the stage calls it again, setting a bottom
- * overlay calls `onDialogBottomOverlayChanged` — so without something answering for this interface a dialog could be
+ * a test cannot avoid (`close()` calls `onDialogRemoved`, detaching from the stage calls it again, setting a bottom
+ * overlay calls `onDialogBottomOverlayChanged`), so without something answering for this interface a dialog could be
  * constructed and never shown or closed. `MetaKeyRebindDialog` shipped with no coverage for exactly that reason.
  *
  * Only the members a dialog or window actually touches do anything: [onDialogRemoved],
  * [onDialogBottomOverlayChanged], [closeWindow], [previewWindowDock] and all three `updateWindow` overloads. Those
  * record. Everything
- * else is a no-op or an empty value, and the three that cannot honestly return one — [showWindow], [getWindow],
- * [showDialog] — throw with a message saying so, because a fixture inventing a window would be lying about the thing
+ * else is a no-op or an empty value, and the three that cannot honestly return one ([showWindow], [getWindow],
+ * [showDialog]) throw with a message saying so, because a fixture inventing a window would be lying about the thing
  * a test is checking.
  *
  * ```
@@ -45,7 +45,7 @@ import kotlin.reflect.KClass
  * Toasts land in [toasts] rather than being dropped, so a test can assert a notification was raised without standing
  * up a `MetaToastManager` and a stage for it.
  *
- * `open`, because a test wanting one member to behave differently — a `dispose` that records, say — should subclass
+ * `open`, because a test wanting one member to behave differently (a `dispose` that records, say) should subclass
  * rather than reimplement forty-three of them.
  */
 open class RecordingUiManager : UIManager {
@@ -64,7 +64,7 @@ open class RecordingUiManager : UIManager {
 	 *
 	 * All three overloads are overridden, which is not redundant: `MetaWindow.draw` reports a move or resize in
 	 * progress as `updateWindow(window, interaction, finished = false)`, and the interface default for that drops it
-	 * unless `finished` — so overriding only the one-argument form recorded nothing for the whole of a gesture while
+	 * unless `finished`, so overriding only the one-argument form recorded nothing for the whole of a gesture while
 	 * the manager was in fact being notified throughout.
 	 */
 	val windowUpdates = ArrayList<WindowUpdate>()
@@ -133,7 +133,7 @@ open class RecordingUiManager : UIManager {
 		unsupported("getWindow(${windowClass.simpleName})")
 
 	override fun <T : MetaDialog> showDialog(dialogClass: KClass<out T>, showBackdrop: Boolean): T =
-		unsupported("showDialog(${dialogClass.simpleName}) — construct the dialog and add it to a Stage instead")
+		unsupported("showDialog(${dialogClass.simpleName}): construct the dialog and add it to a Stage instead")
 
 	private fun unsupported(what: String): Nothing = throw UnsupportedOperationException(
 		"RecordingUiManager records; it does not manage windows. $what has no honest answer here, and returning an " +
@@ -181,7 +181,7 @@ open class RecordingUiManager : UIManager {
  * A [Stage] for a real [de.fatox.meta.ui.MetaToastManager], owned by [MetaHeadlessUi] and disposed with it.
  *
  * A `Stage` creates a `SpriteBatch`, and the documented `MetaToastManager(toastStage())` one-liner gives the caller
- * nowhere to keep the reference — so an install/dispose cycle per test would retain a batch each time. Handing it to
+ * nowhere to keep the reference, so an install/dispose cycle per test would retain a batch each time. Handing it to
  * the harness keeps the one-liner and puts the lifetime where the rest of the fixture's already is.
  */
 fun toastStage(): Stage = Stage().also { MetaHeadlessUi.own(it) }

@@ -22,8 +22,6 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 	/** The button that initially pressed this button or -1 if the button is not pressed.  */
 	var pressedButton: Int = -1
 		private set
-	/** @see .setButton
-	 */
 	/** Sets the button to listen for, all other buttons are ignored. Default is [Buttons.LEFT]. Use -1 for any button.  */
 	var button: Int = 0
 
@@ -144,7 +142,7 @@ class MetaListener(private val cb: () -> Unit) : InputListener() {
 	}
 
 	companion object {
-		/** Time in seconds [.isVisualPressed] reports true after a press resulting in a click is released.  */
+		/** Time in seconds [isVisualPressed] reports true after a press resulting in a click is released.  */
 		var visualPressedDuration: Float = 0.1f
 	}
 }

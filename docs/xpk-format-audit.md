@@ -35,7 +35,7 @@ solely by what the reader happens to accept.
 
 ### Critical
 
-**C1 — Entry reads are O(N²).**
+**C1: Entry reads are O(N²).**
 [XPKLoader.loadEntry](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:84) constructs a *new* `SevenZFile`
 per entry, seeks to 0, and calls `nextEntry` until the name matches. Every read therefore re-parses the archive header
 and, because 7z compresses solid by default, re-decompresses every preceding entry in the same block. Measured against
@@ -51,13 +51,13 @@ The penalty grows superlinearly with entry count: reading 512 entries out of a 1
 where one sequential pass takes 261 ms. This is the single largest load-time defect in the format, and it gets worse
 the more the archive is used as intended.
 
-**C2 — `SevenZFile` is never closed.**
+**C2: `SevenZFile` is never closed.**
 Neither [`getList`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:34) nor
 [`loadEntry`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:86) closes the reader. Each instance holds
 LZMA2 decoder state and a dictionary buffer (tens of MB at high presets) until GC collects it. Combined with C1 that
 is one abandoned decoder per asset read.
 
-**C3 — `XPKFileHandle.array` is published unsafely across threads.**
+**C3: `XPKFileHandle.array` is published unsafely across threads.**
 [XPKFileHandle.kt:18](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:18) uses
 `LazyThreadSafetyMode.NONE`, so the backing field is neither `volatile` nor guarded. It is read from at least two
 threads:
@@ -73,7 +73,7 @@ threads:
 The visible failures are a stale/null read on the second thread and a duplicated (expensive) decode. The
 `synchronized(file)` inside `loadEntry` protects the channel, not the memoised reference.
 
-**C4 — `parent()` and `child()` fabricate handles that alias the wrong entry's bytes.**
+**C4: `parent()` and `child()` fabricate handles that alias the wrong entry's bytes.**
 [`parent()`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:27) and the
 [`child()` miss path](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:62) construct a new handle
 carrying **this** entry's `entryName` and `entrySize`. So a lookup that should fail instead returns a handle where
@@ -83,78 +83,78 @@ with `child(pageName)`. A page-name mismatch feeds atlas text to `Pixmap` instea
 
 ### Medium
 
-**M1 — The whole compressed archive is pinned in heap, and startup is proportional to archive size.**
+**M1: The whole compressed archive is pinned in heap, and startup is proportional to archive size.**
 [`readAndVerify`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:57) reads and hashes the entire file
 before a single entry name is available, requires it to fit in an `int` (hard 2 GB cap), and hands the array to
 `XPKByteChannel`, which holds it for as long as any handle survives. A 500 MB pack costs a full read plus a full hash
 before the first asset byte, even if three files are wanted.
 
-**M2 — Decompressed entries are cached forever with no eviction.** Same line as C3. After loading, both the
+**M2: Decompressed entries are cached forever with no eviction.** Same line as C3. After loading, both the
 compressed archive and every decompressed asset are live. Sounds are resident twice: raw Ogg bytes memoised on the
-handle, decoded PCM in OpenAL. *Retention is now bounded to one load phase — see §5, "Lifetime and handle contract".
+handle, decoded PCM in OpenAL. *Retention is now bounded to one load phase: see §5, "Lifetime and handle contract".
 Per-entry lifetime remains a v2 item.*
 
-**M3 — `Thread.yield()` is not asynchrony.** Four calls in `XPKLoader` (per 64 KB read and per 16 entries), one in
+**M3: `Thread.yield()` is not asynchrony.** Four calls in `XPKLoader` (per 64 KB read and per 16 entries), one in
 `MetaAssetProvider.loadRawAssetsFromFolder` (per 64 files, on a worker thread with no deadline to meet) and one in
 `MetaAssetProvider.update` (on the GL thread, where it can only delay the frame it is in). None bounded any latency
 or guaranteed anything about scheduling; the work stayed fully synchronous on whichever thread called in. The frame
 budget is enforced by returning from `update`, not by yielding inside it. All six are removed.
 
-**M4 — The XXH64 trailer is a corruption check with zero tamper resistance.** It is unkeyed, non-cryptographic, and
+**M4: The XXH64 trailer is a corruption check with zero tamper resistance.** It is unkeyed, non-cryptographic, and
 stored inside the file it protects, so anyone can recompute it. The failure message even prints the expected value
 ([HashUtils.kt:52](runtime/src/main/kotlin/de/fatox/meta/api/crypto/HashUtils.kt:52)). That is fine as an integrity
-check and should not be mistaken for protection — see §3.
+check and should not be mistaken for protection: see §3.
 
-**M5 — The obfuscation is six bytes deep.** The 20-byte 7z start header at offsets 12..31 (next-header offset, size
+**M5: The obfuscation is six bytes deep.** The 20-byte 7z start header at offsets 12..31 (next-header offset, size
 and CRC32) survives untouched, as does the entire end-of-archive header. Writing `37 7A BC AF 27 1C` over the first
 six bytes and dropping the last eight opens the file in 7-Zip. A carver that keys on the start-header structure rather
 than the magic finds it as-is.
 
-**M6 — There is no index.** Lookup is a case-sensitive linear string comparison
+**M6: There is no index.** Lookup is a case-sensitive linear string comparison
 ([XPKLoader.kt:91](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:91)) against an enumeration that itself
 requires decoder state, while every other asset path in the system is case-folded
 ([AssetPath.kt:9](runtime/src/main/kotlin/de/fatox/meta/assets/AssetPath.kt:9)).
 
-**M7 — There is no streaming read.** [`read()`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:37)
+**M7: There is no streaming read.** [`read()`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:37)
 materialises the whole entry and then wraps it in a stream, and `readBytes()!!` throws NPE on a miss rather than
 reporting a missing file.
 
-**M8 — The format is unversioned.** No own magic, no version field, no entry count, no per-entry checksum. XPK v1 and
+**M8: The format is unversioned.** No own magic, no version field, no entry count, no per-entry checksum. XPK v1 and
 a future v2 are indistinguishable except by file extension, and integrity can only be checked all-or-nothing.
 
-**M9 — Path separators round-trip pointlessly.** 7z stores `/`;
+**M9: Path separators round-trip pointlessly.** 7z stores `/`;
 [XPKLoader.kt:44](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:44) converts to `\`; `assetPathKey`
 converts back; and
 [MetaTextureAtlasLoader.kt:66](runtime/src/main/kotlin/de/fatox/meta/assets/MetaTextureAtlasLoader.kt:66) carries a
 `replace('\\', '/')` to undo it for AssetManager keys.
 
-**M10 — No packer exists in Meta.** See §1. Nothing enforces which 7z coders, solid-block layout, or entry ordering
+**M10: No packer exists in Meta.** See §1. Nothing enforces which 7z coders, solid-block layout, or entry ordering
 the reader will actually meet.
 
 ### Low
 
-- **L1** — `XPKByteChannel` carries a live `write`/`truncate`/`resize` path
+- **L1**: `XPKByteChannel` carries a live `write`/`truncate`/`resize` path
   ([:64](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:64),
   [:100](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:100),
-  [:135](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:135)) on a read-only archive — dead mutable
+  [:135](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:135)) on a read-only archive: dead mutable
   code inherited from Commons Compress' `SeekableInMemoryByteChannel`, in a class documented `@NotThreadSafe`
   ([:18](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:18)) that is shared by every handle.
-- **L2** — The default constructor yields `size == -8`
+- **L2**: The default constructor yields `size == -8`
   ([:173](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:173)).
-- **L3** — `SeekableByteChannel.hash()` allocates a full-size heap buffer, truncates `size()` to `Int`, and honours
+- **L3**: `SeekableByteChannel.hash()` allocates a full-size heap buffer, truncates `size()` to `Int`, and honours
   only one `read` call ([HashUtils.kt:26](runtime/src/main/kotlin/de/fatox/meta/api/crypto/HashUtils.kt:26)).
-- **L4** — `XXH64(ByteBuffer, …)` mutates the caller's position, limit and byte order, restoring only the limit
+- **L4**: `XXH64(ByteBuffer, …)` mutates the caller's position, limit and byte order, restoring only the limit
   ([XxHash64.kt:13](runtime/src/main/kotlin/de/fatox/meta/api/crypto/XxHash64.kt:13)).
-- **L5** — `length` is a `var` never reassigned; `sibling`/`child` return nullable into libGDX's non-null contract;
+- **L5**: `length` is a `var` never reassigned; `sibling`/`child` return nullable into libGDX's non-null contract;
   `exists()` is unconditionally `true`; `type()`, `isDirectory` and `list()` are not overridden, so the fallback in
   [`read()`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:39) inspects a null `file`.
-- **L6** — `archive.isDirectory` is never consulted
+- **L6**: `archive.isDirectory` is never consulted
   ([XPKLoader.kt:38](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:38)), so directory entries would be
   indexed as zero-length files.
-- **L7** — `listEntryNames` re-reads and re-hashes the whole archive instead of reusing an open reader
+- **L7**: `listEntryNames` re-reads and re-hashes the whole archive instead of reusing an open reader
   ([XPKLoader.kt:14](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:14)).
 
-## 3. Focus 1 — obfuscation
+## 3. Focus 1: obfuscation
 
 ### Assessment
 
@@ -165,16 +165,16 @@ scanner and nothing else. Filenames, directory structure, entry sizes and the wh
 State the ceiling plainly, because it shapes every decision below: **a client that can decrypt its own assets ships
 the means to decrypt them.** No amount of client-side work makes extraction impossible. The achievable goal is to
 raise the cost from "hex-edit six bytes" to "reverse-engineer a custom container and recover a key from a running
-process" — which is a real and worthwhile difference, and is where every shipped game archive format sits.
+process", which is a real and worthwhile difference, and is where every shipped game archive format sits.
 
 ### Recommendation
 
 1. **Encrypt the whole payload with a seekable keystream.** AES-CTR (`AES/CTR/NoPadding`, hardware-accelerated) or
-   ChaCha20 — both verified present on the project's Temurin 25 toolchain. CTR/stream mode is the essential property:
+   ChaCha20: both verified present on the project's Temurin 25 toolchain. CTR/stream mode is the essential property:
    the keystream at any offset is computable from the block index, so random access survives encryption. Counter =
    `f(archiveSalt, blockIndex)`.
 2. **Leave no plaintext structure.** No magic, no readable version field. The file starts with a 16-byte random salt
-   (indistinguishable from noise) and everything after it — including the table of contents — is ciphertext. Whole-file
+   (indistinguishable from noise) and everything after it (including the table of contents) is ciphertext. Whole-file
    entropy is then uniform and every carver, `binwalk` signature and "media extract" tool finds nothing. Identify the
    format by successfully authenticating after decryption, not by a header probe.
 3. **Store only name *hashes* in the shipped TOC.** This is the highest-value, lowest-cost obfuscation available.
@@ -189,14 +189,14 @@ process" — which is a real and worthwhile difference, and is where every shipp
    archive the unmodified game accepts, even knowing the entire format and the symmetric key. See §6.
 
 Explicitly do not: invent a cipher, rely on the source being closed, or gate loading behind a single boolean check
-that can be patched out — decryption must be *structurally* dependent on the secret, so a wrong key yields garbage
+that can be patched out: decryption must be *structurally* dependent on the secret, so a wrong key yields garbage
 rather than a failed `if`.
 
-## 4. Focus 2 — compression
+## 4. Focus 2: compression
 
 ### Measured
 
-This repository's own `assets/` folder (38 files, 2 051 302 bytes — png, ttf, vert/frag/glsl, g3db/g3dj, mdx, xml,
+This repository's own `assets/` folder as it stood at the time (38 files, 2 051 302 bytes: png, ttf, vert/frag/glsl, g3db/g3dj, mdx, xml,
 properties), one solid stream per codec, best of 15 timed runs after warmup:
 
 | Codec | Packed | Ratio | Decompress | Throughput |
@@ -211,7 +211,7 @@ Two results matter:
 - **LZMA2 decompresses at ~37 MB/s here.** That is the codec 7z uses by default and it is the wrong end of the
   ratio/speed curve for a format whose stated goal is fast loading. Deflate gives up 18% on size to decode **7.4×
   faster**.
-- **Commons Compress' pure-Java LZ4 is not the fast option.** 43 MB/s at a *worse* ratio than Deflate — no better than
+- **Commons Compress' pure-Java LZ4 is not the fast option.** 43 MB/s at a *worse* ratio than Deflate: no better than
   LZMA2 on speed and much worse on size. It also drags in `commons-codec` (for `XXHash32`) and `commons-lang3`, neither
   of which `runtime` currently declares. Rule it out.
 
@@ -225,7 +225,7 @@ pay, against the 7z/LZMA2 archive read through the current access pattern:
 | 7z / LZMA2, solid, current `loadEntry` | 11 694 KB | 61 883.7 ms | up to a full solid-block decode |
 | Per-entry Deflate + store-raw | **11 666 KB** | **3.7 ms** | **0.006 ms** |
 
-The ratio parity here is an artefact of that corpus being two-thirds pseudo-random bytes — but that is exactly the
+The ratio parity here is an artefact of that corpus being two-thirds pseudo-random bytes, but that is exactly the
 shape of a PNG- and OGG-heavy game archive, and it is the argument for the store-raw rule: LZMA2 spent 62 seconds to
 end up 28 KB *larger* than not compressing the incompressible parts at all. On genuinely compressible content the real
 gap is the `assets/` table above (2.16× vs 2.64×), not this one.
@@ -234,7 +234,7 @@ gap is the `assets/` table above (2.16× vs 2.64×), not this one.
 
 1. **Compress per entry (or per small frame), never solid across the archive.** Solid blocks are the direct cause of
    C1 and are fundamentally incompatible with random lazy access. If ratio on many tiny files matters, group entries
-   into *bundles* that are loaded together (one screen, one level) and make the bundle the solid unit — a block decode
+   into *bundles* that are loaded together (one screen, one level) and make the bundle the solid unit: a block decode
    then serves a whole load phase instead of one file.
 2. **Default codec: Deflate (JDK zlib).** Zero new dependencies, 301 MB/s measured, ratio within 18% of LZMA2 on real
    asset data. For archives in the hundreds of MB at most, that trade is clearly right given the stated priority.
@@ -242,7 +242,7 @@ gap is the `assets/` table above (2.16× vs 2.64×), not this one.
    uncompressed, and fall back to raw for any entry where compressed size ≥ 97% of input. Costs nothing in size and
    removes the decode entirely for the bulk of a game's bytes.
 4. **Consider Zstandard only if archive size is measured to matter.** Zstd would plausibly recover most of the ratio
-   gap at Deflate-class-or-better speed, but it needs `zstd-jni` — a JNI native per platform, plus widening the
+   gap at Deflate-class-or-better speed, but it needs `zstd-jni`: a JNI native per platform, plus widening the
    `mavenCentral` content filter in [build.gradle:76](build.gradle:76), which currently allowlists specific groups.
    **These numbers were not measured here** (no zstd artifact was available offline); measure before adopting. A
    trained zstd dictionary over the small text-ish entries (shaders, `.atlas`, JSON, `.fnt`) is the part most likely
@@ -253,7 +253,7 @@ gap is the `assets/` table above (2.16× vs 2.64×), not this one.
    decompression outright. Pre-transcoding textures to KTX2/Basis or to raw premultiplied RGBA with prebuilt mips at
    pack time turns `loadAsync` into a copy and leaves `StagedTextureUploads` only the upload. Raw RGBA compresses well,
    so archive size stays reasonable. Worth sequencing before any codec change.
-6. **Block size: 64–256 KB, not MPQ's 4 KB.** Blocking costs ratio only while blocks are small, and the penalty is
+6. **Block size: 64 to 256 KB, not MPQ's 4 KB.** Blocking costs ratio only while blocks are small, and the penalty is
    gone well before the sizes that hurt latency. Measured on `assets/`, against a solid Deflate stream as the ceiling
    (2.159×):
 
@@ -266,20 +266,20 @@ gap is the `assets/` table above (2.16× vs 2.64×), not this one.
    | 1 MB | 950 219 | 2.159× | 100.0% | 5.34 ms | 3.079 ms |
    | 4 MB | 950 253 | 2.159× | 100.0% | 5.84 ms | 4.642 ms |
 
-   4 KB gives up 10% of the achievable ratio — MPQ's number was sized for 1990s disk and CD-ROM sectors and should not
+   4 KB gives up 10% of the achievable ratio: MPQ's number was sized for 1990s disk and CD-ROM sectors and should not
    be inherited. Past 256 KB the ratio is exhausted while per-block decode latency keeps growing linearly, which is
    the cost paid on every random access. **A shared dictionary does not rescue small blocks**: priming a 32 KB
    dictionary lifted 4 KB blocks only from 1.945× to 1.981× (91.8% of ceiling), so use bigger blocks rather than a
    dictionary for this purpose. Keep the block size a profile parameter; **§9 settles the default at 64 KB**, because
    the 1 MB page padding that keeps Steam deltas from cascading costs ~3% at 64 KB and ~6% at 128 KB.
 
-## 5. Focus 3 — indexing, lazy loading and async
+## 5. Focus 3: indexing, lazy loading and async
 
 ### Recommendation
 
 **Index.** Put an explicit table of contents in the container: `nameHash (u64) → blockIndex, offsetInBlock, rawSize,
 storedSize, codec, checksum`, sorted by `nameHash`. On open, read and decrypt just the TOC (kilobytes), then look up
-with a binary search over a `long[]` — allocation-free, cache-friendly, ~20 ns, and it replaces both the linear scan
+with a binary search over a `long[]`: allocation-free, cache-friendly, ~20 ns, and it replaces both the linear scan
 (M6) and the decoder-state-dependent enumeration.
 
 **File access.** Prefer **positional `FileChannel.read(ByteBuffer, position)`** for the payload: it is thread-safe,
@@ -297,14 +297,14 @@ waiting on `DirectByteBuffer` cleanup.
 
 **Threading.** Two pools, deliberately separated:
 
-- **I/O** — virtual threads (`Executors.newVirtualThreadPerTaskExecutor()`, verified available). A blocking positional
+- **I/O**: virtual threads (`Executors.newVirtualThreadPerTaskExecutor()`, verified available). A blocking positional
   read parks the virtual thread without pinning a carrier, which is exactly what the `Thread.yield()` sprinkling
   (M3) was imitating badly. Delete every `Thread.yield()`.
-- **Decode** — a small *platform*-thread pool sized to cores. This distinction matters: decompression is CPU-bound,
+- **Decode**: a small *platform*-thread pool sized to cores. This distinction matters: decompression is CPU-bound,
   and a native (JNI) decode call pins its carrier thread, so running decode on virtual threads starves the I/O pool.
 
 **Delivery.** Results must land on the GL thread through the existing frame-budgeted pump, not by calling into
-reactive state from a worker — `AGENTS.md` makes reactive writes GL-thread-only, and
+reactive state from a worker: `AGENTS.md` makes reactive writes GL-thread-only, and
 [MetaAssetProvider.update](runtime/src/main/kotlin/de/fatox/meta/assets/MetaAssetProvider.kt:211) with
 `pendingFinalization`/`StagedTextureUploads` is already the right shape. Keep it; give the reader a
 `CompletableFuture<MemorySegment>`-style API and drain completions in `update`.
@@ -324,7 +324,7 @@ whose `exists()` is `false` instead of aliasing another entry (C4), override `ty
 `readString` and the `readBytes(byte[], int, int)` overloads, and make `read()` a genuinely lazy decoding stream (M7)
 so streamed audio does not have to be fully resident.
 
-## 6. Focus 4 — hardening when Meta itself is public
+## 6. Focus 4: hardening when Meta itself is public
 
 The question is whether a public Meta undermines the scheme. It does not have to, provided the split is drawn in the
 right place: **Meta ships the mechanism; the game ships the parameters.**
@@ -339,7 +339,7 @@ Introduce an `XpkProfile` that carries everything an attacker would need beyond 
 | Name-hash seed | Without it, recovered hashes cannot even be dictionary-attacked against guessed asset names |
 | Keystream nonce derivation | `nonce = f(archiveSalt, blockIndex)`; a game-supplied `f` breaks generic decryptors |
 | Block-placement permutation seed | Blocks are stored in a permuted order, so a recovered key alone does not let an attacker carve blocks sequentially without the TOC |
-| Codec id table | Which numeric id means which codec — tiny, and meaningfully annoying to guess |
+| Codec id table | Which numeric id means which codec: tiny, and meaningfully annoying to guess |
 | Footer layout | Field order, plus an obfuscation of the footer's own bytes derived from file length |
 | TOC signing public key | See below |
 
@@ -347,31 +347,31 @@ Then:
 
 1. **Meta registers no default profile.** `XpkReader` has no no-arg constructor,
    [MetaModule](runtime/src/main/kotlin/de/fatox/meta/MetaModule.kt) binds no `XpkProfile`, and
-   `loadPackedAssetsFromFolder` returns `false` when none is bound. This fits how the graph is already wired —
+   `loadPackedAssetsFromFolder` returns `false` when none is bound. This fits how the graph is already wired:
    `AssetProvider` itself is bound downstream, not in Meta
    ([MetaEditorModule.kt:25](editor/src/main/kotlin/de/fatox/meta/modules/MetaEditorModule.kt:25)), so the profile
    travels the same route. A game must supply its own. Someone who
-   clones Meta and points it at your `.xpk` has the algorithm and no constants — the OSS repo tells them the *shape*
+   clones Meta and points it at your `.xpk` has the algorithm and no constants: the OSS repo tells them the *shape*
    of the container and nothing about this game's instance of it. Keep an obviously-fake profile in `testFixtures` so
    Meta's own tests still exercise the reader.
-2. **Ship the packer the same way.** `XpkWriter(profile)` in Meta; the profile — and therefore the key — lives in the
+2. **Ship the packer the same way.** `XpkWriter(profile)` in Meta; the profile, and therefore the key, lives in the
    game repo, with the signing key in CI secrets only. This also closes M10.
 3. **Never store key material as a literal.** A Kotlin `const val` string lands in the constant pool and is
    `strings`-able. Derive it at class-init from several unrelated fragments so no contiguous 32 bytes of key exist in
    the jar.
 4. **Bind the key to the game binary.** Derive the root key as `HKDF(xxh3(bytes of the game's own primary jar) ‖
    profileConstant)`. Patching *anything* in the game jar then breaks asset decryption as a structural consequence
-   rather than as a check that can be NOP'd out — which is precisely the "less easily modified" property asked for.
+   rather than as a check that can be NOP'd out, which is precisely the "less easily modified" property asked for.
    Two caveats to plan for: it also breaks legitimate patching, so re-pack archives per build; and you need a
    development bypass (e.g. a profile variant selected by a system property) or local iteration becomes painful.
 5. **Sign the TOC with Ed25519.** This is the only cryptographically strong lever available here. With the private key
-   in CI, a third party cannot produce an archive that an unmodified game accepts — knowing the format and the
+   in CI, a third party cannot produce an archive that an unmodified game accepts: knowing the format and the
    symmetric key does not help them. They can still patch the game to skip verification, but that is a different and
    much higher cost class than editing an archive, and it is detectable by (4).
 
 ### Honest limits
 
-Everything in (1)–(4) is cost-raising, not security. The key is materialised in the process, so a debugger, a JVMTI
+Everything in (1) to (4) is cost-raising, not security. The key is materialised in the process, so a debugger, a JVMTI
 agent or a `javax.crypto` hook recovers it, and Kotlin bytecode decompiles cleanly. The realistic outcome is that
 casual extraction and drive-by asset swapping stop working entirely, and a determined reverse engineer spends hours
 instead of seconds. Only the Ed25519 signature (5) resists someone who fully understands the format. Budget effort
@@ -399,13 +399,13 @@ offset len-64: footer                         obfuscated per profile
 Two changes from the first sketch, both driven by §9:
 
 - **Entries carry a `contentKey`** (hash of the entry's bytes) as well as a `nameHash`. Identical payloads then
-  occupy one block — free dedup across level variants and reskins — and the block table becomes the only thing that
+  occupy one block (free dedup across level variants and reskins), and the block table becomes the only thing that
   moves when content is repacked.
 - **The keystream nonce comes from block content, not from a per-build salt.** An unchanged block therefore encrypts
   to identical ciphertext across builds, which is what keeps delta patches small. This leaks block-level plaintext
   equality, which for game assets is not a concern.
 
-Properties this buys, mapped to the goals: uniform entropy and no magic (§3.1–2); nameless entries (§3.3);
+Properties this buys, mapped to the goals: uniform entropy and no magic (§3.1-2); nameless entries (§3.3);
 independently decodable, randomly accessible blocks (§4.1, C1); a small contiguous index read at open (§5, M1, M6);
 per-block integrity (M4, M8); an explicit version and profile id (M8); a signature a game-side public key alone can
 verify (§6.5); and byte-stable output for unchanged content (§9).
@@ -414,7 +414,7 @@ verify (§6.5); and byte-stable output for unchanged content (§9).
 
 ### The cipher is free; a custom one is negative value
 
-"A known cipher is detectable" conflates the file with the client. **Ciphertext carries no tell** — AES-CTR output is
+"A known cipher is detectable" conflates the file with the client. **Ciphertext carries no tell**: AES-CTR output is
 indistinguishable from random, with no magic, header or statistical signature. What is detectable is the *client*:
 `Cipher.getInstance("AES/CTR/NoPadding")` is a string in the constant pool. So the axis is not standard-versus-novel
 cipher; it is **standard primitive with a custom protocol**.
@@ -428,12 +428,12 @@ Speed does not argue for a custom cipher either. 32 MiB, best of 10 after warmup
 | xoshiro256\*\* keystream XOR, hand-rolled | 6.3 ms | 5 331 MB/s | no security analysis |
 | ChaCha20, single `doFinal` | 9.8 ms | 3 412 MB/s | software, constant-time |
 | AES-256/CTR, single 32 MiB `doFinal` | 85.1 ms | 394 MB/s | misses the intrinsic |
-| Deflate decompress | — | 301 MB/s | the actual bottleneck |
-| LZMA2 decompress | — | 37 MB/s | current codec |
+| Deflate decompress | n/a | 301 MB/s | the actual bottleneck |
+| LZMA2 decompress | n/a | 37 MB/s | current codec |
 
 AES-CTR fed 64 KB blocks is **faster than the hand-rolled keystream** and ~20× faster than the decompressor behind
 it. A novel cipher would be slower, weaker and more work. Note the trap: one giant `doFinal` runs 15× slower than the
-same cipher fed 64 KB chunks — and block-granular is the call shape this design uses anyway. **Decision: AES-256/CTR,
+same cipher fed 64 KB chunks, and block-granular is the call shape this design uses anyway. **Decision: AES-256/CTR,
 one reused `Cipher`, driven per block.**
 
 ### Name hashes: keyed and fast, not slow
@@ -444,7 +444,7 @@ words with a handful of known extensions.
 
 | Option | Speed | Offline brute force | Verdict |
 | --- | --- | --- | --- |
-| xxh3 / MPQ-style, unkeyed | ~GB/s | Feasible — small, guessable namespace | No |
+| xxh3 / MPQ-style, unkeyed | ~GB/s | Feasible: small, guessable namespace | No |
 | Slow KDF (Argon2, scrypt) | ~ms per name | Infeasible | Unnecessary |
 | **SipHash-2-4 or truncated HMAC, secret-keyed** | ~GB/s | Infeasible without the key | **Yes** |
 
@@ -458,33 +458,33 @@ but is ~40 lines of a published specification, which is not the same thing as in
 
 | Mechanism | Source | Take it? |
 | --- | --- | --- |
-| Sectored per-file compression, independently decodable | MPQ | **Yes** — the direct fix for C1 |
-| 4 KB sector size | MPQ | **No** — costs 10% of ratio; sized for 1990s media. See §4.6 |
-| Names never stored, hash table only | MPQ | **Yes**, but keyed — their listfile history is the argument |
-| Per-file key derived from the filename | MPQ | **Yes** — you need the name to decrypt, and the name is not in the file |
-| Content addressing (files keyed by hash of content) | CASC | **Yes** — free dedup, and it makes §9 work |
-| Index separate from payload blobs | CASC | **Yes** — a patch rewrites indices, not the whole archive |
-| Fixed-size archive blobs + local indices | CASC | **Partly** — worth it once archives exceed ~1 GB |
+| Sectored per-file compression, independently decodable | MPQ | **Yes**: the direct fix for C1 |
+| 4 KB sector size | MPQ | **No**: costs 10% of ratio; sized for 1990s media. See §4.6 |
+| Names never stored, hash table only | MPQ | **Yes**, but keyed: their listfile history is the argument |
+| Per-file key derived from the filename | MPQ | **Yes**: you need the name to decrypt, and the name is not in the file |
+| Content addressing (files keyed by hash of content) | CASC | **Yes**: free dedup, and it makes §9 work |
+| Index separate from payload blobs | CASC | **Yes**: a patch rewrites indices, not the whole archive |
+| Fixed-size archive blobs + local indices | CASC | **Partly**: worth it once archives exceed ~1 GB |
 
 ### Ideas compared
 
 | Idea | Stops | Broken by | Build cost | Runtime cost | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| Current: 6 patched bytes | magic-byte scanners | hex editor, 30 s | — | none | **Insufficient** |
+| Current: 6 patched bytes | magic-byte scanners | hex editor, 30 s | n/a | none | **Insufficient** |
 | AES-CTR payload, no plaintext structure | every carver, all casual extraction | reading the jar | Low | ~free | **Do it** |
 | Keyed name hashes only | name recovery, triage of dumped blobs | key recovery from jar | Low | negative (faster) | **Do it** |
 | Custom protocol over AES (stable permutation, game nonce derivation) | a generic extractor built from this public repo | targeted RE of one game | Low | none | **Do it** |
-| Ed25519 signature over the TOC | third parties *authoring* valid archives | patching the client to skip the check | Low | µs, once | **Do it** — only strong lever |
+| Ed25519 signature over the TOC | third parties *authoring* valid archives | patching the client to skip the check | Low | µs, once | **Do it**: only strong lever |
 | Key derived from game-jar hash | archive reuse after any binary patch | debugger at the derivation site | Medium | one hash at boot | **Yes, with a dev bypass** |
-| Key derivation in native code via FFM | bytecode-level key extraction | native RE, or a `Cipher` hook | Medium | none | **Yes** — best value per unit of pain |
-| Novel cipher instead of AES | nothing extra | reading the jar | Medium–High | *slower* than AES | **No** |
+| Key derivation in native code via FFM | bytecode-level key extraction | native RE, or a `Cipher` hook | Medium | none | **Yes**: best value per unit of pain |
+| Novel cipher instead of AES | nothing extra | reading the jar | Medium-High | *slower* than AES | **No** |
 | Encrypted class loading from XPK | `unzip` + decompiler on game logic | a `ClassFileTransformer` dumping at `defineClass` | High | startup, and the AOT cache | **No** |
 | R8/ProGuard on the game jar | casual decompilation, name recovery; also shrinks the jar | determined RE with time | Low | none | **Yes** |
 
 ### Why not encrypted class loading
 
 A `ClassLoader` reading encrypted `.class` bytes out of the XPK is perhaps 100 lines, and the DI graph would not
-fight it — `MetaInject` is 101 lines of explicit registration with no classpath scanning or reflection. It is still
+fight it: `MetaInject` is 101 lines of explicit registration with no classpath scanning or reflection. It is still
 the wrong trade:
 
 - **The bootstrap is always plaintext.** The loader and its key derivation must be readable to run, so the problem
@@ -497,7 +497,7 @@ the wrong trade:
 
 **Better lever for the same goal:** put only the key-derivation function in a small native library reached through
 FFM. Tiny surface, far more annoying to reverse than bytecode, and no interference with class loading, the AOT cache,
-DI or debugging — and LWJGL natives already ship, with `--enable-native-access=ALL-UNNAMED` already set in
+DI or debugging, and LWJGL natives already ship, with `--enable-native-access=ALL-UNNAMED` already set in
 [build.gradle:10](build.gradle:10), so packaging is solved. Pair it with R8 on the game jar, which also serves the
 goal of a smaller jar by shrinking unused library code.
 
@@ -524,10 +524,10 @@ own pack files"*, *"avoid shuffling asset ordering with a pack file"*, and keep 
 pack file as much as possible"*.
 
 **So the answer to "is one big archive bad on Steam" is: archives are expected, giant archives are not.** Three
-separate reasons to cap pack size at 1–2 GB, only the first of which is about download size:
+separate reasons to cap pack size at 1 to 2 GB, only the first of which is about download size:
 
 1. A shift anywhere cascades into every following 1 MB chunk, so a small change can re-download most of the archive.
-2. Steam rebuilds the whole target file on the player's disk — a 25 GB pack needs 25 GB of free space to patch,
+2. Steam rebuilds the whole target file on the player's disk: a 25 GB pack needs 25 GB of free space to patch,
    whatever the download size.
 3. Chunk matching has more to work with when unrelated content is not interleaved.
 
@@ -539,15 +539,15 @@ separate reasons to cap pack size at 1–2 GB, only the first of which is about 
   occurs in rather than running to the end of the file.
 
 **What this does not buy is exact offset stability.** An earlier draft of this section claimed a changed block "never
-shifts anything outside its own page". That is only achievable with fixed-size slots — every block occupying a full
-64 KB regardless of how well it compressed — which for blocks compressing 2:1 wastes about half the archive. The
+shifts anything outside its own page". That is only achievable with fixed-size slots: every block occupying a full
+64 KB regardless of how well it compressed, which for blocks compressing 2:1 wastes about half the archive. The
 implemented guarantee is weaker and worth stating plainly: **unchanged blocks re-encrypt to identical bytes**, so a
 chunk-matching patcher can reuse them, and Valve's documentation says SteamPipe "searches to find any such chunks that
 match the previous build". Padding costs roughly 3% of archive size at 64 KB blocks, which is why the compression
 block is 64 KB rather than the 128 KB pure ratio would pick.
 
 `XpkV2FormatTest.changing one entry leaves the other blocks byte identical` measures exactly this, by chunking both
-builds on the 4 KB alignment and asserting most chunks survive — the same thing a delta algorithm does.
+builds on the 4 KB alignment and asserting most chunks survive: the same thing a delta algorithm does.
 
 **The real risks are all determinism, not geometry:**
 
@@ -556,20 +556,20 @@ builds on the 4 KB alignment and asserting most chunks survive — the same thin
 | Per-build random salt in the keystream | **Every byte changes; full re-download** | Derive the per-block nonce from block content (§7) |
 | Block placement permuted by build-time randomness | Whole file reshuffles | Key the permutation off content/name hashes, never a build seed |
 | Non-deterministic pack order (map iteration, timestamps, thread races) | Spurious whole-archive churn | Sort deterministically; zero all timestamps; single-threaded final assembly, or order-stable merge |
-| Solid compression across block boundaries | One changed byte invalidates the tail | Per-block compression — already required by C1 |
+| Solid compression across block boundaries | One changed byte invalidates the tail | Per-block compression: already required by C1 |
 | TOC at the front of the file | Adding one asset shifts every payload offset | Footer at the end (already in §7) |
 | Volatile and stable assets in one archive | A script tweak dirties the texture pack | **Split archives by change rate** |
 | Block sizes shifting page contents | Cascades into every later 1 MB chunk | Pad pages to 1 MB; never let a block straddle a page |
-| Pack files over ~2 GB | Full-file rebuild on the player's disk | Cap at 1–2 GB, split by level/feature |
+| Pack files over ~2 GB | Full-file rebuild on the player's disk | Cap at 1 to 2 GB, split by level/feature |
 
 The split rows are the cheapest large wins and need no format support: put balance data, scripts and localisation in
-one archive and textures, audio and models in another, and cap each at 1–2 GB. A gameplay patch then never touches the
-art archive at all — which is exactly what Valve's "group assets by level / realm / feature" advice is for.
+one archive and textures, audio and models in another, and cap each at 1 to 2 GB. A gameplay patch then never touches the
+art archive at all, which is exactly what Valve's "group assets by level / realm / feature" advice is for.
 
 **Make determinism a test.** Pack the same inputs twice in separate clean checkouts and assert the outputs are
 byte-identical. Without that gate, every other measure here is guesswork.
 
-Sources: [Steamworks — Uploading to Steam](https://partner.steamgames.com/doc/sdk/uploading),
+Sources: [Steamworks: Uploading to Steam](https://partner.steamgames.com/doc/sdk/uploading),
 [Aligning Unreal Pak Chunks with SteamPipe Chunks](https://unrealution.com/packaging/aligning-unreal-pak-chunks-with-steampipe-chunks-to-optimize-delta-updates/).
 
 ## 10. JVM 25 features to adopt
@@ -578,17 +578,17 @@ Adopted decisions. All of these were probed on the project toolchain (Temurin 25
 
 | Feature | Status | Use | Decision |
 | --- | --- | --- | --- |
-| `javax.crypto.KDF` — HKDF (JEP 510) | Final in 25 | Root-key derivation; replaces any hand-rolled HKDF | **Adopt** |
+| `javax.crypto.KDF`: HKDF (JEP 510) | Final in 25 | Root-key derivation; replaces any hand-rolled HKDF | **Adopt** |
 | FFM: `MemorySegment`, `Arena`, `Linker` | Final since 22 | `Arena`-scoped decode buffers (no JNI copy, deterministic free); the native key-derivation function of §8 | **Adopt** |
 | Virtual threads | Final since 21 | Archive I/O; replaces every `Thread.yield()` | **Adopt** |
 | `ScopedValue` (JEP 506) | Final in 25 | Carry the `XpkProfile` and decrypt context down an async load without threading it through every signature | **Adopt** |
 | Compact object headers (JEP 519) | Final in 25 | Thousands of small entry handles | Already enabled in `gradle.properties` |
-| AOT class loading (JEP 483 / 515) | 24 / 25 | Startup — and the reason to reject a custom classloader (§8) | **Preserve** |
+| AOT class loading (JEP 483 / 515) | 24 / 25 | Startup, and the reason to reject a custom classloader (§8) | **Preserve** |
 | `java.lang.classfile` (JEP 484) | Final since 24 | Build-time bytecode work without ASM, if obfuscation is done in-house | Optional |
 | `StructuredTaskScope` (JEP 505) | **Preview** in 25 | Load-group fan-out with proper cancellation | **Wait for final** |
 | ML-DSA signatures (JEP 497) | Final since 24 | Post-quantum alternative for TOC signing | Not needed; Ed25519 is sufficient |
-| Vector API (`jdk.incubator.vector`) | **Incubator** in 25 | A SIMD keystream | **Skip** — AES-NI already beats it, and it needs `--add-modules` |
-| `sun.misc.Unsafe` memory access | Being removed | — | Do not build on it; use FFM |
+| Vector API (`jdk.incubator.vector`) | **Incubator** in 25 | A SIMD keystream | **Skip**: AES-NI already beats it, and it needs `--add-modules` |
+| `sun.misc.Unsafe` memory access | Being removed | n/a | Do not build on it; use FFM |
 
 ## 11. What v2 implements, and what it does not
 
@@ -600,34 +600,34 @@ Closed by the design rather than by a fix:
 
 | Finding | How v2 removes it |
 | --- | --- |
-| M1 — whole archive in heap, 2 GB cap | Positional reads of one block at a time; the archive is never resident |
+| M1: whole archive in heap, 2 GB cap | Positional reads of one block at a time; the archive is never resident |
 | M2, and the four release-coverage findings on #42 | Blocks are independently decodable, so there is no shared cursor, no pass-through cache and no retention policy to get wrong |
-| M4 — unkeyed corruption check only | Per-block CRC32C, plus Ed25519 over both metadata tables — see the limit below |
-| M5 — six bytes of obfuscation | No plaintext magic; salt then ciphertext throughout |
-| M6 — no index | Sorted `long[]` of keyed name hashes, binary searched |
-| M7 — no streaming, NPE on a miss | `find` returns `null`; a miss can never alias another entry |
-| M8 — unversioned | Version and profile id in the footer |
-| M10 — no packer | `XpkWriter`, sharing `XpkFormat` with the reader |
+| M4: unkeyed corruption check only | Per-block CRC32C, plus Ed25519 over both metadata tables; see the limit below |
+| M5: six bytes of obfuscation | No plaintext magic; salt then ciphertext throughout |
+| M6: no index | Sorted `long[]` of keyed name hashes, binary searched |
+| M7: no streaming, NPE on a miss | `find` returns `null`; a miss can never alias another entry |
+| M8: unversioned | Version and profile id in the footer |
+| M10: no packer | `XpkWriter`, sharing `XpkFormat` with the reader |
 
 ### What the integrity and signature checks actually cover
 
 Stated precisely, because an earlier draft of this document implied more:
 
 - **CRC32C per block, on every read.** Catches a truncated download, a bad sector, a half-written patch. It is not
-  tamper-proof — a CRC is recomputable, and four chosen bytes hold it constant while the rest of a block changes.
+  tamper-proof: a CRC is recomputable, and four chosen bytes hold it constant while the rest of a block changes.
 - **Ed25519 over both metadata tables, optional.** Nobody without the CI key can author an archive or re-point an
   entry at different bytes. It does **not** authenticate block contents.
 
 So somebody who has recovered the client-side symmetric key can still rewrite payload undetected. Closing that means
 hashing every entry with something unforgeable on every read, and the measured cost decides it: HMAC-SHA256 runs at
 1 551 MB/s on the project toolchain against CRC32C's 50 227, so a 5 MB asset would pay 3.4 ms instead of 0.1 ms.
-**This format exists to make extraction non-trivial, not to withstand an attacker who already holds the key** — see
-§8's ceiling — so the read path buys the cheap check and the expensive one is not offered.
+**This format exists to make extraction non-trivial, not to withstand an attacker who already holds the key**: see
+§8's ceiling, so the read path buys the cheap check and the expensive one is not offered.
 
 Deliberately still open:
 
 - **Zstd.** §4.4 says measure on real game data first; Deflate is the default until then.
-- **Texture pre-transcoding.** §4.5, and independent of the container — likely the larger load-time win.
+- **Texture pre-transcoding.** §4.5, and independent of the container: likely the larger load-time win.
 - **Native key derivation and R8.** §8, and a build-and-packaging decision rather than a format one.
 - **A binary-compatibility gate.** The API removals on #42 were caught by a manual `javap` diff. Meta ships to games
   via JitPack, so japicmp or the Kotlin validator would catch that class automatically. Repo-wide decision.
@@ -635,16 +635,16 @@ Deliberately still open:
 
 ## 12. Suggested order of work
 
-The correctness fixes are worth landing on the current format first — they are small, independently testable, and do
+The correctness fixes are worth landing on the current format first: they are small, independently testable, and do
 not wait on a format decision.
 
-1. **C1–C4 on v1.** Open one `SevenZFile` per archive, close it, hold a name→entry map, guard the memoised array
+1. **C1-C4 on v1.** Open one `SevenZFile` per archive, close it, hold a name→entry map, guard the memoised array
    properly (or drop the memo), and stop fabricating aliased handles. C1 alone is the large load-time win.
-2. **M3, M9, L1–L7.** Delete the `Thread.yield()` calls and the dead write path, normalise on `/`, tighten the
+2. **M3, M9, L1-L7.** Delete the `Thread.yield()` calls and the dead write path, normalise on `/`, tighten the
    `FileHandle` contract. Mechanical.
 3. **§4.5 texture pre-transcoding.** Likely the biggest real-world load-time improvement, and independent of the
    container.
-4. **Split archives by change rate** (§9). No format work, no code — just repack, and gameplay patches stop touching
+4. **Split archives by change rate** (§9). No format work, no code: just repack, and gameplay patches stop touching
    the art archive.
 5. **v2 container**, behind an `XpkProfile` (§6) with a v1 reader retained for one release. Land the writer in Meta at
    the same time so the format has an authoritative definition (M10). Order within this step: deterministic packing

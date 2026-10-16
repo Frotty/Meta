@@ -12,8 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  *
  * When this channel is used for writing an internal buffer grows to accommodate incoming data. The natural size
- * limit is the value of [Integer.MAX_VALUE] and it is not possible to [set the position][.position] or
- * [truncate][.truncate] to a value bigger than that.  Internal buffer can be accessed via [ ][XPKByteChannel.array].
+ * limit is the value of [Integer.MAX_VALUE] and it is not possible to [set the position][position] or
+ * [truncate] to a value bigger than that. Internal buffer can be accessed via [array].
  *
  * @NotThreadSafe
  * @since 1.13
@@ -129,7 +129,7 @@ class XPKByteChannel(private var data: ByteArray = ByteArray(0)) : SeekableByteC
 	 *
 	 * NOTE:
 	 * The returned buffer is not aligned with containing data, use
-	 * [.size] to obtain the size of data stored in the buffer.
+	 * [size] to obtain the size of data stored in the buffer.
 	 *
 	 * @return internal byte array.
 	 */

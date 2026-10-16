@@ -5,8 +5,8 @@ import java.lang.management.ManagementFactory
 /**
  * Measures how many bytes a block allocates on the calling thread.
  *
- * Meta's performance contract is written in allocations — `AGENTS.md` requires that `draw`, `act` and `layout`
- * allocate nothing — and until now nothing checked it. This makes that contract testable.
+ * Meta's performance contract is written in allocations: `AGENTS.md` requires that `draw`, `act` and `layout`
+ * allocate nothing, and until now nothing checked it. This makes that contract testable.
  *
  * Bytes allocated is the right statistic to gate CI on for the same reason a bind count is: it is **a count, not a
  * duration**. A shared runner's clock speed, its neighbours and its thermal state change how long a frame takes and
@@ -27,8 +27,8 @@ import java.lang.management.ManagementFactory
  * never remove them. The minimum is therefore the closest available reading of what the code itself allocates, and
  * it is what makes a `<= 0` assertion stable rather than flaky.
  *
- * [warmup] is not a formality. A cold path allocates for reasons that have nothing to do with it — resolving a
- * lambda's call site, inflating a `Class`, growing a collection to its steady-state capacity — so a measurement
+ * [warmup] is not a formality. A cold path allocates for reasons that have nothing to do with it (resolving a
+ * lambda's call site, inflating a `Class`, growing a collection to its steady-state capacity), so a measurement
  * taken before the path is warm reports the cost of starting, not the cost of running.
  */
 object AllocationProbe {

@@ -40,7 +40,7 @@ private val windowHandler: WindowHandler get() = de.fatox.meta.injection.MetaInj
  * and a progress bar. It suits an application whose startup the user is expected to read.
  *
  * [QUIET] is a title and one indicator, centred on the background and sized from the window. It suits an
- * application whose startup the user is only waiting through — a game, where a panel of loading telemetry reads as
+ * application whose startup the user is only waiting through: a game, where a panel of loading telemetry reads as
  * something having gone wrong rather than as the game starting.
  */
 enum class SplashStyle { PANEL, QUIET }
@@ -58,7 +58,7 @@ enum class SplashStyle { PANEL, QUIET }
  * One consequence worth knowing: a [SplashStyle.PANEL] with `banner = false` covers the whole window with its card,
  * so nothing of [background] remains visible. For a branded backdrop use [SplashStyle.QUIET], which draws no card,
  * or a banner, which leaves the cleared frame showing around it. The card's own surface and border stay themed
- * deliberately — they are structural chrome rather than brand colour, and painting the card in [background] would
+ * deliberately: they are structural chrome rather than brand colour, and painting the card in [background] would
  * silently restyle every existing full-window panel.
  *
  * Copied on construction, because libGDX's [Color] is mutable and these are held for the life of the screen.
@@ -72,7 +72,7 @@ class SplashPalette(
 	/**
 	 * Read these, never write them.
 	 *
-	 * They are copies, so mutating them cannot reach the caller's own colours — but they are still libGDX `Color`s
+	 * They are copies, so mutating them cannot reach the caller's own colours, but they are still libGDX `Color`s
 	 * and still mutable, in keeping with every other colour in this codebase.
 	 */
 	val background: Color = Color(background)
@@ -89,7 +89,7 @@ class SplashPalette(
 	 *
 	 * Four values rather than one combined hash, because equality must not be decided by a hash. Compressing four
 	 * 32-bit colours into a single `Int` guarantees collisions, and two palettes that collided would have compared
-	 * equal while rendering visibly different — and taken the enclosing presentation's equality with them.
+	 * equal while rendering visibly different, and taken the enclosing presentation's equality with them.
 	 */
 	private val packedBackground: Int = Color.rgba8888(background)
 	private val packedTitle: Int = Color.rgba8888(title)
@@ -157,7 +157,7 @@ data class SplashTransitionConfiguration(
 	 * Draw the panel as a centred banner of [bootstrapWidth] × [bootstrapHeight] rather than filling the window.
 	 *
 	 * Off by default, so an existing splash keeps the full-window panel it has. On, the panel becomes what its
-	 * surface, border and accent strip already imply — a card on the background — which suits an application whose
+	 * surface, border and accent strip already imply (a card on the background), which suits an application whose
 	 * window is the size it will be played at rather than an IDE opening its workspace. Clamped to the window, so a
 	 * banner wider than the window is simply the window.
 	 */
@@ -197,13 +197,13 @@ data class SplashFontConfiguration(
  *
  * Meta can only spread out the loading it owns: [AssetProvider.update] for queued assets and
  * [de.fatox.meta.api.ui.UIRenderer.updateLoad] for generated UI resources. Work that belongs to the application
- * itself — its own faces, its atlases, a scene it wants standing before the first screen appears — has nowhere to
+ * itself (its own faces, its atlases, a scene it wants standing before the first screen appears) has nowhere to
  * go but the loaded callback, where it costs one frozen frame for as long as it takes. That is the freeze this
  * replaces: [SplashScreen] calls [update] once per frame with a soft budget and keeps the panel animating until it
  * returns true.
  *
  * Calls happen on the GL thread after Meta's assets and UI resources are ready, so a step may create textures,
- * fonts and scene2d actors — which is the point, since that is the work with nowhere else to run. A step that
+ * fonts and scene2d actors, which is the point, since that is the work with nowhere else to run. A step that
  * overruns its budget still costs one long frame, so divide the work into steps rather than trusting the budget.
  */
 fun interface SplashStartupLoad {
@@ -215,7 +215,7 @@ fun interface SplashStartupLoad {
  * Every callback [SplashScreen] can drive, named at the call site.
  *
  * The constructor overloads cover combinations of two and three callbacks positionally, which is already as far as
- * that reads clearly. This is the same set as one argument, so a caller can supply any subset — and adding a
+ * that reads clearly. This is the same set as one argument, so a caller can supply any subset, and adding a
  * callback here does not widen that matrix again.
  */
 data class SplashCallbacks(
@@ -506,7 +506,7 @@ class SplashScreen private constructor(
 	 *
 	 * No surface, border, mark or status line: the point of this style is that nothing is on screen except the name
 	 * of the thing being started and evidence that it is still starting. The bar sweeps at a fraction of the panel's
-	 * speed — a fast indeterminate bar reads as activity, a slow one reads as patience.
+	 * speed: a fast indeterminate bar reads as activity, a slow one reads as patience.
 	 */
 	private fun drawQuietTitle(visualAlpha: Float) {
 		val width = Gdx.graphics.width.toFloat()
@@ -545,7 +545,7 @@ class SplashScreen private constructor(
 	 * Sets a palette colour on the batch, keeping its own alpha.
 	 *
 	 * Spelling this out at each site dropped the colour's `a` every time: a caller supplying a half-transparent
-	 * accent — or `Color.CLEAR`, meaning "do not draw this" — got it at full opacity instead. [opacity] is the
+	 * accent (or `Color.CLEAR`, meaning "do not draw this") got it at full opacity instead. [opacity] is the
 	 * frame's fade times whatever constant the element is drawn at, and the colour's own alpha multiplies into it.
 	 */
 	private fun SpriteBatch.setPaletteColor(color: Color, opacity: Float) {
@@ -567,7 +567,7 @@ class SplashScreen private constructor(
 
 	private fun advanceLoading(frameDelta: Float) {
 		// Re-entrant renders are normal, and must not advance anything. Applying a display mode pumps the platform
-		// window, and on LWJGL3 that runs a frame — so this screen's own render() lands on the stack inside whatever
+		// window, and on LWJGL3 that runs a frame, so this screen's own render() lands on the stack inside whatever
 		// callback asked for the change. Unguarded, the next phase or the next startup slice began while the current
 		// one was still running, which reordered the work and lost the completion of the step that was interrupted.
 		// The nested frame still draws the panel, which is the point of the window pumping in the first place.
@@ -629,7 +629,7 @@ class SplashScreen private constructor(
 	private fun startPreparation() {
 		enterPhase(SplashPhase.PREPARING)
 		val preparation = assetPreparation ?: return
-		// Resolved here, on the GL thread, and captured — so the worker below calls a method on an object that
+		// Resolved here, on the GL thread, and captured, so the worker below calls a method on an object that
 		// already exists instead of reaching into the injection graph. `MetaInject` keeps its singletons in
 		// unsynchronized maps and hands out `LazyThreadSafetyMode.NONE` delegates, so a worker resolving a service
 		// while this thread resolves another can build two of something or publish one half-initialized.
@@ -649,7 +649,7 @@ class SplashScreen private constructor(
 			// After the application's callbacks for a second reason: opening a face resolves its path through the
 			// asset provider, and the application's preparation is what indexes the tree those paths live in.
 			//
-			// Reading and parsing a TrueType file needs no graphics device — Meta's icon face is 599 KB — so it
+			// Reading and parsing a TrueType file needs no graphics device (Meta's icon face is 599 KB), so it
 			// belongs here. Rasterizing and uploading stay on the GL thread, which is why only the file work moves.
 			// A face the GL thread reaches first is simply opened there; the provider serializes the two.
 			runCatching { fonts.prepareFaces() }
@@ -827,7 +827,7 @@ class SplashScreen private constructor(
 		val configuredTitle = configuredFont(fontConfiguration.title, titleSize, pixelScale, "title")
 		// A quiet splash draws the title and nothing else, so generating the body and detail faces is two FreeType
 		// rasterizations and two texture uploads for text that is never built. That is per rebuild, and a quiet
-		// title rebuilds on resize — enough to stall an interactive drag during startup.
+		// title rebuilds on resize, enough to stall an interactive drag during startup.
 		if (presentation.style == SplashStyle.QUIET) return SplashFonts(configuredTitle, null, null)
 		val configuredBody = configuredBodyFonts(fontConfiguration.body, pixelScale)
 		return SplashFonts(configuredTitle, configuredBody.first, configuredBody.second)
@@ -889,8 +889,8 @@ class SplashScreen private constructor(
 	/**
 	 * The face to use when the application configured none.
 	 *
-	 * libGDX's bundled bitmap font is a fixed low-resolution atlas, so scaling it to a quiet title's size — up to
-	 * 180 px — magnifies it into something visibly blurry. Meta packages scalable faces in its own jar, and they are
+	 * libGDX's bundled bitmap font is a fixed low-resolution atlas, so scaling it to a quiet title's size (up to
+	 * 180 px) magnifies it into something visibly blurry. Meta packages scalable faces in its own jar, and they are
 	 * classpath resources rather than application assets, so they are available this early. Only reached when the
 	 * caller supplied no title font; an application that supplies one never loads these.
 	 */
@@ -1120,7 +1120,7 @@ internal object SplashRingTexturePainter {
  *
  * A panel's title is a fixed size, so only pixel density can invalidate it. A quiet title is sized from the window
  * height *and* fitted to the window width, so either dimension can. Expressed here rather than inline because
- * getting it wrong is silent — the text simply stays wrong until something else happens to rebuild it.
+ * getting it wrong is silent: the text simply stays wrong until something else happens to rebuild it.
  */
 internal object SplashTextKey {
 	fun keyHeight(windowHeight: Int, style: SplashStyle): Int =
@@ -1138,7 +1138,7 @@ internal object SplashTitleSizing {
 	/**
 	 * Shrinks a title whose rendered width does not fit the space allowed for it.
 	 *
-	 * Sizing from the window height alone says nothing about how wide the result will be — a long title, or a tall
+	 * Sizing from the window height alone says nothing about how wide the result will be: a long title, or a tall
 	 * narrow window, overflows. Scales by the ratio of what fits to what was measured, and floors so the result
 	 * lands under the limit rather than on it. Never below [minSize]: an unreadable title that fits is worse than a
 	 * readable one that is tight.
