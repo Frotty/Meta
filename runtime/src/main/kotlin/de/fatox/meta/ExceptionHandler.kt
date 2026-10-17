@@ -34,7 +34,6 @@ import javax.swing.JTextArea
 import javax.swing.SwingUtilities
 import javax.swing.Timer
 import javax.swing.UIManager
-import javax.swing.UnsupportedLookAndFeelException
 import javax.swing.WindowConstants
 import kotlin.system.exitProcess
 
@@ -48,32 +47,6 @@ private const val ERROR_HEADER = "Please report this crash with the following in
 private const val AUTO_SEND_PREF = "autoSendCrashReports"
 
 object ExceptionHandler : Thread.UncaughtExceptionHandler {
-	private val icon: ImageIcon? by lazy {
-		try {
-			ImageIcon(Gdx.files.internal("meta-icon-error.png").readBytes(), "Meta Error")
-		} catch (t: Throwable) {
-			null
-		}
-	}
-	private val textArea: JTextArea by lazy {
-		JTextArea(16, 88).apply { isEditable = false }
-	}
-	private val scrollPane: JScrollPane by lazy { JScrollPane(textArea) }
-
-	init {
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
-		} catch (e: ClassNotFoundException) {
-			e.printStackTrace()
-		} catch (e: InstantiationException) {
-			e.printStackTrace()
-		} catch (e: IllegalAccessException) {
-			e.printStackTrace()
-		} catch (e: UnsupportedLookAndFeelException) {
-			e.printStackTrace()
-		}
-	}
-
 	override fun uncaughtException(t: Thread, e: Throwable) {
 		log.error(e) { e.localizedMessage }
 
@@ -93,12 +66,77 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 		val reportUrlConfigured = crashReportUrl().isNotBlank()
 		val autoSend = autoSendEnabled() && reportUrlConfigured
 
-		if (GraphicsEnvironment.isHeadless()) {
+		// Nothing above touches AWT, so the crash is already logged and on disk. If AWT cannot start - a missing native
+		// library, a runtime or native image without java.desktop - carry on as if headless rather than throw: the JVM
+		// would report the handler's exception in place of the crash.
+		val noDialog = { failure: Throwable ->
+			log.error(failure) { "Could not show the crash dialog" }
 			if (autoSend) sendCrashReport(report, null)
-			return
+		}
+		try {
+			if (GraphicsEnvironment.isHeadless()) {
+				if (autoSend) sendCrashReport(report, null)
+				return
+			}
+			CrashDialog.show(crashText, crashFile, report, reportUrlConfigured, autoSend, noDialog)
+		} catch (failure: Throwable) {
+			noDialog(failure)
+		}
+	}
+
+	/**
+	 * Everything Swing. Meta's constructor installs [ExceptionHandler] on every launch, and verifying a class loads the
+	 * classes its code passes around, so dialog code left in the handler loaded AWT at startup whether or not anything
+	 * crashed. This object is first touched when a crash dialog is about to be built.
+	 */
+	private object CrashDialog {
+		private val icon: ImageIcon? by lazy {
+			try {
+				ImageIcon(Gdx.files.internal("meta-icon-error.png").readBytes(), "Meta Error")
+			} catch (t: Throwable) {
+				null
+			}
+		}
+		private val textArea: JTextArea by lazy {
+			JTextArea(16, 88).apply { isEditable = false }
+		}
+		private val scrollPane: JScrollPane by lazy { JScrollPane(textArea) }
+
+		init {
+			try {
+				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+			} catch (e: Exception) {
+				// The default look and feel still shows the report.
+				log.warn("Could not apply the system look and feel", e)
+			}
 		}
 
-		SwingUtilities.invokeLater {
+		fun show(
+			crashText: String,
+			crashFile: File?,
+			report: Map<String, String>,
+			reportUrlConfigured: Boolean,
+			autoSend: Boolean,
+			onFailure: (Throwable) -> Unit,
+		) {
+			SwingUtilities.invokeLater {
+				try {
+					build(crashText, crashFile, report, reportUrlConfigured, autoSend)
+				} catch (failure: Throwable) {
+					// Left to escape, this would reach the handler again as the event thread's crash and overwrite
+					// the crash log with it.
+					onFailure(failure)
+				}
+			}
+		}
+
+		private fun build(
+			crashText: String,
+			crashFile: File?,
+			report: Map<String, String>,
+			reportUrlConfigured: Boolean,
+			autoSend: Boolean,
+		) {
 			textArea.text = crashText
 			textArea.caretPosition = 0
 			lateinit var frame: JFrame
