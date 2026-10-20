@@ -1,6 +1,11 @@
 // Discover origin branches, origin PR heads and new v* tags. No fork PRs on shared agents.
 pipeline {
-    agent { dockerfile { filename 'ci/Dockerfile'; args '-u root --entrypoint=""' } }
+    agent {
+        dockerfile {
+            filename 'ci/Dockerfile'
+            args '-u root --entrypoint=""'
+        }
+    }
     options {
         timestamps()
         timeout(time: 45, unit: 'MINUTES')
@@ -31,7 +36,12 @@ pipeline {
             steps { sh './gradlew :runtime:perfCheck --no-daemon --stacktrace' }
         }
         stage('Release') {
-            when { allOf { not { changeRequest() }; expression { return env.TAG_NAME?.startsWith('v') } } }
+            when {
+                allOf {
+                    not { changeRequest() }
+                    expression { return env.TAG_NAME?.startsWith('v') }
+                }
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'token',
                         usernameVariable: 'GITHUB_ACTOR', passwordVariable: 'GH_TOKEN')]) {
