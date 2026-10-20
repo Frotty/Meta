@@ -1,4 +1,4 @@
-[![CI](https://github.com/Frotty/Meta/actions/workflows/ci.yml/badge.svg)](https://github.com/Frotty/Meta/actions/workflows/ci.yml)
+[CI on Jenkins](https://jenkins.oxbot.stream/job/meta/)
 
 # Meta
 
