@@ -14,6 +14,7 @@ pipeline {
                     set -eu
                     java -version
                     git config --global --add safe.directory "$WORKSPACE"
+                    git clean -fdx -q
                     chmod +x gradlew
                 '''
             }
