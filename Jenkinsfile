@@ -31,7 +31,7 @@ pipeline {
             steps { sh './gradlew :runtime:perfCheck --no-daemon --stacktrace' }
         }
         stage('Release') {
-            when { allOf { not { changeRequest() }; tag pattern: 'v*', comparator: 'GLOB' } }
+            when { allOf { not { changeRequest() }; expression { return env.TAG_NAME?.startsWith('v') } } }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'token',
                         usernameVariable: 'GITHUB_ACTOR', passwordVariable: 'GH_TOKEN')]) {
