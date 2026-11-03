@@ -75,7 +75,9 @@ class MetaMusicPlayer : Disposable {
 			}
 		}
 	}
-	private val startVolume = 0.01f
+	private val startGain = 0.01f
+	private var trackGain = startGain
+	private var focusSilenced = false
 	private var musicEnabled = true
 	private var currentMusic: Music = UninitializedMusic
 	private var nextMusic: Music = UninitializedMusic
@@ -95,48 +97,36 @@ class MetaMusicPlayer : Disposable {
 	}
 
 	private fun updateMusic() {
-		val audioVideoData = MetaAudioVideoState.state.value
-		val volume = audioVideoData.masterVolume * audioVideoData.musicVolume
-		if (!musicEnabled || volume <= startVolume) {
-			if (currentMusic !== UninitializedMusic)
-				currentMusic.volume = 0f
+		if (!musicEnabled || focusSilenced) return
+		if (currentMusic === UninitializedMusic || !currentMusic.isPlaying) {
+			if (nextMusic === UninitializedMusic) nextFromPool()
+			if (nextMusic !== UninitializedMusic) startNextMusic()
 			return
 		}
-		if (currentMusic === UninitializedMusic || !currentMusic.isPlaying) {
-			if (nextMusic === UninitializedMusic) {
-				nextFromPool()
-			} else {
-				startMusic(nextMusic)
-			}
-		}
-		if (currentMusic !== UninitializedMusic) {
-			if (currentMusic.volume < startVolume) {
-				finishMusic()
-			} else {
-				fadeInOut(volume)
-				if (currentMusic.volume > volume) {
-					currentMusic.volume = volume
-				}
-			}
-		}
-	}
 
-	private fun finishMusic() {
-		currentMusic.stop()
 		if (nextMusic !== UninitializedMusic) {
-			currentMusic = nextMusic
-			nextMusic = UninitializedMusic
-			currentMusic.play()
-			currentMusic.volume = startVolume
+			trackGain *= 0.4f
+			if (trackGain < startGain) {
+				startNextMusic()
+				return
+			}
+		} else {
+			trackGain = (trackGain * 3f).coerceAtMost(1f)
 		}
+		applyMusicGain()
 	}
 
-	private fun fadeInOut(volume: Float) {
-		if (nextMusic !== UninitializedMusic && currentMusic.isPlaying) {
-			currentMusic.volume *= 0.4f
-		} else if (currentMusic.volume >= startVolume && currentMusic.volume < volume) {
-			currentMusic.volume *= 3f
-		}
+	private fun startNextMusic() {
+		currentMusic.stop()
+		val music = nextMusic
+		nextMusic = UninitializedMusic
+		startMusic(music)
+	}
+
+	private fun applyMusicGain() {
+		val settings = MetaAudioVideoState.state.value
+		val volume = if (focusSilenced) 0f else trackGain * settings.masterVolume * settings.musicVolume
+		if (currentMusic.volume != volume) currentMusic.volume = volume
 	}
 
 	fun playMusic(musicPath: String, now: Boolean = false) {
@@ -153,8 +143,9 @@ class MetaMusicPlayer : Disposable {
 
 	private fun startMusic(music: Music) {
 		currentMusic = music
+		trackGain = startGain
+		applyMusicGain()
 		currentMusic.play()
-		currentMusic.volume = startVolume
 	}
 
 	private fun getMusic(musicPath: String): Music {
@@ -216,24 +207,12 @@ class MetaMusicPlayer : Disposable {
 		}
 	}
 
-	private var vol = 1f
-	private var focusSilenced = false
 	fun silenceMusic(musicEnabled: Boolean) {
-		if (currentMusic !== UninitializedMusic) {
-			if (musicEnabled) {
-				focusSilenced = false
-				currentMusic.volume = vol.coerceAtLeast(startVolume)
-				start()
-			} else {
-				if (!focusSilenced && currentMusic.volume > startVolume) vol = currentMusic.volume
-				focusSilenced = true
-				currentMusic.volume = 0f
-				task.cancel()
-			}
-		} else if (!musicEnabled) {
-			focusSilenced = true
-			task.cancel()
-		}
+		val silenced = !musicEnabled
+		if (focusSilenced == silenced) return
+		focusSilenced = silenced
+		if (currentMusic !== UninitializedMusic) applyMusicGain()
+		if (silenced) task.cancel() else start()
 	}
 
 	internal fun discardSelectedTrack() {

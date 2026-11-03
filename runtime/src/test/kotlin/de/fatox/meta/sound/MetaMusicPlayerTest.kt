@@ -7,6 +7,8 @@ import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.AssetProvider
+import de.fatox.meta.api.model.MetaAudioVideoData
+import de.fatox.meta.api.model.MetaAudioVideoState
 import de.fatox.meta.injection.MetaInject.Companion.global
 import de.fatox.meta.test.GdxTestEnvironment
 import org.junit.jupiter.api.AfterEach
@@ -89,6 +91,46 @@ class MetaMusicPlayerTest {
 		assertFalse(activePoolOf(player).contains(selected, false), "The played path remained in the active pool")
 	}
 
+	@Test
+	fun `changing mixer volume preserves the playing track and applies the selected gain`() {
+		val provider = RecordingAssetProvider()
+		global(clear = true) { singleton<AssetProvider> { provider } }
+		val previousSettings = MetaAudioVideoState.current()
+		val player = MetaMusicPlayer()
+		val tick = MetaMusicPlayer::class.java.getDeclaredMethod("updateMusic").apply { isAccessible = true }
+
+		try {
+			MetaAudioVideoState.initialize(MetaAudioVideoData(masterVolume = 1f, musicVolume = 0.5f))
+			player.playMusic("music/menu.mp3")
+			repeat(5) { tick.invoke(player) }
+			assertEquals(0.5f, provider.music.getVolume())
+
+			MetaAudioVideoState.update(persist = false) { soundVolume = 0.1f }
+			player.silenceMusic(true)
+			assertEquals(0.5f, provider.music.getVolume())
+
+			MetaAudioVideoState.update(persist = false) { masterVolume = 0.01f }
+			tick.invoke(player)
+			assertEquals(0.005f, provider.music.getVolume())
+
+			MetaAudioVideoState.update(persist = false) { musicVolume = 0f }
+			tick.invoke(player)
+			assertEquals(0f, provider.music.getVolume())
+
+			MetaAudioVideoState.update(persist = false) {
+				masterVolume = 1f
+				musicVolume = 0.25f
+			 }
+			tick.invoke(player)
+			assertEquals(0.25f, provider.music.getVolume())
+			assertTrue(player.isMusicPlaying)
+			assertEquals(1, provider.music.playCount)
+		} finally {
+			player.dispose()
+			MetaAudioVideoState.initialize(previousSettings)
+		}
+	}
+
 	private class RecordingAssetProvider : AssetProvider {
 		var resourceRequests = 0
 		var updates = 0
@@ -117,8 +159,12 @@ class MetaMusicPlayerTest {
 
 	private class RecordingMusic : Music {
 		var playing = false
+		var playCount = 0
 		private var volume = 0f
-		override fun play() { playing = true }
+		override fun play() {
+			playing = true
+			playCount++
+		}
 		override fun pause() { playing = false }
 		override fun stop() { playing = false }
 		override fun isPlaying() = playing
