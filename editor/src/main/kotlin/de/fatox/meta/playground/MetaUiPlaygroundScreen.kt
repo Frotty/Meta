@@ -1,11 +1,17 @@
 package de.fatox.meta.playground
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
+import com.badlogic.gdx.scenes.scene2d.ui.Container
 import com.badlogic.gdx.scenes.scene2d.ui.Window
+import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.extensions.onChange
+import de.fatox.meta.api.graphics.FontProvider
+import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.graphics.physicalPixelsPerStageUnit
 import de.fatox.meta.api.ui.MetaDockConfig
 import de.fatox.meta.api.ui.MetaDockSide
 import de.fatox.meta.api.ui.MetaToastSpec
@@ -18,10 +24,15 @@ import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.UiControlHelper
 import de.fatox.meta.ui.components.MetaBottomBar
+import de.fatox.meta.ui.components.MetaFaceButton
+import de.fatox.meta.ui.components.MetaInputGlyphs
+import de.fatox.meta.ui.components.MetaInputPrompt
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaMenu
 import de.fatox.meta.ui.components.MetaMenuBar
 import de.fatox.meta.ui.components.MetaMenuItem
+import de.fatox.meta.ui.components.MetaPadFamily
+import de.fatox.meta.ui.components.MetaPromptBar
 import de.fatox.meta.ui.components.MetaTable
 
 class MetaUiPlaygroundScreen(
@@ -30,9 +41,18 @@ class MetaUiPlaygroundScreen(
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val uiManager: UIManager by lazyInject()
 	private val uiControlHelper: UiControlHelper by lazyInject()
-	private val backgroundTitle = MetaLabel("META UI WORKSPACE", MetaType.CAPTION, MetaColor.TEXT_MUTED)
-	private val backgroundDescription = MetaLabel("", MetaType.BODY, MetaColor.TEXT_MUTED)
-	private val bottomCaption = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT)
+	private val fonts: FontProvider by lazyInject()
+	private val backgroundTitle = MetaLabel("Docking workspace", MetaType.TITLE, MetaColor.TEXT, FontType.BOLD)
+	private val backgroundDescription = MetaLabel("Drag a panel to an edge to dock it.", MetaType.BODY, MetaColor.TEXT_MUTED).apply {
+		setAlignment(Align.center)
+		setWrap(true)
+	}
+	private val dockFooter by lazy {
+		Container(MetaBottomBar(MetaLabel(
+			"Drag away to float  ·  Drag a divider to resize", MetaType.CAPTION, MetaColor.TEXT,
+		))).padBottom(MetaSpacing.SM)
+	}
+	private lateinit var componentFooter: Container<MetaPromptBar>
 	private var isBuilt = false
 
 	override fun show() {
@@ -69,7 +89,8 @@ class MetaUiPlaygroundScreen(
 
 	private fun clearFrame() {
 		HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
-		Gdx.gl.glClearColor(0.105f, 0.109f, 0.125f, 1f)
+		val background = MetaColor.BACKGROUND
+		Gdx.gl.glClearColor(background.r, background.g, background.b, background.a)
 		Gdx.gl.glClearDepthf(1f)
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT or
 			if (Gdx.graphics.bufferFormat.coverageSampling) GL20.GL_COVERAGE_BUFFER_BIT_NV else 0)
@@ -79,7 +100,7 @@ class MetaUiPlaygroundScreen(
 		configureDocking()
 		uiManager.setMainMenuBar(playgroundMenuBar())
 		uiManager.addTable(workspaceBackground(), growX = true, growY = true)
-		uiManager.setBottomOverlay(MetaBottomBar(bottomCaption).bottomOverlay(MetaSpacing.SM))
+		componentFooter = navigationFooter()
 		val firstDockingLaunch = !uiManager.metaHas(DOCKING_INITIALIZED_KEY)
 		showDockWorkspace(resetLayout = firstDockingLaunch, seedFloatingBounds = firstDockingLaunch)
 		if (firstDockingLaunch) uiManager.metaSave(DOCKING_INITIALIZED_KEY, true)
@@ -89,8 +110,27 @@ class MetaUiPlaygroundScreen(
 		center()
 		pad(MetaSpacing.LG)
 		add(backgroundTitle).center().row()
-		add(backgroundDescription)
-			.center().padTop(MetaSpacing.XS)
+		add(backgroundDescription).width(250f).center().padTop(MetaSpacing.SM)
+	}
+
+	private fun navigationFooter(): Container<MetaPromptBar> {
+		val pad = MetaPadFamily.XBOX
+		val entries = listOf(
+			MetaPromptBar.Entry(listOf(MetaInputGlyphs.arrowsVertical(), MetaInputGlyphs.dpadVertical(pad)), "Navigate"),
+			MetaPromptBar.Entry(listOf(MetaInputGlyphs.key(Input.Keys.ENTER, "Enter"),
+				MetaInputGlyphs.face(pad, MetaFaceButton.SOUTH)), "Activate"),
+			MetaPromptBar.Entry(listOf(MetaInputGlyphs.key(Input.Keys.ESCAPE, "Esc"),
+				MetaInputGlyphs.face(pad, MetaFaceButton.EAST)), "Back"),
+		)
+		val size = MetaType.CAPTION
+		val faces = MetaInputPrompt.requiredFonts(size)
+		for (index in faces.indices) {
+			val (fontSize, type) = faces[index]
+			fonts.getFont(fontSize, type)
+		}
+		MetaInputPrompt.prewarm(entries.flatMap { it.glyphs }, size, physicalPixelsPerStageUnit(uiManager.uiWidth))
+		val bar = MetaPromptBar(size).apply { setEntries(entries) }
+		return Container(bar).padBottom(MetaSpacing.SM)
 	}
 
 	private fun playgroundMenuBar(): MetaMenuBar = MetaMenuBar().apply {
@@ -183,11 +223,7 @@ class MetaUiPlaygroundScreen(
 	private fun showComponentShowcase() {
 		closeDockWindows()
 		closeComponentWindows()
-		backgroundTitle.setText("META UI COMPONENT SHOWCASE")
-		backgroundDescription.setText(
-			"Typography, icons, controls, reactive input, selection, progress, menus, lists, and scrolling.",
-		)
-		bottomCaption.setText("Arrow keys / D-pad: navigate  ·  Enter / A: activate  ·  Esc / B: back")
+		uiManager.setBottomOverlay(componentFooter)
 		backgroundTitle.isVisible = false
 		backgroundDescription.isVisible = false
 		showComponentGallery(resetLayout = true)
@@ -196,11 +232,7 @@ class MetaUiPlaygroundScreen(
 	private fun showWorkspacePresentation() {
 		backgroundTitle.isVisible = true
 		backgroundDescription.isVisible = true
-		backgroundTitle.setText("META UI WORKSPACE")
-		backgroundDescription.setText(
-			"Test left/right docking, insertion order, fill reflow, drag-away restore, resize, persistence, and narrow windows.",
-		)
-		bottomCaption.setText("Drag a panel to an edge to dock · drag away to float · resize fixed panel dividers")
+		uiManager.setBottomOverlay(dockFooter)
 	}
 
 	private fun seedFloatingDockPanelBounds(

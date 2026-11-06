@@ -20,6 +20,7 @@ import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.batch
 import de.fatox.meta.reactive.floatSignal
 import de.fatox.meta.reactive.signal
+import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaControlSize
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
@@ -51,7 +52,7 @@ open class MetaColorPicker @JvmOverloads constructor(
 		MetaHsv.toColor(state.hue.peekFloat(), state.saturation.peekFloat(), state.value.peekFloat(), position, out)
 	}
 	private val inputModeValue: Signal<ColorInputMode> = signal(ColorInputMode.HEX)
-	private val inputModeButton = MetaTextButton("HEX", MetaType.CAPTION, tier = de.fatox.meta.ui.MetaButtonTier.TERTIARY)
+	private val inputModeButton = MetaTextButton("HEX", MetaType.CAPTION, tier = MetaButtonTier.TERTIARY)
 	private val colorInput = MetaInputField(
 		placeholder = if (isAllowAlphaEdit) "#RRGGBBAA or rgba(255, 128, 0, 1)" else "#RRGGBB or rgb(255, 128, 0)",
 	)
@@ -85,11 +86,11 @@ open class MetaColorPicker @JvmOverloads constructor(
 			align = MetaFlexAlign.CENTER,
 		).apply {
 			addItem(MetaTextButton("Cancel").onChange { cancelPicker() }, shrink = 0f)
-			addItem(MetaTextButton("Reset").onChange {
+			addItem(MetaTextButton("Reset", tier = MetaButtonTier.TERTIARY).onChange {
 				state.setColor(original, isAllowAlphaEdit)
 				metaListener?.reset(selectedColor, original.cpy())
 			}, shrink = 0f)
-			addItem(MetaTextButton("OK").onChange {
+			addItem(MetaTextButton("OK", tier = MetaButtonTier.PRIMARY).onChange {
 				try {
 					metaListener?.finished(selectedColor)
 				} finally {

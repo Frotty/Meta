@@ -1,5 +1,6 @@
 package de.fatox.meta.ui
 
+import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import de.fatox.meta.api.graphics.FontProvider
@@ -56,6 +57,15 @@ class MetaSkinAtlasRebuildTest {
 		assertEquals(paddingBefore[3], button.bottomHeight, "bottomHeight lost")
 		assertEquals(minBefore[0], button.minWidth, "minWidth lost")
 		assertEquals(minBefore[1], button.minHeight, "minHeight lost")
+	}
+
+	@Test
+	fun `slider thumb geometry stays fixed during pointer interaction`() {
+		val style = MetaSkin.skin().get(MetaSkin.SLIDER_HORIZONTAL, Slider.SliderStyle::class.java)
+		assertEquals(style.knob.minWidth, style.knobOver.minWidth)
+		assertEquals(style.knob.minWidth, style.knobDown.minWidth)
+		assertEquals(style.knob.minHeight, style.knobOver.minHeight)
+		assertEquals(style.knob.minHeight, style.knobDown.minHeight)
 	}
 
 	@Test

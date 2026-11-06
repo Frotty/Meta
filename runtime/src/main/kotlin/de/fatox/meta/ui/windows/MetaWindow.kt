@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.Layout
 import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.AssetProvider
@@ -34,6 +35,7 @@ import de.fatox.meta.ui.MetaMotion
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.refreshFontsRecursively
 import de.fatox.meta.ui.MetaSpacing
+import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaResizeGrip
 import de.fatox.meta.ui.components.MetaScrollPane
@@ -117,7 +119,10 @@ abstract class MetaWindow(
 
 	/** The provider font generation this window's fonts were fetched for; see [refreshFontsIfStale]. */
 	private var fontGeneration = 0
-	private val headerSeparator = MetaSeparator().apply {
+	private val headerSeparator = MetaSeparator(
+		if (MetaSkin.skin().has(MetaSkin.WINDOW_TITLE_RULE, Drawable::class.java)) MetaSkin.WINDOW_TITLE_RULE
+		else MetaSkin.SEPARATOR,
+	).apply {
 		touchable = Touchable.disabled
 		isVisible = headerEnabled
 	}
@@ -182,6 +187,7 @@ abstract class MetaWindow(
 
 	init {
 		titleLabel.setAlignment(Align.left)
+		titleLabel.setEllipsis(true)
 		applyTitleStyle()
 		fontGeneration = fontProvider.fontGeneration
 		applyWindowMetrics()
@@ -190,8 +196,8 @@ abstract class MetaWindow(
 			clearChildren()
 			isVisible = headerEnabled
 			left().top()
-			add(titleLabel).growX().height(HEADER_CONTENT_HEIGHT)
-				.padLeft(MetaSpacing.MD).padTop(MetaSpacing.XS).padBottom(MetaSpacing.XS)
+			add(titleLabel).growX().minWidth(0f).height(HEADER_CONTENT_HEIGHT)
+				.padLeft(MetaSpacing.LG).padRight(MetaSpacing.SM).padTop(MetaSpacing.XS).padBottom(MetaSpacing.XS)
 			if (closeButton) {
 				val exitButton = MetaIconButton("ri-close-line").apply {
 					setColor(1f, 1f, 1f, 0.72f)
@@ -214,6 +220,7 @@ abstract class MetaWindow(
 			}
 			row()
 			add(headerSeparator).colspan(if (closeButton) 2 else 1).growX().height(HEADER_SEPARATOR_HEIGHT)
+				.padLeft(MetaSpacing.LG).padRight(MetaSpacing.LG)
 		}
 
 		// libGDX Window expands every detected resize edge by an additional 25 px. Keep its resize path disabled and
@@ -542,7 +549,7 @@ abstract class MetaWindow(
 	}
 
 	private fun applyTitleStyle() {
-		titleLabel.style = Label.LabelStyle(fontProvider.getFont(14, FontType.REGULAR), titleLabel.color)
+		titleLabel.style = Label.LabelStyle(fontProvider.getFont(MetaType.BODY, FontType.BOLD), titleLabel.color)
 	}
 
 	private fun applyWindowMetrics() {
@@ -692,8 +699,8 @@ abstract class MetaWindow(
 
 	private companion object {
 		const val HEADER_HEIGHT = 40f
-		const val HEADER_CONTENT_HEIGHT = 31f
-		const val HEADER_SEPARATOR_HEIGHT = 1f
+		const val HEADER_CONTENT_HEIGHT = 30f
+		const val HEADER_SEPARATOR_HEIGHT = 2f
 		const val BORDER_PAD = 1f
 		const val CLOSE_BUTTON_SIZE = 24f
 		const val EDGE_RESIZE_SIZE = 4f

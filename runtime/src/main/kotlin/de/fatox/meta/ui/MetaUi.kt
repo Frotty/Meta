@@ -67,53 +67,54 @@ enum class MetaControlSize(
  * Dark theme derived from the engine's backdrop/clear colors.
  */
 object MetaColor {
-	val BACKGROUND: Color = Color.valueOf("191C21FF")
-	val SURFACE: Color = Color.valueOf("24282FFF")
-	val SURFACE_RAISED: Color = Color.valueOf("2D323AFF")
+	val BACKGROUND: Color = Color.valueOf("0B111AFF")
+	val SURFACE: Color = Color.valueOf("15202DFF")
+	val SURFACE_RAISED: Color = Color.valueOf("1E2C3DFF")
 	/** Quiet edge for decorative outlines and resting button frames. */
-	val BORDER: Color = Color.valueOf("48515DFF")
+	val BORDER: Color = Color.valueOf("3B5165FF")
 	/**
 	 * Boundary for controls whose border IS the affordance (text fields, checkboxes, separators, window frames) and
 	 * for hover edges. Regression-tested at >=3:1 (WCAG 1.4.11) against SURFACE and SURFACE_RAISED.
 	 */
-	val BORDER_STRONG: Color = Color.valueOf("6F7F93FF")
-	val BORDER_DISABLED: Color = Color.valueOf("2C2D32FF")
+	val BORDER_STRONG: Color = Color.valueOf("7289A0FF")
+	internal val WINDOW_FRAME: Color = Color.valueOf("566F86FF")
+	val BORDER_DISABLED: Color = Color.valueOf("283747FF")
 
-	val TEXT: Color = Color.valueOf("FFFFFFFF")
-	val TEXT_MUTED: Color = Color.valueOf("B8BBC5FF")
-	val TEXT_DISABLED: Color = Color.valueOf("858894FF")
+	val TEXT: Color = Color.valueOf("F3F7FFFF")
+	val TEXT_MUTED: Color = Color.valueOf("B3C0CFFF")
+	val TEXT_DISABLED: Color = Color.valueOf("8693A6FF")
 
 	/** Primary action fill. Primary states are regression-tested against white text at WCAG AA contrast. */
-	val PRIMARY: Color = Color.valueOf("276F9FFF")
-	val PRIMARY_HOVER: Color = Color.valueOf("3078A5FF")
-	val PRIMARY_PRESSED: Color = Color.valueOf("205B82FF")
-	val SECONDARY: Color = Color.valueOf("303741FF")
-	val SECONDARY_HOVER: Color = Color.valueOf("3A4551FF")
+	val PRIMARY: Color = Color.valueOf("205B72FF")
+	val PRIMARY_HOVER: Color = Color.valueOf("246780FF")
+	val PRIMARY_PRESSED: Color = Color.valueOf("19495EFF")
+	val SECONDARY: Color = Color.valueOf("223345FF")
+	val SECONDARY_HOVER: Color = Color.valueOf("2B4154FF")
 	val TERTIARY: Color = Color.valueOf("00000000")
-	val TERTIARY_HOVER: Color = Color.valueOf("343842FF")
+	val TERTIARY_HOVER: Color = Color.valueOf("243748FF")
 
 	/** Sunken fill for text inputs. */
-	val FILL_FIELD: Color = Color.valueOf("1B2026FF")
+	val FILL_FIELD: Color = Color.valueOf("111B28FF")
 	/** Sunken fill for checkboxes, spinner fields, dropdown lists and disabled controls. */
-	val FILL_SUNKEN: Color = Color.valueOf("202126FF")
+	val FILL_SUNKEN: Color = Color.valueOf("101823FF")
 	/** Shared pressed-state fill for dark controls. */
-	val FILL_PRESSED: Color = Color.valueOf("202A31FF")
+	val FILL_PRESSED: Color = Color.valueOf("172733FF")
 	/** Slightly accent-tinted fill shown behind the accent focus ring on dark controls. */
-	val FILL_FOCUS: Color = Color.valueOf("28343DFF")
+	val FILL_FOCUS: Color = Color.valueOf("20394AFF")
 
 	/** Text-selection fill. */
-	val SELECTION: Color = Color.valueOf("2F5D86FF")
+	val SELECTION: Color = Color.valueOf("285970FF")
 	/** Fill for selected rows, list items, tabs and toggled-on controls. */
-	val SELECTION_FILL: Color = Color.valueOf("294963FF")
+	val SELECTION_FILL: Color = Color.valueOf("203D51FF")
 
-	val ACCENT: Color = Color.valueOf("59C2FFFF")
+	val ACCENT: Color = Color.valueOf("6AD7EBFF")
 	/** Dimmer accent for filled meters (slider/progress fill) and selected-item edges. */
-	val ACCENT_DIM: Color = Color.valueOf("4F9DDEFF")
+	val ACCENT_DIM: Color = Color.valueOf("4BB3CCFF")
 	/** Near-white accent for high-emphasis focus halos on already-accented controls. */
-	val ACCENT_BRIGHT: Color = Color.valueOf("B8E3FFFF")
+	val ACCENT_BRIGHT: Color = Color.valueOf("C9F6FFFF")
 	val POSITIVE: Color = Color.valueOf("6FCF63FF")
 	/** Light enough to stay WCAG AA as error text/icon on SURFACE_RAISED; also used for error borders. */
-	val NEGATIVE: Color = Color.valueOf("F47B6BFF")
+	val NEGATIVE: Color = Color.valueOf("F88F83FF")
 	val WARNING: Color = Color.valueOf("E0A33AFF")
 }
 
