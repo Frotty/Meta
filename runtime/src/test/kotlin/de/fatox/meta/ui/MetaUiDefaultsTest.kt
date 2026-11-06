@@ -61,12 +61,14 @@ internal class MetaUiDefaultsTest {
 	fun `theme text colors meet WCAG AA contrast`() {
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.PRIMARY, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.PRIMARY_HOVER, 4.5f)
+		assertContrastAtLeast(MetaColor.TEXT, MetaColor.PRIMARY_PRESSED, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.SECONDARY, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.TERTIARY, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.SELECTION, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT, MetaColor.SELECTION_FILL, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT_MUTED, MetaColor.SURFACE_RAISED, 4.5f)
 		assertContrastAtLeast(MetaColor.TEXT_MUTED, MetaColor.BACKGROUND, 4.5f)
+		assertContrastAtLeast(MetaColor.TEXT_MUTED, MetaColor.FILL_FIELD, 4.5f)
 		// Error helper text is CAPTION-sized on window (raised) surfaces, so NEGATIVE itself must be AA there.
 		assertContrastAtLeast(MetaColor.NEGATIVE, MetaColor.SURFACE_RAISED, 4.5f)
 		assertContrastAtLeast(MetaColor.NEGATIVE, MetaColor.SURFACE, 4.5f)
@@ -81,6 +83,10 @@ internal class MetaUiDefaultsTest {
 		assertContrastAtLeast(MetaColor.BORDER_STRONG, MetaColor.FILL_SUNKEN, 3f)
 		assertContrastAtLeast(MetaColor.ACCENT, MetaColor.FILL_FIELD, 3f)
 		assertContrastAtLeast(MetaColor.ACCENT_DIM, MetaColor.SURFACE, 3f)
+		assertContrastAtLeast(MetaColor.WINDOW_FRAME, MetaColor.SURFACE, 3f)
+		assertContrastAtLeast(MetaColor.WINDOW_FRAME, MetaColor.BACKGROUND, 3f)
+		assertContrastAtLeast(MetaColor.ACCENT_BRIGHT, MetaColor.PRIMARY_HOVER, 3f)
+		assertContrastAtLeast(MetaColor.ACCENT_BRIGHT, MetaColor.SELECTION_FILL, 3f)
 	}
 
 	private fun assertContrastAtLeast(foreground: com.badlogic.gdx.graphics.Color, background: com.badlogic.gdx.graphics.Color, minimum: Float) {

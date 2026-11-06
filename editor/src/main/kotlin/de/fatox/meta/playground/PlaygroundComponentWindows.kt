@@ -4,11 +4,13 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
 import de.fatox.meta.api.extensions.onClick
 import de.fatox.meta.api.extensions.onChange
 import de.fatox.meta.api.extensions.tooltip
+import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.api.ui.showWindow
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -56,16 +58,17 @@ import kotlin.math.roundToInt
 class TypographyPlaygroundWindow : MetaWindow("Typography & Icons", resizable = true, closeButton = true) {
 	init {
 		setDefaultSize(430f, 300f)
-		contentTable.defaults().left().growX()
-		contentTable.add(MetaLabel("TYPE SCALE", MetaType.CAPTION, MetaColor.ACCENT)).padBottom(MetaSpacing.SM).row()
-		contentTable.add(MetaLabel("Display", MetaType.DISPLAY, MetaColor.TEXT)).row()
-		contentTable.add(MetaLabel("Heading", MetaType.HEADING, MetaColor.TEXT)).row()
-		contentTable.add(MetaLabel("Title", MetaType.TITLE, MetaColor.TEXT)).row()
-		contentTable.add(MetaLabel("Subtitle", MetaType.SUBTITLE, MetaColor.TEXT)).row()
-		contentTable.add(MetaLabel("Label", MetaType.LABEL, MetaColor.TEXT)).row()
-		contentTable.add(MetaLabel("Body text for normal interface content.", MetaType.BODY, MetaColor.TEXT)).row()
+		contentTable.pad(MetaSpacing.LG)
+		contentTable.defaults().left().spaceBottom(MetaSpacing.SM)
+		contentTable.add(MetaLabel("TYPE SCALE", MetaType.CAPTION, MetaColor.ACCENT, FontType.BOLD)).row()
+		contentTable.add(MetaLabel("Display", MetaType.DISPLAY, type = FontType.BOLD)).row()
+		contentTable.add(MetaLabel("Heading", MetaType.HEADING, type = FontType.BOLD)).row()
+		contentTable.add(MetaLabel("Title", MetaType.TITLE)).row()
+		contentTable.add(MetaLabel("Subtitle", MetaType.SUBTITLE)).row()
+		contentTable.add(MetaLabel("Label", MetaType.LABEL)).row()
+		contentTable.add(MetaLabel("Body text for interface content.", MetaType.BODY)).row()
 		contentTable.add(MetaLabel("Caption and supporting information", MetaType.CAPTION, MetaColor.TEXT_MUTED)).row()
-		contentTable.add(MetaSeparator()).height(1f).padTop(MetaSpacing.MD).padBottom(MetaSpacing.MD).row()
+		contentTable.add(MetaSeparator()).growX().height(1f).spaceTop(MetaSpacing.MD).row()
 
 		val icons = MetaTable().apply {
 			defaults().size(MetaControlSize.COMPACT.iconTarget).padRight(MetaSpacing.SM)
@@ -93,10 +96,14 @@ class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true,
 
 	init {
 		setDefaultSize(650f, 430f)
+		contentTable.pad(MetaSpacing.SM)
 		contentTable.defaults().left().growX().padBottom(MetaSpacing.SM)
 
-		contentTable.add(MetaLabel("ACTION HIERARCHY", MetaType.CAPTION, MetaColor.ACCENT)).row()
+		contentTable.add(MetaLabel("ACTION HIERARCHY", MetaType.CAPTION, MetaColor.ACCENT, FontType.BOLD).apply {
+			setAlignment(Align.left)
+		}).row()
 		val actions = MetaTable().apply {
+			left()
 			defaults().height(MetaControlSize.STANDARD.height).padRight(MetaSpacing.SM)
 			add(navigationStart)
 			add(MetaTextButton("Preview", tier = MetaButtonTier.SECONDARY)
@@ -106,12 +113,16 @@ class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true,
 		}
 		contentTable.add(actions).row()
 		contentTable.add(MetaLabel(
-			"One primary action per decision area; secondary for alternatives; tertiary for low-emphasis utilities.",
+			"Primary, secondary, and tertiary actions.",
 			MetaType.CAPTION,
 			MetaColor.TEXT_MUTED,
-		)).row()
+		).apply {
+			setAlignment(Align.left)
+			setWrap(true)
+		}).row()
 
 		val iconActions = MetaTable().apply {
+			left()
 			defaults().height(MetaControlSize.STANDARD.height).padRight(MetaSpacing.XS)
 			add(MetaIconButton("ri-check-line", MetaButtonTier.PRIMARY).apply { tooltip("Primary icon action") })
 				.width(MetaControlSize.STANDARD.iconTarget)
@@ -177,7 +188,7 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 	private val uiScaleLabel = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 	private val loading = MetaLoadingSpinner(32f, 3.5f)
 	private val summary = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
-	private val pickedColor = signal(Color.valueOf("4F9DDEFF"))
+	private val pickedColor = signal(MetaColor.ACCENT_DIM.cpy())
 	private val colorSwatch = MetaColorSwatch(pickedColor.peek())
 	private val colorLabel = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 	private val pickerListener = object : MetaColorPickerListener {
@@ -187,6 +198,7 @@ class SelectionPlaygroundWindow : MetaWindow("Selection & Progress", resizable =
 
 	init {
 		setDefaultSize(430f, 310f)
+		contentTable.pad(MetaSpacing.SM)
 		val grid = MetaTable().apply {
 			defaults().left().padBottom(MetaSpacing.MD)
 			add(fieldLabel("Select")).width(105f)
@@ -302,7 +314,7 @@ class ColorPickerPlaygroundWindow : MetaWindow("Color Picker", resizable = true,
 			align = MetaFlexAlign.STRETCH,
 		).apply {
 			addItem(MetaLabel(
-				"Test hue and saturation/value dragging, brightness, alpha, and typed HEX/RGBA input.",
+				"Preview alpha and edit HEX or RGBA.",
 				MetaType.CAPTION,
 				MetaColor.TEXT_MUTED,
 			), grow = 0f)
@@ -359,9 +371,12 @@ class CollectionsPlaygroundWindow : MetaWindow("Lists & Scrolling", resizable = 
 		add("Menus and popup lifecycle")
 	}
 	private val list = MetaListView(object : MetaArrayAdapter<String, MetaButtonContainer>(items) {
-		override fun createView(item: String): MetaButtonContainer = MetaButtonContainer().apply {
+		override fun createView(item: String): MetaButtonContainer = MetaButtonContainer(MetaButtonTier.TERTIARY).apply {
 			left()
-			add(MetaLabel(item, MetaType.CAPTION, MetaColor.TEXT)).left().growX().padLeft(MetaSpacing.SM)
+			add(MetaLabel(item, MetaType.CAPTION, MetaColor.TEXT).apply {
+				setAlignment(Align.left)
+				setEllipsis(true)
+			}).minWidth(0f).growX().padLeft(MetaSpacing.MD)
 			val menuButton = MetaImageButton("ri-menu-line", size = 18).apply menuButton@ {
 				tooltip("Actions for $item")
 				onClick {
@@ -394,13 +409,17 @@ class CollectionsPlaygroundWindow : MetaWindow("Lists & Scrolling", resizable = 
 
 	init {
 		setDefaultSize(520f, 310f)
+		contentTable.pad(MetaSpacing.SM)
 
 		contentTable.defaults().growX().left()
 		contentTable.add(MetaLabel(
-			"Hover the regression row, its Co-op badge, and its compact menu independently.",
+			"Hover the row, co-op badge, or menu.",
 			MetaType.CAPTION,
 			MetaColor.TEXT_MUTED,
-		)).padBottom(MetaSpacing.SM).row()
+		).apply {
+			setAlignment(Align.left)
+			setWrap(true)
+		}).padBottom(MetaSpacing.SM).row()
 		contentTable.add(nestedTooltipRow).growX().padBottom(MetaSpacing.SM).row()
 		contentTable.add(MetaSeparator()).height(1f).padBottom(MetaSpacing.SM).row()
 		contentTable.add(list.scrollPane).grow().row()
@@ -431,4 +450,6 @@ class CollectionsPlaygroundWindow : MetaWindow("Lists & Scrolling", resizable = 
 	}
 }
 
-private fun fieldLabel(text: String) = MetaLabel(text, MetaType.CAPTION, MetaColor.TEXT_MUTED)
+private fun fieldLabel(text: String) = MetaLabel(text, MetaType.CAPTION, MetaColor.TEXT_MUTED).apply {
+	setAlignment(Align.left)
+}

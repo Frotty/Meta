@@ -1,5 +1,6 @@
 package de.fatox.meta.playground
 
+import com.badlogic.gdx.utils.Align
 import de.fatox.meta.api.extensions.tooltip
 import de.fatox.meta.ui.MetaButtonTier
 import de.fatox.meta.ui.MetaColor
@@ -10,10 +11,10 @@ import de.fatox.meta.ui.components.MetaCheckBox
 import de.fatox.meta.ui.components.MetaIcon
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaIconButtonGroup
+import de.fatox.meta.ui.components.MetaImageButton
 import de.fatox.meta.ui.components.MetaInputLayout
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaScrollPane
-import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.windows.MetaWindow
 
@@ -23,10 +24,12 @@ class DockToolsPlaygroundWindow : MetaWindow("Tools", resizable = true, closeBut
 
 	init {
 		setDefaultSize(250f, 190f)
+		contentTable.pad(MetaSpacing.SM)
 		contentTable.defaults().left().growX()
-		contentTable.add(MetaLabel("ACTIVE TOOL", MetaType.CAPTION, MetaColor.TEXT_MUTED))
+		contentTable.add(MetaLabel("ACTIVE TOOL", MetaType.CAPTION, MetaColor.ACCENT).apply { setAlignment(Align.left) })
 			.padBottom(MetaSpacing.SM).row()
 		contentTable.add(MetaTable().apply {
+			left()
 			defaults().size(38f).padRight(MetaSpacing.XS).padBottom(MetaSpacing.XS)
 			add(tools.add(tool("Select", "ri-cursor-line"), selected = true))
 			add(tools.add(tool("Brush", "ri-brush-line")))
@@ -34,7 +37,7 @@ class DockToolsPlaygroundWindow : MetaWindow("Tools", resizable = true, closeBut
 			add(tools.add(tool("Move", "ri-drag-move-2-line")))
 			add(tools.add(tool("Shape", "ri-shape-line")))
 			add(tools.add(tool("Grid", "ri-layout-grid-line")))
-		}).left()
+		})
 	}
 
 	private fun tool(label: String, icon: String) = MetaIconButton(icon).apply {
@@ -47,6 +50,8 @@ class DockLayersPlaygroundWindow : MetaWindow("Layers", resizable = true, closeB
 	init {
 		setDefaultSize(250f, 420f)
 		val layers = MetaTable().apply {
+			top().left()
+			pad(MetaSpacing.SM)
 			defaults().growX().padBottom(MetaSpacing.XS)
 			layer("Lighting", "ri-sun-line")
 			layer("Gameplay", "ri-gamepad-line")
@@ -60,11 +65,11 @@ class DockLayersPlaygroundWindow : MetaWindow("Layers", resizable = true, closeB
 	}
 
 	private fun MetaTable.layer(label: String, icon: String) {
-		add(MetaButtonContainer().apply {
+		add(MetaButtonContainer(MetaButtonTier.TERTIARY).apply {
 			left()
 			add(MetaIcon(icon, 18, MetaColor.TEXT_MUTED.cpy())).size(28f)
-			add(MetaLabel(label, MetaType.CAPTION, MetaColor.TEXT)).left().growX()
-			add(MetaIconButton("ri-eye-line", MetaButtonTier.TERTIARY).apply {
+			add(MetaLabel(label, MetaType.CAPTION, MetaColor.TEXT).apply { setAlignment(Align.left) }).growX()
+			add(MetaImageButton("ri-eye-line", size = 18).apply {
 				tooltip("Toggle $label visibility")
 			}).size(30f)
 		}).height(36f).row()
@@ -74,17 +79,15 @@ class DockLayersPlaygroundWindow : MetaWindow("Layers", resizable = true, closeB
 class DockInspectorPlaygroundWindow : MetaWindow("Inspector", resizable = true, closeButton = true) {
 	init {
 		setDefaultSize(310f, 285f)
+		contentTable.pad(MetaSpacing.SM)
 		contentTable.defaults().growX().left().padBottom(MetaSpacing.SM)
-		contentTable.add(MetaLabel("SELECTION", MetaType.CAPTION, MetaColor.ACCENT)).row()
+		contentTable.add(MetaLabel("SELECTION", MetaType.CAPTION, MetaColor.ACCENT).apply { setAlignment(Align.left) }).row()
 		contentTable.add(MetaInputLayout.field("Name", "Portal frame")).row()
 		contentTable.add(MetaInputLayout.field("Position", "128, 64")).row()
 		contentTable.add(MetaTable().apply {
 			add(MetaCheckBox(initialChecked = true)).size(28f).padRight(MetaSpacing.SM)
-			add(MetaLabel("Visible in editor", MetaType.CAPTION, MetaColor.TEXT)).left().growX()
+			add(MetaLabel("Visible in editor", MetaType.CAPTION, MetaColor.TEXT).apply { setAlignment(Align.left) }).growX()
 		}).row()
-		contentTable.add(MetaSeparator()).height(1f).padTop(MetaSpacing.XS).row()
-		contentTable.add(MetaLabel("Resize this divider, then drag the panel away from the edge.",
-			MetaType.CAPTION, MetaColor.TEXT_MUTED)).row()
 	}
 }
 
@@ -92,6 +95,8 @@ class DockActivityPlaygroundWindow : MetaWindow("Activity", resizable = true, cl
 	init {
 		setDefaultSize(310f, 360f)
 		val activity = MetaTable().apply {
+			top().left()
+			pad(MetaSpacing.SM)
 			defaults().growX().left().padBottom(MetaSpacing.SM)
 			entry("Workspace opened", "ri-folder-open-line")
 			entry("Dock layout restored", "ri-layout-column-line")
