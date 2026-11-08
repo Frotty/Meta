@@ -12,6 +12,11 @@ pipeline {
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '30', artifactDaysToKeepStr: '14'))
     }
+    environment {
+        // Docker Pipeline mounts the job's sibling temporary directory across runs.
+        // Keep the wrapper and dependency caches there so git clean can still wipe the checkout.
+        GRADLE_USER_HOME = "${env.WORKSPACE}@tmp/meta-gradle"
+    }
     stages {
         stage('Toolchain') {
             steps {
@@ -62,6 +67,14 @@ pipeline {
         failure {
             archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/reports/tests/**'
         }
-        cleanup { sh 'chmod -R a+rwX "$WORKSPACE" 2>/dev/null || true' }
+        cleanup {
+            sh '''
+                if [ -d "$GRADLE_USER_HOME" ]; then
+                    # The agent runs as root; let the Jenkins workspace owner clean up orphaned jobs.
+                    chown -R --reference="$WORKSPACE" "$GRADLE_USER_HOME"
+                fi
+                chmod -R a+rwX "$WORKSPACE" 2>/dev/null || true
+            '''
+        }
     }
 }
