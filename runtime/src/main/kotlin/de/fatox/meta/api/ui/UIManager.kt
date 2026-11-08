@@ -96,6 +96,8 @@ inline fun <reified T : MetaWindow> WindowConfig.registerSingleton(
 val logger = MetaLoggerFactory.logger {}
 
 inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
+	val legacyName = T::class.qualifiedName ?: return
+	if (legacyName == name) return
 	val gameName: String = canonicalAppStorageName(MetaInject.inject("gameName"))
 	val screenFolders = Gdx.files.external(".$gameName").child(MetaData.GLOBAL_DATA_FOLDER_NAME).list()
 	for (screenIndex in screenFolders.indices) {
@@ -104,7 +106,7 @@ inline fun <reified T : MetaWindow> handleLegacyName(name: String) {
 			val windowFiles = screenId.list()
 			for (windowIndex in windowFiles.indices) {
 				val windowId = windowFiles[windowIndex]
-				if (windowId.name() != T::class.qualifiedName) continue
+				if (windowId.name() != legacyName) continue
 				logger.debug("Found legacy window name: ${windowId.name()}, replacing with $name")
 				windowId.moveTo(windowId.sibling(name))
 				break
