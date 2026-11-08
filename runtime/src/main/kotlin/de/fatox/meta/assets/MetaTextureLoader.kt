@@ -131,12 +131,7 @@ internal class MetaTextureLoader(
 
 		var previous = base
 		while (previous.width > 1 || previous.height > 1) {
-			val width = (previous.width / 2).coerceAtLeast(1)
-			val height = (previous.height / 2).coerceAtLeast(1)
-			val next = Pixmap(width, height, base.format)
-			next.setBlending(Pixmap.Blending.None)
-			next.setFilter(Pixmap.Filter.BiLinear)
-			next.drawPixmap(previous, 0, 0, previous.width, previous.height, 0, 0, width, height)
+			val next = downsampleMip(previous)
 			levels.add(next)
 			previous = next
 		}
