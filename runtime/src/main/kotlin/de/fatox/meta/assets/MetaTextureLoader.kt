@@ -66,7 +66,7 @@ internal class MetaTextureLoader(
 			} else {
 				source.also { source = null }
 			}
-			val levels = buildMipLevels(base, data.useMipMaps())
+			val levels = buildMipLevels(base, data.useMipMaps(), parameter is AtlasPageTextureParameter)
 			prepared = PreparedTexture(file, levels, data.useMipMaps())
 		} finally {
 			source?.dispose()
@@ -124,19 +124,14 @@ internal class MetaTextureLoader(
 		existingTexture = null
 	}
 
-	private fun buildMipLevels(base: Pixmap, useMipMaps: Boolean): Array<Pixmap?> {
+	private fun buildMipLevels(base: Pixmap, useMipMaps: Boolean, linearLight: Boolean): Array<Pixmap?> {
 		val levels = Array<Pixmap?>()
 		levels.add(base)
 		if (!useMipMaps) return levels
 
 		var previous = base
 		while (previous.width > 1 || previous.height > 1) {
-			val width = (previous.width / 2).coerceAtLeast(1)
-			val height = (previous.height / 2).coerceAtLeast(1)
-			val next = Pixmap(width, height, base.format)
-			next.setBlending(Pixmap.Blending.None)
-			next.setFilter(Pixmap.Filter.BiLinear)
-			next.drawPixmap(previous, 0, 0, previous.width, previous.height, 0, 0, width, height)
+			val next = downsampleMip(previous, linearLight)
 			levels.add(next)
 			previous = next
 		}
