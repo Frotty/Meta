@@ -83,6 +83,8 @@ object MetaSkin {
 	private const val SHAPE_AA_SAMPLES = 4
 	private const val DEPTH_EDGE_THICKNESS = 1.4f
 	private const val FIELD_RADIUS = 2
+	/** One silhouette for every resting/interactive state of a secondary button, so pressing never reshapes it. */
+	private const val SECONDARY_RADIUS = 3
 	private const val ICON_SIZE = 24
 	private const val ICON_PIXMAP_SCALE = 3
 	private const val ICON_PIXMAP_SIZE = ICON_SIZE * ICON_PIXMAP_SCALE
@@ -432,13 +434,13 @@ object MetaSkin {
 
 	private fun windowTitleRule(skin: Skin) {
 		if (deferInstall { windowTitleRule(skin) }) return
-		val lead = 32
-		val pixmap = Pixmap(lead + 1, 2, Pixmap.Format.RGBA8888)
-		pixmap.setColor(MetaColor.BORDER)
-		pixmap.fillRectangle(0, 1, pixmap.width, 1)
-		pixmap.setColor(MetaColor.ACCENT_DIM)
-		pixmap.fillRectangle(0, 0, lead, 2)
-		packDrawable(WINDOW_TITLE_RULE, pixmap, splits = intArrayOf(lead, 0, 0, 0))
+		// A quiet full-width hairline on the bottom row. The header needs separation, not a second accent competing
+		// with focus rings and selected controls.
+		val pixmap = Pixmap(1, 2, Pixmap.Format.RGBA8888)
+		pixmap.setBlending(Pixmap.Blending.None)
+		pixmap.drawPixel(0, 0, Color.rgba8888(TRANSPARENT))
+		pixmap.drawPixel(0, 1, Color.rgba8888(MetaColor.BORDER))
+		packDrawable(WINDOW_TITLE_RULE, pixmap, splits = intArrayOf(0, 0, 1, 0))
 	}
 
 	private fun loadingRing(skin: Skin) {
@@ -461,15 +463,16 @@ object MetaSkin {
 		rounded(skin, "meta.button.primary.down", MetaColor.PRIMARY_PRESSED, MetaColor.ACCENT, radius = 6, border = 1, padding = 9f, cutCorners = true)
 		rounded(skin, "meta.button.primary.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = 6, border = 1, padding = 9f, cutCorners = true)
 
-		rounded(skin, "meta.button.up", MetaColor.SECONDARY, MetaColor.BORDER, radius = 3, border = 1, padding = 9f)
-		rounded(skin, "meta.button.over", MetaColor.SECONDARY_HOVER, MetaColor.BORDER_STRONG, radius = 3, border = 1, padding = 9f)
-		rounded(skin, "meta.button.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT_BRIGHT, radius = 3, border = 2, padding = 9f)
-		rounded(skin, "meta.button.focusOver", MetaColor.SECONDARY_HOVER, MetaColor.ACCENT_BRIGHT, radius = 3, border = 2, padding = 9f)
-		rounded(skin, "meta.button.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f, depth = MetaDepth.PRESSED)
+		// Selected (checked) secondary buttons deliberately switch to the chamfered silhouette that marks emphasis.
+		rounded(skin, "meta.button.up", MetaColor.SECONDARY, MetaColor.BORDER, radius = SECONDARY_RADIUS, border = 1, padding = 9f)
+		rounded(skin, "meta.button.over", MetaColor.SECONDARY_HOVER, MetaColor.BORDER_STRONG, radius = SECONDARY_RADIUS, border = 1, padding = 9f)
+		rounded(skin, "meta.button.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT_BRIGHT, radius = SECONDARY_RADIUS, border = 2, padding = 9f)
+		rounded(skin, "meta.button.focusOver", MetaColor.SECONDARY_HOVER, MetaColor.ACCENT_BRIGHT, radius = SECONDARY_RADIUS, border = 2, padding = 9f)
+		rounded(skin, "meta.button.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = SECONDARY_RADIUS, border = 1, padding = 9f, depth = MetaDepth.PRESSED)
 		rounded(skin, "meta.button.checked", MetaColor.SELECTION_FILL, MetaColor.ACCENT_DIM, radius = 4, border = 1, padding = 9f, cutCorners = true)
 		rounded(skin, "meta.button.checkedOver", MetaColor.SELECTION, MetaColor.ACCENT_DIM, radius = 4, border = 1, padding = 9f, cutCorners = true)
 		rounded(skin, "meta.button.checkedFocus", MetaColor.SELECTION_FILL, MetaColor.ACCENT_BRIGHT, radius = 4, border = 2, padding = 9f, cutCorners = true)
-		rounded(skin, "meta.button.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = 4, border = 1, padding = 9f)
+		rounded(skin, "meta.button.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = SECONDARY_RADIUS, border = 1, padding = 9f)
 
 		// Tertiary is low-emphasis, not invisible. Ordinary buttons and selectable rows keep a restrained resting
 		// frame so their hit area remains legible; only MetaImageButton utilities are borderless until interaction.
@@ -479,8 +482,8 @@ object MetaSkin {
 		rounded(skin, "meta.button.tertiary.down", MetaColor.FILL_PRESSED, MetaColor.ACCENT, radius = 4, border = 1, padding = 9f, depth = MetaDepth.PRESSED)
 		rounded(skin, "meta.button.tertiary.disabled", MetaColor.TERTIARY, MetaColor.BORDER_DISABLED, radius = 4, border = 1, padding = 9f)
 
-	// Image utilities share the tertiary resting frame: anything fainter disappears on raised window surfaces,
-	// and the resting edge is what makes their hit target discoverable without hover (keyboard/controller, tiles).
+		// Image utilities share the tertiary resting frame: anything fainter disappears on raised window surfaces,
+		// and the resting edge is what makes their hit target discoverable without hover (keyboard/controller, tiles).
 		rounded(skin, "meta.imageButton.up", MetaColor.TERTIARY, MetaColor.BORDER, radius = 3, border = 1, padding = 8f)
 		rounded(skin, "meta.imageButton.over", MetaColor.TERTIARY_HOVER, MetaColor.BORDER_STRONG, radius = 3, border = 1, padding = 8f, depth = MetaDepth.RAISED)
 		rounded(skin, "meta.imageButton.focus", MetaColor.FILL_FOCUS, MetaColor.ACCENT, radius = 3, border = 2, padding = 8f, depth = MetaDepth.RAISED)
@@ -817,7 +820,8 @@ object MetaSkin {
 		if (deferInstall { segmentedRounded(skin, name, fill, stroke, roundLeft, roundRight) }) return
 		val pixmap = Pixmap(PATCH_SIZE, PATCH_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
-		val radius = 6f
+		// Matches the text field radius so a spinner reads as the same family as fields and select boxes.
+		val radius = FIELD_RADIUS.toFloat()
 		val border = 1f
 		for (y in 0 until PATCH_SIZE) {
 			for (x in 0 until PATCH_SIZE) {
@@ -1037,7 +1041,7 @@ object MetaSkin {
 		val pixmap = Pixmap(ICON_PIXMAP_SIZE, ICON_PIXMAP_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
 		val fill = when {
-			disabled -> Color.valueOf("292A2EFF")
+			disabled -> MetaColor.FILL_SUNKEN
 			down -> MetaColor.FILL_PRESSED
 			over -> MetaColor.TERTIARY_HOVER
 			else -> MetaColor.FILL_SUNKEN
@@ -1053,7 +1057,7 @@ object MetaSkin {
 		packDrawable(name, pixmap, minWidth = ICON_SIZE.toFloat(), minHeight = ICON_SIZE.toFloat())
 	}
 
-	/** Supersampled solid circle rendered at [ICON_PIXMAP_SCALE], for knobs that must never nine-patch-stretch. */
+	/** Supersampled outlined diamond rendered at [ICON_PIXMAP_SCALE], for knobs that must never nine-patch-stretch. */
 	private fun sliderThumb(skin: Skin, name: String, fill: Color, stroke: Color) {
 		if (deferInstall { sliderThumb(skin, name, fill, stroke) }) return
 		val diameter = 18f
