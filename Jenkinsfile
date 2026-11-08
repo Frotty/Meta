@@ -12,6 +12,11 @@ pipeline {
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '30', artifactDaysToKeepStr: '14'))
     }
+    environment {
+        // Docker Pipeline mounts the job's sibling temporary directory across runs.
+        // Keep dependency caches there so git clean can still wipe the checkout.
+        GRADLE_USER_HOME = "${env.WORKSPACE}@tmp/meta-gradle"
+    }
     stages {
         stage('Toolchain') {
             steps {
@@ -20,20 +25,26 @@ pipeline {
                     java -version
                     git config --global --add safe.directory "$WORKSPACE"
                     git clean -fdx -q
-                    chmod +x gradlew
+                    expected="$(sed -n 's|^distributionUrl=.*/gradle-\\(.*\\)-bin\\.zip$|\\1|p' gradle/wrapper/gradle-wrapper.properties)"
+                    version="$(gradle --version)"
+                    printf '%s\\n' "$version"
+                    if [ -z "$expected" ] || ! printf '%s\\n' "$version" | grep -Fxq "Gradle $expected"; then
+                        echo "The CI image must use the Gradle version pinned by the wrapper ($expected)." >&2
+                        exit 1
+                    fi
                 '''
             }
         }
         stage('Compile and validate') {
             steps {
-                sh './gradlew verifyKotlinIterationSafety verifyNoDuplicateClasses :runtime:compileKotlin :runtime-desktop:compileKotlin :editor:compileKotlin :editor-desktop:compileKotlin --no-daemon --stacktrace'
+                sh 'gradle verifyKotlinIterationSafety verifyNoDuplicateClasses :runtime:compileKotlin :runtime-desktop:compileKotlin :editor:compileKotlin :editor-desktop:compileKotlin --no-daemon --stacktrace'
             }
         }
         stage('Tests') {
-            steps { sh './gradlew :runtime:test --no-daemon --stacktrace' }
+            steps { sh 'gradle :runtime:test --no-daemon --stacktrace' }
         }
         stage('Frame budgets') {
-            steps { sh './gradlew :runtime:perfCheck --no-daemon --stacktrace' }
+            steps { sh 'gradle :runtime:perfCheck --no-daemon --stacktrace' }
         }
         stage('Release') {
             when {
@@ -62,6 +73,14 @@ pipeline {
         failure {
             archiveArtifacts allowEmptyArchive: true, artifacts: '**/build/reports/tests/**'
         }
-        cleanup { sh 'chmod -R a+rwX "$WORKSPACE" 2>/dev/null || true' }
+        cleanup {
+            sh '''
+                if [ -d "$GRADLE_USER_HOME" ]; then
+                    # The agent runs as root; let the Jenkins workspace owner clean up orphaned jobs.
+                    chown -R --reference="$WORKSPACE" "$GRADLE_USER_HOME"
+                fi
+                chmod -R a+rwX "$WORKSPACE" 2>/dev/null || true
+            '''
+        }
     }
 }
