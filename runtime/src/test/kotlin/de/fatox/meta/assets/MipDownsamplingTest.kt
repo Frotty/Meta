@@ -18,8 +18,8 @@ class MipDownsamplingTest {
 							rotated.drawPixel(height - 1 - y, x, color)
 						}
 					}
-					val mip = downsampleMip(source)
-					val rotatedMip = downsampleMip(rotated)
+					val mip = downsampleMip(source, linearLight = true)
+					val rotatedMip = downsampleMip(rotated, linearLight = true)
 					try {
 						for (y in 0 until mip.height) {
 							for (x in 0 until mip.width) {
@@ -36,12 +36,28 @@ class MipDownsamplingTest {
 	}
 
 	@Test
+	fun `thin bright details keep their light when minified`() {
+		withPixmap(2, 2) { source ->
+			source.setColor(0x000000ff)
+			source.fill()
+			source.drawPixel(0, 0, -1)
+			source.drawPixel(0, 1, -1)
+			val mip = downsampleMip(source, linearLight = true)
+			try {
+				assertEquals(0xbcbcbcff.toInt(), mip.getPixel(0, 0))
+			} finally {
+				mip.dispose()
+			}
+		}
+	}
+
+	@Test
 	fun `clear texels preserve bleed without tinting visible color`() {
 		withPixmap(4, 2) { source ->
 			source.setColor(0x0000ff00)
 			source.fill()
 			source.drawPixel(1, 0, 0xff0000ff.toInt())
-			val mip = downsampleMip(source)
+			val mip = downsampleMip(source, linearLight = true)
 			try {
 				assertEquals(0xff000040.toInt(), mip.getPixel(0, 0))
 				assertEquals(0x0000ff00, mip.getPixel(1, 0))

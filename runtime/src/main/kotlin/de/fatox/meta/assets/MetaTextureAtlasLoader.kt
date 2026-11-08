@@ -12,6 +12,8 @@ import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.TextureAtlasData
 import com.badlogic.gdx.utils.Array
 
+internal class AtlasPageTextureParameter : TextureParameter()
+
 /**
  * Texture-atlas dependency discovery parses the atlas file and may decompress it from an XPK. libGDX's stock
  * TextureAtlasLoader is synchronous, so that work happens inside AssetManager.update on the render thread.
@@ -35,7 +37,7 @@ internal class MetaTextureAtlasLoader(
 		val pages = atlasData.pages
 		for (index in 0 until pages.size) {
 			val page = pages[index]
-			val textureParameter = TextureParameter().apply {
+			val textureParameter = AtlasPageTextureParameter().apply {
 				format = page.format
 				genMipMaps = page.useMipMaps
 				minFilter = page.minFilter
