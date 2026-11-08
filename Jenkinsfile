@@ -27,6 +27,9 @@ pipeline {
                     git clean -fdx -q
                     chmod +x gradlew
                 '''
+                retry(3) {
+                    sh './gradlew --version'
+                }
             }
         }
         stage('Compile and validate') {
