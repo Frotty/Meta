@@ -6,25 +6,21 @@ import com.badlogic.gdx.graphics.g3d.Renderable
 import com.badlogic.gdx.graphics.g3d.Shader
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
-import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.utils.GdxRuntimeException
 import de.fatox.meta.graphics.renderer.FullscreenShader
 
 class CompositeShader : FullscreenShader() {
     override lateinit var program: ShaderProgram
         private set
-    private val s_albedoTex = 0
     private var s_depthTex = 0
     private var u_nearDistance = 0
     private var u_farDistance = 0
-    private val temp = Matrix4()
     override fun init() {
         val vert = Gdx.files.internal("shaders/composite.vert").readString()
         val frag = Gdx.files.internal("shaders/composite.frag").readString()
         program = ShaderProgram(vert, frag)
         if (!program.isCompiled) throw GdxRuntimeException(program.log)
 
-        //        s_albedoTex = program.getUniformLocation("s_albedoTex");
         s_depthTex = program.getUniformLocation("s_depthTex")
         u_nearDistance = program.getUniformLocation("u_cameraNear")
         u_farDistance = program.getUniformLocation("u_cameraFar")

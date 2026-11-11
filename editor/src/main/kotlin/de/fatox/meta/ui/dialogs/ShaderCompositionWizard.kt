@@ -1,7 +1,6 @@
 package de.fatox.meta.ui.dialogs
 
 import com.badlogic.gdx.utils.Align
-import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.MetaShaderComposer
 import de.fatox.meta.ui.MetaSpacing
@@ -14,7 +13,6 @@ import de.fatox.meta.ui.windows.MetaDialog
 
 class ShaderCompositionWizard : MetaDialog("Composition Wizard", true) {
 	private val metaShaderComposer: MetaShaderComposer by lazyInject()
-	private val projectManager: ProjectManager by lazyInject()
 
 	private val createBtn: MetaTextButton
 	private val compNameTF: MetaValidTextField = MetaValidTextField("Composition name:", statusLabel)

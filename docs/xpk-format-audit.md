@@ -1,5 +1,9 @@
 # XPK format audit
 
+This is a historical audit and design record. Sections 1 to 7 describe the implementation at audit time; they are
+not a description of the current reader. For current ownership and entry points, see
+[assets guidance](../runtime/src/main/kotlin/de/fatox/meta/assets/AGENTS.md). Section 11 records the v2 implementation.
+
 Audit of the XPK game-data archive as implemented in `runtime/src/main/kotlin/de/fatox/meta/assets/`, against four
 goals: resistance to casual extraction, fast decompression at acceptable ratio, non-blocking indexed lazy loading, and
 resistance to modification given that Meta itself is public.
@@ -20,15 +24,15 @@ The reader is three classes:
 
 | File | Role |
 | --- | --- |
-| [XPKLoader.kt](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt) | Reads the whole file, verifies the trailer, restores the 7z signature, enumerates entries, reads one entry |
-| [XPKByteChannel.kt](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt) | `SeekableByteChannel` over the in-heap archive bytes |
-| [XPKFileHandle.kt](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt) | libGDX `FileHandle` per entry, decompressing lazily on first `readBytes()` |
+| [XPKLoader.kt](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt) | Reads the whole file, verifies the trailer, restores the 7z signature, enumerates entries, reads one entry |
+| [XPKByteChannel.kt](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt) | `SeekableByteChannel` over the in-heap archive bytes |
+| [XPKFileHandle.kt](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt) | libGDX `FileHandle` per entry, decompressing lazily on first `readBytes()` |
 
-[MetaAssetProvider.loadPackedAssetsFromFolder](runtime/src/main/kotlin/de/fatox/meta/assets/MetaAssetProvider.kt:80)
+[MetaAssetProvider.loadPackedAssetsFromFolder](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/MetaAssetProvider.kt#L80)
 indexes every `.xpk` in a folder by calling `getList` and caching one handle per entry under a case-folded path key.
 
 There is no writer. `SevenZOutputFile` appears only in
-[XPKLoaderTest.kt:22](runtime/src/test/kotlin/de/fatox/meta/assets/XPKLoaderTest.kt:22), so the format is defined
+[XPKLoaderTest.kt:22](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/test/kotlin/de/fatox/meta/assets/XPKLoaderTest.kt#L22), so the format is defined
 solely by what the reader happens to accept.
 
 ## 2. Findings
@@ -36,7 +40,7 @@ solely by what the reader happens to accept.
 ### Critical
 
 **C1: Entry reads are O(N²).**
-[XPKLoader.loadEntry](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:84) constructs a *new* `SevenZFile`
+[XPKLoader.loadEntry](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt#L84) constructs a *new* `SevenZFile`
 per entry, seeks to 0, and calls `nextEntry` until the name matches. Every read therefore re-parses the archive header
 and, because 7z compresses solid by default, re-decompresses every preceding entry in the same block. Measured against
 synthetic game-shaped corpora, versus a single sequential pass over the same archive:
@@ -52,30 +56,30 @@ where one sequential pass takes 261 ms. This is the single largest load-time def
 the more the archive is used as intended.
 
 **C2: `SevenZFile` is never closed.**
-Neither [`getList`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:34) nor
-[`loadEntry`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:86) closes the reader. Each instance holds
+Neither [`getList`](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt#L34) nor
+[`loadEntry`](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt#L86) closes the reader. Each instance holds
 LZMA2 decoder state and a dictionary buffer (tens of MB at high presets) until GC collects it. Combined with C1 that
 is one abandoned decoder per asset read.
 
 **C3: `XPKFileHandle.array` is published unsafely across threads.**
-[XPKFileHandle.kt:18](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:18) uses
+[XPKFileHandle.kt:18](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt#L18) uses
 `LazyThreadSafetyMode.NONE`, so the backing field is neither `volatile` nor guarded. It is read from at least two
 threads:
 
 - AssetManager's worker, via
-  [MetaTextureLoader.loadAsync](runtime/src/main/kotlin/de/fatox/meta/assets/MetaTextureLoader.kt:38) →
+  [MetaTextureLoader.loadAsync](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/MetaTextureLoader.kt#L38) →
   `TextureData.Factory.loadFromFile` → `readBytes()`, and via
-  [MetaTextureAtlasLoader.getDependencies](runtime/src/main/kotlin/de/fatox/meta/assets/MetaTextureAtlasLoader.kt:32),
+  [MetaTextureAtlasLoader.getDependencies](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/MetaTextureAtlasLoader.kt#L32),
   which parses the atlas text on the worker by design.
-- The GL thread, via [`getResource(..., FileHandle::class)`](runtime/src/main/kotlin/de/fatox/meta/assets/MetaAssetProvider.kt:249)
-  handed to e.g. [MetaSoundSource.kt:100](runtime/src/main/kotlin/de/fatox/meta/sound/MetaSoundSource.kt:100).
+- The GL thread, via [`getResource(..., FileHandle::class)`](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/MetaAssetProvider.kt#L249)
+  handed to e.g. [MetaSoundSource.kt:100](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/sound/MetaSoundSource.kt#L100).
 
 The visible failures are a stale/null read on the second thread and a duplicated (expensive) decode. The
 `synchronized(file)` inside `loadEntry` protects the channel, not the memoised reference.
 
 **C4: `parent()` and `child()` fabricate handles that alias the wrong entry's bytes.**
-[`parent()`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:27) and the
-[`child()` miss path](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:62) construct a new handle
+[`parent()`](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt#L27) and the
+[`child()` miss path](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt#L62) construct a new handle
 carrying **this** entry's `entryName` and `entrySize`. So a lookup that should fail instead returns a handle where
 `exists()` is `true`, `length()` is `0`, and `readBytes()` returns *a different entry's* payload. Atlas page
 resolution runs through exactly this path: `TextureAtlasData(atlasFile, atlasFile.parent(), flip)` resolves each page
@@ -84,7 +88,7 @@ with `child(pageName)`. A page-name mismatch feeds atlas text to `Pixmap` instea
 ### Medium
 
 **M1: The whole compressed archive is pinned in heap, and startup is proportional to archive size.**
-[`readAndVerify`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:57) reads and hashes the entire file
+[`readAndVerify`](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt#L57) reads and hashes the entire file
 before a single entry name is available, requires it to fit in an `int` (hard 2 GB cap), and hands the array to
 `XPKByteChannel`, which holds it for as long as any handle survives. A 500 MB pack costs a full read plus a full hash
 before the first asset byte, even if three files are wanted.
@@ -102,7 +106,7 @@ budget is enforced by returning from `update`, not by yielding inside it. All si
 
 **M4: The XXH64 trailer is a corruption check with zero tamper resistance.** It is unkeyed, non-cryptographic, and
 stored inside the file it protects, so anyone can recompute it. The failure message even prints the expected value
-([HashUtils.kt:52](runtime/src/main/kotlin/de/fatox/meta/api/crypto/HashUtils.kt:52)). That is fine as an integrity
+([HashUtils.kt:52](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/api/crypto/HashUtils.kt#L52)). That is fine as an integrity
 check and should not be mistaken for protection: see §3.
 
 **M5: The obfuscation is six bytes deep.** The 20-byte 7z start header at offsets 12..31 (next-header offset, size
@@ -111,11 +115,11 @@ six bytes and dropping the last eight opens the file in 7-Zip. A carver that key
 than the magic finds it as-is.
 
 **M6: There is no index.** Lookup is a case-sensitive linear string comparison
-([XPKLoader.kt:91](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:91)) against an enumeration that itself
+([XPKLoader.kt:91](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt#L91)) against an enumeration that itself
 requires decoder state, while every other asset path in the system is case-folded
-([AssetPath.kt:9](runtime/src/main/kotlin/de/fatox/meta/assets/AssetPath.kt:9)).
+([AssetPath.kt:9](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/AssetPath.kt#L9)).
 
-**M7: There is no streaming read.** [`read()`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:37)
+**M7: There is no streaming read.** [`read()`](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt#L37)
 materialises the whole entry and then wraps it in a stream, and `readBytes()!!` throws NPE on a miss rather than
 reporting a missing file.
 
@@ -123,9 +127,9 @@ reporting a missing file.
 a future v2 are indistinguishable except by file extension, and integrity can only be checked all-or-nothing.
 
 **M9: Path separators round-trip pointlessly.** 7z stores `/`;
-[XPKLoader.kt:44](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:44) converts to `\`; `assetPathKey`
+[XPKLoader.kt:44](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt#L44) converts to `\`; `assetPathKey`
 converts back; and
-[MetaTextureAtlasLoader.kt:66](runtime/src/main/kotlin/de/fatox/meta/assets/MetaTextureAtlasLoader.kt:66) carries a
+[MetaTextureAtlasLoader.kt:66](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/MetaTextureAtlasLoader.kt#L66) carries a
 `replace('\\', '/')` to undo it for AssetManager keys.
 
 **M10: No packer exists in Meta.** See §1. Nothing enforces which 7z coders, solid-block layout, or entry ordering
@@ -134,25 +138,25 @@ the reader will actually meet.
 ### Low
 
 - **L1**: `XPKByteChannel` carries a live `write`/`truncate`/`resize` path
-  ([:64](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:64),
-  [:100](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:100),
-  [:135](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:135)) on a read-only archive: dead mutable
+  ([:64](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt#L64),
+  [:100](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt#L100),
+  [:135](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt#L135)) on a read-only archive: dead mutable
   code inherited from Commons Compress' `SeekableInMemoryByteChannel`, in a class documented `@NotThreadSafe`
-  ([:18](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:18)) that is shared by every handle.
+  ([:18](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt#L18)) that is shared by every handle.
 - **L2**: The default constructor yields `size == -8`
-  ([:173](runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt:173)).
+  ([:173](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKByteChannel.kt#L173)).
 - **L3**: `SeekableByteChannel.hash()` allocates a full-size heap buffer, truncates `size()` to `Int`, and honours
-  only one `read` call ([HashUtils.kt:26](runtime/src/main/kotlin/de/fatox/meta/api/crypto/HashUtils.kt:26)).
+  only one `read` call ([HashUtils.kt:26](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/api/crypto/HashUtils.kt#L26)).
 - **L4**: `XXH64(ByteBuffer, …)` mutates the caller's position, limit and byte order, restoring only the limit
-  ([XxHash64.kt:13](runtime/src/main/kotlin/de/fatox/meta/api/crypto/XxHash64.kt:13)).
+  ([XxHash64.kt:13](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/api/crypto/XxHash64.kt#L13)).
 - **L5**: `length` is a `var` never reassigned; `sibling`/`child` return nullable into libGDX's non-null contract;
   `exists()` is unconditionally `true`; `type()`, `isDirectory` and `list()` are not overridden, so the fallback in
-  [`read()`](runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt:39) inspects a null `file`.
+  [`read()`](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKFileHandle.kt#L39) inspects a null `file`.
 - **L6**: `archive.isDirectory` is never consulted
-  ([XPKLoader.kt:38](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:38)), so directory entries would be
+  ([XPKLoader.kt:38](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt#L38)), so directory entries would be
   indexed as zero-length files.
 - **L7**: `listEntryNames` re-reads and re-hashes the whole archive instead of reusing an open reader
-  ([XPKLoader.kt:14](runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt:14)).
+  ([XPKLoader.kt:14](https://github.com/Frotty/Meta/blob/23a679cca5b482c04adce3e00d2d69e8923e527c/runtime/src/main/kotlin/de/fatox/meta/assets/XPKLoader.kt#L14)).
 
 ## 3. Focus 1: obfuscation
 
@@ -243,12 +247,12 @@ gap is the `assets/` table above (2.16× vs 2.64×), not this one.
    removes the decode entirely for the bulk of a game's bytes.
 4. **Consider Zstandard only if archive size is measured to matter.** Zstd would plausibly recover most of the ratio
    gap at Deflate-class-or-better speed, but it needs `zstd-jni`: a JNI native per platform, plus widening the
-   `mavenCentral` content filter in [build.gradle:76](build.gradle:76), which currently allowlists specific groups.
+   `mavenCentral` content filter in [build.gradle:76](../build.gradle), which currently allowlists specific groups.
    **These numbers were not measured here** (no zstd artifact was available offline); measure before adopting. A
    trained zstd dictionary over the small text-ish entries (shaders, `.atlas`, JSON, `.fnt`) is the part most likely
    to justify the dependency.
 5. **The larger load-time win is upstream of the archive.**
-   [MetaTextureLoader.loadAsync](runtime/src/main/kotlin/de/fatox/meta/assets/MetaTextureLoader.kt:38) decodes PNG to
+   [MetaTextureLoader.loadAsync](../runtime/src/main/kotlin/de/fatox/meta/assets/MetaTextureLoader.kt) decodes PNG to
    RGBA and builds the mip chain on the CPU at load time. For a texture-heavy game that cost usually dominates archive
    decompression outright. Pre-transcoding textures to KTX2/Basis or to raw premultiplied RGBA with prebuilt mips at
    pack time turns `loadAsync` into a copy and leaves `StagedTextureUploads` only the upload. Raw RGBA compresses well,
@@ -305,7 +309,7 @@ waiting on `DirectByteBuffer` cleanup.
 
 **Delivery.** Results must land on the GL thread through the existing frame-budgeted pump, not by calling into
 reactive state from a worker: `AGENTS.md` makes reactive writes GL-thread-only, and
-[MetaAssetProvider.update](runtime/src/main/kotlin/de/fatox/meta/assets/MetaAssetProvider.kt:211) with
+[MetaAssetProvider.update](../runtime/src/main/kotlin/de/fatox/meta/assets/MetaAssetProvider.kt) with
 `pendingFinalization`/`StagedTextureUploads` is already the right shape. Keep it; give the reader a
 `CompletableFuture<MemorySegment>`-style API and drain completions in `update`.
 
@@ -346,10 +350,10 @@ Introduce an `XpkProfile` that carries everything an attacker would need beyond 
 Then:
 
 1. **Meta registers no default profile.** `XpkReader` has no no-arg constructor,
-   [MetaModule](runtime/src/main/kotlin/de/fatox/meta/MetaModule.kt) binds no `XpkProfile`, and
+   [MetaModule](../runtime/src/main/kotlin/de/fatox/meta/MetaModule.kt) binds no `XpkProfile`, and
    `loadPackedAssetsFromFolder` returns `false` when none is bound. This fits how the graph is already wired:
    `AssetProvider` itself is bound downstream, not in Meta
-   ([MetaEditorModule.kt:25](editor/src/main/kotlin/de/fatox/meta/modules/MetaEditorModule.kt:25)), so the profile
+   ([MetaEditorModule.kt:25](../editor/src/main/kotlin/de/fatox/meta/modules/MetaEditorModule.kt)), so the profile
    travels the same route. A game must supply its own. Someone who
    clones Meta and points it at your `.xpk` has the algorithm and no constants: the OSS repo tells them the *shape*
    of the container and nothing about this game's instance of it. Keep an obviously-fake profile in `testFixtures` so
@@ -498,7 +502,7 @@ the wrong trade:
 **Better lever for the same goal:** put only the key-derivation function in a small native library reached through
 FFM. Tiny surface, far more annoying to reverse than bytecode, and no interference with class loading, the AOT cache,
 DI or debugging, and LWJGL natives already ship, with `--enable-native-access=ALL-UNNAMED` already set in
-[build.gradle:10](build.gradle:10), so packaging is solved. Pair it with R8 on the game jar, which also serves the
+[build.gradle:10](../build.gradle), so packaging is solved. Pair it with R8 on the game jar, which also serves the
 goal of a smaller jar by shrinking unused library code.
 
 Getting *game logic* out of the jar entirely requires either the classloader route above or native code. The coherent

@@ -6,8 +6,6 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.GdxRuntimeException
 
 abstract class MetaGLShader(val shaderHandle: GLShaderHandle) : Shader {
-	//    private val metaErrorHandler = MetaErrorHandler()
-
 	val shaderProgram: ShaderProgram = ShaderProgram(shaderHandle.vertexHandle, shaderHandle.fragmentHandle)
 
 	init {

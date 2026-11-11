@@ -6,15 +6,12 @@ import com.badlogic.gdx.graphics.g3d.Renderable
 import com.badlogic.gdx.graphics.g3d.Shader
 import com.badlogic.gdx.graphics.g3d.utils.RenderContext
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
-import com.badlogic.gdx.math.Matrix4
 import com.badlogic.gdx.utils.GdxRuntimeException
 import de.fatox.meta.graphics.renderer.FullscreenShader
 
 class BlurShader : FullscreenShader() {
     override lateinit var program: ShaderProgram
         private set
-    private val s_inputTex = 0
-    private val temp = Matrix4()
     override fun init() {
         val vert = Gdx.files.internal("shaders/ssaoblur.vert").readString()
         val frag = Gdx.files.internal("shaders/ssaoblur.frag").readString()

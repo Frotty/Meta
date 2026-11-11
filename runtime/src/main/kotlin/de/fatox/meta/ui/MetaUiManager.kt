@@ -22,7 +22,6 @@ import com.badlogic.gdx.utils.ObjectMap
 import com.badlogic.gdx.utils.TimeUtils
 import com.badlogic.gdx.utils.Timer
 import de.fatox.meta.ScreenConfig
-import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.api.NoWindowHandler
 import de.fatox.meta.api.WindowHandler
@@ -79,7 +78,6 @@ class MetaUiManager : UIManager {
 	private val uiRenderer: UIRenderer by lazyInject()
 	private val metaData: MetaData by lazyInject()
 	private val metaInput: MetaInputProcessor by lazyInject()
-	private val assetProvider: AssetProvider by lazyInject()
 
 	private val displayedWindows = Array<Window>()
 	private var mainMenuBar: MetaMenuBar? = null
