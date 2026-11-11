@@ -1,11 +1,9 @@
 package de.fatox.meta.ui.tabs
 
-import com.badlogic.gdx.graphics.PerspectiveCamera
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import de.fatox.meta.api.MetaInputProcessor
 
 import de.fatox.meta.api.graphics.Renderer
-import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.camera.ArcCamControl
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.shader.EditorSceneRenderer
@@ -16,8 +14,6 @@ import de.fatox.meta.ui.components.SceneWidget
 import de.fatox.meta.ui.windows.*
 
 class SceneTab(sceneHandle: MetaSceneHandle) : MetaTab() {
-	private val perspectiveCamera: PerspectiveCamera by lazyInject()
-	private val uiRenderer: UIRenderer by lazyInject()
 	private val metaInput: MetaInputProcessor by lazyInject()
 	private val editorUI: MetaEditorUI by lazyInject()
 	private val renderer: Renderer by lazyInject()

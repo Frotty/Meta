@@ -6,7 +6,6 @@ import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector3
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
-import de.fatox.meta.Primitives
 import de.fatox.meta.api.graphics.Renderer
 import de.fatox.meta.entity.Meta3DEntity
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
@@ -18,7 +17,6 @@ class PrimitivesWindow : MetaWindow("Primitives", true, true) {
 	private val boxButton: MetaIconTextButton
 
 	private val metaEditorUI: MetaEditorUI by lazyInject()
-	private val primitives: Primitives by lazyInject()
 	private val renderer: Renderer by lazyInject()
 
 	init {

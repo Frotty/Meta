@@ -1,6 +1,8 @@
 # Local co-op UI input: design proposal
 
 **Status:** keyboard and assigned-controller routing implemented. Per-player focus rings remain optional future work.
+The problem statements and proposals below describe the design before implementation; see the runtime APIs and
+README for current usage.
 
 The goal: two players navigating Meta UI independently on **one machine**, including
 **one keyboard** (P1 on the arrows, P2 on WASD) without the game reaching around

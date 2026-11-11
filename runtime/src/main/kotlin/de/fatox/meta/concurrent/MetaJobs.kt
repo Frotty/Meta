@@ -51,7 +51,6 @@ object MetaJobs {
 	 */
 	val computeParallelism: Int = (Runtime.getRuntime().availableProcessors() - 2).coerceAtLeast(1)
 
-	private val ioThreadCount = AtomicInteger()
 	private val computeThreadCount = AtomicInteger()
 
 	/** Blocking work. Virtual threads: unbounded is correct when the thread is asleep rather than busy. */

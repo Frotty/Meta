@@ -114,7 +114,4 @@ class GBufferShader : Shader {
 		return true
 	}
 
-	companion object {
-		private val idtMatrix = Matrix4()
-	}
 }
