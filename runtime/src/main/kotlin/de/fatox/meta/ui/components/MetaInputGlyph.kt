@@ -1,6 +1,8 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.Input
+import de.fatox.meta.input.MetaControllerButton
+import de.fatox.meta.input.MetaInputDevice
 
 /** Kenney's input-prompt faces bundled with Meta; see `ui/prompts/LICENSE-kenney-input-prompts.txt`. */
 enum class MetaGlyphSet(internal val fileName: String) {
@@ -17,7 +19,7 @@ enum class MetaGlyphSet(internal val fileName: String) {
  * a key Kenney does not draw: the key's name is set in its place, bright like a glyph, rather than inventing a keycap
  * that is not Kenney's.
  */
-class MetaInputGlyph @JvmOverloads constructor(
+data class MetaInputGlyph @JvmOverloads constructor(
 	val set: MetaGlyphSet,
 	val name: String,
 	val text: String? = null,
@@ -41,6 +43,42 @@ object MetaInputGlyphs {
 		MetaPadFamily.PLAYSTATION -> MetaGlyphSet.PLAYSTATION
 		MetaPadFamily.STEAM -> MetaGlyphSet.STEAM_DECK
 		else -> MetaGlyphSet.XBOX
+	}
+
+	fun button(family: MetaPadFamily, button: MetaControllerButton): MetaInputGlyph = when (button) {
+		MetaControllerButton.A -> face(family, MetaFaceButton.SOUTH)
+		MetaControllerButton.B -> face(family, MetaFaceButton.EAST)
+		MetaControllerButton.X -> face(family, MetaFaceButton.WEST)
+		MetaControllerButton.Y -> face(family, MetaFaceButton.NORTH)
+		MetaControllerButton.START -> menu(family)
+		MetaControllerButton.BACK -> when (setOf(family)) {
+			MetaGlyphSet.PLAYSTATION -> MetaInputGlyph(MetaGlyphSet.PLAYSTATION, "playstation4_button_share")
+			MetaGlyphSet.STEAM_DECK -> MetaInputGlyph(MetaGlyphSet.STEAM_DECK, "steamdeck_button_view")
+			else -> MetaInputGlyph(MetaGlyphSet.XBOX, "xbox_button_view")
+		}
+		else -> {
+			val set = setOf(family)
+			val prefix = when (set) {
+				MetaGlyphSet.PLAYSTATION -> "playstation"
+				MetaGlyphSet.STEAM_DECK -> "steamdeck"
+				else -> "xbox"
+			}
+			MetaInputGlyph(set, "${prefix}_${button.name.lowercase()}")
+		}
+	}
+
+	/** Resolves a raw button through the active pad's mapping, with a label for unmapped controls. */
+	fun button(device: MetaInputDevice.Gamepad, code: Int, fallbackText: String = "Button $code"): MetaInputGlyph {
+		if (code >= 0) {
+			for (index in MetaControllerButton.entries.indices) {
+				val button = MetaControllerButton.entries[index]
+				if (button.code(device.controller) == code) return button(device.family, button)
+			}
+			val mapping = device.controller.mapping
+			if (code == mapping.buttonL1) return trigger(device.family, right = false, shoulder = true)
+			if (code == mapping.buttonR1) return trigger(device.family, right = true, shoulder = true)
+		}
+		return MetaInputGlyph(setOf(device.family), "", fallbackText)
 	}
 
 	fun face(family: MetaPadFamily, button: MetaFaceButton): MetaInputGlyph {

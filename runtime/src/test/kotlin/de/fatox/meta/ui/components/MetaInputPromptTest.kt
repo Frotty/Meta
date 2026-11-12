@@ -1,13 +1,19 @@
 package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.Input
+import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
+import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.api.graphics.physicalPixelsPerStageUnit
+import de.fatox.meta.input.MetaControllerButton
+import de.fatox.meta.input.MetaInputDevice
+import de.fatox.meta.input.MetaUiAction
+import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.test.MetaHeadlessUi
 import de.fatox.meta.ui.MetaInputGlyphFaces
 import de.fatox.meta.ui.MetaSkin
@@ -30,6 +36,27 @@ class MetaInputPromptTest {
 	@BeforeEach fun setUp() = MetaHeadlessUi.install()
 	@AfterEach fun tearDown() = MetaHeadlessUi.dispose()
 
+	@Test
+	fun `slim draws a translucent background and restores the batch tint`() {
+		var backgroundAlpha = 0f
+		val background = object : BaseDrawable() {
+			override fun draw(batch: Batch, x: Float, y: Float, width: Float, height: Float) {
+				backgroundAlpha = batch.color.a
+			}
+		}
+		MetaSkin.skin().add(MetaSkin.PROMPT_BAR, background, Drawable::class.java)
+		val stage = Stage(ScreenViewport())
+		try {
+			val bar = MetaPromptBar(style = MetaPromptBar.Style.SLIM)
+			val originalTint = stage.batch.packedColor
+			bar.draw(stage.batch, 1f)
+			assertTrue(backgroundAlpha in 0.7f..0.95f)
+			assertEquals(originalTint, stage.batch.packedColor)
+		} finally {
+			stage.dispose()
+		}
+	}
+
 	private fun assertDrawn(glyph: MetaInputGlyph) {
 		assertTrue(MetaInputGlyphFaces.has(glyph.set, glyph.name)) { "${glyph.set} has no glyph '${glyph.name}'" }
 		assertNotNull(MetaInputGlyphFaces.region(glyph.set, glyph.name, 48)) { "'${glyph.name}' rasterized to nothing" }
@@ -39,6 +66,7 @@ class MetaInputPromptTest {
 	fun `every preset names a glyph Kenney actually drew`() {
 		for (family in MetaPadFamily.entries) {
 			for (button in MetaFaceButton.entries) assertDrawn(MetaInputGlyphs.face(family, button))
+			for (button in MetaControllerButton.entries) assertDrawn(MetaInputGlyphs.button(family, button))
 			assertDrawn(MetaInputGlyphs.dpadVertical(family))
 			assertDrawn(MetaInputGlyphs.menu(family))
 			for (right in listOf(false, true)) for (shoulder in listOf(false, true)) {
@@ -46,6 +74,37 @@ class MetaInputPromptTest {
 			}
 		}
 		assertDrawn(MetaInputGlyphs.arrowsVertical())
+	}
+
+	@Test
+	fun `slim bar observes rebinds on stage and refreshes on reattachment`() {
+		val stage = Stage(ScreenViewport())
+		val bindings = MetaUiInputBindings()
+		var evaluations = 0
+		var glyphs = emptyList<MetaInputGlyph>()
+		val slim = MetaPromptBar(style = MetaPromptBar.Style.SLIM).apply {
+			bindEntries {
+				evaluations++
+				glyphs = bindings.promptGlyphs(MetaInputDevice.Keyboard, MetaUiAction.CONFIRM)
+				listOf(MetaPromptBar.Entry(glyphs, "Confirm"))
+			}
+		}
+		val pill = MetaPromptBar().apply { setEntries(listOf(MetaPromptBar.Entry(glyphs, "Confirm"))) }
+		assertTrue(slim.prefHeight < pill.prefHeight)
+		try {
+			stage.addActor(slim)
+			assertEquals("keyboard_enter", glyphs.single().name)
+			bindings.setKeyboardKeys(MetaUiAction.CONFIRM, Input.Keys.K)
+			assertEquals("keyboard_k", glyphs.single().name)
+			val previous = evaluations
+			slim.remove()
+			bindings.setKeyboardKeys(MetaUiAction.CONFIRM, Input.Keys.SPACE)
+			assertEquals(previous, evaluations)
+			stage.addActor(slim)
+			assertEquals("keyboard_space", glyphs.single().name)
+		} finally {
+			stage.dispose()
+		}
 	}
 
 	@Test

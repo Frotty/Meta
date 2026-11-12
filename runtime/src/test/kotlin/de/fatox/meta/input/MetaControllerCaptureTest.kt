@@ -8,6 +8,8 @@ import com.badlogic.gdx.controllers.ControllerMapping
 import com.badlogic.gdx.controllers.ControllerPowerLevel
 import de.fatox.meta.api.MetaInputProcessor
 import de.fatox.meta.injection.MetaInject.Companion.global
+import de.fatox.meta.test.GdxTestEnvironment
+import de.fatox.meta.ui.components.promptGlyphs
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -72,6 +74,34 @@ internal class MetaControllerCaptureTest {
 	private fun clearCapture() {
 		MetaControllerListener.clearCaptures()
 		assertFalse(MetaControllerListener.capturing, "a capture outlived the test that started it")
+	}
+
+	@Test
+	fun `physical activity switches device without treating translated keys or drift as keyboard input`() {
+		GdxTestEnvironment.ensure()
+		val metaInput = MetaInput()
+		controller.axes[0] = MetaControllerListener.deadzone / 2f
+		MetaControllerListener.axisMoved(controller, 0, controller.axes[0])
+		assertSame(MetaInputDevice.Keyboard, metaInput.devices.activeDevice.value)
+
+		val code = controller.mapping.buttonA
+		MetaControllerListener.buttonDown(controller, code)
+		val gamepad = metaInput.devices.activeDevice.value as MetaInputDevice.Gamepad
+		assertSame(controller, gamepad.controller)
+		metaInput.keyDownSynthetic(Input.Keys.ENTER)
+		assertSame(gamepad, metaInput.devices.activeDevice.value)
+		MetaControllerListener.buttonUp(controller, code)
+		assertEquals("xbox_button_a", bindings.promptGlyphs(gamepad, MetaUiAction.CONFIRM).single().name)
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, controller.mapping.buttonY)
+		assertEquals("xbox_button_y", bindings.promptGlyphs(gamepad, MetaUiAction.CONFIRM).single().name)
+		metaInput.keyDown(Input.Keys.K)
+		assertSame(MetaInputDevice.Keyboard, metaInput.devices.activeDevice.value)
+
+		controller.axes[0] = 1f
+		MetaControllerListener.axisMoved(controller, 0, 1f)
+		assertSame(controller, (metaInput.devices.activeDevice.value as MetaInputDevice.Gamepad).controller)
+		MetaControllerListener.disconnected(controller)
+		assertSame(MetaInputDevice.Keyboard, metaInput.devices.activeDevice.value)
 	}
 
 	// ── Delivery ──────────────────────────────────────────────────────────────

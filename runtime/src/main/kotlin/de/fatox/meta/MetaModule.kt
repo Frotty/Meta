@@ -30,6 +30,7 @@ import de.fatox.meta.graphics.font.FontInfo
 import de.fatox.meta.graphics.font.MetaFontProvider
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.input.MetaInput
+import de.fatox.meta.input.MetaInputDevices
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.input.MetaUiInputProfiles
 import de.fatox.meta.sound.MetaSoundPlayer
@@ -60,7 +61,8 @@ object MetaModule {
 			singleton<UIRenderer> { MetaUIRenderer() }
 			singleton<UIManager> { MetaUiManager() }
 			singleton { ModelBuilder() }
-			singleton<MetaInputProcessor> { MetaInput() }
+			singleton { MetaInputDevices() }
+			singleton<MetaInputProcessor> { MetaInput(inject()) }
 			singleton { MetaUiInputBindings() }
 			singleton { MetaUiInputProfiles() }
 			singleton<EntityManager<Meta3DEntity>>("default") { MetaEntityManager() }

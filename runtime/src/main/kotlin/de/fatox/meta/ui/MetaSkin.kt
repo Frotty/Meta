@@ -21,6 +21,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.TimeUtils
+import kotlin.math.abs
+import kotlin.math.hypot
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * Runtime-generated Meta skin resources. These are deliberately created from code instead of bundled UI textures so
@@ -447,12 +451,22 @@ object MetaSkin {
 		if (deferInstall { loadingRing(skin) }) return
 		val pixmap = Pixmap(LOADING_RING_PIXMAP_SIZE, LOADING_RING_PIXMAP_SIZE, Pixmap.Format.RGBA8888)
 		pixmap.setBlending(Pixmap.Blending.None)
-		val center = LOADING_RING_PIXMAP_SIZE / 2
-		pixmap.setColor(Color.WHITE)
-		pixmap.fillCircle(center, center, 28)
-		pixmap.setColor(Color.CLEAR)
-		pixmap.fillCircle(center, center, 22)
-		pixmap.fillTriangle(center, center, center - 15, LOADING_RING_PIXMAP_SIZE, center + 15, LOADING_RING_PIXMAP_SIZE)
+		val center = LOADING_RING_PIXMAP_SIZE * 0.5f
+		val gapSlope = 15f / center
+		val gapNormal = 1f / sqrt(1f + gapSlope * gapSlope)
+		for (y in 0 until pixmap.height) {
+			for (x in 0 until pixmap.width) {
+				val dx = x + 0.5f - center
+				val dy = y + 0.5f - center
+				val radius = hypot(dx, dy)
+				val gapEdge = (abs(dx) - dy * gapSlope) * gapNormal
+				val distance = minOf(28f - radius, radius - 22f, gapEdge)
+				// About one screen pixel of coverage at the default 32px size. White RGB under zero alpha
+				// keeps bilinear sampling from darkening the tint as the ring rotates.
+				val alpha = ((0.5f + distance * 0.5f).coerceIn(0f, 1f) * 255f).roundToInt()
+				pixmap.drawPixel(x, y, 0xFFFFFF00.toInt() or alpha)
+			}
+		}
 		packDrawable(LOADING_RING, pixmap, minWidth = 1f, minHeight = 1f)
 	}
 

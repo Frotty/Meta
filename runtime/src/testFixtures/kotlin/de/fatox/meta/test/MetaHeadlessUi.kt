@@ -28,6 +28,7 @@ import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.reactive.Signal
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.input.MetaInputDevices
 import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.input.MetaUiInputProfiles
 import de.fatox.meta.ui.UiControlHelper
@@ -200,6 +201,7 @@ object MetaHeadlessUi {
 				// Owned, not merely registered: UIManager is Disposable, and clearing the graph would otherwise drop a
 				// manager holding stages or reactive scopes without ever calling dispose on it.
 				uiManager?.let { factory -> singleton<UIManager> { factory().also { own(it) } } }
+				singleton { MetaInputDevices() }
 				singleton { MetaUiInputBindings() }
 				singleton { MetaUiInputProfiles() }
 				singleton("default") { UiControlHelper() }
