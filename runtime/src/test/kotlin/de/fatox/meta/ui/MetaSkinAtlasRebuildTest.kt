@@ -32,6 +32,19 @@ class MetaSkinAtlasRebuildTest {
 	@AfterEach fun tearDown() = MetaHeadlessUi.dispose()
 
 	@Test
+	fun `loading ring atlas preserves smooth inner outer and gap edges`() {
+		val ring = checkNotNull(MetaSkin.sharedPacker().getRect(MetaSkin.LOADING_RING))
+		val atlas = ring.page.pixmap
+		fun pixel(x: Int, y: Int) = atlas.getPixel(ring.bounds.x + x, ring.bounds.y + y)
+
+		assertTrue((pixel(32, 4) and 0xff) in 1..254, "Outer edge needs partial coverage")
+		assertTrue((pixel(32, 9) and 0xff) in 1..254, "Inner edge needs partial coverage")
+		assertTrue((pixel(43, 56) and 0xff) in 1..254, "Gap edge needs partial coverage")
+		assertEquals(255, pixel(32, 7) and 0xff, "The stroke should be solid")
+		assertEquals(0xffffff00.toInt(), pixel(32, 57), "Transparent gap texels should preserve white RGB")
+	}
+
+	@Test
 	fun `rebuilding keeps one page and the same drawable objects`() {
 		val skin = MetaSkin.skin()
 		val button = skin.getDrawable("meta.button.up") as NinePatchDrawable
