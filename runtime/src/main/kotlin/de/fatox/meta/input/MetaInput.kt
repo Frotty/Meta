@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.IntMap
 import com.badlogic.gdx.utils.SnapshotArray
 import de.fatox.meta.api.MetaInputProcessor
 
-class MetaInput : MetaInputProcessor {
+class MetaInput @JvmOverloads constructor(val devices: MetaInputDevices = MetaInputDevices()) : MetaInputProcessor {
 	private val globalKeyListeners = IntMap<SnapshotArray<KeyListener>>()
 	private val screenKeyListeners = IntMap<SnapshotArray<KeyListener>>()
 	private val globalProcessors = SnapshotArray.with<InputProcessor>()
@@ -110,7 +110,12 @@ class MetaInput : MetaInputProcessor {
 	override fun removeScreenScrollListener(scrollListener: ScrollListener): Boolean =
 		screenScrollListeners.removeValue(scrollListener, true)
 
-	override fun keyDown(keycode: Int): Boolean = dispatchKeyDown(keycode, null)
+	override fun keyDown(keycode: Int): Boolean {
+		devices.keyboardUsed()
+		return dispatchKeyDown(keycode, null)
+	}
+
+	override fun keyDownSynthetic(keycode: Int): Boolean = dispatchKeyDown(keycode, null)
 
 	override fun keyDownFromController(player: MetaPlayer, keycode: Int): Boolean = dispatchKeyDown(keycode, player)
 
@@ -178,6 +183,7 @@ class MetaInput : MetaInputProcessor {
 	}
 
 	override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
+		devices.keyboardUsed()
 		val exclusiveProcessor = exclusiveProcessor
 		if (exclusiveProcessor != null) {
 			exclusiveProcessor.touchDown(screenX, screenY, pointer, button)
@@ -228,6 +234,7 @@ class MetaInput : MetaInputProcessor {
 	}
 
 	override fun scrolled(amountX: Float, amountY: Float): Boolean {
+		if (amountX != 0f || amountY != 0f) devices.keyboardUsed()
 		val exclusiveProcessor = exclusiveProcessor
 		if (exclusiveProcessor != null) {
 			exclusiveProcessor.scrolled(amountX, amountY)

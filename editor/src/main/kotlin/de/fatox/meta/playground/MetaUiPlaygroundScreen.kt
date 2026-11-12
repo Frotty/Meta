@@ -1,7 +1,6 @@
 package de.fatox.meta.playground
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
 import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.glutils.HdpiUtils
@@ -19,20 +18,21 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.api.ui.UIRenderer
 import de.fatox.meta.api.ui.showWindow
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.input.MetaInputDevices
+import de.fatox.meta.input.MetaUiAction
+import de.fatox.meta.input.MetaUiInputBindings
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 import de.fatox.meta.ui.UiControlHelper
 import de.fatox.meta.ui.components.MetaBottomBar
-import de.fatox.meta.ui.components.MetaFaceButton
-import de.fatox.meta.ui.components.MetaInputGlyphs
 import de.fatox.meta.ui.components.MetaInputPrompt
 import de.fatox.meta.ui.components.MetaLabel
 import de.fatox.meta.ui.components.MetaMenu
 import de.fatox.meta.ui.components.MetaMenuBar
 import de.fatox.meta.ui.components.MetaMenuItem
-import de.fatox.meta.ui.components.MetaPadFamily
 import de.fatox.meta.ui.components.MetaPromptBar
+import de.fatox.meta.ui.components.promptGlyphs
 import de.fatox.meta.ui.components.MetaTable
 
 class MetaUiPlaygroundScreen(
@@ -42,6 +42,8 @@ class MetaUiPlaygroundScreen(
 	private val uiManager: UIManager by lazyInject()
 	private val uiControlHelper: UiControlHelper by lazyInject()
 	private val fonts: FontProvider by lazyInject()
+	private val inputDevices: MetaInputDevices by lazyInject()
+	private val inputBindings: MetaUiInputBindings by lazyInject()
 	private val backgroundTitle = MetaLabel("Docking workspace", MetaType.TITLE, MetaColor.TEXT, FontType.BOLD)
 	private val backgroundDescription = MetaLabel("Drag a panel to an edge to dock it.", MetaType.BODY, MetaColor.TEXT_MUTED).apply {
 		setAlignment(Align.center)
@@ -114,22 +116,22 @@ class MetaUiPlaygroundScreen(
 	}
 
 	private fun navigationFooter(): Container<MetaPromptBar> {
-		val pad = MetaPadFamily.XBOX
-		val entries = listOf(
-			MetaPromptBar.Entry(listOf(MetaInputGlyphs.arrowsVertical(), MetaInputGlyphs.dpadVertical(pad)), "Navigate"),
-			MetaPromptBar.Entry(listOf(MetaInputGlyphs.key(Input.Keys.ENTER, "Enter"),
-				MetaInputGlyphs.face(pad, MetaFaceButton.SOUTH)), "Activate"),
-			MetaPromptBar.Entry(listOf(MetaInputGlyphs.key(Input.Keys.ESCAPE, "Esc"),
-				MetaInputGlyphs.face(pad, MetaFaceButton.EAST)), "Back"),
-		)
 		val size = MetaType.CAPTION
+		fun entries(): List<MetaPromptBar.Entry> {
+			val device = inputDevices.activeDevice()
+			return listOf(
+				MetaPromptBar.Entry(inputBindings.promptGlyphs(device, MetaUiAction.NAVIGATE_UP, MetaUiAction.NAVIGATE_DOWN), "Navigate"),
+				MetaPromptBar.Entry(inputBindings.promptGlyphs(device, MetaUiAction.CONFIRM), "Activate"),
+				MetaPromptBar.Entry(inputBindings.promptGlyphs(device, MetaUiAction.BACK), "Back"),
+			)
+		}
 		val faces = MetaInputPrompt.requiredFonts(size)
 		for (index in faces.indices) {
 			val (fontSize, type) = faces[index]
 			fonts.getFont(fontSize, type)
 		}
-		MetaInputPrompt.prewarm(entries.flatMap { it.glyphs }, size, physicalPixelsPerStageUnit(uiManager.uiWidth))
-		val bar = MetaPromptBar(size).apply { setEntries(entries) }
+		MetaInputPrompt.prewarm(entries().flatMap { it.glyphs }, size, physicalPixelsPerStageUnit(uiManager.uiWidth))
+		val bar = MetaPromptBar(MetaPromptBar.Style.SLIM, size).apply { bindEntries(::entries) }
 		return Container(bar).padBottom(MetaSpacing.SM)
 	}
 

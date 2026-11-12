@@ -123,6 +123,7 @@ object MetaControllerListener : ControllerListener {
 
 	override fun disconnected(controller: Controller) {
 		log.debug { "Controller disconnected." }
+		(metaInput as? MetaInput)?.devices?.controllerDisconnected(controller)
 		scratchKeys.clear()
 		val held = heldRawButtons.remove(controller)
 		if (held != null) {
@@ -143,6 +144,7 @@ object MetaControllerListener : ControllerListener {
 	}
 
 	override fun buttonDown(controller: Controller, buttonCode: Int): Boolean {
+		(metaInput as? MetaInput)?.devices?.controllerUsed(controller)
 		val key = keyFor(controller, buttonCode)
 		val alreadyDown = key != NO_KEY && anyInputHolds(key)
 		heldOf(controller).add(buttonCode)
@@ -205,6 +207,7 @@ object MetaControllerListener : ControllerListener {
 		if (vertical) state.verticalKey = NO_KEY else state.horizontalKey = NO_KEY
 		if (oldKey != NO_KEY && !anyInputHolds(oldKey)) emitKeyUp(oldKey, player)
 		if (newKey != NO_KEY) {
+			(metaInput as? MetaInput)?.devices?.controllerUsed(controller)
 			val alreadyDown = anyInputHolds(newKey)
 			if (vertical) state.verticalKey = newKey else state.horizontalKey = newKey
 			if (!alreadyDown) emitKeyDown(newKey, player)

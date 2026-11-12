@@ -2,6 +2,8 @@ package de.fatox.meta.input
 
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.controllers.Controller
+import de.fatox.meta.reactive.batch
+import de.fatox.meta.reactive.intSignal
 import java.util.EnumMap
 
 enum class MetaUiAction {
@@ -72,18 +74,19 @@ class MetaUiInputBindings {
 
 	private val keyboardBindings = EnumMap<MetaUiAction, IntArray>(MetaUiAction::class.java)
 	private val controllerBindings = EnumMap<MetaUiAction, List<MetaControllerButtonBinding>>(MetaUiAction::class.java)
+	private val revision = intSignal(0)
 
 	init {
 		resetDefaults()
 	}
 
-	fun resetDefaults() {
+	fun resetDefaults() = batch {
 		resetKeyboardDefaults()
 		resetControllerDefaults()
 	}
 
 	/** Restores only the standard keyboard bindings, leaving controller configuration untouched. */
-	fun resetKeyboardDefaults() {
+	fun resetKeyboardDefaults() = batch {
 		setKeyboardKeys(MetaUiAction.NAVIGATE_UP, Input.Keys.UP)
 		setKeyboardKeys(MetaUiAction.NAVIGATE_DOWN, Input.Keys.DOWN)
 		setKeyboardKeys(MetaUiAction.NAVIGATE_LEFT, Input.Keys.LEFT)
@@ -98,7 +101,7 @@ class MetaUiInputBindings {
 	 * This is the convenient setup for an additional player's controller-only profile: call `clear()`, then this,
 	 * without accidentally copying player one's keyboard keys into the profile.
 	 */
-	fun resetControllerDefaults() {
+	fun resetControllerDefaults() = batch {
 		horizontalAxis = 0
 		verticalAxis = 1
 		axisNavigationEnabled = true
@@ -116,35 +119,52 @@ class MetaUiInputBindings {
 	 * For a second player's profile, which must not inherit the arrows: see [MetaUiInputProfiles].
 	 */
 	fun clear() {
+		if (keyboardBindings.isEmpty() && controllerBindings.isEmpty()) return
 		keyboardBindings.clear()
 		controllerBindings.clear()
+		bindingsChanged()
 	}
 
 	fun setKeyboardKeys(action: MetaUiAction, vararg keycodes: Int) {
+		if (keyboardBindings[action]?.contentEquals(keycodes) == true) return
 		keyboardBindings[action] = keycodes.copyOf()
+		bindingsChanged()
 	}
 
 	fun setControllerButtons(action: MetaUiAction, vararg buttons: MetaControllerButton) {
-		controllerBindings[action] = buttons.map { MetaControllerButtonBinding.semantic(it) }
+		setControllerBindings(action, buttons.map { MetaControllerButtonBinding.semantic(it) })
 	}
 
 	fun setControllerButtonCodes(action: MetaUiAction, vararg buttonCodes: Int) {
-		controllerBindings[action] = buttonCodes.map { MetaControllerButtonBinding.raw(it) }
+		setControllerBindings(action, buttonCodes.map { MetaControllerButtonBinding.raw(it) })
 	}
 
 	fun setControllerBindings(action: MetaUiAction, vararg bindings: MetaControllerButtonBinding) {
-		controllerBindings[action] = bindings.toList()
+		setControllerBindings(action, bindings.asList())
 	}
 
 	fun setControllerBindings(action: MetaUiAction, bindings: List<MetaControllerButtonBinding>) {
+		val previous = controllerBindings[action]
+		if (previous != null && previous.size == bindings.size && previous.indices.all {
+				previous[it].semanticButton == bindings[it].semanticButton && previous[it].rawButtonCode == bindings[it].rawButtonCode
+			}) return
 		controllerBindings[action] = bindings.toList()
+		bindingsChanged()
 	}
 
-	fun keyboardKeysFor(action: MetaUiAction): IntArray =
-		keyboardBindings[action]?.copyOf() ?: IntArray(0)
+	private fun bindingsChanged() {
+		revision.intValue = revision.peekInt() + 1
+	}
 
-	fun controllerBindingsFor(action: MetaUiAction): List<MetaControllerButtonBinding> =
-		controllerBindings[action] ?: emptyList()
+	fun keyboardKeysFor(action: MetaUiAction): IntArray {
+		revision.intValue
+		return keyboardBindings[action]?.copyOf() ?: IntArray(0)
+	}
+
+	fun controllerBindingsFor(action: MetaUiAction): List<MetaControllerButtonBinding> {
+		revision.intValue
+		return controllerBindings[action] ?: emptyList()
+	}
 
 	fun toProfile(): MetaUiInputProfile {
 		val profile = MetaUiInputProfile()
@@ -162,7 +182,7 @@ class MetaUiInputBindings {
 		return profile
 	}
 
-	fun applyProfile(profile: MetaUiInputProfile): MetaUiInputBindings {
+	fun applyProfile(profile: MetaUiInputProfile): MetaUiInputBindings = batch {
 		resetDefaults()
 		horizontalAxis = profile.horizontalAxis
 		verticalAxis = profile.verticalAxis
@@ -187,7 +207,7 @@ class MetaUiInputBindings {
 			}
 			setControllerBindings(action, bindings)
 		}
-		return this
+		this
 	}
 
 	fun actionForKey(keycode: Int): MetaUiAction? {

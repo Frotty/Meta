@@ -305,7 +305,7 @@ class UiControlHelper @JvmOverloads constructor(
 		if (keycode == canonicalKey) return
 		synthesizingCanonicalAction = true
 		try {
-			metaInput.keyDown(canonicalKey)
+			metaInput.keyDownSynthetic(canonicalKey)
 		} finally {
 			synthesizingCanonicalAction = false
 		}

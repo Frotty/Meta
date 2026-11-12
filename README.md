@@ -139,6 +139,24 @@ bar.setEntries(listOf(
 ))
 ```
 
+For live menu prompts, inject `MetaInputDevices` and `MetaUiInputBindings`, then bind the entries to the current
+device and profile. A slim bar fits inside a HUD or an existing `MetaBottomBar`.
+
+```kotlin
+val bar = MetaPromptBar(style = MetaPromptBar.Style.SLIM)
+bar.bindEntries {
+    val device = inputDevices.activeDevice()
+    listOf(
+        MetaPromptBar.Entry(inputBindings.promptGlyphs(device, MetaUiAction.CONFIRM), "Select"),
+        MetaPromptBar.Entry(inputBindings.promptGlyphs(device, MetaUiAction.BACK), "Back"),
+    )
+}
+```
+
+`bindEntries` observes the signals read by its source while the bar is on stage. For gameplay prompts, read the
+game's own reactive bindings and labels inside the same source. Custom input handlers can report physical activity
+to `MetaInputDevices` on the GL thread and dispatch translated keys with `MetaInputProcessor.keyDownSynthetic`.
+
 ### Localization
 
 `MetaLocalization` loads standard libGDX `base[_language].properties` catalogs, selects an advertised BCP 47

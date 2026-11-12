@@ -2,11 +2,15 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.FloatArray
 import com.badlogic.gdx.utils.IntArray
+import de.fatox.meta.reactive.Disposable
+import de.fatox.meta.reactive.effect
+import de.fatox.meta.reactive.untracked
 import de.fatox.meta.ui.MetaColor
 import de.fatox.meta.ui.MetaSkin
 import de.fatox.meta.ui.MetaType
@@ -14,7 +18,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * A row of button prompts on a floating pill - the "[A] Select  [B] Back" strip along the bottom of a game screen.
+ * A row of button prompts, shown as a floating pill or a compact translucent pill.
  *
  * The pill is rounded all round because it floats above the screen edge; the edge-docked [MetaBottomBar] has a
  * flat bottom that reads as clipped the moment it is lifted off the edge, which is what games did with it. Spacing
@@ -26,12 +30,24 @@ import kotlin.math.min
  * is exactly how a single row stops fitting. Laid out by hand rather than through a wrapping flex box, because a pill
  * has to know its own height from its own width in one pass - it is the thing whose size its parent is asking for.
  */
-class MetaPromptBar @JvmOverloads constructor(
-	private var fontSize: Int = MetaType.BODY,
-	private val labelColor: Color = MetaColor.TEXT_MUTED,
+class MetaPromptBar private constructor(
+	private var fontSize: Int,
+	private val labelColor: Color,
+	private val style: Style,
 ) : WidgetGroup() {
+	@JvmOverloads
+	constructor(fontSize: Int = MetaType.BODY, labelColor: Color = MetaColor.TEXT_MUTED) :
+		this(fontSize, labelColor, Style.PILL)
+
+	@JvmOverloads
+	constructor(style: Style, fontSize: Int = MetaType.BODY, labelColor: Color = MetaColor.TEXT_MUTED) :
+		this(fontSize, labelColor, style)
+
+	/** SLIM uses a translucent background and tighter spacing for HUDs. */
+	enum class Style { PILL, SLIM }
+
 	/** One prompt of the bar: the glyphs and what they do. */
-	class Entry(val glyphs: List<MetaInputGlyph>, val label: String)
+	data class Entry(val glyphs: List<MetaInputGlyph>, val label: String)
 
 	/** The widest the bar may be. NaN, the default, means [STAGE_FRACTION] of the stage it is on. */
 	var widthLimit: Float = Float.NaN
@@ -41,6 +57,10 @@ class MetaPromptBar @JvmOverloads constructor(
 		}
 
 	private val background: Drawable = MetaSkin.skin().getDrawable(MetaSkin.PROMPT_BAR)
+	private val backgroundOpacity = if (style == Style.SLIM) 0.82f else 1f
+	private var entries = emptyList<Entry>()
+	private var entrySource: (() -> List<Entry>)? = null
+	private var entryEffect: Disposable? = null
 	private val prompts = ArrayList<MetaInputPrompt>()
 	/** Index of the first prompt of each row, then one past the last. Scratch; grows with the prompt count only. */
 	private val rowStarts = IntArray()
@@ -52,14 +72,39 @@ class MetaPromptBar @JvmOverloads constructor(
 
 	/** Replaces the prompts. Cheap enough to call on every change of controller family or language. */
 	fun setEntries(next: List<Entry>) {
+		if (entries == next) return
+		entries = next.map { it.copy(glyphs = it.glyphs.toList()) }
 		clearChildren()
 		prompts.clear()
-		for (index in next.indices) {
-			val prompt = MetaInputPrompt(next[index].glyphs, next[index].label, fontSize, labelColor)
+		for (index in entries.indices) {
+			val entry = entries[index]
+			val prompt = MetaInputPrompt(entry.glyphs, entry.label, fontSize, labelColor)
 			prompts.add(prompt)
 			addActor(prompt)
 		}
 		invalidateHierarchy()
+	}
+
+	/** Reads device, binding, and label signals in [source]. Observation is active only on stage. */
+	fun bindEntries(source: () -> List<Entry>) {
+		entrySource = source
+		refreshEntryBinding()
+		if (stage == null) untracked { setEntries(source()) }
+	}
+
+	override fun setStage(stage: Stage?) {
+		val changed = stage !== this.stage
+		super.setStage(stage)
+		if (changed) refreshEntryBinding()
+	}
+
+	private fun refreshEntryBinding() {
+		entryEffect?.dispose()
+		val source = entrySource
+		entryEffect = if (stage != null && source != null) effect("prompt bar entries") {
+			val next = source()
+			untracked { setEntries(next) }
+		} else null
 	}
 
 	fun setFontSize(size: Int) {
@@ -69,10 +114,10 @@ class MetaPromptBar @JvmOverloads constructor(
 		invalidateHierarchy()
 	}
 
-	private val padX: Float get() = fontSize * 0.9f
-	private val padY: Float get() = fontSize * 0.45f
-	private val gapX: Float get() = fontSize * 1.3f
-	private val gapY: Float get() = fontSize * 0.4f
+	private val padX: Float get() = fontSize * if (style == Style.PILL) 0.9f else 0.55f
+	private val padY: Float get() = fontSize * if (style == Style.PILL) 0.45f else 0.2f
+	private val gapX: Float get() = fontSize * if (style == Style.PILL) 1.3f else 0.85f
+	private val gapY: Float get() = fontSize * if (style == Style.PILL) 0.4f else 0.25f
 
 	private fun limit(): Float {
 		if (!widthLimit.isNaN()) return widthLimit
@@ -143,7 +188,7 @@ class MetaPromptBar @JvmOverloads constructor(
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		validate()
 		val previous = batch.packedColor
-		batch.setColor(color.r, color.g, color.b, color.a * parentAlpha)
+		batch.setColor(color.r, color.g, color.b, color.a * parentAlpha * backgroundOpacity)
 		background.draw(batch, x, y, width, height)
 		batch.packedColor = previous
 		super.draw(batch, parentAlpha)

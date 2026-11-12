@@ -30,6 +30,9 @@ inline fun MetaInputProcessor.addScreenKeyListener(
 }
 
 interface MetaInputProcessor : InputProcessor {
+	/** Dispatches a synthesized key without treating it as physical keyboard activity. */
+	fun keyDownSynthetic(keycode: Int): Boolean = keyDown(keycode)
+
 	/**
 	 * Dispatches a translated controller key while retaining which local player produced it.
 	 *
