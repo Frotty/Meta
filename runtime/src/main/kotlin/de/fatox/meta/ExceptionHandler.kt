@@ -21,6 +21,7 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.prefs.Preferences
 import javax.swing.BorderFactory
 import javax.swing.ImageIcon
@@ -47,9 +48,26 @@ private const val ERROR_HEADER = "Please report this crash with the following in
 private const val AUTO_SEND_PREF = "autoSendCrashReports"
 
 object ExceptionHandler : Thread.UncaughtExceptionHandler {
-	override fun uncaughtException(t: Thread, e: Throwable) {
-		log.error(e) { e.localizedMessage }
+	private val handlingCrash = AtomicBoolean()
 
+	override fun uncaughtException(t: Thread, e: Throwable) {
+		// AWT can fail after the window opens, while dispatching an input event. Keep the
+		// first report and let the logger record the secondary exception.
+		if (!handlingCrash.compareAndSet(false, true)) {
+			log.error(e) { "Secondary exception while reporting a crash on ${t.name}" }
+			return
+		}
+		var dialogScheduled = false
+		try {
+			log.error(e) { e.localizedMessage }
+			dialogScheduled = reportCrash(t, e)
+		} finally {
+			if (!dialogScheduled) handlingCrash.set(false)
+		}
+	}
+
+	/** Returns whether the event thread owns the crash dialog. */
+	private fun reportCrash(t: Thread, e: Throwable): Boolean {
 		val stackTrace = e.stackTraceToString()
 		val crashFile = crashLogFile()
 		val report = crashReport(t, e, stackTrace)
@@ -76,11 +94,19 @@ object ExceptionHandler : Thread.UncaughtExceptionHandler {
 		try {
 			if (GraphicsEnvironment.isHeadless()) {
 				if (autoSend) sendCrashReport(report, null)
-				return
+				return false
 			}
-			CrashDialog.show(crashText, crashFile, report, reportUrlConfigured, autoSend, noDialog)
+			CrashDialog.show(crashText, crashFile, report, reportUrlConfigured, autoSend) { failure ->
+				try {
+					noDialog(failure)
+				} finally {
+					handlingCrash.set(false)
+				}
+			}
+			return true
 		} catch (failure: Throwable) {
 			noDialog(failure)
+			return false
 		}
 	}
 
