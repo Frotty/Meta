@@ -141,9 +141,7 @@ Allocation rate is the primary controllable JVM game-runtime cost.
 - GL-thread startup work of the application's own (its faces, atlases or a pre-built scene) belongs in
   `SplashCallbacks.startupLoad`, which the splash advances in budgeted slices while the panel animates. Anything left
   in `onLoaded` blocks a frame with the panel already gone, so keep that to handing over the first screen.
-- A consuming application extends `Meta`. Using isolated pieces without it is not supported: `MetaAudioVideoData` and
-  `MultisampleFBO` always needed it, so the previous "UI layer only" allowance was true of one class and false of the
-  rest.
+- Consuming applications extend `Meta` to initialize the runtime object graph.
 - Reach platform handlers (`WindowHandler`, `MonitorHandler`, `SoundHandler`, `GraphicsHandler`) through the injection
   graph, never through `Meta.instance`. `Meta.create` registers the application's own; `MetaModule` supplies `No*`
   defaults, and `MetaHeadlessUi` registers them for tests. A static singleton is not resolvable in a unit test, which
@@ -167,7 +165,8 @@ Allocation rate is the primary controllable JVM game-runtime cost.
   everything Meta persists, so a rename fails there rather than in someone's save. Keep desktop/editor launchers
   aligned with Gradle changes.
 - Upgrade Meta and verify it before bumping a consumer's pinned `metaVersion`/commit.
-- Baseline: Java 25, libGDX 1.14.2, Kotlin 2.4.10, Gradle 9.1.0. The wrapper is authoritative.
+- The runtime targets Java 25. See `gradle.properties` for dependency pins and the Gradle wrapper for the build version.
+  Keep the Jenkins Gradle image in `ci/Dockerfile` aligned with the wrapper.
 
 Minimum runtime gates:
 

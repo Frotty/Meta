@@ -17,8 +17,8 @@ consumer; game-specific behavior stays outside this repository.
 | `editor` | Optional scene and shader editor built on the runtime. |
 | `editor-desktop` | Optional desktop editor launcher and UI playground. |
 
-The runtime targets Java 25 and currently builds against Kotlin 2.4.10 and libGDX 1.14.2. The Gradle wrapper is the
-authoritative build entry point.
+The runtime targets Java 25. Dependency versions are pinned in [`gradle.properties`](gradle.properties). Build with
+the Gradle wrapper.
 
 ## Use from a game
 
@@ -47,13 +47,15 @@ application {
 }
 ```
 
-Meta's editor and playground launchers already apply this option. Custom launch scripts should pass the same
+Meta's editor and playground launchers already apply these options. Custom launch scripts should pass the same
 arguments to `java`. A trained Java 25 AOT cache is application- and classpath-specific, so create and ship it from
 the final game's packaging pipeline rather than Meta's library build.
 
 Meta is a [multi-module JitPack project](https://docs.jitpack.io/building/#multi-module-projects), so the repository
 name is part of the group ID. Upgrade and verify Meta before changing a released game's pinned commit; avoid floating
 branch versions.
+
+Applications supply their own SLF4J 2.x provider. Update any SLF4J 1.7 binding when upgrading an existing launcher.
 
 ## Runtime conventions
 
@@ -68,8 +70,8 @@ branch versions.
   written frequently. Their specialized value/peek/update/subscribe paths avoid generic JVM boxing; each retains a
   `Signal<T>` surface for compatibility boundaries.
 - Create `MetaWindow`/`MetaDialog` bindings in `onShown()` using their `reactiveScope`; it is disposed on hide.
-- Queue startup assets through `AssetProvider.load`. Use the three-callback `SplashScreen` when discovery or queueing
-  does meaningful work off the GL thread.
+- Queue startup assets through `AssetProvider.load`. Use `SplashScreen` with `SplashCallbacks.startupLoad` to slice
+  game-owned GL startup work across frames. See [`AGENTS.md`](AGENTS.md) for callback threading.
 
 Create presentation-owned bindings in `onShown()` so cached windows can be hidden and shown without retaining stale
 effects:
@@ -200,11 +202,13 @@ Run the same compile and test gates as CI:
 .\gradlew.bat :runtime:perfCheck
 ```
 
-For UI work, also run the playground and add geometry or behavior coverage:
+To inspect the current window chrome, docking, and controls, launch the playground:
 
 ```powershell
 .\gradlew.bat :editor-desktop:runMetaUiPlayground
 ```
+
+For UI changes, add geometry or behavior coverage using the runtime's test fixtures.
 
 Production Kotlin must not use iterator-based loops over libGDX collections; the iteration guard runs before
 `compileKotlin` and `check`.

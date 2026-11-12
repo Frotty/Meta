@@ -207,7 +207,7 @@ data class SplashFontConfiguration(
  * overruns its budget still costs one long frame, so divide the work into steps rather than trusting the budget.
  */
 fun interface SplashStartupLoad {
-	/** Advances startup work for up to [millis], then reports whether anything is left. */
+	/** Advances startup work within the soft budget [millis]. Returns `true` when all work is complete. */
 	fun update(millis: Int): Boolean
 }
 
