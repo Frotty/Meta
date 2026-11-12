@@ -1,9 +1,14 @@
 package de.fatox.meta.graphics.font
 
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.g2d.freetype.FreeType
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.injection.MetaInject
 import de.fatox.meta.test.MetaHeadlessUi
+import de.fatox.meta.ui.MetaSkin
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Test
@@ -79,6 +84,40 @@ internal class MetaFontProviderFaceLoadingTest {
 		provider.prepareFaces()
 		val font = provider.getFont(24, FontType.REGULAR)
 		assertTrue(font.data.getGlyph('M') != null, "a prepared face produced no glyphs")
+	}
+
+	@Test
+	fun `text atlas preserves FreeType coverage on diagonals`() {
+		val glyph = provider.getFont(16, FontType.REGULAR).data.getGlyph('W')
+		val atlas = MetaSkin.sharedPacker().pages[glyph.page].pixmap
+		val library = FreeType.initFreeType()
+		try {
+			val face = library.newFace(Gdx.files.classpath(FontInfo.DEFAULT_REGULAR_FONT_PATH), 0)
+			assertTrue(face.setPixelSizes(0, 32))
+			assertTrue(face.loadChar('W'.code, FreeType.FT_LOAD_TARGET_LIGHT))
+			val outline = face.glyph.glyph
+			try {
+				outline.toBitmap(FreeType.FT_RENDER_MODE_NORMAL)
+				val coverage = outline.bitmap.getPixmap(Pixmap.Format.RGBA8888, Color.WHITE, 1f)
+				try {
+					assertEquals(coverage.width, glyph.width)
+					assertEquals(coverage.height, glyph.height)
+					for (y in 0 until glyph.height) {
+						for (x in 0 until glyph.width) {
+							val expectedAlpha = coverage.getPixel(x, y) and 0xff
+							val atlasAlpha = atlas.getPixel(glyph.srcX + x, glyph.srcY + y) and 0xff
+							assertEquals(expectedAlpha, atlasAlpha, "Coverage at ($x, $y)")
+						}
+					}
+				} finally {
+					coverage.dispose()
+				}
+			} finally {
+				outline.dispose()
+			}
+		} finally {
+			library.dispose()
+		}
 	}
 
 	@Test
