@@ -9,14 +9,13 @@ The goal: two players navigating Meta UI independently on **one machine**, inclu
 Meta to do it.
 
 The concrete case that prompted this is a fighting-game character select: two grids,
-two cursors, each player confirming their own. Today that is not expressible.
+two cursors, each player confirming their own.
 
 ---
 
-## What blocks it today
+## Constraints before implementation
 
-Meta's UI input is single-cursor by construction, in four separate places. Each has
-to be addressed or explicitly excluded; a change to one alone does nothing.
+The original single-cursor design had four constraints.
 
 ### 1. Bindings are global
 
@@ -286,9 +285,6 @@ non-primary players. Slices 2 and 3 are additions, not completions.
 1. **Does a dialog belong to a player?** A modal opened by P2 mid-select: does it
    capture only P2's input, or all of it? The exclusive-processor stack has no player
    dimension, and adding one is a bigger change than any of the above.
-2. **Is player one privileged?** The synthesis proposal makes it so. The alternative
-   is no synthesis at all for anyone, which is cleaner in theory and breaks the
-   rebinding path that makes canonical keys useful.
-3. **Should `MetaUiInputProfiles` persist per player?** `MetaUiInputProfilePersistence`
+2. **Should `MetaUiInputProfiles` persist per player?** `MetaUiInputProfilePersistence`
    saves one profile today. Two players implies two saved profiles and a decision
    about what a fresh second player starts with.

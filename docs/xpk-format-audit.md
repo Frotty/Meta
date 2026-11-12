@@ -12,7 +12,7 @@ Measurements in this document were taken on the audit machine (Temurin 25.0.3, W
 own `assets/` folder and against synthetic corpora shaped like game content. They are order-of-magnitude evidence for
 the design decisions, not a benchmark suite; re-measure on real game data before acting on the ratio numbers.
 
-## 1. What XPK is today
+## 1. XPK at the time of the audit
 
 A `.xpk` file is:
 

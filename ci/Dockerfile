@@ -5,5 +5,5 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Use the wrapper's Gradle version without fetching its distribution during a CI job.
-COPY --from=gradle:9.1.0-jdk25@sha256:d2f954187670397de6dd42c5c3a9d4535409b590059c6d248ff2a59ba67cecc3 /opt/gradle /opt/gradle
+COPY --from=gradle:9.7.0-jdk25@sha256:35b2b4054977b95348bdd126e808e245fc1e28e56537b51cfd90c7f355b5a105 /opt/gradle /opt/gradle
 ENV PATH="/opt/gradle/bin:${PATH}"

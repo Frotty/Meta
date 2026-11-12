@@ -415,19 +415,19 @@ class MetaFontProvider : FontProvider {
 			// different textures and SpriteBatch flushes between them, so a row of buttons costs two draw calls
 			// each no matter how few textures exist in total.
 			packer = sharedGlyphPacker()
-			// FreeType rasterizes anti-aliased coverage into the oversampled atlas. Linear filtering preserves that
-			// coverage when the atlas is reduced back to logical size or enlarged by the world camera.
+			// Sample the oversampled glyphs with linear filtering when drawing at device resolution.
 			minFilter = Texture.TextureFilter.Linear
 			magFilter = Texture.TextureFilter.Linear
-			hinting = if (type == FontType.ICON) {
-				FreeTypeFontGenerator.Hinting.Slight
-			} else {
-				FreeTypeFontGenerator.Hinting.Full
-			}
+			hinting = FreeTypeFontGenerator.Hinting.Slight
 			kerning = true
 			size = requestedSize
 			if (type == FontType.ICON) {
 				characters = ICON_MEASURE_STRING
+			} else {
+				// Preserve FreeType's grayscale coverage. libGDX's gamma and repeated compositing reshape the
+				// partially covered pixels before the GPU samples them, making small diagonals look stepped.
+				gamma = 1f
+				renderCount = 1
 			}
 		}
 	}

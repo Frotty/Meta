@@ -11,6 +11,7 @@ Audit Meta and its consumers against the framework contracts below. Report concr
 
 - Determine whether the target is Meta itself or a consumer.
 - In a consumer, inspect its pinned Meta version or commit before recommending APIs. Do not assume the consumer has APIs added after that revision.
+- In Meta itself, read the root `AGENTS.md` and applicable nested guidance for module boundaries and verification commands.
 - Prefer generic fixes in Meta when the behavior is recurrent across games. Keep gameplay, art conventions, online services, and other game-specific policy in the consumer.
 - When exact semantics matter, inspect the target revision of `Reactive.kt`, `MetaBind.kt`, the relevant Meta UI component, and its tests.
 
@@ -56,13 +57,15 @@ Treat generic primitive signals as unsuitable for high-frequency writes because 
 - Use the bundled Remix icon catalog and semantic Meta icon/button components for routine actions. Do not substitute text glyphs, emoji, or bitmap icons for catalog actions.
 - Use TTF-backed Meta text widgets. Clone a skin style before changing its font; never mutate a shared style.
 - Use `FontProvider`-generated fonts and Meta pixel-snap/font-refresh helpers. Do not bypass them with ad hoc font caches or unsnapped text drawing that can blur, bleed, or retain a stale scale.
-- Use `MetaScrollPane`, `MetaWindow`, and `MetaDialog` according to their ownership contracts instead of layering competing scrolling or window chrome.
+- Put sticky controls in `MetaWindow.controlTable` and scrollable content in `contentTable`. `MetaDialog` owns its action row, `MetaScrollPane` owns scroll styling and nested focus, and `MetaUiManager` owns docking and its persistence.
+- Change shared window chrome and control states in `MetaSkin` and the semantic tokens in `MetaUi.kt`. Inspect the result with `./gradlew :editor-desktop:runMetaUiPlayground` (`.\gradlew.bat` on Windows).
+- Use `MetaPromptBar` and `MetaInputPrompt` with the bundled Kenney glyphs from `MetaInputGlyphs`. For first-frame prompts, warm the label fonts from `MetaInputPrompt.requiredFonts` and prewarm the glyphs at the current physical pixels per unit.
 
-For offline geometry verification, initialize `GdxTestEnvironment`, size and validate the root, then use `MetaLayout.problems(root)` or `MetaLayout.assertValid(root)`. Add deterministic tests for breakpoint transitions, visibility, minimum/preferred sizes, nesting, constrained height, and overflow-prone layouts.
+Use `GdxTestEnvironment.ensure()` for plain actors and `MetaHeadlessUi.install()` for real widget trees. Size and validate the root, then use `MetaLayout.problems(root)` or `MetaLayout.assertValid(root)`. Exercise relevant breakpoints and constrained dimensions. The fixture measures layout with real font metrics and discards draw calls. Use the playground to inspect pixels.
 
 ## Startup, asset loading, and perceived progress
 
-- For non-trivial startup, use `SplashScreen` with `prepareAssets`, `queueAssets`, and `onLoaded`: keep filesystem discovery, archive indexing, and queue construction off the GL thread, queue through `AssetProvider`, and perform scene2d/GL work only in the GL-thread completion phase.
+- For non-trivial startup, use `SplashScreen` with `prepareAssets`, `queueAssets`, and `onLoaded`. Run discovery, indexing, and queue construction on the splash worker and queue through `AssetProvider`. Put game-owned scene2d and GL startup work in `SplashCallbacks.startupLoad` so it can advance in budgeted slices. Use `onLoaded` to hand off to the first screen.
 - Advance `AssetProvider` with frame-budgeted `update` calls while rendering the splash. Do not block animated loading with `finish()` or unqueued `getResource()` calls, and do not let one large upload make the loading screen appear frozen when cooperative budgeting can avoid it.
 - Expose real `AssetProvider.progress` when determinate; use an honest indeterminate spinner when work cannot be measured instead of a fake timer. Keep the splash responsive with animated spinners/status text and smooth fade-in, fade-out, and post-load UI transitions.
 - Handle preparation and loading failures visibly and preserve cleanup for splash-owned textures, fonts, providers, worker threads, and reactive/UI scopes on every exit path.
@@ -71,7 +74,7 @@ For offline geometry verification, initialize `GdxTestEnvironment`, size and val
 ## Scene2D and reactive lifecycle
 
 - Release global input, visibility leases, capture listeners, controller listeners, focus overrides, subscriptions, and reactive scopes on every exit path.
-- Put dialog/window cleanup in their lifecycle teardown (`onHidden` where applicable), not only in confirm/cancel handlers.
+- Create window and dialog bindings in `onShown()` with their renewable `reactiveScope`. Release dialog-owned grabs and listeners in `onHidden()` so every close path is covered.
 - Use `MetaInputProcessor` and its exclusive-processor stack; do not replace `Gdx.input.inputProcessor` or manually emulate global grabs.
 - Preserve Scene2D focus authority while text fields or text areas are editing.
 - Ensure responsive bindings stop affecting actors after removal, reparenting, clearing, hiding, or disposal.

@@ -23,7 +23,6 @@ allprojects {
 	}
 }
 
-// If we add android exclude the project here
 configure(subprojects) {
 	apply plugin: 'kotlin'
 
@@ -42,22 +41,6 @@ configure(subprojects) {
 	publishing {
 		publications {
 			mavenJava(MavenPublication) {
-				// Coordinates come from the project group (see `subprojects` below),
-				// deliberately, not from an override here.
-				//
-				// JitPack rewrites the POM to `com.github.Frotty.Meta:<module>` and
-				// leaves the Gradle module metadata saying `com.github.Frotty:Meta`.
-				// Gradle discards metadata whose component does not match the request
-				// and silently falls back to the POM, losing every variant a POM
-				// cannot express, so `testFixtures(...)` could not resolve while the
-				// fixture jar sat in the repository right beside the jar that did.
-				//
-				// Overriding only `groupId` here is not enough and is worth recording:
-				// a feature capability is derived from the *project* group, so the
-				// fixture still advertised `com.github.Frotty:runtime-test-fixtures`
-				// against a consumer asking for `com.github.Frotty.Meta:...`. One
-				// group, set once, keeps the POM, the metadata and the capabilities
-				// agreeing.
 				from components.java
 			}
 		}
@@ -65,10 +48,8 @@ configure(subprojects) {
 }
 
 subprojects {
-	// The coordinates JitPack actually serves under. Declaring them here rather than
-	// letting JitPack rewrite them keeps the POM, the Gradle module metadata and the
-	// derived feature capabilities all saying the same thing; see the publishing
-	// block above for what went wrong when they disagreed.
+	// Use JitPack's group at the project level so the POM, Gradle metadata, and derived
+	// test-fixture capabilities agree. A publication-only override leaves capabilities mismatched.
 	group = 'com.github.Frotty.Meta'
 	version = '1.0.0-SNAPSHOT'
 
@@ -88,6 +69,7 @@ subprojects {
 				includeGroup "org.junit"
 				includeGroup "org.apiguardian"
 				includeGroup "org.opentest4j"
+				includeGroup "org.jspecify"
 				includeGroup "org.lwjgl"
 				includeGroup "org.jcraft"
 				includeGroup "net.java.dev.jna"
@@ -104,12 +86,12 @@ subprojects {
 		}
 	}
 
-	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-		kotlinOptions {
-			jvmTarget = "25"
-			freeCompilerArgs += "-progressive"
-			freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
-			freeCompilerArgs += "-jvm-default=no-compatibility"
+	tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile).configureEach {
+		compilerOptions {
+			jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
+			progressiveMode.set(true)
+			optIn.add('kotlin.RequiresOptIn')
+			jvmDefault.set(org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode.NO_COMPATIBILITY)
 		}
 	}
 
