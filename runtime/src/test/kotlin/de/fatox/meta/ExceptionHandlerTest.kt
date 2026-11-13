@@ -70,6 +70,22 @@ internal class ExceptionHandlerTest {
 		assertTrue("IllegalStateException: boom" in crashLog.readText(), "The crash log lost the original exception")
 	}
 
+	@Test
+	fun `an exception while reporting a crash leaves the original crash log intact`() {
+		val output = runFreshJvm(
+			CrashWithoutAwt::class.java,
+			"-Djava.awt.headless=true",
+			"-Djava.util.prefs.PreferencesFactory=${InMemoryPreferencesFactory::class.java.name}",
+			"-Dmeta.crashReportAppName=crash-test",
+			"-Dmeta.test.reenterCrashHandler=true",
+			environment = mapOf("LOCALAPPDATA" to temporaryDirectory.toString()),
+		)
+		assertTrue("meta-crash-handler-reentered" in output)
+		assertTrue(HANDLED_MARKER in output)
+		val crashLog = temporaryDirectory.resolve("crash-test/logs/crash.log").toFile().readText()
+		assertTrue("IllegalStateException: boom" in crashLog, "The secondary exception overwrote the crash log")
+	}
+
 	private fun runFreshJvm(
 		main: Class<*>,
 		vararg jvmArgs: String,
@@ -124,7 +140,13 @@ private class InMemoryPreferences(parent: InMemoryPreferences?, name: String) : 
 		values[key] = value
 	}
 
-	override fun getSpi(key: String): String? = values[key]
+	override fun getSpi(key: String): String? {
+		if (System.clearProperty("meta.test.reenterCrashHandler") == "true") {
+			println("meta-crash-handler-reentered")
+			ExceptionHandler.uncaughtException(Thread.currentThread(), NoSuchMethodError("secondary failure"))
+		}
+		return values[key]
+	}
 	override fun removeSpi(key: String) {
 		values.remove(key)
 	}
