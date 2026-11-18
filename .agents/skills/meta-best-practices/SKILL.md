@@ -70,6 +70,8 @@ Use `GdxTestEnvironment.ensure()` for plain actors and `MetaHeadlessUi.install()
 - Expose real `AssetProvider.progress` when determinate; use an honest indeterminate spinner when work cannot be measured instead of a fake timer. Keep the splash responsive with animated spinners/status text and smooth fade-in, fade-out, and post-load UI transitions.
 - Handle preparation and loading failures visibly and preserve cleanup for splash-owned textures, fonts, providers, worker threads, and reactive/UI scopes on every exit path.
 - Keep loading progress and transition state reactive where it drives UI, but avoid rebuilding the loading tree or allocating strings/temporary objects every frame.
+- Move file I/O, decompression, and other work that can exceed a frame budget to a worker. Keep scene2d and GL work on the render thread and slice expensive render-thread-only work across frames.
+- Show progress for asynchronous actions. Use `MetaLoadingSkeleton` to reserve the shape of a loading region with several components, `MetaLoadingSpinner` inside a button for work started by that button, and a spinner beside other indeterminate work. Disable a pending action and enable its successor only when that action's prerequisites are ready.
 
 ## Scene2D and reactive lifecycle
 
