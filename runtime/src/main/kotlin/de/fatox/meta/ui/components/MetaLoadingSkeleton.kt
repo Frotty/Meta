@@ -53,7 +53,7 @@ class MetaLoadingSkeleton @JvmOverloads constructor(
 		fill.draw(batch, x, y, width, height)
 
 		if (animated && phase > 0f) {
-			val bandWidth = width * 0.36f
+			val bandWidth = width * 0.72f
 			val bandStart = (width + bandWidth) * phase - bandWidth
 			val left = bandStart.coerceAtLeast(0f)
 			val right = (bandStart + bandWidth).coerceAtMost(width)
