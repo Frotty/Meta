@@ -21,7 +21,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.TimeUtils
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -63,6 +65,7 @@ object MetaSkin {
 	const val PROMPT_BAR = "meta.promptBar"
 	const val COLOR_FILL = "meta.color.fill"
 	const val LOADING_RING = "meta.loading.ring"
+	internal const val LOADING_SKELETON_HIGHLIGHT = "meta.loading.skeleton.highlight"
 	const val WINDOW = "meta.window"
 	const val WINDOW_RESIZABLE = "meta.window.resizable"
 	private const val WINDOW_BACKGROUND = "meta.window.background"
@@ -410,6 +413,7 @@ object MetaSkin {
 	private fun addPanelDrawables(skin: Skin) {
 		solid(skin, COLOR_FILL, Color.WHITE, minWidth = 1f, minHeight = 1f)
 		loadingRing(skin)
+		loadingSkeletonHighlight(skin)
 		menuBarBackground(skin)
 		windowTitleRule(skin)
 		rounded(skin, "meta.panel", MetaColor.SURFACE, MetaColor.BORDER, radius = 2, border = 1, padding = 8f)
@@ -468,6 +472,18 @@ object MetaSkin {
 			}
 		}
 		packDrawable(LOADING_RING, pixmap, minWidth = 1f, minHeight = 1f)
+	}
+
+	private fun loadingSkeletonHighlight(skin: Skin) {
+		if (deferInstall { loadingSkeletonHighlight(skin) }) return
+		val pixmap = Pixmap(64, 1, Pixmap.Format.RGBA8888)
+		pixmap.setBlending(Pixmap.Blending.None)
+		for (x in 0 until pixmap.width) {
+			val phase = x.toFloat() / (pixmap.width - 1)
+			val alpha = ((1.0 - cos(phase * 2.0 * PI)) * 127.5).roundToInt()
+			pixmap.drawPixel(x, 0, 0xFFFFFF00.toInt() or alpha)
+		}
+		packDrawable(LOADING_SKELETON_HIGHLIGHT, pixmap, minWidth = 1f, minHeight = 1f)
 	}
 
 	private fun addControlDrawables(skin: Skin) {
