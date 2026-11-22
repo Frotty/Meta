@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Button
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
@@ -142,16 +143,23 @@ class MetaMenu @JvmOverloads constructor(
 		// every subsequent header click opened another popup without closing the previous one.
 		clearPopupPresentation()
 		super.remove()
-		pack()
-		val popupX = anchorX.coerceIn(0f, (stage.width - width).coerceAtLeast(0f))
-		val popupY = (anchorY - height).coerceIn(0f, (stage.height - height).coerceAtLeast(0f))
-		setPosition(popupX, popupY)
+		anchorPosition.set(anchorX, anchorY)
 		shownStage = stage
 		stage.addActor(this)
+		repackPopup()
 		stage.root.addCaptureListener(outsideListener)
 		openValue.value = true
 		openButton.active = true
 		toFront()
+	}
+
+	internal fun repackPopup() {
+		val stage = stage ?: return
+		if (shownStage !== stage) return
+		pack()
+		val popupX = anchorPosition.x.coerceIn(0f, (stage.width - width).coerceAtLeast(0f))
+		val popupY = (anchorPosition.y - height).coerceIn(0f, (stage.height - height).coerceAtLeast(0f))
+		setPosition(popupX, popupY)
 	}
 
 	internal fun hidePopup() {
@@ -195,7 +203,7 @@ class MetaMenu @JvmOverloads constructor(
 	}
 }
 
-/** TTF menu entry with optional Remix icon and reactive disabled state. */
+/** TTF menu entry with an optional Remix icon and input shortcut hint. */
 class MetaMenuItem private constructor(
 	text: String,
 	icon: Drawable?,
@@ -206,6 +214,33 @@ class MetaMenuItem private constructor(
 	private val disabledBinding = disabledValue.subscribe { setDisabled(disabledValue.peek()) }
 	internal var owner: MetaMenu? = null
 	private val label = MetaLabel(text, fontSize, MetaColor.TEXT).apply { setAlignment(Align.left) }
+	private val shortcutCell: Cell<Actor>
+	private var shortcutPrompt: MetaInputPrompt? = null
+
+	/**
+	 * Ordered glyphs for the trailing shortcut hint. Set from the owning view's reactive effect to reflect
+	 * rebinding or a device change. An empty list hides the hint. Shortcut execution stays with the input owner.
+	 */
+	var shortcutGlyphs: List<MetaInputGlyph> = emptyList()
+		set(value) {
+			if (field == value) return
+			field = value.toList()
+			if (field.isEmpty()) {
+				shortcutCell.setActor(null)
+				shortcutCell.padRight(0f)
+			} else {
+				val prompt = shortcutPrompt ?: MetaInputPrompt(emptyList(), "", MetaType.CAPTION).apply {
+					touchable = Touchable.disabled
+					color.a = if (this@MetaMenuItem.isDisabled) DISABLED_SHORTCUT_ALPHA else 1f
+					shortcutPrompt = this
+				}
+				prompt.setGlyphs(field)
+				shortcutCell.setActor(prompt)
+				shortcutCell.padRight(MetaSpacing.SM)
+			}
+			invalidateHierarchy()
+			owner?.repackPopup()
+		}
 
 	@JvmOverloads
 	constructor(text: String, fontSize: Int = MetaType.BODY) : this(text, null, fontSize)
@@ -219,6 +254,7 @@ class MetaMenuItem private constructor(
 		if (icon != null) add(Image(icon)).size(icon.minWidth, icon.minHeight).padLeft(MetaSpacing.SM).padRight(MetaSpacing.XS)
 		else add().width(MetaSpacing.SM)
 		add(label).left().growX().padRight(MetaSpacing.SM)
+		shortcutCell = add().right()
 		cursorPointer()
 		addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
@@ -232,9 +268,12 @@ class MetaMenuItem private constructor(
 		touchable = if (disabled) Touchable.disabled else Touchable.enabled
 		disabledValue.value = disabled
 		label.color.set(if (disabled) MetaColor.TEXT_DISABLED else MetaColor.TEXT)
+		shortcutPrompt?.color?.a = if (disabled) DISABLED_SHORTCUT_ALPHA else 1f
 	}
 
 	private companion object {
+		const val DISABLED_SHORTCUT_ALPHA = 0.6f
+
 		fun menuItemStyle(): ButtonStyle {
 			val skin = MetaSkin.skin()
 			return ButtonStyle().apply {
