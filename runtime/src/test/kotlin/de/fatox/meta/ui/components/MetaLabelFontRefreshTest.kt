@@ -12,6 +12,7 @@ import de.fatox.meta.ui.windows.MetaWindow
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertNotSame
 import org.junit.jupiter.api.Assertions.assertSame
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -65,6 +66,38 @@ class MetaLabelFontRefreshTest {
 
 		assertNotSame(before, window.titleLabel.style.font, "The window title still draws from the font released by the rebuild")
 		stage.dispose()
+	}
+
+	@Test
+	fun `a detached label can be measured in Russian before its first draw after an atlas rebuild`() {
+		val fonts = MetaInject.inject<FontProvider>("default")
+		val label = MetaLabel("Play", 24, type = FontType.BOLD)
+		val before = fontOf(label)
+
+		MetaSkin.rebuildAtlas()
+		fonts.disposeOrphanedFonts()
+		assertSame(before, fontOf(label))
+
+		label.setText("Новая игра")
+		assertTrue(label.prefWidth > 0f)
+		assertSame(fonts.getFont(24, FontType.BOLD), fontOf(label))
+	}
+
+	@Test
+	fun `layout refreshes the font before building a glyph cache`() {
+		val fonts = MetaInject.inject<FontProvider>("default")
+		val label = MetaLabel("Continue", 24)
+		label.setSize(240f, 36f)
+		val before = fontOf(label)
+
+		MetaSkin.rebuildAtlas()
+		fonts.disposeOrphanedFonts()
+		assertSame(before, fontOf(label))
+
+		label.setText("Продолжить")
+		label.layout()
+		assertTrue(label.glyphLayout.width > 0f)
+		assertSame(fonts.getFont(24, FontType.REGULAR), fontOf(label))
 	}
 
 	private fun fontOf(label: MetaLabel): BitmapFont {

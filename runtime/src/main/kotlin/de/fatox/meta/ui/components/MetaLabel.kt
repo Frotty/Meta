@@ -114,6 +114,7 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	override fun layout() {
+		fontTracker.refreshIfStale(this)
 		val font = bitmapFontCache.font
 		val oldScaleX = font.scaleX
 		val oldScaleY = font.scaleY
@@ -225,12 +226,15 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	override fun getPrefWidth(): Float {
+		// Reactive text changes may measure a detached label before it is attached or drawn again.
+		fontTracker.refreshIfStale(this)
 		if (wrap) return 0f
 		if (prefSizeInvalid) scaleAndComputePrefSize()
 		return prefSize.x
 	}
 
 	override fun getPrefHeight(): Float {
+		fontTracker.refreshIfStale(this)
 		if (prefSizeInvalid) scaleAndComputePrefSize()
 		return prefSize.y - font.descent * fontScaleY * 2
 	}
@@ -359,10 +363,7 @@ open class MetaLabel @JvmOverloads constructor(
 	}
 
 	/** Re-fetches the font from the provider (e.g. after a UI-scale change) and rebuilds the glyph cache. */
-	override fun refreshFont() {
-		fontTracker.markFresh()
-		updateFont()
-	}
+	override fun refreshFont() = updateFont()
 
 	/** Self-heal on (re)attach: a label that was detached during a UI-scale change holds a disposed font. */
 	override fun setStage(stage: Stage?) {
@@ -373,8 +374,8 @@ open class MetaLabel @JvmOverloads constructor(
 	private fun updateFont() {
 		font = metaFontProvider.getFont(size.roundToInt(), type)
 		adoptFontBaseScale()
-		setText(text)
 		bitmapFontCache = font.newFontCache()
+		fontTracker.markFresh()
 		applyTextFit()
 		// New font metrics: invalidate pref size and parents, then relayout so glyphLayout reflects the new font.
 		invalidateHierarchy()
@@ -430,6 +431,7 @@ open class MetaLabel @JvmOverloads constructor(
 		fontColor = color
 		setText(text)
 		bitmapFontCache = font.newFontCache()
+		fontTracker.markFresh()
 		layout()
 	}
 }
