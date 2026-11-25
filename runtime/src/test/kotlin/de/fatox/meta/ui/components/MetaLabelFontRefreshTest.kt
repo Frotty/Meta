@@ -1,20 +1,29 @@
 package de.fatox.meta.ui.components
 
+import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
+import de.fatox.meta.api.lang.MetaLanguage
 import de.fatox.meta.injection.MetaInject
+import de.fatox.meta.lang.MetaLocalization
+import de.fatox.meta.reactive.ReactiveScope
 import de.fatox.meta.test.MetaHeadlessUi
 import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.bindLocalizedText
 import de.fatox.meta.ui.windows.MetaWindow
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotSame
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
+import kotlin.io.path.writeText
 
 /**
  * A label on a stage the renderer does not own still draws from a live font after a scale change.
@@ -118,6 +127,46 @@ class MetaLabelFontRefreshTest {
 		label.setText("Новая игра")
 		assertTrue(label.prefWidth > 0f)
 		assertSame(fonts.getFont(24, FontType.BOLD), fontOf(label))
+	}
+
+	@Test
+	fun `changing language updates existing controls before their first draw after an atlas rebuild`(@TempDir catalogs: Path) {
+		catalogs.resolve("Menu_en.properties").writeText("play=Play\n")
+		catalogs.resolve("Menu_ru.properties").writeText("play=Новая игра\n")
+		val localization = MetaLocalization(
+			FileHandle(catalogs.resolve("Menu").toFile()),
+			listOf(MetaLanguage("en", "English"), MetaLanguage("ru", "Русский")),
+			fallbackLanguageTag = "en",
+		)
+		val fonts = MetaInject.inject<FontProvider>("default")
+		val label = MetaLabel("", 24, type = FontType.BOLD).apply { fitTextToWidth(200f) }
+		val button = MetaTextButton().apply { fitTextToWidth(200f) }
+		val scope = ReactiveScope()
+		try {
+			scope.bindLocalizedText(label, localization, "play")
+			scope.bindLocalizedText(button, localization, "play")
+			assertEquals("Play", label.text.toString())
+			assertEquals("Play", button.text.toString())
+			val before = fontOf(label)
+
+			MetaSkin.rebuildAtlas()
+			fonts.disposeOrphanedFonts()
+			assertSame(before, fontOf(label))
+
+			// Text fitting measures during the binding, while both widgets are still detached.
+			assertTrue(localization.selectLanguage("ru"))
+			assertEquals("Новая игра", label.text.toString())
+			assertEquals("Новая игра", button.text.toString())
+			assertTrue(label.prefWidth > 0f)
+			assertTrue(button.prefWidth > 0f)
+			assertSame(fonts.getFont(24, FontType.BOLD), fontOf(label))
+
+			assertTrue(localization.selectLanguage("en"))
+			assertEquals("Play", label.text.toString())
+			assertEquals("Play", button.text.toString())
+		} finally {
+			scope.dispose()
+		}
 	}
 
 	@Test
