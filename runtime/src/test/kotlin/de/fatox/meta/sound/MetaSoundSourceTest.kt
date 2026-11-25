@@ -20,6 +20,8 @@ import de.fatox.meta.test.GdxTestEnvironment
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import java.lang.reflect.Proxy
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -35,7 +37,7 @@ internal class MetaSoundSourceTest {
 	fun setUp() {
 		GdxTestEnvironment.ensure()
 		originalApplication = Gdx.app
-		Gdx.app = immediateApplication(originalApplication)
+		Gdx.app = applicationWithPosting(originalApplication) { it.run() }
 		stopAllSoundSources()
 		silencePositionalSounds(false)
 		MetaAudioVideoState.initialize(MetaAudioVideoData(masterVolume = 1f, soundVolume = 1f))
@@ -74,6 +76,28 @@ internal class MetaSoundSourceTest {
 		assertEquals(0, assetProvider.resourceRequests)
 		assertEquals(0, audio.newSoundCalls)
 		assertEquals(0, audio.sound.loopCalls)
+	}
+
+	@Test
+	fun `a queued start cannot disrupt its replacement after stop and restart`() {
+		val posted = LinkedBlockingQueue<Runnable>()
+		Gdx.app = applicationWithPosting(originalApplication) { posted.add(it) }
+		val cluster = MetaSoundCluster(MetaPositionalSoundDefinition("sound/spider_walk.wav"))
+		fun runNextPost() = assertNotNull(posted.poll(5, TimeUnit.SECONDS), "Timed out waiting for the audio start").run()
+		try {
+			cluster.update(Vector2.Zero, 0f)
+			runNextPost() // Timer task, which queues its playback callback.
+			cluster.stop()
+			cluster.update(Vector2.Zero, 0f)
+			runNextPost() // Playback callback of the stopped task.
+			assertEquals(0, audio.sound.loopCalls)
+
+			runNextPost() // Replacement timer task.
+			runNextPost() // Replacement playback callback.
+			assertEquals(1, audio.sound.loopCalls)
+		} finally {
+			cluster.stop()
+		}
 	}
 
 	@Test
@@ -179,13 +203,13 @@ internal class MetaSoundSourceTest {
 	}
 }
 
-private fun immediateApplication(delegate: Application): Application {
+private fun applicationWithPosting(delegate: Application, post: (Runnable) -> Unit): Application {
 	return Proxy.newProxyInstance(
 		Application::class.java.classLoader,
 		arrayOf(Application::class.java),
 	) { _, method, args ->
 		if (method.name == "postRunnable") {
-			(args!![0] as Runnable).run()
+			post(args!![0] as Runnable)
 			Unit
 		} else {
 			method.invoke(delegate, *(args ?: emptyArray()))

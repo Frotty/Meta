@@ -52,13 +52,19 @@ class GBufferShader : Shader {
 		s_normalTex = program.getUniformLocation("s_normalTex")
 		u_camPos = program.getUniformLocation("u_camPos")
 		val pixmap = Pixmap(1, 1, Pixmap.Format.RGB888)
-		pixmap.drawPixel(0, 0, Color.WHITE.toIntBits())
-		whiteTex = Texture(pixmap)
+		try {
+			pixmap.drawPixel(0, 0, Color.WHITE.toIntBits())
+			whiteTex = Texture(pixmap)
+		} finally {
+			pixmap.dispose()
+		}
 		emptyNormals = assetProvider.getResource("models/empty_n.png", Texture::class.java)
 	}
 
 	override fun dispose() {
 		program.dispose()
+		whiteTex?.dispose()
+		whiteTex = null
 	}
 
 	override fun begin(camera: Camera, context: RenderContext) {

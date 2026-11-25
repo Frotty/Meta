@@ -9,14 +9,11 @@ import de.fatox.meta.api.ui.metaGet
 import de.fatox.meta.ide.AssetDiscoverer
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FolderListAdapter
-import de.fatox.meta.ui.components.MetaIcon
-import de.fatox.meta.ui.components.MetaImageButton
 import de.fatox.meta.ui.components.MetaIconTextButton
 import de.fatox.meta.ui.components.MetaListView
 import de.fatox.meta.ui.components.MetaScrollPane
 import de.fatox.meta.ui.components.MetaSeparator
 import de.fatox.meta.ui.components.MetaTable
-import de.fatox.meta.ui.components.MetaTextField
 
 private const val TAG = "adwSettings"
 
@@ -27,11 +24,9 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 	private var adapter: FolderListAdapter<FolderModel>? = null
 	private var filePane: ScrollPane? = null
 	private lateinit var view: MetaListView<FolderModel>
-	private val toolbarTable = MetaTable()
 	private val fileViewTable = MetaTable()
 	private var selectionMode = false
 	private var listener: SelectListener? = null
-	private var data: AssetDiscovererData? = null
 
 	private open class FolderModel(val fileHandle: FileHandle) {
 		override fun toString(): String {
@@ -41,10 +36,9 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 
 	private fun loadLastFolder() {
 		assetDiscoverer.setRoot("")
-		if (uiManager.metaHas(TAG)) {
-			data = uiManager.metaGet(TAG)
-			assetDiscoverer.openChild(data!!.lastFolder)
-		}
+		if (!uiManager.metaHas(TAG)) return
+		val data = uiManager.metaGet<AssetDiscovererData>(TAG) ?: return
+		assetDiscoverer.openChild(data.lastFolder)
 	}
 
 	private fun setup() {
@@ -56,25 +50,9 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 		}
 		contentTable.apply {
 			top().left()
-			row().left().top().height(24f)
-			add(toolbarTable).growX()
-			row().height(1f)
-			add(MetaSeparator()).growX()
-			row()
 			add(fileViewTable).left().grow()
 		}
-		createToolbarBar()
 		createFileView()
-	}
-
-	private fun createToolbarBar() {
-		toolbarTable.left().top()
-		toolbarTable.row().height(24f)
-		val newFileButton = MetaImageButton("ri-file-add-line")
-		toolbarTable.add(newFileButton).size(24f).left()
-		toolbarTable.add(MetaIcon("ri-search-line", 22)).size(24f).left()
-		val searchTF = MetaTextField()
-		toolbarTable.add(searchTF).height(24f).growX()
 	}
 
 	private fun createFileView() {

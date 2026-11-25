@@ -52,9 +52,7 @@ class AssetDiscoverer {
 	}
 
 	fun openFile(fileHandle: FileHandle) {
-		if (fileOpenListeners.containsKey(fileHandle.extension())) {
-			fileOpenListeners.get(fileHandle.extension()).onOpen(fileHandle)
-		}
+		fileOpenListeners.get(fileHandle.extension())?.onOpen(fileHandle)
 	}
 
 	fun addOpenListener(extension: String, listener: AssetOpenListener) {
@@ -62,10 +60,8 @@ class AssetDiscoverer {
 	}
 
 	fun setRoot(path: String) {
-		currentFolder =
-			if (path.length <= 0) projectManager.currentProjectRoot else projectManager.currentProjectRoot.child(path)
-		this.root = currentFolder
-		refresh()
+		val projectRoot = projectManager.currentProjectRoot
+		setRoot(if (path.isEmpty()) projectRoot else projectRoot.child(path))
 	}
 
 	fun setRoot(root: FileHandle?) {

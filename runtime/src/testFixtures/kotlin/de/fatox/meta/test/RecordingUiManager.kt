@@ -6,7 +6,6 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.utils.Array
-import com.badlogic.gdx.utils.Disposable
 import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.NoWindowHandler
 import de.fatox.meta.api.WindowHandler

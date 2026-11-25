@@ -45,7 +45,7 @@ object UninitializedSound : Sound {
 private val soundHandler: SoundHandler get() = de.fatox.meta.injection.MetaInject.inject()
 
 class MetaSoundDefinition(soundName: String, val maxInstances: Int = 4) {
-	val soundName: String = soundName.replace("/".toRegex(), "\\\\")
+	val soundName: String = soundName.replace('/', '\\')
 	var sound: Sound = UninitializedSound
 		set(value) {
 			field = value

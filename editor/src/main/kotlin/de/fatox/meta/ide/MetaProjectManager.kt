@@ -43,7 +43,7 @@ class MetaProjectManager : ProjectManager {
 			return null
 		}
 		currentProjectRoot = realFile.parent()
-		createFolders(metaProjectData)
+		createFolders()
 		currentProject = metaProjectData
 		val lastProjects = if (metaData.has(lastProjectsKey)) metaData[lastProjectsKey] else Array()
 		if (!lastProjects.contains(realFile.path(), false)) {
@@ -65,11 +65,10 @@ class MetaProjectManager : ProjectManager {
 		}
 		// root is already the project's own folder once loadProject() has run; only nest a new child
 		// folder the first time (from newProject()), or a re-save after loading would create a duplicate.
-		var child = if (root.name() == projectData.name) root else root.child(projectData.name).also { it.mkdirs() }
-		currentProjectRoot = child
-		createFolders(projectData)
-		child = child.child(MetaProjectData.PROJECT_FILE_NAME)
-		child.writeBytesAtomic(json.toJson(projectData).toByteArray())
+		val projectRoot = if (root.name() == projectData.name) root else root.child(projectData.name).also { it.mkdirs() }
+		currentProjectRoot = projectRoot
+		createFolders()
+		projectRoot.child(MetaProjectData.PROJECT_FILE_NAME).writeBytesAtomic(json.toJson(projectData).toByteArray())
 		uiManager.showToast("Project created")
 	}
 
@@ -78,29 +77,19 @@ class MetaProjectManager : ProjectManager {
 		saveProject(projectData)
 	}
 
-	override fun verifyProjectFile(file: FileHandle): Boolean {
-		try {
-			val metaProjectData = json.fromJson(MetaProjectData::class.java, file.readString())
-			if (metaProjectData.isValid) {
-				return true
-			}
-		} catch (e: Exception) {
-			return false
-		}
-		return false
+	override fun verifyProjectFile(file: FileHandle): Boolean = try {
+		json.fromJson(MetaProjectData::class.java, file.readString()).isValid
+	} catch (_: Exception) {
+		false
 	}
 
-	private fun createFolders(projectData: MetaProjectData) {
+	private fun createFolders() {
 		currentProjectRoot.child("assets").mkdirs()
 		currentProjectRoot.child("scenes").mkdirs()
 	}
 
 	/**
-	 * Project metadata is read uncached: it lives in a directory the person using the editor also edits, so a
-	 * modification time that does not advance must not pin a stale value.
-	 *
-	 * The two failures are reported apart. "Does not exist" for a file that is merely unreadable sent whoever hit it
-	 * looking for a missing file that was in front of them the whole time.
+	 * Read from disk so external edits appear even when the file's modification time stays the same.
 	 */
 	override fun <T : Any> get(key: String, type: KClass<out T>): T =
 		when (val stored = metaData.read(MetaDataKey<T>(key), type, currentProjectRoot, cached = false)) {

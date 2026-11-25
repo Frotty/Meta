@@ -3,15 +3,10 @@ package de.fatox.meta.desktop
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Graphics
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Graphics
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Window
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener
-import de.fatox.meta.Meta
 import de.fatox.meta.api.MonitorHandler
-import de.fatox.meta.api.WindowHandler
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import org.slf4j.Logger
-import java.awt.DisplayMode
 
 private val log: Logger = MetaLoggerFactory.logger {}
 
@@ -27,15 +22,8 @@ class DesktopMonitorHandler : MonitorHandler {
 	}
 
 	/**
-	 * The window's content scale as GLFW reports it - on Windows, the ratio of the current DPI to the platform
-	 * default of 96, which is exactly the percentage in the display settings.
-	 *
-	 * libGDX does not surface this. `Graphics.density` is `getPpiX() / 160`, derived from the monitor's physical
-	 * size, so it describes the *panel* rather than what the user asked for: a 189 PPI laptop reports 1.18 whether
-	 * Windows is set to 100% or 200%.
-	 *
-	 * Both axes are read and the larger taken. They agree on every configuration seen in practice, and picking the
-	 * larger fails towards a readable interface rather than a small one.
+	 * GLFW reports the user's display scale, such as 150% in Windows settings. `Graphics.density` uses the
+	 * monitor's physical PPI. Take the larger scale when the two axes differ to keep the UI readable.
 	 */
 	override val osContentScale: Float
 		get() {

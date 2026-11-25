@@ -317,6 +317,22 @@ internal class MetaControllerCaptureTest {
 	}
 
 	@Test
+	fun `starting a nested capture does not release a held key twice`() {
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		MetaControllerListener.buttonDown(controller, 3)
+		val outer: (Controller, Int) -> Unit = { _, _ -> }
+		val inner: (Controller, Int) -> Unit = { _, _ -> }
+		MetaControllerListener.captureButtons(outer)
+		MetaControllerListener.captureButtons(inner)
+		MetaControllerListener.releaseCapture(inner)
+		MetaControllerListener.releaseCapture(outer)
+		MetaControllerListener.buttonUp(controller, 3)
+
+		assertEquals(listOf(Input.Keys.ENTER), input.keysDown)
+		assertEquals(input.keysDown, input.keysUp)
+	}
+
+	@Test
 	fun `a button held when a capture starts has its release consumed`() {
 		// The press was translated before the capture existed and the release will not be, so without care the
 		// release emits an unmatched canonical key-up once the capture ends - activating whatever is focused behind
@@ -568,6 +584,20 @@ internal class MetaControllerCaptureTest {
 		MetaControllerListener.buttonUp(controller, button)
 
 		assertEquals(listOf(playerTwoKey), input.keysUp, "the physical release escaped into player one's route")
+	}
+
+	@Test
+	fun `reassigning a captured press does not emit a translated key up`() {
+		bindings.setControllerButtonCodes(MetaUiAction.CONFIRM, 3)
+		val target: (Controller, Int) -> Unit = { _, _ -> }
+		MetaControllerListener.captureButtons(target)
+		MetaControllerListener.buttonDown(controller, 3)
+		MetaControllerListener.releaseCapture(target)
+		MetaControllerListener.assignPlayer(controller, MetaPlayer(1))
+		MetaControllerListener.buttonUp(controller, 3)
+
+		assertTrue(input.keysDown.isEmpty())
+		assertTrue(input.keysUp.isEmpty())
 	}
 
 	// ── Doubles ───────────────────────────────────────────────────────────────

@@ -32,7 +32,8 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 	private val uiControlHelper: UiControlHelper = inject()
 	private var wasHelperActive = false
 	private val fontProvider: FontProvider = inject()
-	private val fontTracker = FontGenerationTracker()
+	private val fontTracker = FontGenerationTracker(fontProvider)
+	private var fontReady = false
 	private val focusStyle: MetaSelectBoxFocusStyle<T>
 	val selectedValue: Signal<T?> = signal(selected)
 	val dropdownOpenValue: Signal<Boolean> = signal(false)
@@ -62,6 +63,7 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 		list.style.font = font
 		focusStyle = MetaSelectBoxFocusStyle(this, style, MetaSkin::focusedSelectBoxStyle)
 		focusStyle.install(style)
+		fontReady = true
 		addListener(object : ChangeListener() {
 			override fun changed(event: ChangeEvent, actor: Actor) {
 				selectedValue.value = selected
@@ -96,6 +98,12 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 
 					override fun toString(obj: T): String = this@MetaSelectBox.toString(obj)
 
+					override fun validate() {
+						// The popup is attached directly to the stage and can validate independently of the box.
+						refreshFontIfStale()
+						super.validate()
+					}
+
 					override fun drawItem(batch: Batch, font: BitmapFont, index: Int, item: T, x: Float, y: Float, width: Float): GlyphLayout {
 						val pixelsPerUnit = font.physicalPixelsPerUnit()
 						return super.drawItem(
@@ -110,8 +118,22 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 		}
 	}
 
+	override fun validate() {
+		refreshFontIfStale()
+		super.validate()
+	}
+
+	override fun layout() {
+		refreshFontIfStale()
+		super.layout()
+	}
+
+	override fun getMaxSelectedPrefWidth(): Float {
+		refreshFontIfStale()
+		return super.getMaxSelectedPrefWidth()
+	}
+
 	override fun draw(batch: Batch, parentAlpha: Float) {
-		fontTracker.refreshIfStale(this)
 		super.draw(batch, parentAlpha)
 		val drawable = if (dropdownOpenValue.peek()) chevronUp else chevronDown
 		drawable.draw(
@@ -129,18 +151,25 @@ open class MetaSelectBox<T>(private val fontSize: Int = MetaType.BODY) : SelectB
 
 	/** Re-fetches the font into the (cloned) box + dropdown-list styles after a UI-scale change. */
 	override fun refreshFont() {
+		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
 		fontTracker.markFresh()
-		focusStyle.refreshFont(fontProvider.getFont(fontSize, FontType.REGULAR))
+		focusStyle.refreshFont(font)
 		invalidateHierarchy()
+	}
+
+	private fun refreshFontIfStale() {
+		// The SelectBox constructor measures the widget before its popup and Meta styles exist.
+		if (fontReady) fontTracker.refreshIfStale(this)
 	}
 
 	/** Self-heal on (re)attach: a box that was detached during a UI-scale change holds a disposed font. */
 	override fun setStage(stage: Stage?) {
 		super.setStage(stage)
-		if (stage != null) fontTracker.refreshIfStale(this)
+		if (stage != null) refreshFontIfStale()
 	}
 
 	override fun showScrollPane() {
+		refreshFontIfStale()
 		super.showScrollPane()
 		dropdownOpenValue.value = true
 

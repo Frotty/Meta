@@ -141,8 +141,9 @@ class MetaAssetProvider : AssetProvider {
 	 * ends up serving different bytes depending on which lookup path reached it.
 	 */
 	private fun resolveAsset(fileName: String): FileHandle? {
-		val indexed = fileCache[assetPathKey(fileName)]
-		val packed = resolvePacked(fileName)
+		val canonical = assetPathKey(fileName)
+		val indexed = fileCache[canonical]
+		val packed = resolvePacked(fileName, canonical)
 		if (indexed != null && packed != null) {
 			throw GdxRuntimeException(
 				"Asset '$fileName' is present both as an indexed file (${indexed.path()}) and in a packed archive",
@@ -158,12 +159,11 @@ class MetaAssetProvider : AssetProvider {
 	 * archive is asked instead. Lookup is a binary search over a sorted `long[]`, so this costs one hash and a few
 	 * comparisons per archive.
 	 */
-	private fun resolvePacked(fileName: String): FileHandle? {
+	private fun resolvePacked(fileName: String, canonical: String): FileHandle? {
 		val profile = xpkProfile ?: return null
 		if (v2Archives.size == 0) return null
 
 		// Hashed once, not once per archive: every archive under this profile hashes a name the same way.
-		val canonical = assetPathKey(fileName)
 		if (canonical.isEmpty()) return null
 		val nameHash = XpkFormat.nameHash(profile, canonical)
 
@@ -182,38 +182,22 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	override fun loadRawAssetsFromFolder(folder: FileHandle): Boolean {
-		// This helper function does all the recursion,
-		// always stripping out `rootFolderName` from the path.
-		fun loadFolderRecursively(currentFolder: FileHandle, rootFolderName: String) {
-			// List everything in currentFolder
+		if (!folder.isDirectory) return false
+		val rootPath = folder.path()
+		val rootPrefix = "$rootPath/"
+		fun loadFolderRecursively(currentFolder: FileHandle) {
 			val children = currentFolder.list()
 			for (childIndex in children.indices) {
 				val child = children[childIndex]
 				if (child.isDirectory) {
-					// Recurse into subdirectories
-					loadFolderRecursively(child, rootFolderName)
+					loadFolderRecursively(child)
 				} else {
-					// Build the full path (relative to internal root, but includes folder name)
-					val fullPath = child.path()  // e.g. "assets/subfolder/img.png"
-
-					// Remove the top folder name + "/" from the front (e.g. remove "assets/" -> "subfolder/img.png")
-					val relativePath = if (fullPath.startsWith("$rootFolderName/")) {
-						fullPath.substring(rootFolderName.length + 1)
-					} else {
-						fullPath
-					}
-
 					// Store one portable lookup key; keep the actual source path on the handle.
-					cacheFile(relativePath, child, folder.path())
+					cacheFile(child.path().removePrefix(rootPrefix), child, rootPath)
 				}
 			}
 		}
-		// If the given handle is not a folder, do nothing
-		if (!folder.isDirectory) return false
-
-		// Kick off recursion, remembering the name of the top-level folder (e.g. "assets")
-		loadFolderRecursively(folder, folder.path())
-
+		loadFolderRecursively(folder)
 		return true
 	}
 
@@ -332,13 +316,6 @@ class MetaAssetProvider : AssetProvider {
 	}
 
 	/**
-	 * Frees archive entry buffers once a load phase has drained.
-	 *
-	 * Decompressed entry bytes are only needed while a loader is turning them into a texture, sound or model. Held
-	 * past that they are a second full copy of the asset data in heap, alongside the GPU and OpenAL copies. Also
-	 * closes each archive's 7z reader, releasing its LZMA2 dictionary.
-	 */
-	/**
 	 * Whether asset loading is in flight, so archive reads are part of a burst worth caching for.
 	 *
 	 * Read from AssetManager's worker as well as the GL thread. Both fields are plain int reads and this is only a
@@ -348,6 +325,7 @@ class MetaAssetProvider : AssetProvider {
 	private fun isLoadPhaseActive(): Boolean =
 		assetManager.queuedAssets > 0 || pendingFinalization.size > 0
 
+	/** Releases decompressed entry buffers and the 7z reader's LZMA2 dictionary after a load phase drains. */
 	private fun releaseArchiveCaches() {
 		for (index in 0 until openArchives.size) {
 			val archive = openArchives[index]
@@ -385,19 +363,12 @@ class MetaAssetProvider : AssetProvider {
 				}
 				type.cast(region ?: TextureRegion(getResource(fileName, Texture::class.java)))
 			}
-			cachedFile != null -> {
+			else -> {
 				load(fileName, type)
-				val resolvedName = cachedFile.path()
+				val resolvedName = cachedFile?.path() ?: fileName
 				assetManager.finishLoadingAsset<Any>(resolvedName)
 				stagedTextureUploads.finish()
 				finalizeLoadedAsset(resolvedName)
-				getResource(fileName, type)
-			}
-			else -> {
-				load(fileName, type)
-				assetManager.finishLoadingAsset<Any>(fileName)
-				stagedTextureUploads.finish()
-				finalizeLoadedAsset(fileName)
 				getResource(fileName, type)
 			}
 		} ?: throw GdxRuntimeException("Resource not found: $fileName")

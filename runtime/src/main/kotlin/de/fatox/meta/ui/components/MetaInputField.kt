@@ -86,6 +86,7 @@ open class MetaInputField @JvmOverloads constructor(
 	}
 
 	fun setInputValid(valid: Boolean) {
+		refreshFontIfStale()
 		batch {
 			inputValidValue.value = valid
 			installMetaTextFieldStyle(if (valid) validStyle else invalidStyle)

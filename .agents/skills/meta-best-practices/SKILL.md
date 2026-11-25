@@ -1,6 +1,6 @@
 ---
 name: meta-best-practices
-description: Audit or review Meta engine and Meta-consumer Kotlin/libGDX code for Meta reactive-state usage, Meta UI composition and responsiveness, Scene2D lifecycle, and crisp rendering. Use for Meta-specific architecture reviews, PR audits, or implementation checks; do not trigger for unrelated Kotlin/libGDX projects.
+description: Audit or review Meta engine and Meta-consumer Kotlin/libGDX code for runtime regressions, reactive state, responsive UI, Scene2D lifecycle, and crisp rendering. Use for Meta-specific architecture reviews, PR audits, or implementation checks; do not trigger for unrelated Kotlin/libGDX projects.
 ---
 
 # Meta Best Practices
@@ -62,6 +62,18 @@ Treat generic primitive signals as unsuitable for high-frequency writes because 
 - Use `MetaPromptBar` and `MetaInputPrompt` with the bundled Kenney glyphs from `MetaInputGlyphs`. For first-frame prompts, warm the label fonts from `MetaInputPrompt.requiredFonts` and prewarm the glyphs at the current physical pixels per unit.
 
 Use `GdxTestEnvironment.ensure()` for plain actors and `MetaHeadlessUi.install()` for real widget trees. Size and validate the root, then use `MetaLayout.problems(root)` or `MetaLayout.assertValid(root)`. Exercise relevant breakpoints and constrained dimensions. The fixture measures layout with real font metrics and discards draw calls. Use the playground to inspect pixels.
+
+## Runtime robustness and regression tests
+
+- Trace the public operation through bindings, cached state, and the next lifecycle step. For language changes,
+  call `Localization.selectLanguage` with real catalogs and bound widgets. Switch scripts and measure or lay out
+  the same widgets before their next draw. Include detached widgets when a font atlas can be rebuilt.
+- Check every entry point that reads a cached resource after replacement, including setters, preferred-size queries,
+  layout, and draw. Track the provider that owns the resource. For queued work, check stop/restart or
+  reassign/release ordering so stale callbacks cannot act on a replacement.
+- Reproduce the failure order through the public API with real widgets or subsystem resources. Assert a concrete
+  result such as translated text and valid metrics, one delivered input release, or one active playback. Where
+  practical, verify that removing the fix makes the test fail.
 
 ## Startup, asset loading, and perceived progress
 

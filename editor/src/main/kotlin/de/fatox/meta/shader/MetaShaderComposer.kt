@@ -53,7 +53,7 @@ class MetaShaderComposer {
 				compositions[index].dispose()
 			}
 			compositions.clear()
-			val compositionFolder = projectManager.currentProjectRoot.child("meta/compositions/")
+			val compositionFolder = projectManager.currentProjectRoot.child(META_COMP_PATH)
 			if (compositionFolder.exists()) {
 				val compositionFiles =
 					compositionFolder.list { pathname -> pathname.name.endsWith(META_COMP_SUFFIX) }
@@ -76,7 +76,7 @@ class MetaShaderComposer {
 	}
 
 	private fun saveComposition(composition: ShaderComposition): FileHandle {
-		return projectManager.save("meta/compositions/" + composition.data.name + META_COMP_SUFFIX, composition.data)
+		return projectManager.save(META_COMP_PATH + composition.data.name + META_COMP_SUFFIX, composition.data)
 	}
 
 	fun getComposition(compositionPath: String): ShaderComposition? {

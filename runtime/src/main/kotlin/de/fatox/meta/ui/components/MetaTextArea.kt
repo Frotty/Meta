@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.TextArea
-import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
@@ -38,7 +37,7 @@ open class MetaTextArea @JvmOverloads constructor(
 	private val validators = Array<MetaInputValidator>()
 	private val validStyle = MetaTextField.textFieldStyle(fontSize, fontProvider, MetaSkin.TEXT_AREA)
 	private val invalidStyle = MetaTextField.textFieldStyle(fontSize, fontProvider, MetaSkin.TEXT_FIELD_ERROR)
-	private val fontTracker = FontGenerationTracker()
+	private val fontTracker = FontGenerationTracker(fontProvider)
 	private val placeholderLayout = GlyphLayout()
 	private var metaInitialized = false
 
@@ -73,22 +72,34 @@ open class MetaTextArea @JvmOverloads constructor(
 	}
 
 	override fun refreshFont() {
-		fontTracker.markFresh()
 		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
+		fontTracker.markFresh()
 		validStyle.font = font
 		validStyle.messageFont = font
 		invalidStyle.font = font
 		invalidStyle.messageFont = font
 		setStyle(style)
+		// Scene2D caches line breaks and the visible row count until its size changes.
+		super.sizeChanged()
 		invalidateHierarchy()
 	}
 
 	override fun setStage(stage: Stage?) {
 		super.setStage(stage)
-		if (stage != null) fontTracker.refreshIfStale(this)
+		if (stage != null) refreshFontIfStale()
+	}
+
+	private fun refreshFontIfStale() {
+		if (metaInitialized) fontTracker.refreshIfStale(this)
+	}
+
+	override fun getPrefHeight(): Float {
+		refreshFontIfStale()
+		return super.getPrefHeight()
 	}
 
 	override fun setText(str: String) {
+		refreshFontIfStale()
 		super.setText(str)
 		if (metaInitialized) {
 			syncTextValue()
@@ -97,6 +108,7 @@ open class MetaTextArea @JvmOverloads constructor(
 	}
 
 	fun setInputValid(valid: Boolean) {
+		refreshFontIfStale()
 		batch {
 			inputValidValue.value = valid
 			val next = if (valid) validStyle else invalidStyle
@@ -125,7 +137,7 @@ open class MetaTextArea @JvmOverloads constructor(
 	// Vanilla TextArea (via TextField) positions its internal BitmapFontCache straight from this actor's own x/y
 	// with no pixel-grid awareness, unlike MetaLabel - snap it so multi-line input stays crisp at every UI scale.
 	override fun draw(batch: Batch, parentAlpha: Float) {
-		fontTracker.refreshIfStale(this)
+		refreshFontIfStale()
 		drawPixelSnapped(batch, parentAlpha, style.font.physicalPixelsPerUnit()) { b, a -> super.draw(b, a) }
 	}
 

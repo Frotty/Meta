@@ -50,6 +50,8 @@ Meta is the scene2d UI layer; VisUI and libktx must not be introduced.
 - Visible text uses TTF-backed Meta widgets: `MetaLabel`, `MetaTextButton`, `MetaIconTextButton`, `MetaSelectBox`,
   `MetaTextField`, `MetaTextArea`, and `MetaCheckBox`. A new text widget must clone its skin style before replacing
   the font; never mutate a shared style.
+- Widgets that cache font data must track the provider that supplies it and refresh stale fonts before reading
+  their metrics. Layout can measure a detached widget before it has a chance to draw.
 - Use `MetaIconButton` for full action affordance and `MetaImageButton` for a lighter icon-only action. Choose
   `MetaButtonTier.PRIMARY`, `SECONDARY`, or `TERTIARY` by semantic emphasis instead of local colors.
 - Routine glyphs come from the bundled Remix catalog (`assets/ui/icons/remixicon.tsv`). Bitmap assets are for art,
@@ -73,22 +75,16 @@ Meta is the scene2d UI layer; VisUI and libktx must not be introduced.
 - `MetaWindow`/`MetaDialog` own chrome, sticky controls/actions, responsive overflow, and constrained scrolling.
   Consumers must not wrap the whole window in another scroll pane. `MetaUiManager` alone owns docking layout and
   persistence.
-- Test geometry with `MetaLayout.problems(root)` or `assertValid(root)`. `GdxTestEnvironment.ensure()` is enough for
-  plain actors; `MetaHeadlessUi.install()` additionally stubs GL and registers the object graph, so **real** widget
-  trees (`MetaLabel`, flex rows, a `Stage`, whole screens) construct and measure with no graphics device. Prefer it:
-  a layout measured with stand-ins where the labels go is not measuring the part most likely to be the wrong size, and
-  a screen that owns its stage can be tested as itself rather than rebuilt inside the test. Measurements are real;
-  **pixels are not**: every draw call is discarded, so never assert on what was rendered. See `HeadlessGL20`.
-- A consuming game gets both through
-  `testImplementation testFixtures("com.github.Frotty.Meta:runtime:<version>")`. The fixture carries the headless
-  backend and its natives, so nothing else is wired up downstream.
+- Test geometry with `MetaLayout.problems(root)` or `MetaLayout.assertValid(root)`. Use `GdxTestEnvironment.ensure()`
+  for plain actors and `MetaHeadlessUi.install()` to measure real widget and screen trees with GL stubs. Draw calls
+  are discarded. Use the playground to verify pixels. See the [fixture setup](README.md#develop-and-verify).
 
 ## Global input and lifecycle cleanup
 
 Any global input or visibility grab must be released on every exit path.
 
-- `MetaInputProcessor.exclusiveProcessor` is a stack. Use `pushExclusiveProcessor`/`popExclusiveProcessor`; a leaked
-  owner bypasses the stage and makes later UI unresponsive.
+- Use `MetaInputProcessor.pushExclusiveProcessor`/`popExclusiveProcessor` to manage the exclusive input stack.
+  A leaked owner bypasses the stage and makes later UI unresponsive.
 - Release grabs, capture listeners, controller listeners, focus overrides, and helper flags in
   `MetaDialog.onHidden()`, not only in success/cancel handlers.
 - Use `UIManager.temporarilyHideOtherWindows(owner)` and dispose its lease. Do not toggle every window manually.
@@ -127,7 +123,7 @@ Allocation rate is the primary controllable JVM game-runtime cost.
 - Prioritize allocation reduction, algorithmic wins, fewer draw calls, and fewer scene2d invalidations over JVM
   memory-layout or branch micro-optimizations.
 
-`verifyKotlinIterationSafety` enforces production-source collection rules and runs before compilation/checks.
+`verifyKotlinIterationSafety` checks production Kotlin across all modules before Kotlin compilation and `check`.
 
 ## Platform, startup, and resources
 
@@ -148,11 +144,8 @@ Allocation rate is the primary controllable JVM game-runtime cost.
   is why the display, FBO and sound paths had no coverage.
 - Use `AssetProvider.load` with frame-budgeted updates. Avoid `finish()` and unqueued `getResource()` on animated
   loading paths.
-- Two XPK formats coexist and neither replaced the other: see `runtime/src/main/kotlin/de/fatox/meta/assets/AGENTS.md`
-  before touching either. For v1, Commons Compress is an implementation detail and public APIs expose Meta/libGDX
-  types; use `XPKLoader.open` for entries you will read, or `XPKLoader.listEntryNames` when names are all you need.
-  The caller owns the returned `XpkArchive` and must dispose it; `getList` is deprecated because it returns entries
-  without it.
+- Consult the [assets and persistence guidance](runtime/src/main/kotlin/de/fatox/meta/assets/AGENTS.md) before
+  changing either XPK format or the metadata store.
 - Runtime resources must be generic and runtime-used. Keep the authoring and runtime copies of Remix font/catalog
   data byte-identical. Do not ship editor/sample content in `runtime/src/main/resources`.
 - Do not build new code on deprecated placeholders such as `AssetPromise`, `MetaShortcut`, `MetaTaskQueue`,

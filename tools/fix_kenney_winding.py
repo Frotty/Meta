@@ -10,9 +10,8 @@ from fontTools.ttLib import TTFont
 
 
 def contours(glyph):
-    coords, ends, flags = glyph.coordinates, glyph.endPtsOfContours, glyph.flags
     start = 0
-    for end in ends:
+    for end in glyph.endPtsOfContours:
         yield start, end
         start = end + 1
 
@@ -40,7 +39,7 @@ def inside(pt, poly):
 
 
 def interior_point(poly):
-    """A point just inside the contour, next to its first on-curve edge, for the containment test."""
+    """Probe just inside the contour at the first nondegenerate segment between stored points."""
     area = signed_area(poly)
     for i in range(len(poly)):
         x1, y1 = poly[i]

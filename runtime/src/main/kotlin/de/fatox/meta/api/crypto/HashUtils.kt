@@ -24,10 +24,8 @@ value class Base64EncodedHash(val value: String)
 /**
  * Computes a hash over this channel's entire content, from offset 0, and restores the caller's position.
  *
- * Streams in [HASH_IO_CHUNK_SIZE] slices rather than allocating a buffer the size of the channel, so a large channel
- * neither costs its own size in heap nor is silently truncated by an `Int` cast of [SeekableByteChannel.size]. The
- * previous implementation also honoured a single [read] call, so a channel that returned a short read - or one whose
- * position was not already 0 - hashed trailing zeroes.
+ * Streams in [HASH_IO_CHUNK_SIZE] slices, keeping memory use bounded and continuing after short
+ * [ReadableByteChannel.read] calls.
  */
 @Throws(IOException::class)
 fun SeekableByteChannel.hash(): XX64Hash {
@@ -59,7 +57,8 @@ private const val HASH_IO_CHUNK_SIZE = 64 * 1024
  * the hash was computed from.
  *
  * @param input The file bytes to be verified.
- * @throws IllegalStateException if the hash is invalid.
+ * @throws IllegalArgumentException if [input] is shorter than the hash trailer.
+ * @throws IllegalStateException if the computed hash differs from the trailer.
  */
 @OptIn(ExperimentalStdlibApi::class)
 @Throws(IllegalStateException::class)

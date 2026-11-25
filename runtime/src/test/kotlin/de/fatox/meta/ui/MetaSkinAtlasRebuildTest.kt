@@ -1,5 +1,6 @@
 package de.fatox.meta.ui
 
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
@@ -10,6 +11,7 @@ import de.fatox.meta.test.MetaHeadlessUi
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -70,6 +72,18 @@ class MetaSkinAtlasRebuildTest {
 		assertEquals(paddingBefore[3], button.bottomHeight, "bottomHeight lost")
 		assertEquals(minBefore[0], button.minWidth, "minWidth lost")
 		assertEquals(minBefore[1], button.minHeight, "minHeight lost")
+	}
+
+	@Test
+	fun `disposing the atlas removes the skin registration and frees its page`() {
+		val skin = MetaSkin.skin()
+		val page = MetaSkin.sharedPacker().pages[0]
+		assertSame(page.texture, skin.optional("meta.atlas.page0", Texture::class.java))
+
+		MetaSkin.dispose()
+
+		assertNull(skin.optional("meta.atlas.page0", Texture::class.java))
+		assertTrue(page.pixmap.isDisposed)
 	}
 
 	@Test

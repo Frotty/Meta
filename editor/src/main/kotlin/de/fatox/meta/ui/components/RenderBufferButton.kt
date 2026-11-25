@@ -17,8 +17,7 @@ import de.fatox.meta.shader.MetaShaderLibrary
 import de.fatox.meta.util.GoldenRatio
 
 /**
- * A Button displayed in the shader composer representing one shaderpass
- * They can be moved left & right and be deleted.
+ * Controls the shader, input type, and depth attachment for one composition pass.
  */
 class RenderBufferButton(text: String, size: Int) : MetaButtonContainer() {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
@@ -57,7 +56,6 @@ class RenderBufferButton(text: String, size: Int) : MetaButtonContainer() {
 			}
 		})
 
-		nameLabel
 		nameLabel.setAlignment(Align.center)
 		top()
 		clear()
@@ -81,27 +79,12 @@ class RenderBufferButton(text: String, size: Int) : MetaButtonContainer() {
 		depthCheckBox.isChecked = handle.data.hasDepth
 
 		row()
-
-		setupUniforms()
-
 		setupFooter()
-	}
-
-	private fun setupUniforms() {
-		val table = MetaTable()
-		table.center()
-		table.add(MetaLabel("Uniforms", 14))
-		table.row()
-
-		add(table).colspan(2)
-		row()
 	}
 
 	private fun setupFooter() {
 		val table = MetaTable()
 		table.center()
-		val moveLeftBtn = MetaIconButton("ri-arrow-left-s-line")
-		table.add(moveLeftBtn).size(26f)
 		val deleteBtn = MetaIconButton("ri-delete-bin-line")
 		deleteBtn.addListener(object : ClickListener() {
 			override fun clicked(event: InputEvent, x: Float, y: Float) {
@@ -109,8 +92,6 @@ class RenderBufferButton(text: String, size: Int) : MetaButtonContainer() {
 			}
 		})
 		table.add(deleteBtn).size(26f)
-		val moveRightBtn = MetaIconButton("ri-arrow-right-s-line")
-		table.add(moveRightBtn).size(26f)
 
 		add(table).growX().center().colspan(2)
 	}

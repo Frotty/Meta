@@ -257,9 +257,7 @@ abstract class MetaWindow(
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		if (managerConcealed) return
-		// The title is a plain scene2d Label, so nothing else heals it: a window on a stage the renderer does not
-		// walk would draw its title from a released page. Children heal themselves in their own draw.
-		if (fontGeneration != fontProvider.fontGeneration) refreshFont()
+		refreshTitleFontIfStale()
 		snapBoundsToPixelGrid()
 		validate()
 		snapTitleToPixelGrid()
@@ -412,6 +410,7 @@ abstract class MetaWindow(
 	}
 
 	override fun layout() {
+		refreshTitleFontIfStale()
 		fitStaticSurfaceToContent()
 		// Assign child widths before asking for minimum height. A wrapped Label reports prefWidth=0 and derives its
 		// height from its current width; querying minHeight before this pass can briefly wrap one character per line
@@ -438,6 +437,11 @@ abstract class MetaWindow(
 		if (!headerEnabled) return
 		titleTable.setSize((width - padLeft - padRight).coerceAtLeast(0f), padTop.coerceAtMost(height))
 		titleTable.setPosition(padLeft, (height - padTop).coerceAtLeast(0f))
+	}
+
+	override fun getPrefWidth(): Float {
+		refreshTitleFontIfStale()
+		return super.getPrefWidth()
 	}
 
 	override fun getMinWidth(): Float {
@@ -532,9 +536,14 @@ abstract class MetaWindow(
 
 	/** Re-fetches the title font after a UI-scale change; child Meta widgets refresh via the recursive stage walk. */
 	override fun refreshFont() {
-		fontGeneration = fontProvider.fontGeneration
 		applyTitleStyle()
+		fontGeneration = fontProvider.fontGeneration
 		titleLabel.invalidateHierarchy()
+	}
+
+	private fun refreshTitleFontIfStale() {
+		// The title is a Scene2D Label. Its owner refreshes it before draw or layout can use a released font.
+		if (fontGeneration != fontProvider.fontGeneration) refreshFont()
 	}
 
 	/**

@@ -7,7 +7,6 @@ import de.fatox.meta.api.ui.UIManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.components.MetaTabbedPane
 import de.fatox.meta.ui.components.MetaTabbedPaneAdapter
-import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.tabs.MetaTab
 import de.fatox.meta.ui.tabs.WelcomeTab
 
@@ -42,9 +41,6 @@ class MetaEditorUI {
 				uiManager.bringWindowsToFront()
 			}
 		})
-		val visTable = MetaTable()
-		visTable.add().top()
-		visTable.add().grow()
 		addTab(WelcomeTab())
 	}
 

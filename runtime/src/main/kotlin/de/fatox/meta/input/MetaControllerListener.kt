@@ -220,11 +220,7 @@ object MetaControllerListener : ControllerListener {
 		scratchKeys.clear()
 		heldRawButtons.forEachEntryReentrant { controller, buttons ->
 			if (player == null || playerOf(controller) == player) {
-				buttons.forEachIntReentrant { code ->
-					val key = keyFor(controller, code)
-					if (key != NO_KEY) scratchKeys.add(key)
-				}
-				suppressedPressesOf(controller).addAll(buttons)
+				suppressHeldButtons(controller, buttons)
 			}
 		}
 		axisStates.forEachEntryReentrant { controller, state ->
@@ -241,18 +237,23 @@ object MetaControllerListener : ControllerListener {
 	/** Releases one controller before its player identity changes; later physical releases are swallowed. */
 	private fun suspendControllerInput(controller: Controller) {
 		scratchKeys.clear()
-		heldRawButtons.get(controller)?.let { buttons ->
-			buttons.forEachIntReentrant { code ->
-				val key = keyFor(controller, code)
-				if (key != NO_KEY) scratchKeys.add(key)
-			}
-			suppressedPressesOf(controller).addAll(buttons)
-		}
+		heldRawButtons.get(controller)?.let { suppressHeldButtons(controller, it) }
 		axisStates.remove(controller)?.let { state ->
 			if (state.horizontalKey != NO_KEY) scratchKeys.add(state.horizontalKey)
 			if (state.verticalKey != NO_KEY) scratchKeys.add(state.verticalKey)
 		}
 		scratchKeys.forEachIntReentrant { key -> if (!anyInputHolds(key)) emitKeyUp(key, playerForKey(key)) }
+	}
+
+	private fun suppressHeldButtons(controller: Controller, buttons: IntSet) {
+		val suppressed = suppressedPressesOf(controller)
+		buttons.forEachIntReentrant { code ->
+			// A captured press or an already-issued synthetic release owes no further key-up.
+			if (suppressed.add(code)) {
+				val key = keyFor(controller, code)
+				if (key != NO_KEY) scratchKeys.add(key)
+			}
+		}
 	}
 
 	/** Whether a button or stick on any controller still holds this player-tagged key. */

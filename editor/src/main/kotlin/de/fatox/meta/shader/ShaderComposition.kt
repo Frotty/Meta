@@ -35,10 +35,7 @@ class ShaderComposition(val compositionHandle: FileHandle, var data: MetaShaderC
 	}
 
 	private fun assignShader(renderBufferData: RenderBufferData): MetaGLShader {
-		var metaShaderHandle = shaderLibrary.getShaderHandle(renderBufferData.metaShaderPath)
-		if (metaShaderHandle == null) {
-			metaShaderHandle = shaderLibrary.getFirstShader()
-		}
+		val metaShaderHandle = shaderLibrary.getShaderHandle(renderBufferData.metaShaderPath) ?: shaderLibrary.getFirstShader()
 		return when (renderBufferData.inType) {
 			RenderBufferData.IN.GEOMETRY -> {
 				val metaGeoShader = MetaGeoShader(metaShaderHandle)

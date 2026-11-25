@@ -84,7 +84,7 @@ class MetaInputPrompt @JvmOverloads constructor(
 	}
 
 	private val fontProvider: FontProvider by lazyInject()
-	private val fontTracker = FontGenerationTracker()
+	private val fontTracker = FontGenerationTracker(fontProvider)
 	private var glyphs: List<MetaInputGlyph> = glyphs
 	private var label: String = label
 	private var fontSize: Int = fontSize
@@ -104,11 +104,13 @@ class MetaInputPrompt @JvmOverloads constructor(
 
 	fun setLabel(text: String) {
 		if (text == label) return
+		fontTracker.refreshIfStale(this)
 		label = text
 		measure()
 	}
 
 	fun setGlyphs(next: List<MetaInputGlyph>) {
+		fontTracker.refreshIfStale(this)
 		glyphs = next
 		measure()
 	}
@@ -141,6 +143,7 @@ class MetaInputPrompt @JvmOverloads constructor(
 	private fun glyphWidth(i: Int, c: Float): Float = if (glyphTexts[i].width > 0f) glyphTexts[i].width else c
 
 	override fun getPrefWidth(): Float {
+		fontTracker.refreshIfStale(this)
 		val c = cell
 		var width = max(0, glyphs.size - 1) * c * GLYPH_GAP
 		for (i in glyphs.indices) width += glyphWidth(i, c)
@@ -148,7 +151,10 @@ class MetaInputPrompt @JvmOverloads constructor(
 		return width
 	}
 
-	override fun getPrefHeight(): Float = max(cell, labelFont.lineHeight)
+	override fun getPrefHeight(): Float {
+		fontTracker.refreshIfStale(this)
+		return max(cell, labelFont.lineHeight)
+	}
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		fontTracker.refreshIfStale(this)

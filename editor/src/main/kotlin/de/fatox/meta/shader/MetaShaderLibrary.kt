@@ -14,6 +14,7 @@ import de.fatox.meta.reactive.intSignal
 
 private const val META_SHADER_SUFFIX = ".msh"
 private const val INTERNAL_SHADER_PATH = "meta/shaders"
+private const val DEFAULT_SHADER_PATH = "shaders/Default.msh"
 
 class MetaShaderLibrary {
 	private val projectManager: ProjectManager by lazyInject()
@@ -33,25 +34,22 @@ class MetaShaderLibrary {
 
 	init {
 		projectManager.addOnLoadListener {
-			loadedShaders.clear()
-			metaShaders.clear()
-			val internal = Gdx.files.internal("shaders/Default.msh")
-			val loadShader = loadShader(internal, false)
-			loadedShaders.put("shaders/Default.msh", loadShader)
-			notifyChanged()
-			loadProjectShaders()
+			reloadProjectShaders()
 			false
 		}
 		if (projectManager.hasCurrentProject) {
-			loadedShaders.clear()
-			metaShaders.clear()
-			val internal = Gdx.files.internal("shaders/Default.msh")
-			val loadShader = loadShader(internal, false)
-			loadedShaders.put("shaders/Default.msh", loadShader)
-			notifyChanged()
-			loadProjectShaders()
+			reloadProjectShaders()
 		}
 		Gdx.app.postRunnable { this.loadProjectShaders() }
+	}
+
+	private fun reloadProjectShaders() {
+		loadedShaders.clear()
+		metaShaders.clear()
+		val shader = loadShader(Gdx.files.internal(DEFAULT_SHADER_PATH), false)
+		loadedShaders.put(DEFAULT_SHADER_PATH, shader)
+		notifyChanged()
+		loadProjectShaders()
 	}
 
 	fun loadShader(shaderHandle: FileHandle, projectFile: Boolean): GLShaderHandle? {
