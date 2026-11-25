@@ -14,8 +14,10 @@ Neither replaced the other, and the file names do not make that obvious:
 | Reads | whole-archive, solid | positional, one block at a time |
 | Entry point | `XPKLoader.open` | `XpkV2Archive.openOrNull` |
 
-v1 is solid-compressed, so reading entry *k* decompresses everything before it. That is why `XPKLoader.open` hands
-back one archive to reuse rather than a per-entry accessor: reopening per entry made loading quadratic.
+v1 is solid-compressed, so reading an entry decompresses everything before it. Use `XPKLoader.open` to read
+entries and dispose the returned `XpkArchive` when done. Reopening per entry makes loading quadratic. Use
+`XPKLoader.listEntryNames` when you only need names. `getList` is deprecated because it hides archive ownership.
+Keep Commons Compress internal to the v1 implementation and expose Meta/libGDX types in public APIs.
 
 **v2 does nothing without a game-supplied `XpkProfile`.** Meta binds none, on purpose: the keys that open a
 particular game's archives are not Meta's to hold, so `MetaAssetProvider` resolves it with `injectOrNull` and simply

@@ -69,7 +69,6 @@ Applications supply their own SLF4J 2.x provider. Update any SLF4J 1.7 binding w
 - Use `booleanSignal`, `intSignal`, `longSignal`, `floatSignal`, or `doubleSignal` when primitive reactive state is
   written frequently. Their specialized value/peek/update/subscribe paths avoid generic JVM boxing; each retains a
   `Signal<T>` surface for compatibility boundaries.
-- Create `MetaWindow`/`MetaDialog` bindings in `onShown()` using their `reactiveScope`; it is disposed on hide.
 - Queue startup assets through `AssetProvider.load`. Use `SplashScreen` with `SplashCallbacks.startupLoad` to slice
   game-owned GL startup work across frames. See [`AGENTS.md`](AGENTS.md) for callback threading.
 
@@ -79,7 +78,7 @@ effects:
 ```kotlin
 class CounterWindow : MetaWindow("Counter") {
     private val count = signal(0)
-    private val label = MetaLabel()
+    private val label = MetaLabel("")
 
     init {
         contentTable.add(label)
@@ -226,7 +225,9 @@ To inspect the current window chrome, docking, and controls, launch the playgrou
 .\gradlew.bat :editor-desktop:runMetaUiPlayground
 ```
 
-For UI changes, add geometry or behavior coverage using the runtime's test fixtures.
+For UI changes, add geometry or behavior coverage using the runtime's test fixtures. Downstream Gradle builds
+can use them with `testImplementation testFixtures("com.github.Frotty.Meta:runtime:<commit>")`. The fixture
+includes the headless backend and its desktop natives.
 
 Production Kotlin must not use iterator-based loops over libGDX collections; the iteration guard runs before
 `compileKotlin` and `check`.
