@@ -34,7 +34,7 @@ open class MetaTextField @JvmOverloads constructor(
 	private var metaInitialized = false
 	private val fontSize = size
 	private val fontProvider = fontProvider
-	private val fontTracker = FontGenerationTracker()
+	private val fontTracker = FontGenerationTracker(fontProvider)
 
 	val textValue: Signal<String> = signal(text)
 	val disabledValue: Signal<Boolean> = signal(isDisabled)
@@ -66,15 +66,26 @@ open class MetaTextField @JvmOverloads constructor(
 
 	/** Re-fetches the font into the (cloned) normal/focused styles after a UI-scale change. */
 	override fun refreshFont() {
+		val font = fontProvider.getFont(fontSize, FontType.REGULAR)
 		fontTracker.markFresh()
-		focusStyle.refreshFont(fontProvider.getFont(fontSize, FontType.REGULAR))
+		focusStyle.refreshFont(font)
 		invalidateHierarchy()
 	}
 
 	/** Self-heal on (re)attach: a field that was detached during a UI-scale change holds a disposed font. */
 	override fun setStage(stage: Stage?) {
 		super.setStage(stage)
-		if (stage != null) fontTracker.refreshIfStale(this)
+		if (stage != null) refreshFontIfStale()
+	}
+
+	internal fun refreshFontIfStale() {
+		// Scene2D calls setText and getPrefHeight before the Meta styles and tracker are initialized.
+		if (metaInitialized) fontTracker.refreshIfStale(this)
+	}
+
+	override fun getPrefHeight(): Float {
+		refreshFontIfStale()
+		return super.getPrefHeight()
 	}
 
 	override fun setMetaFocused(focused: Boolean) {
@@ -82,6 +93,7 @@ open class MetaTextField @JvmOverloads constructor(
 	}
 
 	override fun setText(str: String) {
+		refreshFontIfStale()
 		super.setText(str)
 		if (metaInitialized) syncTextValue()
 	}
@@ -95,7 +107,7 @@ open class MetaTextField @JvmOverloads constructor(
 	// this actor's own x/y with no pixel-grid awareness, unlike MetaLabel - snap the whole thing together so it's
 	// crisp regardless of what fractional position layout/HiDPI scaling produced.
 	override fun draw(batch: Batch, parentAlpha: Float) {
-		fontTracker.refreshIfStale(this)
+		refreshFontIfStale()
 		drawPixelSnapped(batch, parentAlpha, style.font.physicalPixelsPerUnit()) { b, a -> super.draw(b, a) }
 	}
 

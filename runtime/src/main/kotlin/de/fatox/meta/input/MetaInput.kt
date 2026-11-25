@@ -74,29 +74,29 @@ class MetaInput @JvmOverloads constructor(val devices: MetaInputDevices = MetaIn
 	override fun removeScreenInputProcessor(inputProcessor: InputProcessor): Boolean =
 		screenProcessors.removeValue(inputProcessor, true)
 
-	override fun addGlobalKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener): KeyListener {
-		if (!globalKeyListeners.containsKey(keycode)) {
-			globalKeyListeners.put(keycode, SnapshotArray.with<KeyListener>())
-		}
-		keyListener.requiredLengthMillis = millisRequired
-		globalKeyListeners[keycode].add(keyListener)
-		return keyListener
-	}
+	override fun addGlobalKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener): KeyListener =
+		addKeyListener(globalKeyListeners, keycode, millisRequired, keyListener)
 
 	override fun removeGlobalKeyListener(keycode: Int, keyListener: KeyListener): Boolean =
-		globalKeyListeners.containsKey(keycode) && globalKeyListeners.get(keycode).removeValue(keyListener, true)
+		globalKeyListeners[keycode]?.removeValue(keyListener, true) ?: false
 
-	override fun addScreenKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener): KeyListener {
-		if (!screenKeyListeners.containsKey(keycode)) {
-			screenKeyListeners.put(keycode, SnapshotArray.with<KeyListener>())
-		}
+	override fun addScreenKeyListener(keycode: Int, millisRequired: Long, keyListener: KeyListener): KeyListener =
+		addKeyListener(screenKeyListeners, keycode, millisRequired, keyListener)
+
+	private fun addKeyListener(
+		listeners: IntMap<SnapshotArray<KeyListener>>,
+		keycode: Int,
+		millisRequired: Long,
+		keyListener: KeyListener,
+	): KeyListener {
+		val registered = listeners[keycode] ?: SnapshotArray.with<KeyListener>().also { listeners.put(keycode, it) }
 		keyListener.requiredLengthMillis = millisRequired
-		screenKeyListeners[keycode].add(keyListener)
+		registered.add(keyListener)
 		return keyListener
 	}
 
 	override fun removeScreenKeyListener(keycode: Int, keyListener: KeyListener): Boolean =
-		screenKeyListeners.containsKey(keycode) && screenKeyListeners.get(keycode).removeValue(keyListener, true)
+		screenKeyListeners[keycode]?.removeValue(keyListener, true) ?: false
 
 	override fun addGlobalScrollListener(scrollListener: ScrollListener): ScrollListener =
 		scrollListener.also { globalScrollListeners.add(it) }
@@ -132,12 +132,8 @@ class MetaInput @JvmOverloads constructor(val devices: MetaInputDevices = MetaIn
 			exclusiveProcessor.keyDown(keycode)
 			return false
 		}
-		if (screenKeyListeners.containsKey(keycode)) {
-			screenKeyListeners[keycode].dispatchAll { it.onDown() }
-		}
-		if (globalKeyListeners.containsKey(keycode)) {
-			globalKeyListeners[keycode].dispatchAll { it.onDown() }
-		}
+		screenKeyListeners[keycode]?.dispatchAll { it.onDown() }
+		globalKeyListeners[keycode]?.dispatchAll { it.onDown() }
 		globalProcessors.dispatchAll { it.keyDown(keycode) }
 		screenProcessors.dispatchAll { it.keyDown(keycode) }
 		return false
@@ -160,12 +156,8 @@ class MetaInput @JvmOverloads constructor(val devices: MetaInputDevices = MetaIn
 			exclusiveProcessor.keyUp(keycode)
 			return false
 		}
-		if (screenKeyListeners.containsKey(keycode)) {
-			screenKeyListeners[keycode].dispatchAll { it.onUp() }
-		}
-		if (globalKeyListeners.containsKey(keycode)) {
-			globalKeyListeners[keycode].dispatchAll { it.onUp() }
-		}
+		screenKeyListeners[keycode]?.dispatchAll { it.onUp() }
+		globalKeyListeners[keycode]?.dispatchAll { it.onUp() }
 		globalProcessors.dispatchAll { it.keyUp(keycode) }
 		screenProcessors.dispatchAll { it.keyUp(keycode) }
 		return false
@@ -189,8 +181,7 @@ class MetaInput @JvmOverloads constructor(val devices: MetaInputDevices = MetaIn
 			exclusiveProcessor.touchDown(screenX, screenY, pointer, button)
 			return true
 		}
-		if (globalProcessors.dispatchUntilHandled { it.touchDown(screenX, screenY, pointer, button) }) return true
-		if (screenProcessors.dispatchUntilHandled { it.touchDown(screenX, screenY, pointer, button) }) return true
+		dispatchToProcessors { it.touchDown(screenX, screenY, pointer, button) }
 		return true
 	}
 
@@ -200,9 +191,7 @@ class MetaInput @JvmOverloads constructor(val devices: MetaInputDevices = MetaIn
 			exclusiveProcessor.touchUp(screenX, screenY, pointer, button)
 			return false
 		}
-		if (globalProcessors.dispatchUntilHandled { it.touchUp(screenX, screenY, pointer, button) }) return true
-		if (screenProcessors.dispatchUntilHandled { it.touchUp(screenX, screenY, pointer, button) }) return true
-		return false
+		return dispatchToProcessors { it.touchUp(screenX, screenY, pointer, button) }
 	}
 
 	override fun touchCancelled(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
@@ -217,8 +206,7 @@ class MetaInput @JvmOverloads constructor(val devices: MetaInputDevices = MetaIn
 			exclusiveProcessor.touchDragged(screenX, screenY, pointer)
 			return false
 		}
-		if (globalProcessors.dispatchUntilHandled { it.touchDragged(screenX, screenY, pointer) }) return true
-		if (screenProcessors.dispatchUntilHandled { it.touchDragged(screenX, screenY, pointer) }) return true
+		dispatchToProcessors { it.touchDragged(screenX, screenY, pointer) }
 		return true
 	}
 
@@ -228,9 +216,7 @@ class MetaInput @JvmOverloads constructor(val devices: MetaInputDevices = MetaIn
 			exclusiveProcessor.mouseMoved(screenX, screenY)
 			return false
 		}
-		if (globalProcessors.dispatchUntilHandled { it.mouseMoved(screenX, screenY) }) return true
-		if (screenProcessors.dispatchUntilHandled { it.mouseMoved(screenX, screenY) }) return true
-		return false
+		return dispatchToProcessors { it.mouseMoved(screenX, screenY) }
 	}
 
 	override fun scrolled(amountX: Float, amountY: Float): Boolean {
@@ -242,10 +228,12 @@ class MetaInput @JvmOverloads constructor(val devices: MetaInputDevices = MetaIn
 		}
 		globalScrollListeners.dispatchAll { it.onScroll() }
 		screenScrollListeners.dispatchAll { it.onScroll() }
-		if (globalProcessors.dispatchUntilHandled { it.scrolled(amountX, amountY) }) return true
-		if (screenProcessors.dispatchUntilHandled { it.scrolled(amountX, amountY) }) return true
+		dispatchToProcessors { it.scrolled(amountX, amountY) }
 		return true
 	}
+
+	private inline fun dispatchToProcessors(dispatch: (InputProcessor) -> Boolean): Boolean =
+		globalProcessors.dispatchUntilHandled(dispatch) || screenProcessors.dispatchUntilHandled(dispatch)
 
 	private inline fun <T> SnapshotArray<T>.dispatchAll(dispatch: (T) -> Unit) {
 		val snapshot = begin()

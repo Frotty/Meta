@@ -4,7 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.utils.Layout
 import de.fatox.meta.api.graphics.FontProvider
-import de.fatox.meta.injection.MetaInject.Companion.lazyInject
+import de.fatox.meta.injection.MetaInject.Companion.inject
 
 /**
  * Implemented by Meta widgets that cache a `BitmapFont` (or a style holding one) fetched from the
@@ -38,16 +38,11 @@ fun Actor.refreshFontsRecursively() {
  * Tracks the [FontProvider.fontGeneration] a widget's cached fonts were fetched for. The renderer's on-scale-change
  * refresh walk only reaches actors that are on the stage at that moment; a widget living detached (inactive tab
  * content, a pooled list row, ...) keeps referencing fonts that are disposed right after the walk and would draw as
- * black squares once re-attached. Font-caching widgets own one tracker, call [refreshIfStale] from `setStage` on
- * attach to self-heal, and [markFresh] from [FontRefreshable.refreshFont] to record the re-fetch.
- *
- * They also call [refreshIfStale] at the top of `draw`. The walk only reaches the renderer's own stage, and a game
- * drawing a menu on a `Stage` of its own never re-attaches its labels after a resize, so attach-time healing alone
- * left every one of them drawing from a released page - solid black boxes, on whichever launches a resize landed
- * after the menu was built. An integer compare per draw closes that for every stage at once.
+ * black squares once re-attached. Use the provider that supplies the widget's fonts. Check [refreshIfStale] on
+ * attachment and before drawing or measuring cached text, including when a consumer owns the stage. Call
+ * [markFresh] after fetching the replacement font and before recomputing any metrics that check the generation.
  */
-class FontGenerationTracker {
-	private val fontProvider: FontProvider by lazyInject()
+class FontGenerationTracker @JvmOverloads constructor(private val fontProvider: FontProvider = inject()) {
 	private var generation: Int = fontProvider.fontGeneration
 
 	/** Records that the owning widget just (re)fetched its fonts; call from [FontRefreshable.refreshFont]. */
@@ -55,7 +50,7 @@ class FontGenerationTracker {
 		generation = fontProvider.fontGeneration
 	}
 
-	/** Re-fetches the widget's fonts if the provider rebuilt them while the widget was off the stage. */
+	/** Re-fetches the widget's fonts if the provider rebuilt them since they were cached. */
 	fun refreshIfStale(widget: FontRefreshable) {
 		if (generation != fontProvider.fontGeneration) widget.refreshFont()
 	}

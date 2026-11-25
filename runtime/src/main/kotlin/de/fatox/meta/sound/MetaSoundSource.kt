@@ -87,7 +87,7 @@ class MetaPositionalSoundDefinition(
 	val audibleRange: Float = 600f,
 ) {
 	private val assetProvider: AssetProvider by lazyInject()
-	val soundName: String = soundName.replace("/".toRegex(), "\\\\")
+	val soundName: String = soundName.replace('/', '\\')
 	val audibleRange2 = audibleRange * audibleRange
 	var volume = 1f
 	var randomPitchRange = 0.06f
@@ -145,7 +145,6 @@ class MetaSoundCluster(
 	val sources = Array<MetaSoundSource>()
 	private var currentPan = 0f
 	private var currentVolume = 0f
-	private var starting = false
 	private var started = false
 	private var pendingStart: Timer.Task? = null
 	val centroidLerp = centroid.cpy()
@@ -163,7 +162,7 @@ class MetaSoundCluster(
 				stop()
 				return
 			}
-		} else if (!starting && !started && calcVolume(listenerPos) > 0f) {
+		} else if (pendingStart == null && !started && calcVolume(listenerPos) > 0f) {
 			start()
 		}
 		if (started) calcVolAndPan(listenerPos, delta)
@@ -217,33 +216,19 @@ class MetaSoundCluster(
 	}
 
 	private fun start() {
-		starting = true
-		// Cancel any earlier still-pending start: without this, a stop()+start() cycle within the random
-		// 0.01-0.5s delay window below left the OLD Timer.Task alive too, and it only checked the shared
-		// `starting` flag (which the newer start() had already set back to true) - so the stale task would
-		// still fire, overwrite `handleId` with a second loop instance, and orphan the first one, which kept
-		// looping forever at whatever volume it last reached with no way to ever stop or fade it again.
-		pendingStart?.cancel()
-		lateinit var task: Timer.Task
-		task = object : Timer.Task() {
+		val task = object : Timer.Task() {
 			override fun run() {
-				if (pendingStart !== task || !starting) return
+				if (pendingStart !== this) return
 				Gdx.app.postRunnable {
-					if (pendingStart !== task || !starting || effectiveBaseVolume() <= 0f) {
-						starting = false
-						return@postRunnable
+					// The queued runnable can outlive stop() and a replacement start.
+					if (pendingStart !== this) return@postRunnable
+					if (effectiveBaseVolume() > 0f) {
+						val pitch = 1f + MathUtils.random(-definition.randomPitchRange, definition.randomPitchRange)
+						handleId = definition.sound.loop(0f, pitch, 0f)
+						started = true
 					}
-					val pitch = 1f + MathUtils.random(-definition.randomPitchRange, definition.randomPitchRange)
-					handleId = definition.sound.loop(0f, pitch, 0f)
-					starting = false
-					started = true
 					pendingStart = null
 				}
-			}
-
-			override fun cancel() {
-				super.cancel()
-				starting = false
 			}
 		}
 		pendingStart = task
@@ -253,7 +238,6 @@ class MetaSoundCluster(
 	fun stop() {
 		pendingStart?.cancel()
 		pendingStart = null
-		starting = false
 		if (!started) return
 		definition.sound.stop(handleId)
 		started = false

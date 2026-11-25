@@ -19,12 +19,10 @@ class MetaEditorScreen : ScreenAdapter() {
 
 	private var isInited = false
 	override fun show() {
+		uiManager.changeScreen<MetaEditorScreen>()
 		if (!isInited) {
-			uiManager.changeScreen<MetaEditorScreen>()
-			setupEditorUi()
+			metaEditorUISetup.setup()
 			isInited = true
-		} else {
-			uiManager.changeScreen<MetaEditorScreen>()
 		}
 	}
 
@@ -40,10 +38,6 @@ class MetaEditorScreen : ScreenAdapter() {
 		Gdx.gl.glClearDepthf(1.0f)
 		Gdx.gl30.glClear(GL30.GL_COLOR_BUFFER_BIT or GL30.GL_DEPTH_BUFFER_BIT or
 			if (Gdx.graphics.bufferFormat.coverageSampling) GL20.GL_COVERAGE_BUFFER_BIT_NV else 0)
-	}
-
-	private fun setupEditorUi() {
-		metaEditorUISetup.setup()
 	}
 
 	override fun resize(width: Int, height: Int) {

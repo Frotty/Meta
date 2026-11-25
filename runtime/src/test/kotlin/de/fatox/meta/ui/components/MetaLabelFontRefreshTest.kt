@@ -69,6 +69,43 @@ class MetaLabelFontRefreshTest {
 	}
 
 	@Test
+	fun `detached select boxes and window titles refresh before measuring`() {
+		val fonts = MetaInject.inject<FontProvider>("default")
+		val selectBox = MetaSelectBox<String>().apply { setItems("Play", "Settings") }
+		val window = object : MetaWindow("Settings") {}
+		val boxFont = selectBox.style.font
+		val titleFont = window.titleLabel.style.font
+		assertTrue(selectBox.prefWidth > 0f)
+		assertTrue(window.prefWidth > 0f)
+
+		MetaSkin.rebuildAtlas()
+		fonts.disposeOrphanedFonts()
+		assertSame(boxFont, selectBox.style.font)
+		assertSame(titleFont, window.titleLabel.style.font)
+
+		assertTrue(selectBox.prefWidth > 0f)
+		assertTrue(window.prefWidth > 0f)
+		assertNotSame(boxFont, selectBox.style.font)
+		assertSame(selectBox.style.font, selectBox.list.style.font)
+		assertNotSame(titleFont, window.titleLabel.style.font)
+	}
+
+	@Test
+	fun `detached prompts remeasure before drawing after an atlas rebuild`() {
+		val fonts = MetaInject.inject<FontProvider>("default")
+		val prompt = MetaInputPrompt(emptyList(), "Play", 24)
+		val width = prompt.prefWidth
+
+		MetaSkin.rebuildAtlas()
+		fonts.disposeOrphanedFonts()
+		val current = fonts.getFont(24, FontType.REGULAR)
+		current.data.setScale(current.scaleX * 2f, current.scaleY * 2f)
+		assertTrue(prompt.prefWidth > width)
+		prompt.setLabel("Следующая игра")
+		assertTrue(prompt.prefWidth > width)
+	}
+
+	@Test
 	fun `a detached label can be measured in Russian before its first draw after an atlas rebuild`() {
 		val fonts = MetaInject.inject<FontProvider>("default")
 		val label = MetaLabel("Play", 24, type = FontType.BOLD)

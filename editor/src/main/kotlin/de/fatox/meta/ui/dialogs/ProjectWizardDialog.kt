@@ -12,7 +12,6 @@ import de.fatox.meta.ide.ProjectManager
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.reactive.signal
 import de.fatox.meta.ui.bindDisabled
-import de.fatox.meta.ui.components.MetaCheckBox
 import de.fatox.meta.ui.components.MetaFileChooser
 import de.fatox.meta.ui.components.MetaFileChooserAdapter
 import de.fatox.meta.ui.components.MetaInputValidator
@@ -37,14 +36,6 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 	private lateinit var folderButton: MetaTextButton
 	private lateinit var folderLabel: MetaLabel
 	private val rootFileValue = signal<FileHandle?>(null)
-	private lateinit var checkbox: MetaCheckBox
-	private lateinit var checkboxLabel: MetaLabel
-	private fun createExampleCheckbox() {
-		checkboxLabel = MetaLabel("Include Example:", 14)
-		checkbox = MetaCheckBox(initialChecked = true)
-		MetaTooltip.attach(checkboxLabel, languageBundle["newproj.dia.tooltip.example"])
-	}
-
 	private fun createFolderButton() {
 		folderLabel = MetaLabel(languageBundle["newproj.dia.project.root"], 14)
 		folderButton = MetaTextButton(languageBundle["newproj.dia.select.folder"])
@@ -82,7 +73,6 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 		createBtn = addButton(MetaTextButton("Create"), Align.right, true)
 		createProjectNameTF()
 		createFolderButton()
-		createExampleCheckbox()
 		val visTable = MetaTable()
 		visTable.defaults().pad(5f)
 		visTable.columnDefaults(0).right().width(LABEL_WIDTH)
@@ -92,9 +82,6 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 		visTable.row()
 		visTable.add(folderLabel).right()
 		visTable.add(folderButton).growX().height(BUTTON_HEIGHT)
-		visTable.row()
-		visTable.add(checkboxLabel).right()
-		visTable.add(checkbox).left().size(CHECKBOX_SIZE)
 		contentTable.add(visTable).top().growX()
 		pack()
 		dialogListener = DialogListener { any ->
@@ -119,6 +106,5 @@ class ProjectWizardDialog : MetaDialog("Project Wizard", true) {
 		const val CONTROL_WIDTH = 190f
 		const val FIELD_HEIGHT = 34f
 		const val BUTTON_HEIGHT = 30f
-		const val CHECKBOX_SIZE = 28f
 	}
 }

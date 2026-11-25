@@ -84,10 +84,7 @@ class MetaUiPlaygroundScreen(
 		uiManager.setBottomOverlay(null)
 	}
 
-	override fun dispose() {
-		uiManager.setMainMenuBar(null)
-		uiManager.setBottomOverlay(null)
-	}
+	override fun dispose() = hide()
 
 	private fun clearFrame() {
 		HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
@@ -105,7 +102,6 @@ class MetaUiPlaygroundScreen(
 		componentFooter = navigationFooter()
 		val firstDockingLaunch = !uiManager.metaHas(DOCKING_INITIALIZED_KEY)
 		showDockWorkspace(resetLayout = firstDockingLaunch, seedFloatingBounds = firstDockingLaunch)
-		if (firstDockingLaunch) uiManager.metaSave(DOCKING_INITIALIZED_KEY, true)
 	}
 
 	private fun workspaceBackground() = MetaTable().apply {
@@ -228,7 +224,7 @@ class MetaUiPlaygroundScreen(
 		uiManager.setBottomOverlay(componentFooter)
 		backgroundTitle.isVisible = false
 		backgroundDescription.isVisible = false
-		showComponentGallery(resetLayout = true)
+		showComponentGallery()
 	}
 
 	private fun showWorkspacePresentation() {
@@ -290,12 +286,11 @@ class MetaUiPlaygroundScreen(
 		}
 	}
 
-	private fun showComponentGallery(resetLayout: Boolean) {
+	private fun showComponentGallery() {
 		val typography = uiManager.showWindow<TypographyPlaygroundWindow>()
 		val controls = uiManager.showWindow<ControlsPlaygroundWindow>()
 		val selection = uiManager.showWindow<SelectionPlaygroundWindow>()
 		val collections = uiManager.showWindow<CollectionsPlaygroundWindow>()
-		if (!resetLayout) return
 		// Screenshot mode is deliberately floating, regardless of dock state persisted by an earlier session.
 		uiManager.undockWindow(typography)
 		uiManager.undockWindow(controls)

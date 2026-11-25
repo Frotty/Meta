@@ -16,6 +16,5 @@ fun main() {
 	MetaDesktopLauncher.init(
 		config,
 		MetaUiPlaygroundMeta(posModifier, DesktopMonitorHandler(), DesktopSoundHandler(), DesktopGraphicsHandler()),
-		splashWindow = false,
 	)
 }

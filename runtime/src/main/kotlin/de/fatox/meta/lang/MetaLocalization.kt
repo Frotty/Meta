@@ -92,12 +92,9 @@ class MetaLocalization(
 			.getCandidateLocales(baseName, language.locale)
 		return candidates.asSequence()
 			.filter { it != Locale.ROOT }
-			.map { locale ->
-				val catalogName = control.toBundleName(baseName, locale)
-				locale to parent.child(catalogName)
-			}
-			.filter { (_, handle) -> handle.sibling("${handle.name()}.properties").exists() }
-			.map { (_, handle) -> LocalizedBundle(I18NBundle.createBundle(handle, Locale.ROOT), language.locale) }
+			.map { locale -> parent.child(control.toBundleName(baseName, locale)) }
+			.filter { handle -> handle.sibling("${handle.name()}.properties").exists() }
+			.map { handle -> LocalizedBundle(I18NBundle.createBundle(handle, Locale.ROOT), language.locale) }
 			.toList()
 	}
 
@@ -139,8 +136,11 @@ class MetaLocalization(
 					var end = index + 1
 					while (end < pattern.length && pattern[end] == '{') end++
 					val runLength = end - index
-					repeat(runLength / 2) { if (it == 0) escaped.append('\''); escaped.append('{') }
-					if (runLength >= 2 && runLength / 2 > 0) escaped.append('\'')
+					if (runLength >= 2) {
+						escaped.append('\'')
+						repeat(runLength / 2) { escaped.append('{') }
+						escaped.append('\'')
+					}
 					if (runLength % 2 != 0) escaped.append('{')
 					index = end - 1
 				}

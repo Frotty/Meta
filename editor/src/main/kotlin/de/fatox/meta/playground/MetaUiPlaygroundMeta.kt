@@ -2,8 +2,6 @@ package de.fatox.meta.playground
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
-import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.utils.Array
 import de.fatox.meta.Meta
 import de.fatox.meta.ScreenConfig
 import de.fatox.meta.api.AssetProvider
@@ -35,11 +33,7 @@ class MetaUiPlaygroundMeta(
 			singleton<Screen> {
 				MetaUiPlaygroundScreen {
 					assetProvider.loadRawAssetsFromFolder(Gdx.files.internal("."))
-					val dataFolders = Array<FileHandle>()
-					dataFolders.add(Gdx.files.internal("data/"))
-					for (index in 0 until dataFolders.size) {
-						assetProvider.loadPackedAssetsFromFolder(dataFolders[index])
-					}
+					assetProvider.loadPackedAssetsFromFolder(Gdx.files.internal("data/"))
 				}
 			}
 		}
@@ -59,10 +53,9 @@ class MetaUiPlaygroundMeta(
 		registerSingleton { MetaColorPicker(isAllowAlphaEdit = true) }
 	}
 
-	@Suppress("UNUSED_EXPRESSION")
 	override fun MetaInject.injection() {
 		MetaEditorModule()
-		MetaUIModule
+		MetaUIModule.initialize()
 	}
 
 	override fun ScreenConfig.screens() {

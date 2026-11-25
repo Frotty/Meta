@@ -20,7 +20,6 @@ import de.fatox.meta.ui.components.MetaSelectBox
 import de.fatox.meta.ui.components.MetaTable
 import de.fatox.meta.ui.components.RenderBufferButton
 import de.fatox.meta.ui.dialogs.ShaderCompositionWizard
-import java.util.*
 
 class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	private val shaderLibrary: MetaShaderLibrary by lazyInject()
@@ -31,17 +30,13 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	private lateinit var bufferTable: MetaTable
 	private lateinit var addButton: MetaImageButton
 
-	private var handles: Array<RenderBufferHandle> = Array()
-
 	init {
 		setupEmpty()
 		shaderComposer.changes.subscribe {
-			if (shaderComposer.currentComposition != null) this.onRemoveBuffer()
+			shaderComposer.currentComposition?.let(::loadComposition)
 		}
 		shaderLibrary.changes.subscribe {
-			if (shaderComposer.currentComposition != null) {
-				loadComposition(shaderComposer.currentComposition!!)
-			}
+			shaderComposer.currentComposition?.let(::loadComposition)
 		}
 	}
 
@@ -95,22 +90,16 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 		shaderComposer.addRenderBuffer(RenderBufferData(shaderLibrary.defaultShaderPath))
 	}
 
-	private fun onRemoveBuffer() {
-		loadComposition(Objects.requireNonNull<ShaderComposition>(shaderComposer.currentComposition))
-	}
-
 	private fun loadBuffers(buffers: Array<RenderBufferHandle>) {
-		bufferTable.clear()
 		for (index in 0 until buffers.size) {
 			loadBuffer(buffers[index])
 		}
 	}
 
 	private fun loadBuffer(buffer: RenderBufferHandle) {
-		val newButton = RenderBufferButton(buffer, if (handles.size > 0) handles.peek() else null)
+		val newButton = RenderBufferButton(buffer, null)
 		bufferTable.add(newButton).padRight(2f)
 		bufferTable.add(MetaLabel(">", 14)).center().padRight(2f)
-
 	}
 
 	fun addComposition(shaderComposition: ShaderComposition) {
@@ -125,7 +114,6 @@ class ShaderComposerWindow : MetaWindow("Shader Composer", true, true) {
 	private fun loadComposition(shaderComposition: ShaderComposition) {
 		bufferTable.clear()
 		if (shaderComposition.data.renderBuffers.size > 0) {
-			// Load existing
 			loadBuffers(shaderComposition.bufferHandles)
 		}
 		setupNewBufferButton()

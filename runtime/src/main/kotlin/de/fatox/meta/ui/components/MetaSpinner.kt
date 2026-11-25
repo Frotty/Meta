@@ -4,7 +4,6 @@ import com.badlogic.gdx.Input.Keys
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
 import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.Event
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
@@ -114,6 +113,7 @@ private class MetaSpinnerTextField(
 	override fun getPrefWidth(): Float {
 		// TextField's constructor calls this virtual method before this subclass's fields are initialized.
 		val hint = model?.widthHint() ?: return MIN_FIELD_WIDTH
+		refreshFontIfStale()
 		val font = style.font
 		if (hint != measuredHint || font !== measuredFont) {
 			widthLayout.setText(font, hint)

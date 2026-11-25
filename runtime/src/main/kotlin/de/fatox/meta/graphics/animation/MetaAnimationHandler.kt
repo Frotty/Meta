@@ -7,14 +7,9 @@ import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.AnimationHandler
 
-/**
- * Default [AnimationHandler] implementation.
- *
- * @constructor Creates a new instance of [AnimationHandler].
- */
 class MetaAnimationHandler(
 	private val defaultAnimation: Animation<TextureRegion>,
-	private val startingQueueSize: Int = 2,
+	startingQueueSize: Int = 2,
 	private val startingStateTime: Float = 0f,
 	override var stateTime: Float = startingStateTime,
 ) : AnimationHandler {

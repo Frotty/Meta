@@ -20,10 +20,6 @@ import de.fatox.meta.shader.UniformAssignments.assignRenderableUniforms
 class MetaGeoShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHandle) {
 	private lateinit var camera: Camera
 	private lateinit var context: RenderContext
-	private var u_projTrans: Int = -1
-	private var u_worldTrans: Int = -1
-	private var u_normalTrans: Int = -1
-	private var u_mvpTrans: Int = -1
 	private var u_diffuseColor: Int = -1
 	private var s_diffuseTex: Int = -1
 	private var s_normalTex: Int = -1
@@ -34,10 +30,6 @@ class MetaGeoShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHandle) {
 	private val assetProvider: AssetProvider by lazyInject()
 
 	override fun init() {
-		u_projTrans = shaderProgram.getUniformLocation("u_projViewTrans")
-		u_worldTrans = shaderProgram.getUniformLocation("u_worldTrans")
-		u_normalTrans = shaderProgram.getUniformLocation("u_normalTrans")
-		u_mvpTrans = shaderProgram.getUniformLocation("u_mvpTrans")
 		u_diffuseColor = shaderProgram.getUniformLocation("u_diffuseColor")
 		s_diffuseTex = shaderProgram.getUniformLocation("s_diffuseTex")
 		s_normalTex = shaderProgram.getUniformLocation("s_normalTex")
@@ -66,11 +58,8 @@ class MetaGeoShader(shaderHandle: GLShaderHandle) : MetaGLShader(shaderHandle) {
 	override fun render(renderable: Renderable) {
 		shaderProgram.assignRenderableUniforms(camera, renderable)
 
-		// Bind Textures
-		// Diffuse-
 		val diffuseTex = renderable.material.getTexture(TextureAttribute.Diffuse) ?: whiteTex
 		shaderProgram.setUniformi(s_diffuseTex, context.textureBinder.bind(diffuseTex))
-		// Normal Map (for different lighting on a plane)
 		val normalTex = renderable.material.getTexture(TextureAttribute.Normal) ?: emptyNormals
 		shaderProgram.setUniformi(s_normalTex, context.textureBinder.bind(normalTex))
 

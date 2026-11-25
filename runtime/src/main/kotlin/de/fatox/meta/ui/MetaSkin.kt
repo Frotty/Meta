@@ -158,9 +158,7 @@ object MetaSkin {
 	 * `SpriteBatch` flushes on each texture change - so a plain six-row screen cost 37 texture binds and therefore
 	 * 37 draw calls, one per drawn quad. One page means one bind for all of the chrome.
 	 *
-	 * The page textures are registered with the skin so its `dispose()` releases them, exactly as the per-drawable
-	 * textures were. `PixmapPacker.dispose()` only frees page images that never became a texture, so the two do not
-	 * overlap.
+	 * Register the current page textures with the skin. Meta removes these registrations before retiring the pages.
 	 */
 	private fun finalizeAtlas(skin: Skin) {
 		val packer = requirePacker()
@@ -229,10 +227,6 @@ object MetaSkin {
 		}
 		replacement.updatePageTextures(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear, false)
 
-		val pages = replacement.pages
-		for (index in 0 until pages.size) {
-			pages[index].texture?.let { skin.add("$ATLAS_TEXTURE_PREFIX$index", it) }
-		}
 		for (index in 0 until atlasEntries.size) {
 			val entry = atlasEntries[index]
 			val rect = replacement.getRect(entry.name) ?: continue
@@ -268,11 +262,28 @@ object MetaSkin {
 		}
 
 		// After the re-point, so nothing is drawing from a texture that has been deleted.
-		val stalePages = previous.pages
-		for (index in 0 until stalePages.size) stalePages[index].texture?.dispose()
-		previous.dispose()
+		disposeAtlas(previous, skin)
+		val pages = replacement.pages
+		for (index in 0 until pages.size) {
+			pages[index].texture?.let { skin.add("$ATLAS_TEXTURE_PREFIX$index", it) }
+		}
 		packer = replacement
 		atlasGeneration++
+	}
+
+	private fun disposeAtlas(atlas: PixmapPacker, skin: Skin?) {
+		val pages = atlas.pages
+		for (index in 0 until pages.size) {
+			val texture = pages[index].texture ?: continue
+			val name = "$ATLAS_TEXTURE_PREFIX$index"
+			if (skin?.optional(name, Texture::class.java) === texture) {
+				skin.remove(name, Texture::class.java)
+			}
+			// The packer's texture override frees the page pixmap each time it is disposed.
+			texture.dispose()
+		}
+		// The packer frees pages that never acquired a texture.
+		atlas.dispose()
 	}
 
 	/** How many atlas pages the generated chrome occupies. One means every patch shares a texture. */
@@ -315,18 +326,10 @@ object MetaSkin {
 		installCursor = 0
 		collectingInstallActions = false
 		atlasEntries.clear()
-		// Every page texture, not only the ones finalizeAtlas registered with the skin. Glyphs are packed into this
-		// same atlas as they are rasterized, so a font can create a page *after* finalization - and such a page has
-		// no owner at all: the skin never saw it, and PixmapPacker.dispose() deliberately leaves alone any page
-		// that already has a texture. Texture.dispose() returns early once its handle is zero, so disposing the
-		// registered pages here as well and again through the skin is harmless.
-		packer?.pages?.let { pages ->
-			for (index in 0 until pages.size) pages[index].texture?.dispose()
-		}
+		packer?.let { disposeAtlas(it, activeSkin) }
+		packer = null
 		activeSkin?.dispose()
 		activeSkin = null
-		packer?.dispose()
-		packer = null
 	}
 
 	fun install(skin: Skin) {

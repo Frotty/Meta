@@ -107,15 +107,6 @@ class MetaScrollPane : ScrollPane {
 	}
 }
 
-internal fun Actor?.nearestMetaScrollPane(): MetaScrollPane? {
-	var current = this
-	while (current != null) {
-		if (current is MetaScrollPane) return current
-		current = current.parent
-	}
-	return null
-}
-
 internal fun Actor?.nearestScrollableMetaScrollPane(): MetaScrollPane? {
 	var current = this
 	while (current != null) {

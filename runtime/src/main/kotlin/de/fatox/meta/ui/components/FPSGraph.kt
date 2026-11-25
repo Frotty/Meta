@@ -31,7 +31,7 @@ class FPSGraph(
 ) : Actor(), FontRefreshable {
 
 	private val fontProvider: FontProvider by lazyInject()
-	private val fontTracker = FontGenerationTracker()
+	private val fontTracker = FontGenerationTracker(fontProvider)
 
 	// Fetched lazily on first draw and dropped on [refreshFont], so a UI-scale change can't leave it stale/disposed.
 	private var font: BitmapFont? = null

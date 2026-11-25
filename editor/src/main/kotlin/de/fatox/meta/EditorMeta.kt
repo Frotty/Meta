@@ -2,8 +2,6 @@ package de.fatox.meta
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
-import com.badlogic.gdx.files.FileHandle
-import com.badlogic.gdx.utils.Array
 import de.fatox.meta.api.AssetProvider
 import de.fatox.meta.api.GraphicsHandler
 import de.fatox.meta.api.MonitorHandler
@@ -43,13 +41,12 @@ class EditorMeta(
 
 	override fun config() {
 		uiManager.windowHandler = this.windowHandler
-		val array = Array<FileHandle>()
-		array.add(Gdx.files.internal("data/"))
+		val dataFolder = Gdx.files.internal("data/")
 		MetaInject.global {
 			singleton<Screen> {
 				SplashScreen(prepareAssets = {
 					assetProvider.loadRawAssetsFromFolder(Gdx.files.internal("."))
-					for (i in 0 until array.size) assetProvider.loadPackedAssetsFromFolder(array[i])
+					assetProvider.loadPackedAssetsFromFolder(dataFolder)
 				}, queueAssets = {
 				}, onLoaded = {
 					Gdx.app.postRunnable {

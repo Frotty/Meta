@@ -12,7 +12,6 @@ import de.fatox.meta.graphics.renderer.FullscreenShader
 class CompositeShader : FullscreenShader() {
     override lateinit var program: ShaderProgram
         private set
-    private var s_depthTex = 0
     private var u_nearDistance = 0
     private var u_farDistance = 0
     override fun init() {
@@ -21,7 +20,6 @@ class CompositeShader : FullscreenShader() {
         program = ShaderProgram(vert, frag)
         if (!program.isCompiled) throw GdxRuntimeException(program.log)
 
-        s_depthTex = program.getUniformLocation("s_depthTex")
         u_nearDistance = program.getUniformLocation("u_cameraNear")
         u_farDistance = program.getUniformLocation("u_cameraFar")
     }

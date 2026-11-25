@@ -68,7 +68,7 @@ open class MetaLabel @JvmOverloads constructor(
 	private val drawTransform = Matrix4()
 
 	private val metaFontProvider: FontProvider by lazyInject()
-	private val fontTracker = FontGenerationTracker()
+	private val fontTracker = FontGenerationTracker(metaFontProvider)
 
 	private val fontColor: Color?
 	private val type: FontType = type

@@ -18,12 +18,12 @@ class CameraWindow : MetaWindow("Camera", true, true) {
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
 		super.draw(batch, parentAlpha)
-		xPosField.text = camera.position.x.toString() + ""
-		yPosField.text = camera.position.y.toString() + ""
-		zPosField.text = camera.position.z.toString() + ""
-		xUpField.text = camera.up.x.toString() + ""
-		yUpField.text = camera.up.y.toString() + ""
-		zUpField.text = camera.up.z.toString() + ""
+		xPosField.text = camera.position.x.toString()
+		yPosField.text = camera.position.y.toString()
+		zPosField.text = camera.position.z.toString()
+		xUpField.text = camera.up.x.toString()
+		yUpField.text = camera.up.y.toString()
+		zUpField.text = camera.up.z.toString()
 	}
 
 	init {

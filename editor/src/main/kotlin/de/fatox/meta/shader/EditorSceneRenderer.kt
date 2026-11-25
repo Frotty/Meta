@@ -38,9 +38,8 @@ class EditorSceneRenderer : Renderer {
 		}
 
 	private val staticModelCache = ModelCache()
-	private var renderContext: RenderContext = RenderContext(DefaultTextureBinder(DefaultTextureBinder.LRU))
-
-	private var modelBatch: ModelBatch = ModelBatch(renderContext)
+	private val renderContext = RenderContext(DefaultTextureBinder(DefaultTextureBinder.LRU))
+	private val modelBatch = ModelBatch(renderContext)
 
 	private val fsquad = FullscreenQuad(1f)
 	private var lastComposition: ShaderComposition? = null
@@ -55,8 +54,7 @@ class EditorSceneRenderer : Renderer {
 		}
 		val composition = activeScene.shaderComposition ?: run {
 			if (noCompositionTable.parent == null) {
-				val table = noCompositionTable
-				uiManager.addTable(table, true, true)
+				uiManager.addTable(noCompositionTable, true, true)
 			}
 			return
 		}
@@ -69,15 +67,7 @@ class EditorSceneRenderer : Renderer {
 			bufferHandle.begin()
 			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT)
 
-			if (bufferHandle.data.inType === RenderBufferData.IN.GEOMETRY) {
-				modelBatch.begin(cam)
-				modelBatch.render(staticModelCache, bufferHandle.metaShader)
-				modelBatch.end()
-			} else {
-				bufferHandle.metaShader.begin(cam, renderContext)
-				fsquad.render(bufferHandle.metaShader.shaderProgram)
-				bufferHandle.metaShader.end()
-			}
+			renderPass(bufferHandle)
 
 			bufferHandle.end()
 			renderContext.end()
@@ -94,15 +84,7 @@ class EditorSceneRenderer : Renderer {
 		Gdx.gl20.glViewport(0, 0, cam.viewportWidth.toInt(), cam.viewportHeight.toInt())
 		val outputBuffer = composition.outputBuffer
 		if (outputBuffer != null) {
-			if (outputBuffer.data.inType === RenderBufferData.IN.GEOMETRY) {
-				modelBatch.begin(cam)
-				modelBatch.render(staticModelCache, outputBuffer.metaShader)
-				modelBatch.end()
-			} else {
-				outputBuffer.metaShader.begin(cam, renderContext)
-				fsquad.render(outputBuffer.metaShader.shaderProgram)
-				outputBuffer.metaShader.end()
-			}
+			renderPass(outputBuffer)
 		}
 
 		renderContext.end()
@@ -110,7 +92,18 @@ class EditorSceneRenderer : Renderer {
 
 		HdpiUtils.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
 		debugAll(x, y, bufferHandles)
+	}
 
+	private fun renderPass(bufferHandle: RenderBufferHandle) {
+		if (bufferHandle.data.inType === RenderBufferData.IN.GEOMETRY) {
+			modelBatch.begin(cam)
+			modelBatch.render(staticModelCache, bufferHandle.metaShader)
+			modelBatch.end()
+		} else {
+			bufferHandle.metaShader.begin(cam, renderContext)
+			fsquad.render(bufferHandle.metaShader.shaderProgram)
+			bufferHandle.metaShader.end()
+		}
 	}
 
 	private fun debugAll(x: Float, y: Float, bufferHandles: Array<RenderBufferHandle>) {

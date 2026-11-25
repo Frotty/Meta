@@ -15,16 +15,11 @@ class DesktopWindowHandler : WindowHandler, Lwjgl3WindowListener {
 	private lateinit var currentWindow: Lwjgl3Window
 	private var maximized = false
 
-	// WindowHandler documents x/y as "defaults to zero if unknown" - guard the same way focus() already does,
-	// so a read before created() fires (e.g. no window listener registered) degrades instead of crashing.
 	override val x: Int get() = if (::currentWindow.isInitialized) currentWindow.positionX else 0
 	override val y: Int get() = if (::currentWindow.isInitialized) currentWindow.positionY else 0
 	override val isMaximized: Boolean get() = maximized
 
 	override fun modify(x: Int, y: Int) {
-		// Guarded like every sibling below. This was the one that was not, and it is the one an application hits
-		// first: restoring the persisted display mode calls it, so a launcher that forgot `setWindowListener` got
-		// an UninitializedPropertyAccessException out of its first frame rather than a window in the wrong place.
 		if (!::currentWindow.isInitialized) return
 		log.debug { "Modify $currentWindow from ${this.x},${this.y} to $x,$y!" }
 		currentWindow.setPosition(x, y)
@@ -34,9 +29,7 @@ class DesktopWindowHandler : WindowHandler, Lwjgl3WindowListener {
 	override fun focus() {
 		if (!::currentWindow.isInitialized) return
 		currentWindow.setVisible(true)
-		// restoreWindow() also restores GLFW's previous window geometry. Calling it after a mode transition can undo
-		// setWindowedMode on Linux and resurrect the launcher's tiny bootstrap size (238x127). Focusing must not mutate
-		// size/position; explicit iconify restoration belongs to an explicit restore operation if one is ever needed.
+		// GLFW's restore operation can undo setWindowedMode on Linux by restoring the previous geometry.
 		currentWindow.focusWindow()
 	}
 
@@ -53,6 +46,7 @@ class DesktopWindowHandler : WindowHandler, Lwjgl3WindowListener {
 	}
 
 	override fun iconify() {
+		if (!::currentWindow.isInitialized) return
 		log.debug { "Iconify $currentWindow!" }
 		currentWindow.iconifyWindow()
 	}

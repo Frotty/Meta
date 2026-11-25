@@ -40,8 +40,6 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 				val fileTypeFilter = MetaFileTypeFilter(false)
 				fileTypeFilter.addRule("Meta Project File", "json")
 				fileChooser.setFileTypeFilter(fileTypeFilter)
-				fileChooser.fadeIn()
-				stage.keyboardFocus = fileChooser
 				fileChooser.setListener(object : MetaFileChooserAdapter() {
 					override fun selected(file: Array<FileHandle>) {
 						if (file.size == 1) {
@@ -54,6 +52,7 @@ class OpenProjectDialog : MetaDialog("Open Project", true) {
 					}
 				})
 				stage.addActor(fileChooser)
+				stage.keyboardFocus = fileChooser
 				fileChooser.fadeIn()
 			}
 		})

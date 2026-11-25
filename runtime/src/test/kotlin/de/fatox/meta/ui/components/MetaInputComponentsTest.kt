@@ -614,8 +614,8 @@ internal class MetaInputComponentsTest {
 	}
 
 	@Test
-	fun `re-attached widget self-heals fonts rebuilt while it was detached`() {
-		val secondFont = testFont()
+	fun `measurement and reattachment follow the configured font provider`() {
+		val secondFont = testFont().apply { data.setScale(2f) }
 		var currentFont = font
 		var generation = 0
 		val rebuildingProvider = object : FontProvider {
@@ -623,10 +623,17 @@ internal class MetaInputComponentsTest {
 			override fun write(x: Float, y: Float, text: String, size: Int, type: FontType) = Unit
 			override val fontGeneration: Int get() = generation
 		}
-		// The stale-check tracker injects the global provider, so the generation-bumping stub must be registered there.
-		global(clear = true) { singleton<FontProvider> { rebuildingProvider } }
-
 		val field = MetaInputField("text", fontProvider = rebuildingProvider)
+		val measuredField = MetaTextField("text", fontProvider = rebuildingProvider)
+		val area = object : MetaTextArea("one two three four five", fontProvider = rebuildingProvider) {
+			fun measureLines(): Int {
+				calculateOffsets()
+				return lines
+			}
+		}.apply { setSize(64f, 100f) }
+		val fieldHeight = measuredField.prefHeight
+		val areaHeight = area.prefHeight
+		val areaLines = area.measureLines()
 		val tabContent = Table().apply { add(field) }
 		val stage = Stage(TestViewport(), noopBatch())
 		stage.addActor(tabContent)
@@ -638,8 +645,18 @@ internal class MetaInputComponentsTest {
 		currentFont = secondFont
 		generation++
 
+		assertSame(font, measuredField.style.font)
+		assertSame(font, area.style.font)
+		assertTrue(measuredField.prefHeight > fieldHeight)
+		assertTrue(area.prefHeight > areaHeight)
+		assertTrue(area.measureLines() > areaLines)
+		assertSame(secondFont, measuredField.style.font)
+		assertSame(secondFont, area.style.font)
+
+		assertSame(font, field.style.font)
 		stage.addActor(tabContent)
 		assertSame(secondFont, field.style.font)
+		stage.dispose()
 	}
 
 	@Test
