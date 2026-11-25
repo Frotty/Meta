@@ -163,10 +163,7 @@ object MetaSkin {
 	private fun finalizeAtlas(skin: Skin) {
 		val packer = requirePacker()
 		packer.updatePageTextures(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear, false)
-		val pages = packer.pages
-		for (index in 0 until pages.size) {
-			pages[index].texture?.let { skin.add("$ATLAS_TEXTURE_PREFIX$index", it) }
-		}
+		registerAtlasTextures(packer, skin)
 		for (index in 0 until atlasEntries.size) {
 			val pending = atlasEntries[index]
 			val rect = checkNotNull(packer.getRect(pending.name)) { "Nothing was packed for ${pending.name}" }
@@ -263,12 +260,18 @@ object MetaSkin {
 
 		// After the re-point, so nothing is drawing from a texture that has been deleted.
 		disposeAtlas(previous, skin)
-		val pages = replacement.pages
-		for (index in 0 until pages.size) {
-			pages[index].texture?.let { skin.add("$ATLAS_TEXTURE_PREFIX$index", it) }
-		}
+		registerAtlasTextures(replacement, skin)
 		packer = replacement
 		atlasGeneration++
+	}
+
+	private fun registerAtlasTextures(atlas: PixmapPacker, skin: Skin) {
+		val pages = atlas.pages
+		for (index in 0 until pages.size) {
+			val texture = pages[index].texture ?: continue
+			// PixmapPacker uses a Texture subclass. Register the type used during teardown.
+			skin.add("$ATLAS_TEXTURE_PREFIX$index", texture, Texture::class.java)
+		}
 	}
 
 	private fun disposeAtlas(atlas: PixmapPacker, skin: Skin?) {

@@ -36,10 +36,9 @@ class AssetDiscovererWindow : MetaWindow("Asset Discoverer", true, true) {
 
 	private fun loadLastFolder() {
 		assetDiscoverer.setRoot("")
-		if (uiManager.metaHas(TAG)) {
-			val data = uiManager.metaGet<AssetDiscovererData>(TAG)
-			assetDiscoverer.openChild(data.lastFolder)
-		}
+		if (!uiManager.metaHas(TAG)) return
+		val data = uiManager.metaGet<AssetDiscovererData>(TAG) ?: return
+		assetDiscoverer.openChild(data.lastFolder)
 	}
 
 	private fun setup() {
