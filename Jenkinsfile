@@ -9,7 +9,7 @@ pipeline {
     options {
         timestamps()
         timeout(time: 45, unit: 'MINUTES')
-        disableConcurrentBuilds()
+        disableConcurrentBuilds(abortPrevious: env.CHANGE_ID != null)
         buildDiscarder(logRotator(numToKeepStr: '30', artifactDaysToKeepStr: '14'))
     }
     environment {
