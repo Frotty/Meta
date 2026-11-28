@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.CharArray
+import com.badlogic.gdx.utils.FloatArray as FloatBuffer
 import de.fatox.meta.api.graphics.FontProvider
 import de.fatox.meta.api.graphics.FontType
 import de.fatox.meta.api.graphics.physicalPixelsPerStageUnit
@@ -21,11 +22,16 @@ import de.fatox.meta.api.graphics.snapToPhysicalPixel
 import de.fatox.meta.injection.MetaInject.Companion.lazyInject
 import de.fatox.meta.ui.FontGenerationTracker
 import de.fatox.meta.ui.FontRefreshable
+import de.fatox.meta.ui.MetaColor
+import de.fatox.meta.ui.MetaSkin
+import de.fatox.meta.ui.MetaSpacing
 import de.fatox.meta.ui.MetaType
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.math.roundToInt
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * A text label, with optional word wrapping.
@@ -63,6 +69,12 @@ open class MetaLabel @JvmOverloads constructor(
 	private var fitMaxWidth: Float? = null
 	private var fitMinimumScale = 0.7f
 	private var ellipsis: String? = null
+	private var highlightQuery = ""
+	private var highlightColor: Color? = null
+	private var highlightedText: String? = null
+	private var highlightDrawable: Drawable? = null
+	private var highlightBounds: FloatBuffer? = null
+	internal val highlightCount: Int get() = (highlightBounds?.size ?: 0) / 4
 	private val drawPosition = Vector2()
 	private val oldBatchTransform = Matrix4()
 	private val drawTransform = Matrix4()
@@ -77,8 +89,50 @@ open class MetaLabel @JvmOverloads constructor(
 		if (textEquals(newText)) return
 		text.setLength(0)
 		text.append(newText)
+		updateHighlightedText()
 		invalidateHierarchy()
 		applyTextFit()
+	}
+
+	/**
+	 * Draws a rounded background around case-insensitive occurrences of a literal substring.
+	 * Pass an empty query to clear it.
+	 * The highlight follows [setText] and preserves the original text, wrapping and text fitting.
+	 */
+	@JvmOverloads
+	fun setHighlight(query: String, color: Color = MetaColor.SEARCH_MATCH) {
+		val queryChanged = query != highlightQuery
+		if (!queryChanged && (query.isEmpty() || color == highlightColor)) return
+		highlightQuery = query
+		highlightColor = if (query.isEmpty()) null else (highlightColor ?: Color()).set(color)
+		if (queryChanged && updateHighlightedText()) invalidate()
+	}
+
+	private fun updateHighlightedText(): Boolean {
+		val previous = highlightedText
+		val first = if (highlightQuery.isEmpty()) -1 else text.indexOf(highlightQuery, ignoreCase = true)
+		highlightedText = if (first < 0) null else buildString {
+			var start = 0
+			var match = first
+			while (match >= 0) {
+				appendLiteralText(text, start, match)
+				append("[#FF0000]")
+				start = match + highlightQuery.length
+				appendLiteralText(text, match, start)
+				append("[]")
+				match = text.indexOf(highlightQuery, start, ignoreCase = true)
+			}
+			appendLiteralText(text, start, text.length)
+		}
+		return previous != highlightedText
+	}
+
+	private fun StringBuilder.appendLiteralText(text: CharSequence, start: Int, end: Int) {
+		for (index in start until end) {
+			val character = text[index]
+			if (character == '[') append('[')
+			append(character)
+		}
 	}
 
 	fun textEquals(other: CharSequence): Boolean {
@@ -136,7 +190,7 @@ open class MetaLabel @JvmOverloads constructor(
 		val textHeight: Float
 		if (wrap || text.indexOf("\n") != -1) {
 			// If the text can span multiple lines, determine the text's actual size so it can be aligned within the label.
-			layout.setText(font, text, 0, text.length, Color.WHITE, width, lineAlign, wrap, ellipsis)
+			layoutText(font, width, wrap)
 			textWidth = layout.width
 			textHeight = layout.height
 			if (labelAlign and Align.left == 0) {
@@ -158,18 +212,93 @@ open class MetaLabel @JvmOverloads constructor(
 			else -> y += (height - textHeight) / 2
 		}
 		if (!bitmapFontCache.font.isFlipped) y += textHeight
-		layout.setText(font, text, 0, text.length, Color.WHITE, textWidth, lineAlign, wrap, ellipsis)
+		layoutText(font, textWidth, wrap)
 		// The font atlas is rasterized at [physicalScale] and its data scaled back into UI units. Rounding the
 		// baseline to a whole UI unit is only pixel-aligned at 100%; at 125%, for example, it lands on quarter pixels
 		// and linearly samples the otherwise native-resolution atlas. Snap the local cache offset to the same physical
 		// grid as the actor origin so their sum remains pixel-aligned at every UI/content scale.
 		val physicalScale = font.physicalPixelsPerUnit()
-		bitmapFontCache.setText(
-			layout,
-			snapToPhysicalPixel(x, physicalScale),
-			snapToPhysicalPixel(y, physicalScale),
-		)
+		val cacheX = snapToPhysicalPixel(x, physicalScale)
+		val cacheY = snapToPhysicalPixel(y, physicalScale)
+		layoutHighlightBackgrounds(font, cacheX, cacheY)
+		bitmapFontCache.setText(layout, cacheX, cacheY)
 		if (fontScaleX != oldScaleX || fontScaleY != oldScaleY) font.data.setScale(oldScaleX, oldScaleY)
+	}
+
+	private fun layoutText(font: BitmapFont, width: Float, wrap: Boolean) {
+		val highlighted = highlightedText
+		if (highlighted == null) {
+			glyphLayout.setText(font, text, 0, text.length, Color.WHITE, width, lineAlign, wrap, ellipsis)
+			return
+		}
+		val markupEnabled = font.data.markupEnabled
+		font.data.markupEnabled = true
+		try {
+			glyphLayout.setText(font, highlighted, 0, highlighted.length, Color.WHITE, width, lineAlign, wrap, ellipsis)
+		} finally {
+			font.data.markupEnabled = markupEnabled
+		}
+	}
+
+	private fun layoutHighlightBackgrounds(font: BitmapFont, x: Float, y: Float) {
+		highlightBounds?.clear()
+		if (highlightedText == null) return
+		val bounds = highlightBounds ?: FloatBuffer().also { highlightBounds = it }
+		val colors = glyphLayout.colors
+		val marker = Color.RED.toIntBits()
+		var nextColor = 0
+		var glyphIndex = 0
+		var matched = false
+		val data = font.data
+		val padX = MetaSpacing.XS
+		val padY = MetaSpacing.XXS
+		for (line in 0 until glyphLayout.runs.size) {
+			val run = glyphLayout.runs[line]
+			val cacheLineY = y + run.y + data.ascent
+			var glyphX = x + run.x
+			var left = Float.POSITIVE_INFINITY
+			var right = Float.NEGATIVE_INFINITY
+			var bottom = Float.POSITIVE_INFINITY
+			var top = Float.NEGATIVE_INFINITY
+			for (index in 0 until run.glyphs.size) {
+				if (nextColor < colors.size && colors[nextColor] == glyphIndex) {
+					matched = colors[nextColor + 1] == marker
+					nextColor += 2
+				}
+				glyphIndex++
+				glyphX += run.xAdvances[index]
+				if (matched) {
+					val glyph = run.glyphs[index]
+					if (glyph.width > 0 && glyph.height > 0) {
+						val inkLeft = glyphX + glyph.xoffset * data.scaleX
+						val inkBottom = cacheLineY + glyph.yoffset * data.scaleY
+						left = min(left, inkLeft)
+						right = max(right, inkLeft + glyph.width * data.scaleX)
+						bottom = min(bottom, inkBottom)
+						top = max(top, inkBottom + glyph.height * data.scaleY)
+					} else {
+						left = min(left, glyphX)
+						right = max(right, glyphX + run.xAdvances[index + 1])
+					}
+				}
+				if (left < right && (!matched || index == run.glyphs.size - 1)) {
+					// Match the baseline used by the font cache, then center the box on the visible ink.
+					val midpoint = if (bottom < top) (bottom + top) * 0.5f
+					else y + run.y + (if (font.isFlipped) 0.5f else -0.5f) * data.capHeight
+					val height = max(data.capHeight, top - bottom) + 2f * padY
+					bounds.add(left - padX, midpoint - height * 0.5f, right - left + 2f * padX, height)
+					left = Float.POSITIVE_INFINITY
+					right = Float.NEGATIVE_INFINITY
+					bottom = Float.POSITIVE_INFINITY
+					top = Float.NEGATIVE_INFINITY
+				}
+			}
+		}
+		// The color runs identify glyphs after wrapping/truncation. The glyphs themselves keep their usual color.
+		if (colors.size > 0) {
+			colors.truncate(2)
+			colors[1] = Color.WHITE.toIntBits()
+		}
 	}
 
 	override fun draw(batch: Batch, parentAlpha: Float) {
@@ -184,7 +313,7 @@ open class MetaLabel @JvmOverloads constructor(
 		adjustDrawPosition(drawPosition)
 		bitmapFontCache.setPosition(drawPosition.x, drawPosition.y)
 		if (rotation == 0f && scaleX == 1f && scaleY == 1f) {
-			bitmapFontCache.draw(batch)
+			drawText(batch, parentAlpha)
 			return
 		}
 
@@ -197,8 +326,27 @@ open class MetaLabel @JvmOverloads constructor(
 			.scale(scaleX, scaleY, 1f)
 			.translate(-x - originX, -y - originY, 0f)
 		batch.transformMatrix = drawTransform
-		bitmapFontCache.draw(batch)
+		drawText(batch, parentAlpha)
 		batch.transformMatrix = oldBatchTransform
+	}
+
+	private fun drawText(batch: Batch, parentAlpha: Float) {
+		val bounds = highlightBounds
+		val tint = highlightColor
+		if (bounds != null && bounds.size > 0 && tint != null) {
+			val drawable = highlightDrawable ?: MetaSkin.skin().getDrawable(MetaSkin.SEARCH_TEXT_HIGHLIGHT)
+				.also { highlightDrawable = it }
+			val original = batch.packedColor
+			batch.setColor(tint.r, tint.g, tint.b, tint.a * this.color.a * parentAlpha)
+			var index = 0
+			while (index < bounds.size) {
+				drawable.draw(batch, drawPosition.x + bounds[index], drawPosition.y + bounds[index + 1],
+					bounds[index + 2], bounds[index + 3])
+				index += 4
+			}
+			batch.packedColor = original
+		}
+		bitmapFontCache.draw(batch)
 	}
 
 	/** Allows specialized single-glyph labels to compensate for visual font bearings before actor transforms apply. */

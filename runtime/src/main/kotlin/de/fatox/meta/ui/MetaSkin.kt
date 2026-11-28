@@ -64,6 +64,8 @@ object MetaSkin {
 	/** A floating pill for button prompts: rounded all round, because it sits above the edge rather than on it. */
 	const val PROMPT_BAR = "meta.promptBar"
 	const val COLOR_FILL = "meta.color.fill"
+	internal const val SEARCH_HIGHLIGHT = "meta.searchHighlight"
+	internal const val SEARCH_TEXT_HIGHLIGHT = "meta.searchTextHighlight"
 	const val LOADING_RING = "meta.loading.ring"
 	internal const val LOADING_SKELETON_HIGHLIGHT = "meta.loading.skeleton.highlight"
 	const val WINDOW = "meta.window"
@@ -538,6 +540,9 @@ object MetaSkin {
 		rounded(skin, "meta.field.disabled", MetaColor.FILL_SUNKEN, MetaColor.BORDER_DISABLED, radius = FIELD_RADIUS, border = 1, padding = 7f)
 		rounded(skin, "meta.field.focusBorder", TRANSPARENT, MetaColor.ACCENT_BRIGHT, radius = FIELD_RADIUS, border = 2, padding = 0f)
 		rounded(skin, "meta.field.errorBorder", TRANSPARENT, MetaColor.NEGATIVE, radius = FIELD_RADIUS, border = 2, padding = 0f)
+		rounded(skin, SEARCH_HIGHLIGHT, TRANSPARENT, MetaColor.SEARCH_MATCH, radius = 4, border = 2, padding = 0f)
+		rounded(skin, SEARCH_TEXT_HIGHLIGHT, Color(1f, 1f, 1f, 0.14f), Color(1f, 1f, 1f, 0.62f),
+			radius = 4, border = 1, padding = 0f)
 		rounded(skin, "meta.selection", MetaColor.SELECTION, null, radius = 3, border = 0, padding = 4f)
 		rounded(skin, "meta.dropdown.over", MetaColor.TERTIARY_HOVER, null, radius = 5, border = 0, padding = 6f)
 		rounded(skin, "meta.dropdown.selection", MetaColor.SELECTION_FILL, MetaColor.ACCENT_DIM, radius = 5, border = 1, padding = 6f)

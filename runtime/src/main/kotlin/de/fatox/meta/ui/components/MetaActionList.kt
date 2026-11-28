@@ -113,6 +113,13 @@ class MetaActionRow @JvmOverloads constructor(
 
 	fun onActivate(action: () -> Unit): MetaActionRow = apply { activation = action }
 
+	/** Draws a rounded search highlight in both the title and subtitle. */
+	fun setSearchHighlight(query: String) {
+		titleLabel.setHighlight(query)
+		subtitleLabel.setHighlight(query)
+		textColumn.mainGap = if (query.isEmpty()) MetaSpacing.XXS else MetaSpacing.XS
+	}
+
 	fun dismissActions() {
 		popup?.remove()
 		popup = null
