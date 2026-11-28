@@ -42,7 +42,7 @@ open class MetaFlexBox(
 	)
 
 	private val itemSpecs = ObjectMap<Actor, ItemSpec>()
-	private var responsiveExcludedItems: ObjectSet<Actor>? = null
+	private var excludedItems: ObjectSet<Actor>? = null
 	private var measuredMainSize = Float.NaN
 	private var itemCapacity = 0
 	private var measuredItemCount = 0
@@ -220,7 +220,7 @@ open class MetaFlexBox(
 	override fun clearChildren(unfocus: Boolean) {
 		responsiveConfiguration?.clearItems()
 		itemSpecs.clear()
-		responsiveExcludedItems?.clear()
+		excludedItems?.clear()
 		super.clearChildren(unfocus)
 		invalidateHierarchy()
 	}
@@ -381,7 +381,7 @@ open class MetaFlexBox(
 		measuredItemCount = 0
 		for (childIndex in 0 until children.size) {
 			val actor = children[childIndex]
-			if (responsiveExcludedItems?.contains(actor) == true) continue
+			if (excludedItems?.contains(actor) == true) continue
 			val index = measuredItemCount++
 			itemChildIndex[index] = childIndex
 			val spec = itemSpecs[actor]
@@ -621,7 +621,7 @@ open class MetaFlexBox(
 		fun height(base: Float?): MetaResponsiveValue<Float?> = basisHeight(base)
 
 		internal fun apply(width: Float, height: Float) {
-			visible?.resolve(width, height)?.let { flex.setResponsiveVisible(actor, it) }
+			visible?.resolve(width, height)?.let { flex.setItemVisible(actor, it) }
 			if (!hasSizingRules()) return
 			val responsiveWidth = basisWidth
 			val responsiveHeight = basisHeight
@@ -679,11 +679,12 @@ open class MetaFlexBox(
 	private fun minimumWidth(actor: Actor): Float = (actor as? Layout)?.minWidth ?: actor.width
 	private fun minimumHeight(actor: Actor): Float = (actor as? Layout)?.minHeight ?: actor.height
 
-	private fun setResponsiveVisible(actor: Actor, visible: Boolean) {
+	/** Sets visibility and collapses hidden items out of flex measurement, including their gap. */
+	internal fun setItemVisible(actor: Actor, visible: Boolean) {
 		val participationChanged = if (visible) {
-			responsiveExcludedItems?.remove(actor) == true
+			excludedItems?.remove(actor) == true
 		} else {
-			val excluded = responsiveExcludedItems ?: ObjectSet<Actor>().also { responsiveExcludedItems = it }
+			val excluded = excludedItems ?: ObjectSet<Actor>().also { excludedItems = it }
 			excluded.add(actor)
 		}
 		val visibilityChanged = actor.isVisible != visible
@@ -693,7 +694,7 @@ open class MetaFlexBox(
 	}
 
 	private fun clearResponsiveVisibility(actor: Actor, visible: Boolean) {
-		val participationChanged = responsiveExcludedItems?.remove(actor) == true
+		val participationChanged = excludedItems?.remove(actor) == true
 		val visibilityChanged = actor.isVisible != visible
 		if (!participationChanged && !visibilityChanged) return
 		actor.isVisible = visible
@@ -702,7 +703,7 @@ open class MetaFlexBox(
 
 	private fun cleanupRemovedActor(actor: Actor) {
 		itemSpecs.remove(actor)
-		responsiveExcludedItems?.remove(actor)
+		excludedItems?.remove(actor)
 		responsiveConfiguration?.removeActor(actor)
 		invalidateHierarchy()
 	}

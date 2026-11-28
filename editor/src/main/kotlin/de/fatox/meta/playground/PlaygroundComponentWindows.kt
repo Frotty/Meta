@@ -4,6 +4,7 @@ import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Container
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.Array
 import com.badlogic.gdx.utils.Disposable
@@ -32,6 +33,7 @@ import de.fatox.meta.ui.components.MetaFlexAlign
 import de.fatox.meta.ui.components.MetaFlexBox
 import de.fatox.meta.ui.components.MetaFlexDirection
 import de.fatox.meta.ui.components.MetaFlexJustify
+import de.fatox.meta.ui.components.MetaHighlight
 import de.fatox.meta.ui.components.MetaIcon
 import de.fatox.meta.ui.components.MetaIconButton
 import de.fatox.meta.ui.components.MetaIconButtonGroup
@@ -44,14 +46,19 @@ import de.fatox.meta.ui.components.MetaListView
 import de.fatox.meta.ui.components.MetaLoadingSpinner
 import de.fatox.meta.ui.components.MetaMenu
 import de.fatox.meta.ui.components.MetaMenuItem
+import de.fatox.meta.ui.components.MetaScrollPane
 import de.fatox.meta.ui.components.MetaSelectBox
 import de.fatox.meta.ui.components.MetaSeparator
+import de.fatox.meta.ui.components.MetaSettingsSearch
+import de.fatox.meta.ui.components.MetaSettingsSearchEntry
 import de.fatox.meta.ui.components.MetaSpinner
 import de.fatox.meta.ui.components.MetaTable
+import de.fatox.meta.ui.components.MetaTabbedPane
 import de.fatox.meta.ui.components.MetaTextArea
 import de.fatox.meta.ui.components.MetaTextButton
 import de.fatox.meta.ui.components.MetaTextField
 import de.fatox.meta.ui.components.SliderWithButtons
+import de.fatox.meta.ui.tabs.MetaTab
 import de.fatox.meta.ui.windows.MetaWindow
 import kotlin.math.roundToInt
 
@@ -93,9 +100,24 @@ class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true,
 	private val activeTool = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
 	private val checkBox = MetaCheckBox(initialChecked = true)
 	private val checkState = MetaLabel("", MetaType.CAPTION, MetaColor.TEXT_MUTED)
+	private val searchField = MetaTextField("", placeholder = "Search settings")
+	private val settingsSearch = MetaSettingsSearch()
+	private val searchBody = Container<Actor>().fill()
+	private val tabBody = Container<Actor>().fill()
+	private val tabs = MetaTabbedPane()
+	private val textTab = SettingsTab("Input controls")
+	private val preferencesTab = SettingsTab("Preferences")
+	private val tabView = MetaFlexBox(
+		direction = MetaFlexDirection.COLUMN,
+		align = MetaFlexAlign.STRETCH,
+	).apply {
+		addItem(tabs.layout, minWidth = 0f, shrink = 0f)
+		addItem(tabBody, basisHeight = 0f, minHeight = 0f, minWidth = 0f, grow = 1f)
+	}
+	private val searchEntries = mutableListOf<MetaSettingsSearchEntry>()
 
 	init {
-		setDefaultSize(650f, 430f)
+		setDefaultSize(650f, 525f)
 		contentTable.pad(MetaSpacing.SM)
 		contentTable.defaults().left().growX().padBottom(MetaSpacing.SM)
 
@@ -148,26 +170,68 @@ class ControlsPlaygroundWindow : MetaWindow("Buttons & Input", resizable = true,
 		}
 		contentTable.add(tools).row()
 
-		val fields = MetaTable().apply {
-			defaults().left().padBottom(MetaSpacing.SM)
-			add(fieldLabel("Text field")).width(110f)
-			add(MetaTextField("", placeholder = "Editable text")).growX().height(MetaControlSize.STANDARD.height).row()
-			add(fieldLabel("Input field")).width(110f)
-			add(MetaInputField("", placeholder = "Validation-ready input")).growX().height(MetaControlSize.STANDARD.height).row()
-			add(fieldLabel("Text area")).width(110f).top()
-			add(MetaTextArea("Multiline editor\nResize the window around me.", prefRows = 2f)).growX().height(72f).row()
-			add(fieldLabel("Checkbox")).width(110f)
-			add(MetaTable().apply {
-				add(checkBox).size(MetaControlSize.COMPACT.iconTarget).padRight(MetaSpacing.SM)
-				add(checkState).left()
-			}).left()
-		}
-		contentTable.add(fields).grow()
+		tabs.add(textTab)
+		tabs.add(preferencesTab)
+		addSearchableField(textTab, "Text field", MetaTextField("", placeholder = "Editable text"))
+		addSearchableField(textTab, "Input field", MetaInputField("", placeholder = "Validation-ready input"), keywords = listOf("validation"))
+		addSearchableField(textTab, "Text area", MetaTextArea("Multiline editor\nResize the window around me.", prefRows = 2f), height = 72f)
+		addSearchableField(preferencesTab, "Show tooltips", preferenceCheckBox(initialChecked = true))
+		addSearchableField(preferencesTab, "Controller hints", preferenceCheckBox(initialChecked = true))
+		addSearchableField(preferencesTab, "Reduce motion", preferenceCheckBox(initialChecked = false))
+		addSearchableField(preferencesTab, "Confirm changes", MetaTable().apply {
+			left()
+			add(checkBox).size(MetaControlSize.COMPACT.iconTarget).padRight(MetaSpacing.SM)
+			add(checkState).left()
+		}, keywords = listOf("toggle"))
+		addSearchableField(preferencesTab, "Text guidance", preferenceCheckBox(initialChecked = true))
+		settingsSearch.submit(searchEntries)
+		contentTable.add(searchField).height(MetaControlSize.STANDARD.height).row()
+		contentTable.add(searchBody).height(200f).row()
 	}
+
+	private fun preferenceCheckBox(initialChecked: Boolean) =
+		Container(MetaCheckBox(initialChecked = initialChecked)).left().size(MetaControlSize.COMPACT.iconTarget)
 
 	override fun onShown() {
 		reactiveScope.bindText(activeTool) { "Active tool: ${toolGroup.selectedButtonValue()?.name ?: "None"}" }
 		reactiveScope.bindText(checkState) { if (checkBox.checkedValue()) "Enabled" else "Disabled" }
+		settingsSearch.bindQuery(reactiveScope) { searchField.textValue() }
+		reactiveScope.effect("Playground.settingsTab") {
+			tabBody.actor = (tabs.activeMetaTabValue() as? SettingsTab)?.scrollPane
+		}
+		reactiveScope.effect("Playground.settingsSearch") {
+			searchBody.actor = if (searchField.textValue().isBlank()) tabView else settingsSearch
+		}
+	}
+
+	private fun addSearchableField(
+		tab: SettingsTab,
+		title: String,
+		control: Actor,
+		height: Float = MetaControlSize.STANDARD.height,
+		keywords: List<String> = emptyList(),
+	) {
+		val label = fieldLabel(title)
+		val row = MetaFlexBox(align = MetaFlexAlign.CENTER).apply {
+			addItem(label, basisWidth = 110f, shrink = 0f)
+			addItem(control, basisHeight = height, minWidth = 0f, grow = 1f)
+		}
+		val paddedRow = Container(row).fill().pad(0f, MetaSpacing.XS, 0f, MetaSpacing.XS)
+		val target = MetaHighlight(paddedRow)
+		tab.contentTable.add(target).growX().row()
+		searchEntries.add(MetaSettingsSearchEntry(title, tab.tabTitle, keywords) {
+			tabs.switchTab(tab)
+			searchField.setText("")
+			target
+		})
+	}
+
+	private class SettingsTab(override val tabTitle: String) : MetaTab(isCloseableByUser = false) {
+		override val contentTable = MetaTable().apply {
+			top()
+			defaults().spaceBottom(MetaSpacing.XS)
+		}
+		val scrollPane = MetaScrollPane(contentTable).apply { setScrollingDisabled(true, false) }
 	}
 
 	private fun tool(label: String, icon: String) = MetaIconButton(icon).apply {

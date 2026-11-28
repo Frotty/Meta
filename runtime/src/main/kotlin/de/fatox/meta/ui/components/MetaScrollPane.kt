@@ -2,6 +2,7 @@ package de.fatox.meta.ui.components
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
@@ -9,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
+import com.badlogic.gdx.scenes.scene2d.utils.Layout
 import de.fatox.meta.api.extensions.MetaLoggerFactory
 import de.fatox.meta.api.extensions.debug
 import de.fatox.meta.ui.MetaSkin
@@ -105,6 +107,52 @@ class MetaScrollPane : ScrollPane {
 			}
 		}
 	}
+}
+
+/** Makes a mounted, visible actor's bounds visible in enclosing Meta scroll panes, from the inside out. */
+fun Actor.scrollIntoView(): Boolean {
+	if (stage == null) return false
+	var ancestor: Actor? = this
+	while (ancestor != null) {
+		if (!ancestor.isVisible) return false
+		ancestor = ancestor.parent
+	}
+	validateAncestors(this)
+	val point = Vector2()
+	ancestor = parent
+	while (ancestor != null) {
+		if (ancestor is MetaScrollPane) {
+			val content = ancestor.actor
+			if (content != null && isDescendantOf(content)) {
+				var minX = Float.POSITIVE_INFINITY
+				var minY = Float.POSITIVE_INFINITY
+				var maxX = Float.NEGATIVE_INFINITY
+				var maxY = Float.NEGATIVE_INFINITY
+				for (corner in 0..3) {
+					localToAscendantCoordinates(content, point.set(
+						if (corner and 1 == 0) 0f else width,
+						if (corner and 2 == 0) 0f else height,
+					))
+					minX = minOf(minX, point.x)
+					minY = minOf(minY, point.y)
+					maxX = maxOf(maxX, point.x)
+					maxY = maxOf(maxY, point.y)
+				}
+				ancestor.scrollTo(minX, minY, maxX - minX, maxY - minY)
+				ancestor.updateVisualScroll()
+				ancestor.invalidate()
+				ancestor.validate()
+			}
+		}
+		ancestor = ancestor.parent
+	}
+	return true
+}
+
+private fun validateAncestors(actor: Actor?) {
+	if (actor == null) return
+	validateAncestors(actor.parent)
+	(actor as? Layout)?.validate()
 }
 
 internal fun Actor?.nearestScrollableMetaScrollPane(): MetaScrollPane? {

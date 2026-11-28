@@ -112,6 +112,8 @@ object MetaColor {
 	val ACCENT_DIM: Color = Color.valueOf("4BB3CCFF")
 	/** Near-white accent for high-emphasis focus halos on already-accented controls. */
 	val ACCENT_BRIGHT: Color = Color.valueOf("C9F6FFFF")
+	/** Muted lavender for search matches and their destination. */
+	val SEARCH_MATCH: Color = Color.valueOf("B6A8E4FF")
 	val POSITIVE: Color = Color.valueOf("6FCF63FF")
 	/** Light enough to stay WCAG AA as error text/icon on SURFACE_RAISED; also used for error borders. */
 	val NEGATIVE: Color = Color.valueOf("F88F83FF")
